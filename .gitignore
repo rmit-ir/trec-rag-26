@@ -1,19 +1,30 @@
+# Secrets and local config
+.env
 .env.local
+.env.*.local
 .curlrc.pyserini-rest
+
+# OS files
 .DS_Store
+Thumbs.db
 
 # Python development artifacts
 __pycache__/
-*.pyc
-*.pyo
-*.pyd
+*.py[cod]
+*$py.class
 .Python
+*.egg
 *.egg-info/
 dist/
 build/
+
+# Test and type-checking caches
 .pytest_cache/
+.mypy_cache/
+.ruff_cache/
 .coverage
-*.egg
+.coverage.*
+htmlcov/
 
 # IDE and editor files
 .vscode/
@@ -24,20 +35,19 @@ build/
 *.swo
 *~
 
-# Data and output directories
-*.log
-output/
-runs/
-results/
-data/
-
-# Virtual environments
-venv/
+# Virtual environments (uv default is .venv)
 .venv/
+venv/
 env/
 
-# Dependency lock files
-poetry.lock
-requirements-lock.txt
+# Logs, data, and run outputs
+*.log
+data/
+runs/
+results/
+output/
 
+# Git worktrees
 /worktrees/
+
+# Note: uv.lock is intentionally tracked — commit it for reproducible installs.
