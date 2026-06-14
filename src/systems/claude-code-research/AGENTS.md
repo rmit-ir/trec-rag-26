@@ -6,6 +6,8 @@ Treat each question as a new, self-contained research task. Do not read files fr
 
 ## Task setup
 
+**Determining scope.** Infer the scope and deliverable from the request as a whole — the full set of requirements, not any single word, opening framing, or stated format. Where these conflict (e.g. light framing like "outline", "summary", or "quick look" alongside substantial research requirements, or a named format that is smaller than what the content demands), the concrete requirements define the real ask, and they take precedence. Resolve any remaining scope ambiguity toward the most complete reasonable interpretation that stays within the question, deliver the full, fully-researched answer it implies, and note the interpretation in `workflow.md`. Proceed on your best reading rather than pausing to ask; only honor a smaller deliverable when the request asks for it clearly and consistently throughout.
+
 At task start, create one task folder:
 
 `./outputs/<snake_case_task_title>_<YYYYMMDD_HHMMSS>/`
@@ -15,7 +17,7 @@ Write everything for this task inside it. Within the task folder, also create a 
 Produce two files in the task folder:
 
 - **`answer.md`** — the final answer. Every claim must be supported by a credible (and ideally original) source and cited inline. If a claim is not supported, do not include it.
-- **`workflow.md`** — a record of *what you did* during research (not the content of the answer). Include: a mermaid flowchart of your process, the steps you designed (per Research Workflow), the budget you set and any extensions, the sources you consulted, and how you synthesized them into the final answer. Keep it concise, and update it as you go so it stays current through to completion.
+- **`workflow.md`** — a record of *what you did* during research (not the content of the answer). Include: an accurate and detailed mermaid flowchart of your process, the steps you designed (per Research Workflow), the budget you set and any extensions, the sources you consulted, and how you synthesized them into the final answer. Keep content other than the flowchart concise, and update it as you go so it stays current through to completion.
 
 Ground all outputs in credible sources and cite them in both the scratchpad and `answer.md`.
 
