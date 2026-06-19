@@ -1,0 +1,77 @@
+# S4 — FIFA WC2026 Media Rights & Host-Broadcast Production
+
+Research date: 2026-06-15. Tournament: 11 June – 19 July 2026, USA/Canada/Mexico, 48 teams, 104 matches, 16 host cities.
+
+---
+
+## A) FIFA MEDIA-RIGHTS / BROADCAST CONTRACTS STRUCTURE
+
+### How FIFA sells media rights
+- FIFA owns global World Cup media rights and **licenses them territory-by-territory** (country or regional packages), not under one worldwide contract. Each market gets its own mix of TV, radio, mobile and internet packages, and in many territories multiple broadcasters share coverage. Source: https://www.fifaworldcupnews.com/fifa-world-cup-2026-broadcasting-rights/
+- FIFA appoints **one Host Broadcaster** (HBS — Host Broadcast Services) to produce the base "World Feed"/multilateral coverage of every match; every rights-holding broadcaster worldwide pulls that feed (for 2026 from the International Broadcast Center in Dallas). Source: https://www.fifaworldcupnews.com/fifa-world-cup-2026-broadcasting-rights/
+- FIFA's official Media Rights Licensees overview (PDF) lists licensed broadcasters by territory: https://digitalhub.fifa.com/m/af2cdbbd380d70c/original/FWC26-Media-Rights-Licensees-Overview.pdf
+- 2024 was described by FIFA as a successful sales year, "with FIFA signing broadcast deals in over 20 markets," with further key European tenders launched in early 2025. Source (FIFA official): https://inside.fifa.com/tournament-organisation/commercial/news/uk-media-rights-2026-2030-world-cups-bbc-itv
+
+### Revenue / market context
+- **Caretta Research** forecasts a record ~**$8.9bn total revenue** for WC2026 (up 54% vs 2022's ~$5.8bn), driven mainly by tournament expansion (32→48 teams, 64→104 matches, +47% match inventory). BUT broadcast-specific metrics are weaker: **per-game rights value down ~19%**, and the **number of broadcast deals fell ~11% to 443 (from 495 in 2022)**. Cause: middle-of-the-night kickoffs for major global markets + rising production costs discouraged bidders. Sources: https://www.svgeurope.org/blog/headlines/fifa-world-cup-2026-record-revenue-masks-19-per-game-rights-value-fall-and-11-broadcast-deal-volume-drop/ ; https://www.advanced-television.com/2026/06/10/research-record-world-cup-revenue-masks-19-per-game-rights-value-fall ; https://www.sportsvideo.org/2026/06/10/caretta-research-2026-world-cup-revenue-growth-due-to-more-matches-rights-revenue-up-32-percent/
+- **Ampere Analysis** separately projected the US alone driving record commercial revenues "beyond $6bn." Source: https://www.tvtechnology.com/business/ampere-us-to-power-record-fifa-mens-world-cup-broadcast-commercial-revenues-beyond-usd6b
+
+### Key named broadcast/streaming deals (values where public)
+- **USA — Fox (English) + Telemundo/NBCUniversal (Spanish):** exclusive US rights to all 104 matches. Fox airs 70 matches on the main network, 34 on FS1. Widely reported deal values for the cycle: **Fox ≈ $480m (English)**, **Telemundo ≈ $465m (Spanish)** — together ~$1.25bn. These rights were awarded in Feb 2015 (without competitive bid) partly as compensation for Qatar 2022 moving to Nov/Dec. NOTE: the older/commonly cited figures are Fox ~$425M / Telemundo ~$600M for the 2018+2026 cycle; the $480m/$465m figures are the more recent HITC reporting — treat as estimates/reported, not FIFA-confirmed. Sources: https://www.hitc.com/how-much-fifa-are-making-from-2026-world-cup-broadcasting-deals-including-480m-fox-contract/ ; https://cryptobriefing.com/fox-nbcuniversal-2026-fifa-world-cup-broadcast-rights/ ; https://www.si.com/soccer/2015/02/12/fifa-fox-usa-tv-rights-world-cup-2026-telemundo
+- **UK — BBC + ITV:** confirmed by FIFA officially for **both WC2026 and WC2030**. Rights shared equally across TV/audio/digital, including a **shared final**. BBC ≈ 54 live games (BBC One/Two, iPlayer; radio on 5 Live & 5 Sports Extra); ITV ≈ 51 live games (ITV1, ITV4, ITVX). **All 104 matches free-to-air**, no subscription. Value not disclosed. Source (FIFA official): https://inside.fifa.com/tournament-organisation/commercial/news/uk-media-rights-2026-2030-world-cups-bbc-itv ; https://www.ibtimes.co.uk/bbc-itv-2026-world-cup-free-uk-1802243
+- **France — M6 Group:** official broadcaster for both WC2026 and WC2030 (Businesswire/M6 release, Mar 2024). Source: https://www.businesswire.com/news/home/20240307395097/en/M6-Official-Broadcaster-of-the-Two-World-Cup-Fifa-2026TM-and-Fifa-2030TM
+- **Norway — NRK + TV 2** hold the rights (per SVG Europe coverage). Source: https://www.svgeurope.org/blog/headlines/fifa-world-cup-2026-nrk-on-planning-for-record-breaking-viewing-figures-from-its-revamped-studio-in-oslo/
+- **Australia — SBS:** every match free on SBS / SBS On Demand. Source: https://www.whathifi.com/streaming-entertainment/watch-world-cup-2026-free
+- **US streaming/OTT sublicensing:** matches available via **fubo** (free trial), **Fox One** (Fox direct-to-consumer streaming app, bundling Fox + FS1, 3-day trial). Sources: https://sports.yahoo.com/articles/world-cup-2026-free-live-140001171.html ; https://www.fox.com/soccer/fifa-world-cup
+
+### Free-to-air / "listed events" regulation
+- **UK (Ofcom listed events):** The FIFA World Cup Finals (all matches) is a **Group A / Category A "Crown Jewels" listed event** — live coverage must be made available to free-to-air channels (qualifying FTA broadcasters); pay-TV may only share, not take exclusively. Ofcom received and granted BBC/ITV consent requests to broadcast the 2026 and 2030 finals tournaments. Sources: https://www.ofcom.org.uk/tv-radio-and-on-demand/listed-sporting-events ; https://en.wikipedia.org/wiki/Ofcom_Code_on_Sports_and_Other_Listed_and_Designated_Events
+- **EU:** Under the Audiovisual Media Services Directive (AVMSD), member states may designate "events of major importance for society" that must be on free TV; many EU states list the World Cup (final stages or all matches), which is why markets like France (M6) and the Nordics keep the World Cup on FTA. (General AVMSD framework — specific national lists vary; flagged: I did not retrieve a single consolidated 2026 EU listed-events table.) Reference: https://www.ofcom.org.uk/tv-radio-and-on-demand/listed-sporting-events
+
+### FIFA+ / FIFA app — does FIFA stream matches directly?
+- **FIFA+ (plus.fifa.com)** carries highlights, press conferences, behind-the-scenes and archive content during the tournament. It does **NOT** carry live match coverage in territories where exclusive live rights belong to a local partner — i.e. virtually every major market. FIFA+ acts as the **global backup**, carrying replays/highlights and **selected live content only in markets without a confirmed broadcaster**. Source: https://www.fifaworldcupnews.com/fifa-world-cup-2026-broadcasting-rights/
+- (FIFA+ has streamed live qualifying matches in some territories, e.g. CAF qualifiers — confirming the model where it fills gaps. Source: https://www.tomsguide.com/entertainment/sports/watch-cameroon-vs-dr-congo-world-cup-2026-qualifying-free)
+
+### Digital / OTT sublicensing — YouTube (notable 2026 first)
+- **FIFA × YouTube "Preferred Platform" deal** (announced March 2026): For the first time, **Media Partners can live-stream the first 10 minutes of every match on their YouTube channels**, and stream a select number of matches in full on YouTube. FIFA also unlocks archive content (full past matches) on its official YouTube channel, and launched a **YouTube FIFA Creator Cup** (New York) with 24 global creators (~350M+ combined subscribers). Sources (FIFA official + YouTube): https://inside.fifa.com/organisation/media-releases/fifa-youtube-agreement-fifa-world-cup-2026-preferred-platform ; https://blog.youtube/news-and-events/fifa-world-cup-2026-youtube-partnership/ ; https://www.svgeurope.org/blog/headlines/fifa-agrees-deal-with-youtube-for-live-match-coverage-and-creator-content/
+- **DAZN** unveiled an enhanced in-app immersive experience for WC2026. Source: https://www.svgeurope.org/blog/headlines/ (DAZN immersive in-app experience item, 12 Jun 2026)
+
+---
+
+## B) HOST-BROADCAST PRODUCTION / TECHNICAL SPECS (HBS, WC2026)
+
+### Master feed / resolution & HDR — KEY FINDING (downgrade vs Qatar 2022)
+- WC2026 is **NOT produced in native 4K**. The two primary host/broadcast feeds are **1080p60 SDR and 1080p60 HDR**. A **4K HDR (HLG)** feed is offered to rights holders but is upconverted from 1080p and is not available everywhere (requires fiber-based distribution). Many broadcasters **upconvert the 1080p feed to 4K** before it reaches viewers. Source: https://www.flatpanelshd.com/news.php?subaction=showfull&id=1781005470 ; https://worldcuppass.com/watch-world-cup-in-4k/
+- Standardization is on **4K HDR** as the consumer ceiling, with "little experimentation in consumer formats" this year. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+- **US specific — Fox:** Fox confirmed it changed its workflow so its stream is **no longer native 4K — source feed is 1080p HDR, upconverted to 4K** (same approach as Super Bowl LIX). The 4K HDR feed out of the US may be **native HDR but the 4K resolution is upconverted from 1080p**. Sources: https://x.com/UHD4k/status/1985428351943594300 ; https://www.flatpanelshd.com/news.php?subaction=showfull&id=1781005470
+- Whole tournament described as delivering **"104 matches in UHD HDR"** and ~**9,000 hours of content** — but "UHD HDR" here is the distributed/upconverted deliverable, not native-4K acquisition. Source: https://www.sportsvideo.org/2026/06/12/how-decentralized-production-may-well-be-the-legacy-of-the-2026-fifa-world-cup/ (article confirms 1080p60 SDR + 1080p60 HDR primary feeds)
+
+### Qatar 2022 baseline (for comparison)
+- Qatar 2022: all 64 matches captured in **native 4K UHD and HDR**. UHD/HDR from standard cameras at **50fps**, with **1080p from cameras shooting 150fps+ (HFR)**. OB vans produced multiple deliverables: **UHD HDR + a pair of HD signals (1080p50 and 1080i50)**. Sources: https://www.sportsvideo.org/2022/11/18/fifa-world-cup-2022-overview-of-fifa-world-cup-match-coverage-plans/ ; https://www.broadcastnow.co.uk/tech/innovation-strikes-at-world-cup/5129982.article
+- **Net comparison:** Qatar 2022 = native 4K UHD HDR master. WC2026 = **1080p60 HDR (HLG) master with 4K via upconversion** — a step back in native acquisition resolution, traded for scale (104 vs 64 matches) and a centralized/decentralized cloud production model. This is the single most important technical nuance for 2026 streaming-quality analysis.
+
+### Decentralized / centralized production model (the "legacy" of 2026)
+- **International Broadcast Center (IBC):** Kay Bailey Hutchison Convention Center, downtown **Dallas**, ~**45,000 m² (484,000 sq ft)**; ~12,000 m² of multilateral production areas. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras ; https://www.sportsvideo.org/2026/06/12/how-decentralized-production-may-well-be-the-legacy-of-the-2026-fifa-world-cup/
+- Each of 16 stadiums has a dedicated on-site production team (producer/director) for main match coverage, but **replay, audio mixing, graphics, and shading are centralized in Dallas** for every match — operators work on multiple matches from one facility. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+- **Software-based / COTS infrastructure:** fully converged **ST-2110** network spanning all sites; signal processing (multiviewers, compression/decompression, **HDR↔SDR conversion**) distributed across COTS servers; mix of public + private cloud (per Christophe Barbé, Head of Broadcast Infrastructures, HBS). Source: https://www.sportsvideo.org/2026/06/12/how-decentralized-production-may-well-be-the-legacy-of-the-2026-fifa-world-cup/
+- **London post-production/editing hub** (replicating the 2023 Women's World Cup model). Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+
+### Contribution feed / bitrate / network
+- **Verizon broadcast contribution network** carries **~7 Tb/s (terabits per second)** of data capacity from the 16 venues back to the Dallas IBC. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+- Verizon also deployed **private 5G networks at all 16 venues** (e.g. carries the Lenovo RefCam over private 5G, not the main contribution net); public 5G upgraded 3–5× at the 11 US venues for fan uploads. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+- FLAGGED / UNAVAILABLE: HBS has not publicly disclosed a per-match contribution bitrate or the encoder/codec (e.g. JPEG-XS / specific Mbps) for the master feed — only the aggregate ~7 Tb/s figure and "ST-2110 over COTS." Per-feed distribution bitrates to broadcasters are also not public.
+
+### Cameras / immersive / 8K
+- **45 cameras per match** across all 104 fixtures (baseline). Mix: polecams, cablecams, **RefCams** (full deployment across all 104 matches — a World Cup first, dev by FIFA + Lenovo AI stabilization, NOT part of ISO feeds for media partners), cine-style cameras, **360-degree cameras**, and "digital-first devices" (potentially iPhones, for content). From Round of 32: additional **Ultra Motion / super-slow-motion** cameras + player (body-worn) cameras. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+- **Semi-Automated Offside Technology (SAOT):** 10–14 dedicated tracking cameras per stadium, tracking 29 skeletal points per player; feeds VAR run centrally from Dallas; Lenovo AI 3D player avatars used to render offside decisions. Source: https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras
+- **Audio:** each match gets a **full immersive mix, a 5.1 mix, and a stereo mix**, produced at the IBC. Source: https://www.wionews.com/sports/104-matches-16-cities-3-countries-the-massive-broadcast-operation-behind-fifa-world-cup-2026-1781279302683
+- **8K:** Some pre-tournament reporting said the World Cup would be "captured in 4K and 8K" (ProductionHUB). However, the most detailed HBS/RedShark/SVG reporting indicates the **distributed standard is 4K HDR (upconverted from 1080p)** with "little experimentation in consumer formats" — so any 8K is at most limited capture/trial, NOT a distributed consumer format. FLAGGED as conflicting/unconfirmed for full 8K. Sources: https://www.productionhub.com/press/46221/fifa-world-cup-broadcast-in-4k-and-8k (8K claim) vs https://www.redsharknews.com/fifa-world-cup-2026-hbs-broadcast-45-cameras (4K HDR standardization, no consumer-format experimentation)
+- Dolby Atmos: available via some broadcasters/streamers (e.g. BBC iPlayer historically offered 4K HDR with Atmos caveats); 2026 Atmos availability is broadcaster-dependent. Source: https://www.flatpanelshd.com/news.php?subaction=showfull&id=1781005470
+
+---
+
+## Data gaps / caveats
+- Exact 2026 Fox/Telemundo contract values are reported by trade/secondary press ($480m/$465m), not FIFA-confirmed; older figures cite Fox ~$425M / Telemundo ~$600M. Treat as estimates.
+- HBS has not published per-match contribution or distribution bitrates / codec; only aggregate ~7 Tb/s and ST-2110/COTS architecture are public.
+- 8K is unconfirmed as a distributed format (one pre-event source claims 4K+8K capture; detailed production reporting points to 4K HDR distribution only).
+- A single consolidated EU listed-events table for 2026 was not retrieved; the AVMSD framework and UK Ofcom Group A status (all matches FTA) are confirmed.
