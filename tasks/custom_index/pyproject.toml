@@ -1,0 +1,32 @@
+[project]
+name = "trec-rag-26-task-custom-index"
+version = "0.0.0"
+description = "ClimbMix corpus prep + embedding + DiskANN index build for TREC RAG 2026."
+requires-python = "==3.11.*"
+dependencies = [
+  "pyarrow>=15",
+  # diskannpy 0.7.0 hard-pins numpy==1.25, so let it choose. Anything below
+  # 2.0 is the safe range for torch + sentence-transformers as of now.
+  "numpy<2",
+  "tqdm>=4.66",
+  "torch>=2.2",
+  "sentence-transformers>=3.1",
+  "diskannpy>=0.7",
+  # Required by Jina v5 nano's trust_remote_code path.
+  "einops>=0.7",
+  "peft>=0.11",
+]
+
+[tool.uv]
+# Keep this task fully isolated from the repo-root env.
+package = false
+
+# Pull torch from the PyTorch CUDA wheel index instead of CPU-only PyPI wheels.
+# L40S boxes use CUDA 12; cu124 is the most compatible wheel set as of late 2025.
+[[tool.uv.index]]
+name = "pytorch-cu124"
+url = "https://download.pytorch.org/whl/cu124"
+explicit = true
+
+[tool.uv.sources]
+torch = { index = "pytorch-cu124" }
