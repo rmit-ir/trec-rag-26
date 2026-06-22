@@ -1,10 +1,11 @@
 # TREC RAG 2026 Track Reference
 
-Sources browsed May 31, 2026:
+Sources checked June 17, 2026:
 
 - Home: https://trec-rag.github.io/
+- NIST TREC 2026 call for participation: https://trec.nist.gov/cfp.html
 - GitHub org: https://github.com/TREC-RAG
-- Hugging Face org: https://huggingface.co/TREC-RAG
+- Development data: https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/development-data
 
 ## Summary
 
@@ -28,25 +29,26 @@ The goals of TREC RAG 2026 are:
 
 ## 2026 Status
 
-- The site announces that TREC RAG is returning for 2026.
+- The site announces that TREC RAG is returning for 2026 as one of the TREC 2026 tracks.
 - The site announces that TREC RAG 2026 will be agent-first and points agents to the TREC-RAG `trec-rag-skills` repository.
 - The site announces that TREC RAG 2026 will use NVIDIA's ClimbMix-400b.
-- Corpus details are not final on the public site yet, but the site says agents can begin using the corpus through the available SKILLz repository.
-- Public website updates for guidelines and timeline are still pending.
-- The 2026 task guidelines are available in the `trec-rag-2026-track-guidelines` skill.
+- Development queries for RAG 2026 are released at https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/development-data so teams can test systems before the official evaluation topics are released in early July. The development data includes RAG25 and ResearchRubrics topic TSV files, RAG25 answer nuggets, RAG25 UMBRELA qrels over ClimbMix-400b, and ResearchRubrics evaluation rubrics.
+- The public site says guidelines have been released and points to the `trec-rag-2026-track-guidelines` skill.
+- The released 2026 tasks are Retrieval (`R`) and Retrieval-Augmented Generation (`RAG`): the Retrieval task ranks passages for supplied topics using ClimbMix through the Pyserini REST API or a custom retrieval system; the RAG task retrieves evidence and returns a summarized answer grounded in that evidence.
+- Use `references/development-data.md` when people want to test or evaluate systems with the released development topics, nuggets, rubrics, and qrels; it explains what each file is and how to use it safely.
 - Use `trec-rag-2026-track-guidelines` for task rules, baselines, output formats, ClimbMix/Pyserini defaults, and validation.
-- Public submission logistics, deadlines, upload procedures, and portal-specific requirements should be verified from the official site before submission-critical work.
-- Current 2026 timeline:
-  - Corpus Details: Soon.
-  - Test topics released: TBD.
-  - Baselines released: TBD.
-  - Submission deadline: TBD.
+- The submission deadline is public as August 7th, but upload procedures and portal-specific requirements should be verified from the official site before submission-critical work.
+- Current TREC RAG website timeline:
+  - Test topics released: July 6th.
+  - Baselines released: soon after July 6th.
+  - Submission deadline: August 7th.
   - Results and judgments returned: TBD.
   - TREC 2026 Conference: November 2026.
 
 ## Participation Guidance
 
 - Register for TREC through NIST/Evalbase. The home page says to use the first bullet under Schedule to register an organization in Evalbase.
+- Use the TREC RAG website timeline for track-specific dates; use the NIST TREC 2026 call for participation for general TREC registration, organization, and conference participation context.
 - Join the Google Groups mailing list, Discord, and SIGIR Slack.
 - Include "TREC RAG" in Google Groups join requests.
 - Contact njedidi@uwaterloo.ca for issues joining.
@@ -55,6 +57,7 @@ The goals of TREC RAG 2026 are:
 
 - Nour Jedidi, University of Waterloo
 - Lingwei Gu, University of Waterloo
+- Pouya Sadeghi, University of Waterloo
 - Daniel Campos, Zipf AI
 - Nandan Thakur, University of Waterloo
 - Nick Craswell, Microsoft

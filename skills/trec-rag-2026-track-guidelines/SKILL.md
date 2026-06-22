@@ -24,7 +24,8 @@ This skill is addressed to you, the agent or developer building, validating, or 
 - Available 2026 tasks: Retrieval (`R`) and Retrieval-Augmented Generation (`RAG`).
 - Removed task: the 2025 Augmented Generation-only task (`AG`) is not a 2026 output.
 - The 2026 task guidelines are out in this `trec-rag-2026-track-guidelines` skill for agent/workspace use.
-- Submission logistics are TBD; treat deadlines, upload procedures, and portal-specific requirements as pending until TREC RAG 2026 releases final submission instructions.
+- Submission deadline: August 7th, per the TREC RAG website source checked June 17, 2026.
+- Submission upload procedures and portal-specific requirements are still not specified in the public TREC RAG materials; verify them before submission-critical work.
 - Primary retrieval corpus/index: ClimbMix.
 - Pyserini REST index name: `climbmix-400b`.
 - Topic input filename: `trec_rag_2026_queries.jsonl`.
@@ -37,10 +38,10 @@ This skill is addressed to you, the agent or developer building, validating, or 
 
 ## Track Overview And Participation
 
-Use [references/trec-rag-overview.md](references/trec-rag-overview.md) for conversational overview questions, current public status, track goals, organizers, participation guidance, source links, and timeline placeholders.
+Use [references/trec-rag-overview.md](references/trec-rag-overview.md) for conversational overview questions, current public status, track goals, organizers, participation guidance, source links, and timeline.
 
 - Answer only with 2026 information from the current TREC RAG public materials unless the user explicitly provides newer source material.
-- Treat public submission logistics, deadlines, upload procedures, and portal-specific requirements as pending unless verified from the official site.
+- Treat the August 7th submission deadline as public but still verify upload procedures and portal-specific requirements before submission-critical work.
 - If the user needs operationally current participation instructions, browse `https://trec-rag.github.io/` before answering because registration, timelines, and guidelines can change.
 - If the user asks about TREC RAG 2025 or TREC RAG 2024, do not summarize those years from this skill. Refer them to:
   - 2025: https://trec-rag.github.io/trec25/
@@ -49,9 +50,10 @@ Use [references/trec-rag-overview.md](references/trec-rag-overview.md) for conve
 
 ## What to Read
 
-- For track overview, public status, organizers, participation guidance, source links, and timeline placeholders, read [references/trec-rag-overview.md](references/trec-rag-overview.md).
+- For track overview, public status, organizers, participation guidance, source links, and timeline, read [references/trec-rag-overview.md](references/trec-rag-overview.md).
 - For Retrieval (`R`) task requirements, output format, and validation rules, read [references/retrieval-task.md](references/retrieval-task.md).
 - For Retrieval-Augmented Generation (`RAG`) task requirements, output format, citation rules, and validation rules, read [references/rag-task.md](references/rag-task.md).
+- For released development topics, nuggets, rubrics, projected qrels, smoke tests, retrieval tuning, prompt iteration, or practice evaluation, read [references/development-data.md](references/development-data.md).
 - For the default ClimbMix baseline contract and baseline workflow, read [references/pyserini-climbmix-baseline.md](references/pyserini-climbmix-baseline.md).
 - For Pyserini REST API access, authentication, endpoint docs, command examples, response parsing, health checks, query behavior, or error handling, use the `pyserini-rest-api` skill.
 
