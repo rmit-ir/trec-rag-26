@@ -181,6 +181,64 @@ uv run --project tasks/search_serve python tasks/search_serve/scripts/loadtest.p
 | Multiple in-flight searches needed per worker (e.g. CPU has spare cores) | bump `SEARCH_INFLIGHT_PER_WORKER` to 2 — measure carefully |
 | OOM when loading on a small box | reduce `DOCSTORE_LRU` (cap on open shard mmaps) |
 
+## Per-request tuning by `k`
+
+The right `complexity` and `beam_width` to send on each request depend on
+how deep you're retrieving. DiskANN's recall hits saturation when
+`complexity` is well above `k`; setting it too low silently truncates the
+result list with poor neighbours. Setting it too high wastes graph hops.
+
+Use these as starting points and adjust based on your recall vs throughput
+budget. All numbers are per-request body fields against `/search`:
+
+| use case | `k` | recommended `complexity` | recommended `beam_width` | est. server total p50 | est. peak r/s (8-worker GPU) |
+|---|---|---|---|---|---|
+| eval / interactive query | 10 | 64 (default) | 2 | 36 ms (measured) | 100 r/s (measured) |
+| short-list rerank input | 100 | 128 | 2 | 50–70 ms | 60–80 r/s |
+| TREC RAG primary run / re-rank pool | **1000** | **1024–1500** | **4** | **110–180 ms** | **45–70 r/s** |
+| deep first-stage / candidate dump | 10 000 | 2000–3000 | 4–8 | 300–500 ms | 15–25 r/s |
+
+Three things worth knowing:
+
+1. **`complexity` must be ≥ `k`**, in practice `≈ k` or `1.5 × k` for good
+   recall on this 553 M-doc index. Below `k`, the ANN truncates internally
+   and recall craters.
+2. **`beam_width` raises concurrent libaio reads per search thread.** With
+   our `DISKANN_THREADS=4`, going `beam_width=2 → 4` doubles aio events
+   per request (8 → 16 per request, still well under the worker's 4096
+   reservation). Past 4 the wins shrink and disk-queue depth starts to bite.
+3. **The docstore fetch scales with `k`** (~5 µs per record), but stays
+   sub-millisecond up to `k = 200` and is still under 10 ms at `k = 1000`.
+   It does NOT bottleneck deep retrieval — the cost lives in ANN search.
+
+### Sending these on the wire
+
+```bash
+# k=1000 TREC RAG-style request
+curl -s -X POST http://127.0.0.1:8000/search \
+  -H 'content-type: application/json' \
+  -d '{"query":"...","k":1000,"complexity":1024,"beam_width":4,"with_text":true}' \
+  | jq '.timings'
+```
+
+The `complexity` and `beam_width` fields are already accepted by
+`SearchRequest` — no engine restart needed to change retrieval depth.
+
+### Throughput drop estimates on the CPU server (segsresap12)
+
+Scale the measured GPU peak above by ~0.78 (Sapphire Rapids 5420+ vs
+Emerald Rapids 8592+, per-core perf, same AMX BF16 path):
+
+| `k` | est. peak r/s on segsresap12 (8 workers) |
+|---|---|
+| 10 | ~80 |
+| 100 | ~50–65 |
+| 1000 | ~35–55 |
+| 10000 | ~12–20 |
+
+These are estimates, not benchmarks — verify on the box before publishing
+real numbers.
+
 ## Environment variables (server.py)
 
 | var | default | meaning |
