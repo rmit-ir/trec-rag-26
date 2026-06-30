@@ -65,6 +65,40 @@ class SearchHit:
 
 
 @dataclass
+class SearchTimings:
+    """Per-call latency breakdown. ``total_ms`` is wall-clock end-to-end
+    inside SearchEngine; the per-stage fields are measured around the actual
+    work (encoder.encode, diskann.batch_search, docstore.get_texts) so
+    overhead between stages shows up as ``total_ms - sum(stages)``."""
+    encode_ms: float
+    ann_ms: float
+    docstore_fetch_ms: float
+    total_ms: float
+    n_queries: int
+    k: int
+    with_text: bool
+
+    def to_dict(self) -> dict:
+        return {
+            "encode_ms": round(self.encode_ms, 3),
+            "ann_ms": round(self.ann_ms, 3),
+            "docstore_fetch_ms": round(self.docstore_fetch_ms, 3),
+            "total_ms": round(self.total_ms, 3),
+            "n_queries": self.n_queries,
+            "k": self.k,
+            "with_text": self.with_text,
+        }
+
+
+@dataclass
+class SearchResult:
+    """Structured return value. ``hits[i]`` corresponds to ``queries[i]``."""
+    queries: list[str]
+    hits: list[list[SearchHit]]
+    timings: SearchTimings
+
+
+@dataclass
 class LoadStats:
     index_dir: str = ""
     model_load_s: float = 0.0
@@ -278,8 +312,8 @@ class SearchEngine:
         # First call JITs CUDA / CPU paths.
         _ = self.encoder.encode(["warm up the query encoder"])
         # Triggers libaio io_setup + first PQ table page-ins + first decode.
-        hits = self.search("photosynthesis", k=3, with_text=True)
-        assert len(hits) >= 1, "warm-up search returned no hits"
+        result = self.search("photosynthesis", k=3, with_text=True)
+        assert result.hits and result.hits[0], "warm-up search returned no hits"
         if madvise_offsets and self.docstore is not None:
             self.docstore.madvise_willneed()
         if madvise_pq and self.index_dir is not None:
@@ -291,18 +325,36 @@ class SearchEngine:
 
     def search(self, query: str, k: int = 10, *,
                complexity: int = 64, beam_width: int = 2,
-               with_text: bool = True) -> list[SearchHit]:
+               with_text: bool = True) -> SearchResult:
         return self.search_batch([query], k=k, complexity=complexity,
-                                 beam_width=beam_width, with_text=with_text)[0]
+                                 beam_width=beam_width, with_text=with_text)
 
     def search_batch(self, queries: list[str], k: int = 10, *,
                      complexity: int = 64, beam_width: int = 2,
-                     with_text: bool = True) -> list[list[SearchHit]]:
+                     with_text: bool = True) -> SearchResult:
         if self.diskann is None or self.encoder is None:
             raise EngineLoadError("engine not loaded — call SearchEngine.load(...)")
+        t_total_start = time.perf_counter()
+        t0 = time.perf_counter()
         q_vecs = self.encoder.encode(queries)
+        encode_s = time.perf_counter() - t0
+
+        t0 = time.perf_counter()
         res = self._batch_ann(q_vecs, k, complexity, beam_width)
-        return [self._hits_for_query(res, qi, k, with_text) for qi in range(len(queries))]
+        ann_s = time.perf_counter() - t0
+
+        hits_by_query = [self._hits_without_text(res, qi, k) for qi in range(len(queries))]
+        fetch_s = 0.0
+        if with_text and self.docstore is not None:
+            fetch_s = self._fill_text_inplace(hits_by_query)
+
+        total_s = time.perf_counter() - t_total_start
+        timings = SearchTimings(
+            encode_ms=encode_s * 1000, ann_ms=ann_s * 1000,
+            docstore_fetch_ms=fetch_s * 1000, total_ms=total_s * 1000,
+            n_queries=len(queries), k=k, with_text=with_text,
+        )
+        return SearchResult(queries=list(queries), hits=hits_by_query, timings=timings)
 
     def _batch_ann(self, q_vecs, k: int, complexity: int, beam_width: int):
         if self.diskann_kind == "disk":
@@ -314,7 +366,7 @@ class SearchEngine:
             queries=q_vecs, k_neighbors=k, complexity=complexity, num_threads=0,
         )
 
-    def _hits_for_query(self, res, qi: int, k: int, with_text: bool) -> list[SearchHit]:
+    def _hits_without_text(self, res, qi: int, k: int) -> list[SearchHit]:
         hits: list[SearchHit] = []
         for rank in range(k):
             row = int(res.identifiers[qi, rank])
@@ -324,11 +376,21 @@ class SearchEngine:
                     score=float(res.distances[qi, rank]),
                     rank=rank + 1,
                 ))
-        if with_text and hits and self.docstore is not None:
-            texts = self.docstore.get_texts([h.docid for h in hits])
-            for h, t in zip(hits, texts):
-                h.text = t
         return hits
+
+    def _fill_text_inplace(self, hits_by_query: list[list[SearchHit]]) -> float:
+        """Coalesce a single docstore call across all queries in the batch
+        and splice the texts back in. Returns elapsed seconds."""
+        flat = [h for hits in hits_by_query for h in hits]
+        if not flat:
+            return 0.0
+        assert self.docstore is not None
+        t0 = time.perf_counter()
+        texts = self.docstore.get_texts([h.docid for h in flat])
+        elapsed = time.perf_counter() - t0
+        for h, t in zip(flat, texts):
+            h.text = t
+        return elapsed
 
     def close(self) -> None:
         if self.docstore is not None:

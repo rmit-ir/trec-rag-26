@@ -16,6 +16,7 @@ import mmap
 import os
 import re
 import struct
+import threading
 from collections import OrderedDict
 from dataclasses import dataclass
 from pathlib import Path
@@ -90,7 +91,10 @@ class FlatShardDocStore:
             self._dict_bytes = (self.root / self.manifest["dict"]).read_bytes()
         self._lru_size = lru_size
         self._handles: OrderedDict[str, _ShardHandle] = OrderedDict()
-        self._decoder = None  # zstd decoder, lazily built on first decompress
+        # Zstd decoder is NOT thread-safe: instances maintain an internal
+        # scratch buffer that races under FastAPI's sync-endpoint threadpool.
+        # Hold one per thread via threading.local; lazy-built on first call.
+        self._tls = threading.local()
 
     # ---- lifecycle -----------------------------------------------------
 
@@ -104,11 +108,13 @@ class FlatShardDocStore:
     def _decode(self, raw: bytes) -> bytes:
         if self.compression == "none":
             return raw
-        if self._decoder is None:
+        d = getattr(self._tls, "decoder", None)
+        if d is None:
             import zstandard as zstd
             dd = zstd.ZstdCompressionDict(self._dict_bytes)
-            self._decoder = zstd.ZstdDecompressor(dict_data=dd)
-        return self._decoder.decompress(raw)
+            d = zstd.ZstdDecompressor(dict_data=dd)
+            self._tls.decoder = d
+        return d.decompress(raw)
 
     def _get_handle(self, stem: str) -> _ShardHandle:
         h = self._handles.get(stem)

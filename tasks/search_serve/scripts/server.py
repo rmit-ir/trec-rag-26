@@ -154,18 +154,35 @@ def server_info():
     return collect(index_path=ENGINE.index_dir if ENGINE else None)
 
 
+def _log_timings(endpoint: str, t) -> None:
+    """One-line structured log per request — easy to grep / awk in load tests."""
+    print(f"[req] {endpoint} n={t.n_queries} k={t.k} text={t.with_text} "
+          f"encode={t.encode_ms:.2f}ms ann={t.ann_ms:.2f}ms "
+          f"docstore={t.docstore_fetch_ms:.2f}ms total={t.total_ms:.2f}ms",
+          flush=True)
+
+
 @app.post("/search")
 def search(req: SearchRequest):
     eng = _require_engine()
-    hits = eng.search(req.query, k=req.k, complexity=req.complexity,
-                      beam_width=req.beam_width, with_text=req.with_text)
-    return {"query": req.query, "hits": [h.to_dict() for h in hits]}
+    result = eng.search(req.query, k=req.k, complexity=req.complexity,
+                        beam_width=req.beam_width, with_text=req.with_text)
+    _log_timings("/search", result.timings)
+    return {
+        "query": req.query,
+        "hits": [h.to_dict() for h in result.hits[0]],
+        "timings": result.timings.to_dict(),
+    }
 
 
 @app.post("/search/batch")
 def search_batch(req: BatchSearchRequest):
     eng = _require_engine()
-    batch = eng.search_batch(req.queries, k=req.k, complexity=req.complexity,
-                             beam_width=req.beam_width, with_text=req.with_text)
-    return {"queries": req.queries,
-            "results": [[h.to_dict() for h in hits] for hits in batch]}
+    result = eng.search_batch(req.queries, k=req.k, complexity=req.complexity,
+                              beam_width=req.beam_width, with_text=req.with_text)
+    _log_timings("/search/batch", result.timings)
+    return {
+        "queries": req.queries,
+        "results": [[h.to_dict() for h in hits] for hits in result.hits],
+        "timings": result.timings.to_dict(),
+    }

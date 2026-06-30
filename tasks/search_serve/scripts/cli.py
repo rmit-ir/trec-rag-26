@@ -56,17 +56,20 @@ def _truncate(s: str | None, n: int) -> str | None:
     return s[:n] + "..."
 
 
-def render_results(queries: list[str], batch, max_chars: int) -> list[dict]:
-    out: list[dict] = []
-    for q, hits in zip(queries, batch):
-        out.append({
-            "query": q,
-            "hits": [
-                {**h.to_dict(), "text": _truncate(h.text, max_chars)}
-                for h in hits
-            ],
-        })
-    return out
+def render_results(result, max_chars: int) -> dict:
+    return {
+        "timings": result.timings.to_dict(),
+        "results": [
+            {
+                "query": q,
+                "hits": [
+                    {**h.to_dict(), "text": _truncate(h.text, max_chars)}
+                    for h in hits
+                ],
+            }
+            for q, hits in zip(result.queries, result.hits)
+        ],
+    }
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -76,8 +79,8 @@ def main(argv: list[str] | None = None) -> int:
     except EngineLoadError as e:
         print(f"\n[engine] FAILED to load index:\n  {e}\n", file=sys.stderr)
         return 3
-    batch = eng.search_batch(args.query, k=args.k, with_text=not args.no_text)
-    print(json.dumps(render_results(args.query, batch, args.max_chars),
+    result = eng.search_batch(args.query, k=args.k, with_text=not args.no_text)
+    print(json.dumps(render_results(result, args.max_chars),
                      indent=2, ensure_ascii=False))
     return 0
 
