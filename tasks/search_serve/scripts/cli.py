@@ -70,6 +70,7 @@ def _truncate(s: str | None, n: int) -> str | None:
 def render_results(result, max_chars: int) -> dict:
     return {
         "timings": result.timings.to_dict(),
+        "metadata": result.metadata.to_dict(),
         "results": [
             {
                 "query": q,

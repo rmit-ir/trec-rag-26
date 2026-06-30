@@ -204,9 +204,10 @@ def server_info():
     return collect(index_path=ENGINE.index_dir if ENGINE else None)
 
 
-def _log_timings(endpoint: str, t) -> None:
+def _log_timings(endpoint: str, result) -> None:
     """One-line structured log per request — easy to grep / awk in load tests."""
-    base = (f"[req] {endpoint} n={t.n_queries} k={t.k} text={t.with_text} "
+    t, m = result.timings, result.metadata
+    base = (f"[req] {endpoint} n={m.n_queries} k={m.k} text={m.with_text} "
             f"encode={t.encode_ms:.2f}ms ann={t.ann_ms:.2f}ms "
             f"docstore={t.docstore_fetch_ms:.2f}ms total={t.total_ms:.2f}ms")
     if t.docstore is not None:
@@ -237,11 +238,12 @@ async def _do_search(req: SearchRequest, endpoint_label: str) -> dict:
         k=req.k, complexity=req.complexity,
         beam_width=req.beam_width, with_text=req.with_text,
     )
-    _log_timings(endpoint_label, result.timings)
+    _log_timings(endpoint_label, result)
     return {
         "query": req.query,
         "hits": [h.to_dict() for h in result.hits[0]],
         "timings": result.timings.to_dict(),
+        "metadata": result.metadata.to_dict(),
     }
 
 
@@ -278,9 +280,10 @@ async def search_batch(req: BatchSearchRequest):
         k=req.k, complexity=req.complexity,
         beam_width=req.beam_width, with_text=req.with_text,
     )
-    _log_timings("/search/batch", result.timings)
+    _log_timings("/search/batch", result)
     return {
         "queries": req.queries,
         "results": [[h.to_dict() for h in hits] for hits in result.hits],
         "timings": result.timings.to_dict(),
+        "metadata": result.metadata.to_dict(),
     }

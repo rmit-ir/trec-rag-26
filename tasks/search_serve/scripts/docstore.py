@@ -39,16 +39,27 @@ class DocstoreFetchTimings:
     n_unique_shards: int = 0
     n_mmap_opens: int = 0           # how many shards were NOT in the LRU
 
-    def to_dict(self) -> dict:
+    def timings_dict(self) -> dict:
+        """Just the wall-clock latencies (ms). Goes under response.timings."""
         return {
             "open_ms": round(self.open_ms, 3),
             "read_ms": round(self.read_ms, 3),
             "decompress_ms": round(self.decompress_ms, 3),
             "decode_ms": round(self.decode_ms, 3),
+        }
+
+    def meta_dict(self) -> dict:
+        """Counts of what the fetch did. Goes under response.metadata."""
+        return {
             "n_records": self.n_records,
             "n_unique_shards": self.n_unique_shards,
             "n_mmap_opens": self.n_mmap_opens,
         }
+
+    # Back-compat: callers asking for to_dict get the combined form (still
+    # used in the structured server log line).
+    def to_dict(self) -> dict:
+        return {**self.timings_dict(), **self.meta_dict()}
 
 
 _DOCID_RE = re.compile(r"^(.+)_(\d+)$")

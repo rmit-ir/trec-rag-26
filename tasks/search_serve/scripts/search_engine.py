@@ -66,21 +66,12 @@ class SearchHit:
 
 @dataclass
 class SearchTimings:
-    """Per-call latency breakdown. ``total_ms`` is wall-clock end-to-end
-    inside SearchEngine; the per-stage fields are measured around the actual
-    work (encoder.encode, diskann.batch_search, docstore.get_texts) so
-    overhead between stages shows up as ``total_ms - sum(stages)``.
-
-    When ``with_text=True``, ``docstore`` carries a per-phase breakdown
-    (open / read / decompress / decode) of the fetch, plus how many unique
-    shards were touched and how many of them required an mmap open."""
+    """Per-call wall-clock breakdown. Only latencies live here — descriptive
+    counts (k, n_queries, docstore.n_records etc.) go in ``SearchMeta``."""
     encode_ms: float
     ann_ms: float
     docstore_fetch_ms: float
     total_ms: float
-    n_queries: int
-    k: int
-    with_text: bool
     docstore: DocstoreFetchTimings | None = None
 
     def to_dict(self) -> dict:
@@ -89,12 +80,29 @@ class SearchTimings:
             "ann_ms": round(self.ann_ms, 3),
             "docstore_fetch_ms": round(self.docstore_fetch_ms, 3),
             "total_ms": round(self.total_ms, 3),
+        }
+        if self.docstore is not None:
+            out["docstore"] = self.docstore.timings_dict()
+        return out
+
+
+@dataclass
+class SearchMeta:
+    """What the request asked for + what the fetch did. Descriptive integers
+    and booleans only — never milliseconds."""
+    n_queries: int
+    k: int
+    with_text: bool
+    docstore: DocstoreFetchTimings | None = None
+
+    def to_dict(self) -> dict:
+        out = {
             "n_queries": self.n_queries,
             "k": self.k,
             "with_text": self.with_text,
         }
         if self.docstore is not None:
-            out["docstore"] = self.docstore.to_dict()
+            out["docstore"] = self.docstore.meta_dict()
         return out
 
 
@@ -104,6 +112,7 @@ class SearchResult:
     queries: list[str]
     hits: list[list[SearchHit]]
     timings: SearchTimings
+    metadata: SearchMeta
 
 
 @dataclass
@@ -428,10 +437,14 @@ class SearchEngine:
         timings = SearchTimings(
             encode_ms=encode_s * 1000, ann_ms=ann_s * 1000,
             docstore_fetch_ms=fetch_s * 1000, total_ms=total_s * 1000,
+            docstore=docstore_timings,
+        )
+        metadata = SearchMeta(
             n_queries=len(queries), k=k, with_text=with_text,
             docstore=docstore_timings,
         )
-        return SearchResult(queries=list(queries), hits=hits_by_query, timings=timings)
+        return SearchResult(queries=list(queries), hits=hits_by_query,
+                            timings=timings, metadata=metadata)
 
     def _batch_ann(self, q_vecs, k: int, complexity: int, beam_width: int):
         if self.diskann_kind == "disk":
