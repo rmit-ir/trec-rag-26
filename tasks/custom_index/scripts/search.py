@@ -22,12 +22,41 @@ def load_docids(path: Path) -> list[str]:
         return [line.rstrip("\n") for line in f]
 
 
+def _read_int(p: str) -> int | None:
+    """Read an int from a /proc sysctl path; None if unreadable."""
+    try:
+        with open(p, "rt") as f:
+            return int(f.read().strip())
+    except OSError:
+        return None
+
+
+def log_aio_slots(stage: str, num_threads: int | None = None) -> None:
+    """Print Linux libaio context budget + current usage.
+
+    DiskANN calls io_setup() per search thread, reserving slots from the
+    system-wide pool capped by /proc/sys/fs/aio-max-nr. Hitting the cap throws
+    EAGAIN -> diskannpy C++ terminate. Useful to surface at startup so a
+    crowded box is caught before we shell out to DiskANN.
+    """
+    used = _read_int("/proc/sys/fs/aio-nr")
+    cap = _read_int("/proc/sys/fs/aio-max-nr")
+    if used is None or cap is None:
+        print(f"[aio {stage}] /proc/sys/fs/aio-{{nr,max-nr}} unreadable", flush=True)
+        return
+    free = cap - used
+    extra = f"  num_threads={num_threads}" if num_threads is not None else ""
+    print(f"[aio {stage}] used={used:,}  cap={cap:,}  free={free:,}{extra}",
+          flush=True)
+
+
 def search(
     index_dir: Path,
     queries: list[str],
     k: int = 10,
     complexity: int = 64,
     beam_width: int = 2,
+    num_threads: int = 4,
     index_prefix: str = "ann",
 ):
     import numpy as np
@@ -50,10 +79,11 @@ def search(
                           **encode_kwargs).astype(np.float32, copy=False)
 
     kind = idx_meta["kind"]
+    log_aio_slots("before", num_threads=num_threads)
     if kind == "disk":
         idx = diskannpy.StaticDiskIndex(
             index_directory=str(index_dir),
-            num_threads=0,
+            num_threads=num_threads,
             num_nodes_to_cache=10_000,
             cache_mechanism=1,
             distance_metric=idx_meta["metric"],
@@ -61,14 +91,15 @@ def search(
             dimensions=enc["dim"],
             index_prefix=index_prefix,
         )
+        log_aio_slots("after StaticDiskIndex", num_threads=num_threads)
         results = idx.batch_search(
             queries=q_vecs, k_neighbors=k, complexity=complexity,
-            beam_width=beam_width, num_threads=0,
+            beam_width=beam_width, num_threads=num_threads,
         )
     else:
         idx = diskannpy.StaticMemoryIndex(
             index_directory=str(index_dir),
-            num_threads=0,
+            num_threads=num_threads,
             initial_search_complexity=complexity,
             distance_metric=idx_meta["metric"],
             vector_dtype=np.float32,
@@ -76,7 +107,8 @@ def search(
             index_prefix=index_prefix,
         )
         results = idx.batch_search(
-            queries=q_vecs, k_neighbors=k, complexity=complexity, num_threads=0,
+            queries=q_vecs, k_neighbors=k, complexity=complexity,
+            num_threads=num_threads,
         )
 
     out = []
@@ -98,13 +130,17 @@ def main() -> int:
     ap.add_argument("--k", type=int, default=10)
     ap.add_argument("--complexity", type=int, default=64)
     ap.add_argument("--beam-width", type=int, default=2)
+    ap.add_argument("--num-threads", type=int, default=4,
+                    help="DiskANN search-thread count. Each thread allocates one "
+                         "libaio io_context from /proc/sys/fs/aio-max-nr, so "
+                         "keep this low for shared boxes. 0 = let DiskANN pick.")
     ap.add_argument("--index-prefix", default="ann")
     args = ap.parse_args()
 
     out = search(
         args.index_dir, args.query,
         k=args.k, complexity=args.complexity, beam_width=args.beam_width,
-        index_prefix=args.index_prefix,
+        num_threads=args.num_threads, index_prefix=args.index_prefix,
     )
     print(json.dumps(out, indent=2))
     return 0

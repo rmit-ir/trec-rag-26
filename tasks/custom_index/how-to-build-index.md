@@ -107,6 +107,28 @@ tail -f /tmp/climbmix-full.log
 tail -f tasks/custom_index/logs/index_pipeline.climbmix-full.log
 ```
 
+## 2.5 Build the docstore (raw-text lookup for hit fetch)
+
+DiskANN returns docids; to also return *text* you need a fast docid→text
+docstore. Build it once after the index, in ~25 min for the full corpus:
+
+```bash
+uv run --project tasks/custom_index python tasks/custom_index/scripts/build_docstore.py \
+  --corpus data/climbmix-400b-shuffle \
+  --out data/built-indexes/climbmix-full/docstore \
+  --compression zstd-9 \
+  --dict-size 1048576 \
+  --dict-sample-shards 1 \
+  --parallel 64
+```
+
+Writes per-shard `.bin` + `.offsets.bin` files under `<index>/docstore/`
+plus a `manifest.json` and a 1 MB trained Zstd dictionary. Compression
+ratio ~3.0× → corpus drops from ~1.7 TB raw to ~570 GB on disk. Per-record
+decode is ~5 µs.
+
+See `tasks/search_serve/README.md` for the search engine that consumes it.
+
 ## 3. The pipeline in detail
 
 ### 3.1 Steps

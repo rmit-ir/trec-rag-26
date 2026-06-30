@@ -15,6 +15,9 @@ dependencies = [
   # Required by Jina v5 nano's trust_remote_code path.
   "einops>=0.7",
   "peft>=0.11",
+  # Used by build_docstore.py for per-record compression of the flat docstore
+  # (trained dict mode). Python wrapper over the facebook/zstd C library.
+  "zstandard>=0.22",
 ]
 
 [tool.uv]
