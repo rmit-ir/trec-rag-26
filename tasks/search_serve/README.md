@@ -375,8 +375,8 @@ real numbers.
 | `SEARCH_ENCODER_KIND` | `sentence_transformer` | encoder registry key |
 | `DISKANN_THREADS` | `4` | search threads per worker |
 | `DOCSTORE_LRU` | `1024` | open-mmaps cap per docstore |
-| `DOCSTORE_PARALLEL` | `8` | docstore fetch threads (read/decompress/decode). Per worker. Set to `1` to force serial. Mmap-open is always serial. Idle threads are cheap (~few KB each) and the pool is lazy-initialised, so the default doesn't cost anything on small batches. |
-| `DOCSTORE_PARALLEL_MIN_K` | `64` | skip the parallel path entirely when the batch has fewer records than this. Below ~64 records the thread-pool dispatch overhead outweighs the page-fault parallelism win. Acts as the protective floor that makes a default of `DOCSTORE_PARALLEL=8` safe. |
+| `DOCSTORE_PARALLEL` | `1` | docstore fetch threads (read/decompress/decode). Per worker. Defaults to **sequential** because in our measurements 8-thread parallel didn't beat serial on the cold-cache k=1000 case (wall went 619 ms → 679 ms) — GIL contention on the `bytes(mm[a:b])` slice copy + per-thread Zstd decoder construction overhead overwhelmed the page-fault parallelism. Bumping to 2 or 4 may help some workloads; measure before committing. |
+| `DOCSTORE_PARALLEL_MIN_K` | `64` | when `DOCSTORE_PARALLEL > 1`, skip the parallel path entirely for batches smaller than this. Below ~64 records the thread-pool dispatch overhead outweighs any page-fault parallelism win. |
 | `WARMUP` | `true` | run encoder + dummy search at startup |
 | `WARMUP_MADVISE_OFFSETS` | `true` | preload offsets files (~4 GB) |
 | `WARMUP_MADVISE_PQ` | `false` | preload `ann_pq_compressed.bin` (~64 GB) — set on PQ-bound boxes |

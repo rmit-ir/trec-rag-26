@@ -267,7 +267,7 @@ class SearchEngine:
         encoder_config: EncoderConfig | None = None,
         diskann_search_threads: int = 4,
         docstore_lru: int = 1024,
-        docstore_parallel: int = 8,
+        docstore_parallel: int = 1,
         docstore_parallel_min_k: int = 64,
         warmup: bool = True,
         warmup_madvise_offsets: bool = True,

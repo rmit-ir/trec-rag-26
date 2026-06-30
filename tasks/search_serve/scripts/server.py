@@ -100,7 +100,7 @@ def load_engine_from_env() -> SearchEngine:
         encoder_config=cfg,
         diskann_search_threads=_env_int("DISKANN_THREADS", 4),
         docstore_lru=_env_int("DOCSTORE_LRU", 1024),
-        docstore_parallel=_env_int("DOCSTORE_PARALLEL", 8),
+        docstore_parallel=_env_int("DOCSTORE_PARALLEL", 1),
         docstore_parallel_min_k=_env_int("DOCSTORE_PARALLEL_MIN_K", 64),
         warmup=_env_bool("WARMUP", True),
         warmup_madvise_offsets=_env_bool("WARMUP_MADVISE_OFFSETS", True),
