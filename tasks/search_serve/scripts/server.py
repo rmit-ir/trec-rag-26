@@ -27,7 +27,7 @@ from contextlib import asynccontextmanager
 from pathlib import Path
 
 import orjson
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import ORJSONResponse, Response
 from pydantic import BaseModel, Field
 
@@ -79,16 +79,19 @@ def load_engine_from_env() -> SearchEngine:
 
 class SearchRequest(BaseModel):
     query: str = Field(..., min_length=1, description="The natural-language query.")
-    k: int = Field(10, ge=1, le=1000)
-    complexity: int = Field(64, ge=1, le=512)
+    # k=10000 covers the deepest first-stage retrieval use case in the README.
+    k: int = Field(10, ge=1, le=10000)
+    # complexity must be >= k for recall to hold; deep retrieval needs
+    # complexity in the low thousands (see README tuning guide).
+    complexity: int = Field(64, ge=1, le=4096)
     beam_width: int = Field(2, ge=1, le=16)
     with_text: bool = True
 
 
 class BatchSearchRequest(BaseModel):
     queries: list[str] = Field(..., min_length=1, max_length=64)
-    k: int = Field(10, ge=1, le=1000)
-    complexity: int = Field(64, ge=1, le=512)
+    k: int = Field(10, ge=1, le=10000)
+    complexity: int = Field(64, ge=1, le=4096)
     beam_width: int = Field(2, ge=1, le=16)
     with_text: bool = True
 
@@ -182,20 +185,47 @@ async def _run_search(fn, *args, **kwargs):
         return await asyncio.to_thread(fn, *args, **kwargs)
 
 
-@app.post("/search")
-async def search(req: SearchRequest):
+async def _do_search(req: SearchRequest, endpoint_label: str) -> dict:
+    """Shared body for GET /search and POST /search. Pydantic does the same
+    validation in both paths because the GET wrapper builds a SearchRequest
+    from query params."""
     eng = _require_engine()
     result = await _run_search(
         eng.search, req.query,
         k=req.k, complexity=req.complexity,
         beam_width=req.beam_width, with_text=req.with_text,
     )
-    _log_timings("/search", result.timings)
+    _log_timings(endpoint_label, result.timings)
     return {
         "query": req.query,
         "hits": [h.to_dict() for h in result.hits[0]],
         "timings": result.timings.to_dict(),
     }
+
+
+@app.post("/search")
+async def search_post(req: SearchRequest):
+    return await _do_search(req, "POST /search")
+
+
+@app.get("/search")
+async def search_get(
+    query: str = Query(..., min_length=1,
+                        description="Natural-language query."),
+    k: int = Query(10, ge=1, le=1000),
+    complexity: int = Query(64, ge=1, le=4096,
+                             description="DiskANN search list size. Must be >= k."),
+    beam_width: int = Query(2, ge=1, le=16,
+                             description="Concurrent in-flight reads per search thread."),
+    with_text: bool = Query(True,
+                             description="If true, fetch raw text from the docstore."),
+):
+    """Same behaviour as POST /search; fields go in the query string."""
+    return await _do_search(
+        SearchRequest(query=query, k=k, complexity=complexity,
+                      beam_width=beam_width, with_text=with_text),
+        "GET /search",
+    )
 
 
 @app.post("/search/batch")

@@ -54,8 +54,13 @@ INDEX_DIR=data/built-indexes/climbmix-full \
 
 Endpoints:
 
-- `POST /search` — `{ "query": "...", "k": 10, "with_text": true }`
-- `POST /search/batch` — `{ "queries": ["...", "..."], ... }`
+- `POST /search` — JSON body `{ "query": "...", "k": 10, "with_text": true,
+  "complexity": 64, "beam_width": 2 }`
+- `GET  /search` — same fields as query params, e.g.
+  `/search?query=transformers&k=5&with_text=true`. Use for browser /
+  one-liner / non-JSON clients. Same response, same timings.
+- `POST /search/batch` — `{ "queries": ["...", "..."], ... }` (only POST;
+  batch query lists don't fit well in a URL).
 - `GET /health` — engine state + index metadata
 - `GET /server-info` — live host introspection
 - `GET /docs` — OpenAPI / Swagger UI
@@ -223,6 +228,51 @@ curl -s -X POST http://127.0.0.1:8000/search \
 
 The `complexity` and `beam_width` fields are already accepted by
 `SearchRequest` — no engine restart needed to change retrieval depth.
+
+## What `DISKANN_THREADS` actually does (and when raising it helps)
+
+`StaticDiskIndex(num_threads=N)` allocates **N libaio io_contexts** at index
+load. At search time, `batch_search(num_threads=N')` distributes **queries**
+across up to N' of those threads — but **one query is always handled by one
+thread**. Per-query parallelism comes from `beam_width` (concurrent libaio
+submits per thread), not from raising threads.
+
+So the relationship between threads, endpoint, and benefit is:
+
+| endpoint | queries per call | threads actually doing work | latency benefit of raising `DISKANN_THREADS` |
+|---|---|---|---|
+| `/search` (single query) | 1 | 1 | **none** — extra threads just hold idle io_contexts |
+| `/search/batch` (N queries) | N (≤ 64) | min(N, num_threads) | linear up to N |
+
+The per-query lever for ANN latency reduction is **`beam_width`** in the
+request body, not the per-worker thread count. Going `beam_width=2 → 4`
+roughly halves ANN time on this index and stays within each thread's 1024-
+event AIO reservation.
+
+### When raising `DISKANN_THREADS` *does* help
+
+1. **Heavy `/search/batch` traffic** — set `DISKANN_THREADS` to your typical
+   batch size (e.g. 8 if clients send 8-query batches).
+2. **`SEARCH_INFLIGHT_PER_WORKER > 1`** — multiple concurrent `/search`
+   requests inside one worker need separate io_contexts.
+
+### AIO ceiling math by `DISKANN_THREADS` (default `aio-max-nr=65,536`)
+
+| workers | `DISKANN_THREADS` | contexts | % of cap | risk |
+|---|---|---|---|---|
+| 8 | 4 (current default) | 32 | 50 % | safe |
+| 8 | 6 | 48 | 75 % | safe, decent middle ground |
+| 8 | 8 | 64 | 100 % | exactly at cap — fragile, ask sysadmin to bump `aio-max-nr` first |
+| 4 | 16 | 64 | 100 % | same risk as above |
+
+**Recommendation for the CPU server (segsresap12) traffic patterns:**
+
+- **If primarily `/search` single-query:** keep `DISKANN_THREADS=4`. Push
+  recall/latency by sending `beam_width=4` in the request body for k≥100.
+  Free, no AIO impact.
+- **If you expect bursty `/search/batch` with N≥8 queries per call:** raise
+  `DISKANN_THREADS=8` and drop to 6 workers so contexts × workers ≈ 48.
+  You lose one worker's encode parallelism but gain batch latency.
 
 ### Throughput drop estimates on the CPU server (segsresap12)
 
