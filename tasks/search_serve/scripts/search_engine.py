@@ -301,25 +301,61 @@ class SearchEngine:
 
         if warmup:
             eng._warmup(warmup_madvise_offsets, warmup_madvise_pq)
+        eng._log_fd_usage()
         print(f"[engine] ready: {idx}", flush=True)
         return eng
 
+    def _log_fd_usage(self) -> None:
+        """Surface the post-warmup file-descriptor footprint so an operator
+        can spot a low RLIMIT_NOFILE soft cap before the first real
+        request OOMs. Best effort — never raises."""
+        try:
+            import resource
+            soft, hard = resource.getrlimit(resource.RLIMIT_NOFILE)
+            open_fds = len(os.listdir("/proc/self/fd"))
+            headroom = soft - open_fds
+            warn = "  ⚠ low headroom" if headroom < 256 else ""
+            print(f"[engine]   fd usage: open={open_fds}  soft={soft}  hard={hard}"
+                  f"  headroom={headroom}{warn}", flush=True)
+        except Exception as e:  # noqa: BLE001
+            print(f"[engine]   fd usage probe failed: {e!r}",
+                  file=sys.stderr, flush=True)
+
     def _warmup(self, madvise_offsets: bool, madvise_pq: bool) -> None:
-        print("[engine]   warm-up: encoder + dummy search + docstore decode ...",
-              flush=True)
-        t0 = time.perf_counter()
+        """Each phase logs its own elapsed so the operator can see WHICH
+        step is slow on first launch. madvise_pq=true against a 64 GB PQ
+        table can take 30-90 s on its own; the natural dummy search already
+        faults in hot pages, so consider leaving madvise_pq off."""
+        print("[engine]   warm-up: starting", flush=True)
+        t_total = time.perf_counter()
         assert self.encoder is not None
-        # First call JITs CUDA / CPU paths.
+
+        t = time.perf_counter()
         _ = self.encoder.encode(["warm up the query encoder"])
-        # Triggers libaio io_setup + first PQ table page-ins + first decode.
+        print(f"[engine]   warm-up     encoder JIT:        "
+              f"{(time.perf_counter() - t):.2f}s", flush=True)
+
+        t = time.perf_counter()
         result = self.search("photosynthesis", k=3, with_text=True)
         assert result.hits and result.hits[0], "warm-up search returned no hits"
+        print(f"[engine]   warm-up     dummy search k=3:   "
+              f"{(time.perf_counter() - t):.2f}s", flush=True)
+
         if madvise_offsets and self.docstore is not None:
+            t = time.perf_counter()
             self.docstore.madvise_willneed()
+            print(f"[engine]   warm-up     madvise offsets:    "
+                  f"{(time.perf_counter() - t):.2f}s "
+                  f"({self.docstore.manifest['n_shards']} shards)", flush=True)
         if madvise_pq and self.index_dir is not None:
+            t = time.perf_counter()
             _madvise_willneed_file(self.index_dir / "ann_pq_compressed.bin")
-        self.stats.warmup_s = time.perf_counter() - t0
-        print(f"[engine]   warm-up done ({self.stats.warmup_s:.1f}s)", flush=True)
+            print(f"[engine]   warm-up     madvise PQ table:   "
+                  f"{(time.perf_counter() - t):.2f}s", flush=True)
+
+        self.stats.warmup_s = time.perf_counter() - t_total
+        print(f"[engine]   warm-up done (total {self.stats.warmup_s:.1f}s)",
+              flush=True)
 
     # ---- search ---------------------------------------------------------
 

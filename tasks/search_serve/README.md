@@ -127,24 +127,44 @@ DOCSTORE_LRU=1024 \
 SEARCH_INFLIGHT_PER_WORKER=1 \
 WARMUP=true \
 WARMUP_MADVISE_OFFSETS=true \
-WARMUP_MADVISE_PQ=true \
+WARMUP_MADVISE_PQ=false \
 OMP_NUM_THREADS=7 \
 MKL_NUM_THREADS=7 \
   numactl --interleave=all \
   uv run --project tasks/search_serve gunicorn \
     --chdir /scratch/fast/trec-rag-26/tasks/search_serve/scripts \
+    -c /scratch/fast/trec-rag-26/tasks/search_serve/scripts/gunicorn_conf.py \
     -k uvicorn.workers.UvicornWorker \
     -w 8 -b 0.0.0.0:8000 \
     --timeout 600 \
     server:app
 ```
 
+**Startup expectations.** Each worker takes ~60–120 s to reach ready
+(model load + DiskANN index + warm-up). All 8 workers load in parallel,
+so total wall time to first ready response is ~2 min on this hardware,
+not 8 × that. Uvicorn will not accept HTTP connections on a worker until
+its `lifespan` startup finishes — any curl issued earlier hangs in the
+kernel listen queue until at least one worker is ready, **looking like a
+client-side timeout if it waits too long**. Wait for the `[engine] ready`
+line in the server log (or poll `/health` until it returns 200) before
+firing real traffic.
+
 Notes:
-- **CUDA is hidden automatically when `SEARCH_DEVICE=cpu`.** `server.py`'s
-  preamble sets `CUDA_VISIBLE_DEVICES=""` early so the host-info probe
-  doesn't initialise a ~440 MB CUDA driver context per visible GPU
-  (visible as phantom 440 MB allocations in `nvitop` with `%SM=0`).
-  Override by setting `CUDA_VISIBLE_DEVICES` yourself in the launch env.
+- **CUDA is hidden automatically when `SEARCH_DEVICE=cpu`.** Both
+  `server.py`'s preamble and `gunicorn_conf.py:pre_fork` set
+  `CUDA_VISIBLE_DEVICES=""` early so the host-info probe doesn't
+  initialise a ~440 MB CUDA driver context per visible GPU (otherwise
+  visible as phantom 440 MB allocations in `nvitop` with `%SM=0`).
+- **`gunicorn_conf.py` is used in both recipes** — the GPU one wants the
+  per-worker `CUDA_VISIBLE_DEVICES=rank`, and the CPU one wants the
+  `on_starting` hook so server-info prints once in the master instead of
+  N times across workers.
+- **Skip `WARMUP_MADVISE_PQ=true` unless you genuinely need cold-start p99
+  guarantees.** With 8 workers all calling `madvise(WILLNEED)` against
+  the same 64 GB PQ file, the first worker primes the kernel page cache
+  and the others wait — bloating lifespan startup by ~30–60 s with no
+  per-request benefit (the natural warm-up search faults in hot pages).
 - **`SEARCH_DTYPE=bfloat16` is the lever** — it activates the AMX BF16
   matmul kernels on Sapphire/Emerald Rapids. Without it, encode falls back
   to fp32 AVX-512 and runs roughly 2–3× slower.

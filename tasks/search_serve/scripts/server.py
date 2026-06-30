@@ -89,6 +89,12 @@ def load_engine_from_env() -> SearchEngine:
         device=os.environ.get("SEARCH_DEVICE", "auto"),
         dtype=os.environ.get("SEARCH_DTYPE", "auto"),
     )
+    # If the gunicorn master already printed server-info (sentinel set in
+    # gunicorn_conf.py:on_starting), skip the per-worker repeat.
+    print_server_details = (
+        _env_bool("PRINT_SERVER_INFO", True)
+        and not os.environ.get("_SERVER_INFO_PRINTED")
+    )
     return SearchEngine.load(
         index_dir,
         encoder_config=cfg,
@@ -97,7 +103,7 @@ def load_engine_from_env() -> SearchEngine:
         warmup=_env_bool("WARMUP", True),
         warmup_madvise_offsets=_env_bool("WARMUP_MADVISE_OFFSETS", True),
         warmup_madvise_pq=_env_bool("WARMUP_MADVISE_PQ", False),
-        print_server_details=_env_bool("PRINT_SERVER_INFO", True),
+        print_server_details=print_server_details,
     )
 
 
