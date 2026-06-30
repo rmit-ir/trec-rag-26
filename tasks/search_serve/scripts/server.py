@@ -54,14 +54,14 @@ import sys
 from contextlib import asynccontextmanager
 from pathlib import Path
 
-import orjson
 from fastapi import FastAPI, HTTPException, Query
-from fastapi.responses import ORJSONResponse, Response
+from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field
 
 from encoder import EncoderConfig
 from errors import EngineLoadError
 from search_engine import SearchEngine
+from startup_banner import print_startup_banner
 
 
 # ---------------------------------------------------------------------------
@@ -154,6 +154,11 @@ async def lifespan(app: FastAPI):
         raise
     SEARCH_SEM = asyncio.Semaphore(_env_int("SEARCH_INFLIGHT_PER_WORKER", 1))
     print(f"[server] in-flight cap per worker = {SEARCH_SEM._value}", flush=True)
+    # If gunicorn's when_ready hook already printed the master banner,
+    # print_startup_banner is a no-op (env-sentinel guard). Otherwise this
+    # is a direct-uvicorn launch and the per-process print is what the
+    # operator gets.
+    print_startup_banner()
     yield
     if ENGINE is not None:
         ENGINE.close()
@@ -161,9 +166,7 @@ async def lifespan(app: FastAPI):
     SEARCH_SEM = None
 
 
-app = FastAPI(title="trec-rag-26 search-serve",
-              default_response_class=ORJSONResponse,
-              lifespan=lifespan)
+app = FastAPI(title="trec-rag-26 search-serve", lifespan=lifespan)
 
 
 def _require_engine() -> SearchEngine:

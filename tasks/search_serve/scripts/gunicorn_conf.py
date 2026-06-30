@@ -66,3 +66,16 @@ def pre_fork(server, worker):
         server.log.info(
             f"[gunicorn] worker rank={rank} -> CUDA_VISIBLE_DEVICES={gpu}"
         )
+
+
+def when_ready(server):
+    """Runs once in the master after the listening socket is bound and all
+    workers have been launched. Print a single startup banner here so the
+    operator gets one clean summary instead of N per-worker pieces."""
+    sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from startup_banner import print_startup_banner
+        print_startup_banner(server.cfg)
+    except Exception as e:
+        server.log.warning(f"[gunicorn] startup banner failed: {e!r}")
+    os.environ["_STARTUP_BANNER_PRINTED"] = "1"

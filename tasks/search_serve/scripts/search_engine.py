@@ -109,11 +109,13 @@ class SearchResult:
 @dataclass
 class LoadStats:
     index_dir: str = ""
+    meta_load_s: float = 0.0
     model_load_s: float = 0.0
     diskann_load_s: float = 0.0
     docstore_load_s: float = 0.0
     docids_load_s: float = 0.0
     warmup_s: float = 0.0
+    total_load_s: float = 0.0
     encoding_meta: dict = field(default_factory=dict)
     index_meta: dict = field(default_factory=dict)
     docstore_manifest: dict = field(default_factory=dict)
@@ -268,8 +270,11 @@ class SearchEngine:
             eng.server_info = print_server_info(index_path=idx)
         print(f"[engine] loading {idx}", flush=True)
 
+        t_total_start = time.perf_counter()
+        t0 = time.perf_counter()
         _validate_layout(idx)
         eng.encoding_meta, eng.index_meta = _load_meta(idx)
+        eng.stats.meta_load_s = time.perf_counter() - t0
         eng.stats.encoding_meta = eng.encoding_meta
         eng.stats.index_meta = eng.index_meta
 
@@ -310,8 +315,33 @@ class SearchEngine:
         if warmup:
             eng._warmup(warmup_madvise_offsets, warmup_madvise_pq)
         eng._log_fd_usage()
+        eng.stats.total_load_s = time.perf_counter() - t_total_start
+        eng._print_load_summary()
         print(f"[engine] ready: {idx}", flush=True)
         return eng
+
+    def _print_load_summary(self) -> None:
+        """Per-phase wall-clock breakdown of engine load. Helps an operator
+        see which step dominated their startup time (usually DiskANN load
+        on first-touch, encoder load when the model isn't HF-cached, or
+        docids when the corpus has 100M+ rows)."""
+        s = self.stats
+        rows = [
+            ("meta",     s.meta_load_s),
+            ("docids",   s.docids_load_s),
+            ("docstore", s.docstore_load_s),
+            ("encoder",  s.model_load_s),
+            ("diskann",  s.diskann_load_s),
+            ("warmup",   s.warmup_s),
+        ]
+        print("[engine]   load summary:", flush=True)
+        for name, secs in rows:
+            pct = (secs / s.total_load_s * 100.0) if s.total_load_s > 0 else 0.0
+            print(f"[engine]     {name:<10s} {secs:7.2f} s  ({pct:5.1f}%)",
+                  flush=True)
+        print(f"[engine]     {'-' * 32}", flush=True)
+        print(f"[engine]     {'total':<10s} {s.total_load_s:7.2f} s "
+              f"({s.total_load_s/60:.1f} min)", flush=True)
 
     def _log_fd_usage(self) -> None:
         """Surface the post-warmup file-descriptor footprint so an operator
