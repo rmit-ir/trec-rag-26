@@ -203,10 +203,15 @@ def server_info():
 
 def _log_timings(endpoint: str, t) -> None:
     """One-line structured log per request — easy to grep / awk in load tests."""
-    print(f"[req] {endpoint} n={t.n_queries} k={t.k} text={t.with_text} "
-          f"encode={t.encode_ms:.2f}ms ann={t.ann_ms:.2f}ms "
-          f"docstore={t.docstore_fetch_ms:.2f}ms total={t.total_ms:.2f}ms",
-          flush=True)
+    base = (f"[req] {endpoint} n={t.n_queries} k={t.k} text={t.with_text} "
+            f"encode={t.encode_ms:.2f}ms ann={t.ann_ms:.2f}ms "
+            f"docstore={t.docstore_fetch_ms:.2f}ms total={t.total_ms:.2f}ms")
+    if t.docstore is not None:
+        d = t.docstore
+        base += (f"  [ds open={d.open_ms:.1f} read={d.read_ms:.1f} "
+                 f"decompress={d.decompress_ms:.1f} decode={d.decode_ms:.1f} "
+                 f"shards={d.n_unique_shards} new_mmaps={d.n_mmap_opens}]")
+    print(base, flush=True)
 
 
 async def _run_search(fn, *args, **kwargs):

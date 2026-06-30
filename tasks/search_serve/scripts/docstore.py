@@ -17,12 +17,38 @@ import os
 import re
 import struct
 import threading
+import time
 from collections import OrderedDict
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Iterable
 
 from errors import EngineLoadError, docstore_build_hint, ensure_path
+
+
+@dataclass
+class DocstoreFetchTimings:
+    """Per-phase breakdown of a batch fetch — written by ``get_texts``
+    when an empty instance is passed via the ``timings`` kwarg. All values
+    are milliseconds, summed across the entire batch."""
+    open_ms: float = 0.0            # _get_handle: LRU touch + mmap open on miss
+    read_ms: float = 0.0            # offset slice + .bin byte slice from mmap
+    decompress_ms: float = 0.0      # zstd decompress (no-op when compression=none)
+    decode_ms: float = 0.0          # UTF-8 decode
+    n_records: int = 0
+    n_unique_shards: int = 0
+    n_mmap_opens: int = 0           # how many shards were NOT in the LRU
+
+    def to_dict(self) -> dict:
+        return {
+            "open_ms": round(self.open_ms, 3),
+            "read_ms": round(self.read_ms, 3),
+            "decompress_ms": round(self.decompress_ms, 3),
+            "decode_ms": round(self.decode_ms, 3),
+            "n_records": self.n_records,
+            "n_unique_shards": self.n_unique_shards,
+            "n_mmap_opens": self.n_mmap_opens,
+        }
 
 
 _DOCID_RE = re.compile(r"^(.+)_(\d+)$")
@@ -139,8 +165,13 @@ class FlatShardDocStore:
         raw = _read_slice(self._get_handle(stem), row)
         return self._decode(raw).decode("utf-8")
 
-    def get_texts(self, docids: Iterable[str]) -> list[str]:
-        """Per-shard coalescing to amortize LRU touches on batch fetches."""
+    def get_texts(self, docids: Iterable[str], *,
+                  timings: DocstoreFetchTimings | None = None) -> list[str]:
+        """Per-shard coalescing to amortize LRU touches on batch fetches.
+
+        Pass an empty ``DocstoreFetchTimings()`` instance to capture the
+        per-phase breakdown (open / read / decompress / decode). All
+        wall-clock totals across the entire batch."""
         by_shard: dict[str, list[tuple[int, int]]] = {}
         order: list[str] = []
         for i, did in enumerate(docids):
@@ -148,10 +179,39 @@ class FlatShardDocStore:
             by_shard.setdefault(stem, []).append((i, row))
             order.append(did)
         out: list[str] = [""] * len(order)
+        record = timings is not None
+        n_opens = 0
+        t_open = t_read = t_decompress = t_decode = 0.0
         for stem, items in by_shard.items():
+            if record:
+                if stem not in self._handles:
+                    n_opens += 1
+                t0 = time.perf_counter()
             h = self._get_handle(stem)
+            if record:
+                t_open += time.perf_counter() - t0
             for orig_i, row in items:
-                out[orig_i] = self._decode(_read_slice(h, row)).decode("utf-8")
+                if record:
+                    t0 = time.perf_counter()
+                raw = _read_slice(h, row)
+                if record:
+                    t_read += time.perf_counter() - t0
+                    t0 = time.perf_counter()
+                decompressed = self._decode(raw)
+                if record:
+                    t_decompress += time.perf_counter() - t0
+                    t0 = time.perf_counter()
+                out[orig_i] = decompressed.decode("utf-8")
+                if record:
+                    t_decode += time.perf_counter() - t0
+        if record:
+            timings.open_ms = t_open * 1000.0
+            timings.read_ms = t_read * 1000.0
+            timings.decompress_ms = t_decompress * 1000.0
+            timings.decode_ms = t_decode * 1000.0
+            timings.n_records = len(order)
+            timings.n_unique_shards = len(by_shard)
+            timings.n_mmap_opens = n_opens
         return out
 
     def madvise_willneed(self) -> None:

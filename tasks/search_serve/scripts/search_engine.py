@@ -31,7 +31,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from docstore import FlatShardDocStore
+from docstore import DocstoreFetchTimings, FlatShardDocStore
 from encoder import EncoderConfig, QueryEncoder, build_encoder
 from errors import (
     EngineLoadError,
@@ -69,7 +69,11 @@ class SearchTimings:
     """Per-call latency breakdown. ``total_ms`` is wall-clock end-to-end
     inside SearchEngine; the per-stage fields are measured around the actual
     work (encoder.encode, diskann.batch_search, docstore.get_texts) so
-    overhead between stages shows up as ``total_ms - sum(stages)``."""
+    overhead between stages shows up as ``total_ms - sum(stages)``.
+
+    When ``with_text=True``, ``docstore`` carries a per-phase breakdown
+    (open / read / decompress / decode) of the fetch, plus how many unique
+    shards were touched and how many of them required an mmap open."""
     encode_ms: float
     ann_ms: float
     docstore_fetch_ms: float
@@ -77,9 +81,10 @@ class SearchTimings:
     n_queries: int
     k: int
     with_text: bool
+    docstore: DocstoreFetchTimings | None = None
 
     def to_dict(self) -> dict:
-        return {
+        out = {
             "encode_ms": round(self.encode_ms, 3),
             "ann_ms": round(self.ann_ms, 3),
             "docstore_fetch_ms": round(self.docstore_fetch_ms, 3),
@@ -88,6 +93,9 @@ class SearchTimings:
             "k": self.k,
             "with_text": self.with_text,
         }
+        if self.docstore is not None:
+            out["docstore"] = self.docstore.to_dict()
+        return out
 
 
 @dataclass
@@ -381,14 +389,17 @@ class SearchEngine:
 
         hits_by_query = [self._hits_without_text(res, qi, k) for qi in range(len(queries))]
         fetch_s = 0.0
+        docstore_timings: DocstoreFetchTimings | None = None
         if with_text and self.docstore is not None:
-            fetch_s = self._fill_text_inplace(hits_by_query)
+            docstore_timings = DocstoreFetchTimings()
+            fetch_s = self._fill_text_inplace(hits_by_query, docstore_timings)
 
         total_s = time.perf_counter() - t_total_start
         timings = SearchTimings(
             encode_ms=encode_s * 1000, ann_ms=ann_s * 1000,
             docstore_fetch_ms=fetch_s * 1000, total_ms=total_s * 1000,
             n_queries=len(queries), k=k, with_text=with_text,
+            docstore=docstore_timings,
         )
         return SearchResult(queries=list(queries), hits=hits_by_query, timings=timings)
 
@@ -414,15 +425,20 @@ class SearchEngine:
                 ))
         return hits
 
-    def _fill_text_inplace(self, hits_by_query: list[list[SearchHit]]) -> float:
+    def _fill_text_inplace(self, hits_by_query: list[list[SearchHit]],
+                            docstore_timings: DocstoreFetchTimings | None = None,
+                            ) -> float:
         """Coalesce a single docstore call across all queries in the batch
-        and splice the texts back in. Returns elapsed seconds."""
+        and splice the texts back in. Returns elapsed seconds. If
+        ``docstore_timings`` is provided, fills it with the per-phase
+        breakdown (open / read / decompress / decode)."""
         flat = [h for hits in hits_by_query for h in hits]
         if not flat:
             return 0.0
         assert self.docstore is not None
         t0 = time.perf_counter()
-        texts = self.docstore.get_texts([h.docid for h in flat])
+        texts = self.docstore.get_texts([h.docid for h in flat],
+                                         timings=docstore_timings)
         elapsed = time.perf_counter() - t0
         for h, t in zip(flat, texts):
             h.text = t
