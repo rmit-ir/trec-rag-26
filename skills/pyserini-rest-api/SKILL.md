@@ -2,7 +2,7 @@
 name: pyserini-rest-api
 description: Use for accessing the Pyserini REST API, which is the official API for the TREC RAG tracks.
 metadata:
-  version: v0.1.0
+  version: v0.2.0
   source_url: https://github.com/TREC-RAG/trec-rag-skills/tree/main/skills/pyserini-rest-api
 ---
 
@@ -15,10 +15,10 @@ Use this skill when you need to access the Pyserini REST API or help someone bui
 The Pyserini REST API is currently exposed at:
 
 ```text
-http://99.251.12.72:8081
+http://api.castorini.uwaterloo.ca
 ```
 
-The host and port are liable to change. Consult the `pyserini-rest-api` skill in the https://github.com/TREC-RAG/trec-rag-skills/ repository for the latest service location and usage guidance.
+The service location is liable to change. Consult the `pyserini-rest-api` skill in the https://github.com/TREC-RAG/trec-rag-skills/ repository for the latest service location and usage guidance.
 
 Command examples use `<base-url>` as a placeholder for the current service location.
 

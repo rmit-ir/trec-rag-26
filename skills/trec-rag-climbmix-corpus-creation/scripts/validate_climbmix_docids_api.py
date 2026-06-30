@@ -21,7 +21,7 @@ sys.path.insert(0, str(SCRIPT_DIR))
 from create_climbmix_corpus import compact_text, expand_inputs, iter_corpus_rows
 
 
-DEFAULT_BASE_URL = "http://99.251.12.72:8081"
+DEFAULT_BASE_URL = "http://api.castorini.uwaterloo.ca"
 DEFAULT_INDEX = "climbmix-400b"
 AUTH_HEADER_RE = re.compile(r"Authorization:\s*([^\"'\n]+)", re.IGNORECASE)
 

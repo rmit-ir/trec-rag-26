@@ -6,7 +6,7 @@ set -euo pipefail
 QUERY="${1:?Usage: $0 \"query\" [index] [hits]}"
 INDEX="${2:-climbmix-400b}"
 HITS="${3:-10}"
-BASE_URL="${PYSERINI_BASE_URL:-http://99.251.12.72:8081}"
+BASE_URL="${PYSERINI_BASE_URL:-http://api.castorini.uwaterloo.ca}"
 
 cd "$(dirname "$0")/.."
 
