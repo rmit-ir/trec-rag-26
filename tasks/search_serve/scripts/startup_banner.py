@@ -220,7 +220,7 @@ def print_startup_banner(cfg=None) -> None:
     _line(f"  diskann      : threads={env.get('DISKANN_THREADS') or '4'}  "
           f"docstore_lru={env.get('DOCSTORE_LRU') or '1024'}  "
           f"in-flight/worker={env.get('SEARCH_INFLIGHT_PER_WORKER') or '1'}")
-    _line(f"  docstore par : parallel={env.get('DOCSTORE_PARALLEL') or '1'}  "
+    _line(f"  docstore par : parallel={env.get('DOCSTORE_PARALLEL') or '8'}  "
           f"min_k={env.get('DOCSTORE_PARALLEL_MIN_K') or '64'}")
     if env.get("OMP_NUM_THREADS"):
         _line(f"  threading    : OMP_NUM_THREADS={env['OMP_NUM_THREADS']}  "

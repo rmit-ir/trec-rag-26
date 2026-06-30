@@ -146,7 +146,7 @@ class FlatShardDocStore:
     """LRU-cached reader. Open files are bounded to ``lru_size`` shards."""
 
     def __init__(self, root: Path, lru_size: int = 1024,
-                  parallel: int = 1, parallel_min_k: int = 64):
+                  parallel: int = 8, parallel_min_k: int = 64):
         self.root = Path(root)
         ensure_path(self.root / "manifest.json", docstore_build_hint)
         self.manifest = json.loads((self.root / "manifest.json").read_text())

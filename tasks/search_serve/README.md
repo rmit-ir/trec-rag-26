@@ -375,8 +375,8 @@ real numbers.
 | `SEARCH_ENCODER_KIND` | `sentence_transformer` | encoder registry key |
 | `DISKANN_THREADS` | `4` | search threads per worker |
 | `DOCSTORE_LRU` | `1024` | open-mmaps cap per docstore |
-| `DOCSTORE_PARALLEL` | `1` | docstore fetch threads (read/decompress/decode). `1` = sequential (today's behaviour). `8` is a good starting point for high-k loads on NVMe-backed corpora. Mmap-open is always serial. |
-| `DOCSTORE_PARALLEL_MIN_K` | `64` | skip the parallel path entirely when the batch has fewer records than this. Below ~64 records the thread-pool dispatch overhead outweighs the page-fault parallelism win. |
+| `DOCSTORE_PARALLEL` | `8` | docstore fetch threads (read/decompress/decode). Per worker. Set to `1` to force serial. Mmap-open is always serial. Idle threads are cheap (~few KB each) and the pool is lazy-initialised, so the default doesn't cost anything on small batches. |
+| `DOCSTORE_PARALLEL_MIN_K` | `64` | skip the parallel path entirely when the batch has fewer records than this. Below ~64 records the thread-pool dispatch overhead outweighs the page-fault parallelism win. Acts as the protective floor that makes a default of `DOCSTORE_PARALLEL=8` safe. |
 | `WARMUP` | `true` | run encoder + dummy search at startup |
 | `WARMUP_MADVISE_OFFSETS` | `true` | preload offsets files (~4 GB) |
 | `WARMUP_MADVISE_PQ` | `false` | preload `ann_pq_compressed.bin` (~64 GB) — set on PQ-bound boxes |
