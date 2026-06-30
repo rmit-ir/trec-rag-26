@@ -210,11 +210,11 @@ def _log_timings(endpoint: str, result) -> None:
     base = (f"[req] {endpoint} n={m.n_queries} k={m.k} text={m.with_text} "
             f"encode={t.encode_ms:.2f}ms ann={t.ann_ms:.2f}ms "
             f"docstore={t.docstore_fetch_ms:.2f}ms total={t.total_ms:.2f}ms")
-    if t.docstore is not None:
-        d = t.docstore
-        base += (f"  [ds open={d.open_ms:.1f} read={d.read_ms:.1f} "
-                 f"decompress={d.decompress_ms:.1f} decode={d.decode_ms:.1f} "
-                 f"shards={d.n_unique_shards} new_mmaps={d.n_mmap_opens}]")
+    if t.docstore is not None and m.docstore is not None:
+        dt, ds = t.docstore, m.docstore
+        base += (f"  [ds open={dt.open_ms:.1f} read={dt.read_ms:.1f} "
+                 f"decompress={dt.decompress_ms:.1f} decode={dt.decode_ms:.1f} "
+                 f"shards={ds.n_unique_shards} new_mmaps={ds.n_mmap_opens}]")
     print(base, flush=True)
 
 

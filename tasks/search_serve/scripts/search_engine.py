@@ -31,7 +31,7 @@ import time
 from dataclasses import dataclass, field
 from pathlib import Path
 
-from docstore import DocstoreFetchTimings, FlatShardDocStore
+from docstore import DocstoreFetchStats, DocstoreFetchTimings, FlatShardDocStore
 from encoder import EncoderConfig, QueryEncoder, build_encoder
 from errors import (
     EngineLoadError,
@@ -66,8 +66,8 @@ class SearchHit:
 
 @dataclass
 class SearchTimings:
-    """Per-call wall-clock breakdown. Only latencies live here — descriptive
-    counts (k, n_queries, docstore.n_records etc.) go in ``SearchMeta``."""
+    """Per-call wall-clock latencies (ms). Descriptive counts (k, n_queries,
+    docstore.n_records etc.) go in ``SearchMeta``."""
     encode_ms: float
     ann_ms: float
     docstore_fetch_ms: float
@@ -82,7 +82,7 @@ class SearchTimings:
             "total_ms": round(self.total_ms, 3),
         }
         if self.docstore is not None:
-            out["docstore"] = self.docstore.timings_dict()
+            out["docstore"] = self.docstore.to_dict()
         return out
 
 
@@ -93,7 +93,7 @@ class SearchMeta:
     n_queries: int
     k: int
     with_text: bool
-    docstore: DocstoreFetchTimings | None = None
+    docstore: DocstoreFetchStats | None = None
 
     def to_dict(self) -> dict:
         out = {
@@ -102,7 +102,7 @@ class SearchMeta:
             "with_text": self.with_text,
         }
         if self.docstore is not None:
-            out["docstore"] = self.docstore.meta_dict()
+            out["docstore"] = self.docstore.to_dict()
         return out
 
 
@@ -428,20 +428,22 @@ class SearchEngine:
 
         hits_by_query = [self._hits_without_text(res, qi, k) for qi in range(len(queries))]
         fetch_s = 0.0
-        docstore_timings: DocstoreFetchTimings | None = None
+        ds_timings: DocstoreFetchTimings | None = None
+        ds_stats: DocstoreFetchStats | None = None
         if with_text and self.docstore is not None:
-            docstore_timings = DocstoreFetchTimings()
-            fetch_s = self._fill_text_inplace(hits_by_query, docstore_timings)
+            ds_timings = DocstoreFetchTimings()
+            ds_stats = DocstoreFetchStats()
+            fetch_s = self._fill_text_inplace(hits_by_query, ds_timings, ds_stats)
 
         total_s = time.perf_counter() - t_total_start
         timings = SearchTimings(
             encode_ms=encode_s * 1000, ann_ms=ann_s * 1000,
             docstore_fetch_ms=fetch_s * 1000, total_ms=total_s * 1000,
-            docstore=docstore_timings,
+            docstore=ds_timings,
         )
         metadata = SearchMeta(
             n_queries=len(queries), k=k, with_text=with_text,
-            docstore=docstore_timings,
+            docstore=ds_stats,
         )
         return SearchResult(queries=list(queries), hits=hits_by_query,
                             timings=timings, metadata=metadata)
@@ -468,20 +470,23 @@ class SearchEngine:
                 ))
         return hits
 
-    def _fill_text_inplace(self, hits_by_query: list[list[SearchHit]],
-                            docstore_timings: DocstoreFetchTimings | None = None,
-                            ) -> float:
+    def _fill_text_inplace(
+        self,
+        hits_by_query: list[list[SearchHit]],
+        timings: DocstoreFetchTimings | None = None,
+        stats: DocstoreFetchStats | None = None,
+    ) -> float:
         """Coalesce a single docstore call across all queries in the batch
         and splice the texts back in. Returns elapsed seconds. If
-        ``docstore_timings`` is provided, fills it with the per-phase
-        breakdown (open / read / decompress / decode)."""
+        ``timings`` and/or ``stats`` are provided, they are filled with the
+        per-phase latencies / descriptive counts."""
         flat = [h for hits in hits_by_query for h in hits]
         if not flat:
             return 0.0
         assert self.docstore is not None
         t0 = time.perf_counter()
         texts = self.docstore.get_texts([h.docid for h in flat],
-                                         timings=docstore_timings)
+                                         timings=timings, stats=stats)
         elapsed = time.perf_counter() - t0
         for h, t in zip(flat, texts):
             h.text = t

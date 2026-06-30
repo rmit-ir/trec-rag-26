@@ -59,6 +59,112 @@ def _env_summary() -> dict:
     return {k: os.environ.get(k) for k in keys}
 
 
+# ---------------------------------------------------------------------------
+# Disk-read estimate from static file inspection
+# ---------------------------------------------------------------------------
+
+def _filesize(path: Path) -> int:
+    try:
+        return path.stat().st_size
+    except OSError:
+        return 0
+
+
+def disk_read_summary(index_dir: Path) -> dict:
+    """Static analysis of how much data engine load will read from disk and
+    how much of that ends up in process RAM. Returns ``files`` + totals
+    (bytes). No actual reads happen here — safe to call from the master
+    process before workers fork.
+
+    "in_ram" classification:
+      - True  ==> deserialised into process memory (DiskANN data structures,
+                  Python lists, model weights). Shows up in process RSS.
+      - False ==> mmap'd lazily or only seeded into kernel page cache via
+                  madvise WILLNEED. Doesn't add to per-process RSS;
+                  shared across workers.
+    """
+    ds_dir = index_dir / "docstore"
+
+    fully_read_in_ram = [
+        # DiskANN files that get pulled fully into aligned memory at load
+        "ann_pq_compressed.bin",
+        "ann_pq_pivots.bin",
+        "ann_disk.index_pq_pivots.bin",
+        "ann_metadata.bin",
+        "ann_disk.index_medoids.bin",
+        "ann_disk.index_centroids.bin",
+        "ann_disk.index_max_base_norm.bin",
+        "ann_sample_data.bin",
+        "docids.txt",                            # deserialized to Python list
+        "encoding_meta.json", "index_meta.json", # tiny
+    ]
+    files: list[dict] = []
+    for name in fully_read_in_ram:
+        sz = _filesize(index_dir / name)
+        if sz:
+            files.append({"name": name, "bytes": sz, "in_ram": True})
+
+    # docstore manifest + dict (in-ram)
+    files.append({"name": "docstore/zstd.dict",
+                  "bytes": _filesize(ds_dir / "zstd.dict"), "in_ram": True})
+    files.append({"name": "docstore/manifest.json",
+                  "bytes": _filesize(ds_dir / "manifest.json"), "in_ram": True})
+
+    # docstore offsets — madvise(WILLNEED), populates kernel page cache only
+    n_off = 0
+    bytes_off = 0
+    for p in ds_dir.glob("*.offsets.bin"):
+        sz = _filesize(p)
+        if sz:
+            bytes_off += sz
+            n_off += 1
+    if n_off:
+        files.append({"name": f"{n_off:,} × docstore/*.offsets.bin "
+                              f"(madvise WILLNEED)",
+                      "bytes": bytes_off, "in_ram": False})
+
+    # The graph file is mmap'd and largely lazy. DiskANN does eagerly touch
+    # the "cache list" (~num_nodes_to_cache nodes) — estimated ~500 MB on a
+    # cache size of 10 000. We bill that to "read but NOT held in process
+    # RAM" (the cache lives in scratch buffers, but most graph pages don't
+    # come into the process at all).
+    graph_total = _filesize(index_dir / "ann_disk.index")
+    if graph_total:
+        files.append({"name": "ann_disk.index (graph; ~500 MB eager, rest "
+                              "lazy mmap)",
+                      "bytes": min(500 * 1024 * 1024, graph_total),
+                      "in_ram": False})
+
+    total_read = sum(f["bytes"] for f in files)
+    total_in_ram = sum(f["bytes"] for f in files if f["in_ram"])
+    return {
+        "files": files,
+        "total_bytes_read": total_read,
+        "bytes_in_process_ram": total_in_ram,
+        "n_offsets_files": n_off,
+        "graph_total_bytes": graph_total,
+    }
+
+
+def process_rss_bytes() -> int:
+    """Process VmRSS in bytes. Returns 0 on non-Linux or unreadable."""
+    try:
+        with open("/proc/self/status", "rt") as f:
+            for line in f:
+                if line.startswith("VmRSS:"):
+                    return int(line.split()[1]) * 1024  # KB -> bytes
+    except OSError:
+        return 0
+    return 0
+
+
+def _humansize(n: int) -> str:
+    for unit in ("B", "KB", "MB", "GB", "TB"):
+        if n < 1024 or unit == "TB":
+            return f"{n:.2f} {unit}" if unit != "B" else f"{n} B"
+        n /= 1024
+
+
 def _index_summary(index_dir: Path) -> dict:
     enc = _safe_json(index_dir / "encoding_meta.json")
     idx = _safe_json(index_dir / "index_meta.json")
@@ -134,6 +240,17 @@ def print_startup_banner(cfg=None) -> None:
         ratio_s = f"{ratio:.2f}x" if isinstance(ratio, (int, float)) else "?"
         _line(f"    docstore   : {idx.get('docstore_compression')}  "
               f"ratio={ratio_s}  n_shards={idx['n_shards']:,}")
+    if env.get("INDEX_DIR"):
+        ds = disk_read_summary(Path(env["INDEX_DIR"]))
+        rss = process_rss_bytes()
+        _line()
+        _line(f"  disk reads at startup (per worker, cold cache):")
+        _line(f"    total read       : {_humansize(ds['total_bytes_read'])}")
+        _line(f"    held in process RAM   : "
+              f"{_humansize(ds['bytes_in_process_ram'])}")
+        if rss > 0:
+            _line(f"    current process RSS   : {_humansize(rss)}  "
+                  f"(this banner process; workers' RSS will differ post-load)")
     _line()
     _line("  Note: workers may still be loading. Poll /health until")
     _line("        status == \"ok\" before sending real traffic.")

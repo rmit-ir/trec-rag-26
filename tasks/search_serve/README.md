@@ -211,6 +211,57 @@ uv run --project tasks/search_serve python tasks/search_serve/scripts/loadtest.p
 | Multiple in-flight searches needed per worker (e.g. CPU has spare cores) | bump `SEARCH_INFLIGHT_PER_WORKER` to 2 — measure carefully |
 | OOM when loading on a small box | reduce `DOCSTORE_LRU` (cap on open shard mmaps) |
 
+## Disk reads on startup
+
+What a single cold-cache worker pulls from disk during `lifespan` startup on
+the ClimbMix-full index (553 M docs, dim=768, docstore zstd-9):
+
+| component | bytes | how it's read | held in process RAM? |
+|---|---|---|---|
+| `ann_pq_compressed.bin` (PQ table) | **64 GB** | full sequential into RAM | yes |
+| `docids.txt` | **9.4 GB** | line-by-line into `list[str]` | yes (~30 GB after Python str inflation) |
+| `*.offsets.bin` × 6 543 (docstore) | **4.4 GB** | `madvise(WILLNEED)` queued — kernel readahead | no (page cache only, shared across workers) |
+| `ann_sample_data.bin` | 311 MB | full into aligned buffer | yes |
+| `ann_disk.index` graph cache warm-up | ~300–500 MB | scatter-gather from 151 GB mmap | partially (~10K cached nodes only) |
+| Sentence-Transformers model (`model.safetensors` + adapter) | ~310 MB | full into GPU/CPU memory | yes |
+| `ann_pq_pivots.bin` (PQ codebook) | 780 KB | full | yes |
+| `ann_disk.index_medoids.bin`, `_centroids.bin`, `_max_base_norm.bin` | ~50 KB | full | yes |
+| `manifest.json` × 3 + `encoding_meta.json` + `index_meta.json` | ~5 KB | full | yes |
+| `zstd.dict` (docstore dict) | 1 MB | full | yes |
+| `tokenizer.json` + configs | ~10 MB | full | yes |
+| **Total per cold worker** | **≈ 78 GB sync + 4.4 GB hinted ≈ 82 GB** | | **~74 GB held in process RAM** |
+
+The 151 GB `ann_disk.index` graph file is **mmap'd lazily** — only the ~10K
+cached nodes + the handful of page faults during DiskANN's startup
+self-test are touched eagerly. The 498 GB docstore `shard_*.bin` files are
+mmap'd but **zero bytes read at startup** — each query's top-k results
+trigger per-shard page faults (the slow first-touch cost you see at k=1000).
+
+### Multi-worker sharing
+
+Workers share the kernel page cache for every mmap'd file. Only the **first**
+worker to touch a page pays the disk I/O; the others get the bytes from RAM.
+Net cold-start I/O for 8 workers is **~85–90 GB**, not 8 × 82 GB.
+
+Each worker still pays its own copy of the deserialised state — model
+weights (~310 MB), docids list (~30 GB), DiskANN scratch (~few hundred MB).
+That's the "held in process RAM" column above multiplied by the worker
+count. On segsresap12 (503 GB RAM): 8 workers ≈ 6.4 GB of duplicated
+state + 64 GB shared PQ table = ~70 GB total resident.
+
+### Reducing the startup cost
+
+If 3:20 single-worker startup is painful:
+- `WARMUP_MADVISE_PQ=false` — already the default; saves ~30–60 s in
+  multi-worker setups where workers would otherwise race on the same 64 GB
+  prefetch.
+- Pre-warm the page cache once
+  (`vmtouch -t /<index_dir>/ann_pq_compressed.bin`) and restart — should
+  drop the DiskANN phase from ~115 s to ~10 s.
+- Reduce `num_nodes_to_cache` from 10 K → 1 K. Cuts the cache build by
+  30–60 s. Marginal recall impact on the first ~50 queries until natural
+  caching kicks in.
+
 ## Per-request tuning by `k`
 
 The right `complexity` and `beam_width` to send on each request depend on
