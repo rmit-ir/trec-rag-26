@@ -20,6 +20,7 @@ files are mmap'd, so the kernel page-caches them once across workers.
 """
 from __future__ import annotations
 
+import asyncio
 import os
 import sys
 from contextlib import asynccontextmanager
@@ -97,21 +98,30 @@ class BatchSearchRequest(BaseModel):
 # ---------------------------------------------------------------------------
 
 ENGINE: SearchEngine | None = None
+# Per-worker cap on concurrent in-flight searches. Encode is the bottleneck
+# and serialises on the GIL / GPU stream within one process, so the right
+# default is 1 (parallelism comes from running multiple gunicorn workers,
+# not from running multiple concurrent encodes inside one). Override via
+# SEARCH_INFLIGHT_PER_WORKER for benchmarking.
+SEARCH_SEM: asyncio.Semaphore | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global ENGINE
+    global ENGINE, SEARCH_SEM
     try:
         ENGINE = load_engine_from_env()
     except EngineLoadError as e:
         print(f"\n[server] FAILED to load engine:\n  {e}\n", file=sys.stderr)
         # Re-raise so the worker exits — better than serving 500s forever.
         raise
+    SEARCH_SEM = asyncio.Semaphore(_env_int("SEARCH_INFLIGHT_PER_WORKER", 1))
+    print(f"[server] in-flight cap per worker = {SEARCH_SEM._value}", flush=True)
     yield
     if ENGINE is not None:
         ENGINE.close()
         ENGINE = None
+    SEARCH_SEM = None
 
 
 app = FastAPI(title="trec-rag-26 search-serve",
@@ -162,11 +172,24 @@ def _log_timings(endpoint: str, t) -> None:
           flush=True)
 
 
+async def _run_search(fn, *args, **kwargs):
+    """Run a blocking engine call in a thread, gated by the per-worker
+    semaphore. The async def + to_thread combo keeps the event loop free to
+    accept new requests while one is mid-encode; the semaphore prevents
+    multiple threads from contending on the GIL inside the same worker."""
+    assert SEARCH_SEM is not None, "engine not loaded yet"
+    async with SEARCH_SEM:
+        return await asyncio.to_thread(fn, *args, **kwargs)
+
+
 @app.post("/search")
-def search(req: SearchRequest):
+async def search(req: SearchRequest):
     eng = _require_engine()
-    result = eng.search(req.query, k=req.k, complexity=req.complexity,
-                        beam_width=req.beam_width, with_text=req.with_text)
+    result = await _run_search(
+        eng.search, req.query,
+        k=req.k, complexity=req.complexity,
+        beam_width=req.beam_width, with_text=req.with_text,
+    )
     _log_timings("/search", result.timings)
     return {
         "query": req.query,
@@ -176,10 +199,13 @@ def search(req: SearchRequest):
 
 
 @app.post("/search/batch")
-def search_batch(req: BatchSearchRequest):
+async def search_batch(req: BatchSearchRequest):
     eng = _require_engine()
-    result = eng.search_batch(req.queries, k=req.k, complexity=req.complexity,
-                              beam_width=req.beam_width, with_text=req.with_text)
+    result = await _run_search(
+        eng.search_batch, req.queries,
+        k=req.k, complexity=req.complexity,
+        beam_width=req.beam_width, with_text=req.with_text,
+    )
     _log_timings("/search/batch", result.timings)
     return {
         "queries": req.queries,

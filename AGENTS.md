@@ -108,16 +108,16 @@ they're no longer needed. Exception: something handed to the user for testing
      DiskANN search anyway, since both already release the GIL internally),
      while letting unrelated requests progress on the loop.
 
-### Multi-GPU benchmark notes
+### Multi-GPU benchmark notes (current, post async-refactor)
 
-- **Single-worker peak ≈ 28 req/s** at C=1, dropping to ~16 req/s at C=16
-  (the encode bottleneck).
-- **4-worker gunicorn (1 GPU/worker) peaks at ~71 req/s at C=8** (2.6× the
-  single-worker baseline). Per-worker encode at C=8 climbs to ~50 ms
-  (each worker handling ~2 in-flight requests).
-- **8-worker gunicorn currently *regresses* vs 4-worker** at C=8 because of
-  the FastAPI threadpool issue above — fix that before drawing conclusions
-  about 8-GPU scaling.
+- **Single-worker peak ≈ 28 req/s** at C=1.
+- **4-worker gunicorn (sync def, 1 GPU/worker)** peaked at ~71 req/s at C=8.
+- **8-worker gunicorn with async `def` + asyncio.Semaphore(1) per worker
+  peaks at 102 req/s at C=32** — 1.7× the previous best, zero errors, and
+  encode_p50 stays flat at 24.4 ms across every concurrency level
+  (proves per-worker single-stream encode is doing its job).
+- C=64 starts to regress (50 r/s) because the kernel listen queue starts
+  dropping; for higher real-world load, scale horizontally instead.
 
 ### Jina v5 (`jinaai/jina-embeddings-v5-text-nano`)
 

@@ -60,37 +60,126 @@ Endpoints:
 - `GET /server-info` — live host introspection
 - `GET /docs` — OpenAPI / Swagger UI
 
-## Heavy-load: gunicorn + multiple workers
+## Deployment recipes
 
-One worker per GPU (CUDA box) or per NUMA node (CPU box like segsresap12):
+Two reference launches, one per realistic deployment target. Both use the
+same FastAPI app; only the env vars + gunicorn workers + per-worker pinning
+change.
+
+### Recipe A — GPU server (sctsresap21 or any CUDA box)
+
+Specs in use: 8× NVIDIA L40S, 2× Xeon Platinum 8592+ (128 phys cores),
+2 TB RAM. One gunicorn worker per GPU; the `pre_fork` hook pins each.
+
+```bash
+INDEX_DIR=/mnt/raid10/e128356/projects/trec-rag-26/data/built-indexes/climbmix-full \
+SEARCH_DEVICE=cuda:0 \
+SEARCH_DTYPE=auto \
+DISKANN_THREADS=4 \
+DOCSTORE_LRU=1024 \
+SEARCH_INFLIGHT_PER_WORKER=1 \
+WARMUP=true \
+WARMUP_MADVISE_OFFSETS=true \
+WARMUP_MADVISE_PQ=false \
+N_GPUS=8 \
+  uv run --project tasks/search_serve gunicorn \
+    --chdir /mnt/raid10/e128356/projects/trec-rag-26/tasks/search_serve/scripts \
+    -c /mnt/raid10/e128356/projects/trec-rag-26/tasks/search_serve/scripts/gunicorn_conf.py \
+    -k uvicorn.workers.UvicornWorker \
+    -w 8 -b 0.0.0.0:8000 \
+    --timeout 600 \
+    server:app
+```
+
+Notes:
+- `SEARCH_DEVICE=cuda:0` is correct even with 8 workers — `gunicorn_conf.py`
+  sets `CUDA_VISIBLE_DEVICES=<rank>` per worker, so each worker sees only
+  one device and addresses it as cuda:0.
+- `--timeout 600` is mandatory: per-worker engine load takes ~3 min
+  (model + 64 GB PQ mmap + warm-up). The 30 s default will SIGKILL workers
+  mid-load.
+- **AIO budget:** `8 workers × 4 threads × 1024 events = 32,768` of the
+  default `aio-max-nr=65,536`. Safe. Don't push `DISKANN_THREADS` past 8
+  on this setup without checking the cap.
+- **VRAM per worker:** ~600 MB (Jina v5 nano in bf16). Trivial against
+  L40S's 45 GB.
+- **PQ table (64 GB):** mmap'd, kernel-shared across workers — one page-cache
+  copy, not eight. `WARMUP_MADVISE_PQ=true` is optional; the natural
+  warm-up dummy search already faults in the hot pages.
+
+### Recipe B — CPU server (segsresap12 / any Sapphire-Rapids-or-newer Xeon)
+
+Specs assumed: dual Xeon Gold 5420+ Sapphire Rapids (56 phys cores / 112
+threads, 2 NUMA nodes), 503 GB RAM, AMX BF16/INT8 available, index files
+on `/scratch/fast` NVMe.
 
 ```bash
 INDEX_DIR=/scratch/fast/built-indexes/climbmix-full \
-SEARCH_DEVICE=cuda \
+SEARCH_DEVICE=cpu \
+SEARCH_DTYPE=bfloat16 \
 DISKANN_THREADS=4 \
+DOCSTORE_LRU=1024 \
+SEARCH_INFLIGHT_PER_WORKER=1 \
+WARMUP=true \
+WARMUP_MADVISE_OFFSETS=true \
 WARMUP_MADVISE_PQ=true \
+OMP_NUM_THREADS=7 \
+MKL_NUM_THREADS=7 \
+  numactl --interleave=all \
   uv run --project tasks/search_serve gunicorn \
-    --chdir tasks/search_serve/scripts \
+    --chdir /scratch/fast/trec-rag-26/tasks/search_serve/scripts \
     -k uvicorn.workers.UvicornWorker \
-    -w 8 -b 0.0.0.0:8000 server:app
+    -w 8 -b 0.0.0.0:8000 \
+    --timeout 600 \
+    server:app
 ```
 
-Index files are mmap'd, so the kernel page-caches them once across all
-workers (not N times). Per-worker overhead is the SentenceTransformer model
-(~600 MB), one DiskANN handle, and `DISKANN_THREADS * 1024` libaio slots.
+Notes:
+- **`SEARCH_DTYPE=bfloat16` is the lever** — it activates the AMX BF16
+  matmul kernels on Sapphire/Emerald Rapids. Without it, encode falls back
+  to fp32 AVX-512 and runs roughly 2–3× slower.
+- **`OMP_NUM_THREADS=7` per worker × 8 workers = 56 cores** — matches the
+  physical core count; SMT (HT) rarely helps these dense GEMM kernels and
+  often hurts (cache-line contention). Tune the worker count to match:
+  4 workers → `OMP_NUM_THREADS=14`, 8 workers → 7, etc.
+- **`numactl --interleave=all`** spreads memory pages across both NUMA
+  nodes, so any worker's encode/PQ-fetch hits balanced bandwidth. Per-worker
+  NUMA pinning would be tighter but needs a custom wrapper per worker
+  (gunicorn doesn't expose a clean hook for that yet).
+- **`WARMUP_MADVISE_PQ=true`** is the right default here: 503 GB RAM
+  comfortably holds the 64 GB PQ table resident, and the cost of preloading
+  is ~30 s once. Avoids any first-request cold-start latency.
+- **No GPU pinning, no `N_GPUS`, no `gunicorn_conf.py`.** Plain gunicorn is
+  enough.
+- **AIO budget:** same math as recipe A — `8 × 4 × 1024 = 32 K` / 65 K cap.
+  Safe.
+- **VRAM:** N/A. RAM: ~1.2 GB per worker (model + scratch). 8 workers =
+  ~10 GB total beyond the PQ table.
 
-### AIO budget rule
+### Smoke check both recipes
 
-DiskANN reserves one libaio io_context per search thread, ~1024 events each.
-Stay under `/proc/sys/fs/aio-max-nr`:
+```bash
+# in another terminal once /health returns ok
+curl -s -X POST http://127.0.0.1:8000/search \
+  -H 'content-type: application/json' \
+  -d '{"query":"transformers explained","k":3,"with_text":true}' | jq '.timings, .hits[0]'
 
+# load test
+uv run --project tasks/search_serve python tasks/search_serve/scripts/loadtest.py \
+  --url http://127.0.0.1:8000 \
+  --total 300 --concurrency 1 --concurrency 8 --concurrency 16 \
+  --k 10 --warmup 10
 ```
-workers * DISKANN_THREADS * 1024 < /proc/sys/fs/aio-max-nr
-```
 
-On a host with the kernel default `aio-max-nr=65536`:
-- 8 workers × 4 threads = 32 contexts → 32,768 events (50% budget) — fine
-- 16 workers × 8 threads = 128 contexts → 131,072 events — **over budget**, ask sysadmin to bump
+### When to deviate from the defaults
+
+| symptom | knob to turn |
+|---|---|
+| p99 cold-start latency too high after restart | `WARMUP_MADVISE_PQ=true` |
+| AIO `io_setup` errors at startup | reduce `DISKANN_THREADS` or `-w`; ask admin to raise `aio-max-nr` |
+| Encode dominates total — want to trade recall for QPS | reduce `complexity` per request (default 64 → 32) |
+| Multiple in-flight searches needed per worker (e.g. CPU has spare cores) | bump `SEARCH_INFLIGHT_PER_WORKER` to 2 — measure carefully |
+| OOM when loading on a small box | reduce `DOCSTORE_LRU` (cap on open shard mmaps) |
 
 ## Environment variables (server.py)
 
