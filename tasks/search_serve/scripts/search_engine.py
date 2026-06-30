@@ -189,8 +189,10 @@ def _load_docids(idx: Path, expected_n: int) -> list[str]:
     return ids
 
 
-def _open_docstore(idx: Path, n_expected: int, lru_size: int) -> FlatShardDocStore:
-    ds = FlatShardDocStore(idx / "docstore", lru_size=lru_size)
+def _open_docstore(idx: Path, n_expected: int, lru_size: int,
+                    parallel: int, parallel_min_k: int) -> FlatShardDocStore:
+    ds = FlatShardDocStore(idx / "docstore", lru_size=lru_size,
+                            parallel=parallel, parallel_min_k=parallel_min_k)
     if ds.manifest["n_records"] != n_expected:
         raise EngineLoadError(
             f"docstore has {ds.manifest['n_records']:,} records but docids.txt "
@@ -265,6 +267,8 @@ class SearchEngine:
         encoder_config: EncoderConfig | None = None,
         diskann_search_threads: int = 4,
         docstore_lru: int = 1024,
+        docstore_parallel: int = 1,
+        docstore_parallel_min_k: int = 64,
         warmup: bool = True,
         warmup_madvise_offsets: bool = True,
         warmup_madvise_pq: bool = False,
@@ -292,13 +296,19 @@ class SearchEngine:
         eng.stats.docids_load_s = time.perf_counter() - t0
 
         t0 = time.perf_counter()
-        eng.docstore = _open_docstore(idx, len(eng.docids), docstore_lru)
+        eng.docstore = _open_docstore(idx, len(eng.docids), docstore_lru,
+                                       parallel=docstore_parallel,
+                                       parallel_min_k=docstore_parallel_min_k)
         eng.stats.docstore_manifest = eng.docstore.manifest
         eng.stats.docstore_load_s = time.perf_counter() - t0
+        parallel_note = (f" parallel={docstore_parallel} "
+                          f"min_k={docstore_parallel_min_k}"
+                          if docstore_parallel > 1 else " parallel=off")
         print(f"[engine]   docstore: compression={eng.docstore.compression} "
               f"n_records={eng.docstore.manifest['n_records']:,} "
-              f"ratio={eng.docstore.manifest.get('ratio_x') or 1.0:.2f}x "
-              f"({eng.stats.docstore_load_s:.1f}s)", flush=True)
+              f"ratio={eng.docstore.manifest.get('ratio_x') or 1.0:.2f}x"
+              f"{parallel_note} ({eng.stats.docstore_load_s:.1f}s)",
+              flush=True)
 
         cfg = encoder_config or EncoderConfig()
         print(f"[engine]   loading query encoder (kind={cfg.kind}, "

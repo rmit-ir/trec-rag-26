@@ -53,6 +53,7 @@ def _env_summary() -> dict:
     keys = (
         "INDEX_DIR", "SEARCH_DEVICE", "SEARCH_DTYPE",
         "DISKANN_THREADS", "DOCSTORE_LRU", "SEARCH_INFLIGHT_PER_WORKER",
+        "DOCSTORE_PARALLEL", "DOCSTORE_PARALLEL_MIN_K",
         "WARMUP", "WARMUP_MADVISE_OFFSETS", "WARMUP_MADVISE_PQ",
         "OMP_NUM_THREADS", "MKL_NUM_THREADS",
     )
@@ -219,6 +220,8 @@ def print_startup_banner(cfg=None) -> None:
     _line(f"  diskann      : threads={env.get('DISKANN_THREADS') or '4'}  "
           f"docstore_lru={env.get('DOCSTORE_LRU') or '1024'}  "
           f"in-flight/worker={env.get('SEARCH_INFLIGHT_PER_WORKER') or '1'}")
+    _line(f"  docstore par : parallel={env.get('DOCSTORE_PARALLEL') or '1'}  "
+          f"min_k={env.get('DOCSTORE_PARALLEL_MIN_K') or '64'}")
     if env.get("OMP_NUM_THREADS"):
         _line(f"  threading    : OMP_NUM_THREADS={env['OMP_NUM_THREADS']}  "
               f"MKL_NUM_THREADS={env.get('MKL_NUM_THREADS') or '-'}")
