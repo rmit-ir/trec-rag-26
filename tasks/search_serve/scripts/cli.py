@@ -8,6 +8,17 @@ Usage:
 """
 from __future__ import annotations
 
+# Same CPU-mode CUDA hide as server.py: if --device cpu (or CPU-mode env)
+# is the operator's intent, suppress the CUDA driver context that would
+# otherwise be allocated by our server-info probe. Must happen BEFORE
+# anything imports torch.
+import os as _os
+import sys as _sys
+if "--device" in _sys.argv:
+    _i = _sys.argv.index("--device")
+    if _i + 1 < len(_sys.argv) and _sys.argv[_i + 1].lower().startswith("cpu"):
+        _os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+
 import argparse
 import json
 import sys

@@ -121,11 +121,15 @@ class FlatShardDocStore:
         if h is not None:
             self._handles.move_to_end(stem)
             return h
-        h = _open_pair(self.root, stem)
-        self._handles[stem] = h
-        while len(self._handles) > self._lru_size:
+        # Evict BEFORE opening so we never transiently exceed the fd cap.
+        # Under concurrent load the old eviction-after-open pattern raced
+        # against RLIMIT_NOFILE and threw OSError(24) on the os.open call
+        # before the eviction loop got a chance to run.
+        while len(self._handles) >= self._lru_size:
             _, evicted = self._handles.popitem(last=False)
             evicted.close()
+        h = _open_pair(self.root, stem)
+        self._handles[stem] = h
         return h
 
     # ---- public --------------------------------------------------------

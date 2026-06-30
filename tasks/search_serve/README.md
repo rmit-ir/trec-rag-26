@@ -140,6 +140,11 @@ MKL_NUM_THREADS=7 \
 ```
 
 Notes:
+- **CUDA is hidden automatically when `SEARCH_DEVICE=cpu`.** `server.py`'s
+  preamble sets `CUDA_VISIBLE_DEVICES=""` early so the host-info probe
+  doesn't initialise a ~440 MB CUDA driver context per visible GPU
+  (visible as phantom 440 MB allocations in `nvitop` with `%SM=0`).
+  Override by setting `CUDA_VISIBLE_DEVICES` yourself in the launch env.
 - **`SEARCH_DTYPE=bfloat16` is the lever** — it activates the AMX BF16
   matmul kernels on Sapphire/Emerald Rapids. Without it, encode falls back
   to fp32 AVX-512 and runs roughly 2–3× slower.

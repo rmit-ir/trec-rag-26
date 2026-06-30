@@ -20,6 +20,34 @@ files are mmap'd, so the kernel page-caches them once across workers.
 """
 from __future__ import annotations
 
+# === preamble (runs before any torch import) =================================
+#
+# 1. Hide CUDA from the process when the operator has explicitly asked for
+#    CPU. Otherwise our server_info.gpu_info() probe (and any incidental
+#    torch.cuda call) initialises a ~440 MB CUDA driver context per visible
+#    GPU, even though no kernels ever run there.
+# 2. Bump RLIMIT_NOFILE soft -> hard so the per-worker docstore mmaps don't
+#    trip "Too many open files" under concurrent load. With DOCSTORE_LRU=1024
+#    we keep ~2050 shard fds open per worker + DiskANN + sockets + Python.
+#    The kernel hard cap is usually fine; only the conservative soft cap
+#    needs raising. No-op when the hard cap is already at our soft.
+#
+# Keep both at the very top of the module so they run before any other import.
+import os as _os
+import resource as _resource
+
+if _os.environ.get("SEARCH_DEVICE", "").lower().startswith("cpu"):
+    _os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
+
+try:
+    _soft, _hard = _resource.getrlimit(_resource.RLIMIT_NOFILE)
+    if _soft < _hard:
+        _resource.setrlimit(_resource.RLIMIT_NOFILE, (_hard, _hard))
+        print(f"[preamble] raised RLIMIT_NOFILE soft {_soft} -> {_hard}",
+              flush=True)
+except (OSError, ValueError) as _e:
+    print(f"[preamble] could not raise RLIMIT_NOFILE: {_e!r}", flush=True)
+
 import asyncio
 import os
 import sys
