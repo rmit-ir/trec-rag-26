@@ -8,6 +8,18 @@
 - Sample mode: `sample`; seed: `20260703`.
 - Errors: `0`.
 
+## Strategy Definitions
+
+| strategy | brief definition |
+|---|---|
+| `first_512` | Keep only the first ~512 tokens. |
+| `first_1024` | Keep only the first ~1024 tokens. |
+| `fixed_512_overlap_64` | Fixed ~512-token chunks with 64-token overlap. |
+| `fixed_1024_overlap_128` | Fixed ~1024-token chunks with 128-token overlap. |
+| `paragraph_aware_512` | Prefer paragraph boundaries, capped near 512 tokens. |
+| `paragraph_aware_1024` | Prefer paragraph boundaries, capped near 1024 tokens. |
+| `hybrid_short_whole_long_chunk` | Keep short docs whole; chunk long docs; cap extreme docs at 128 chunks. |
+
 ## Strategy Summary
 
 | strategy | chunks/doc mean | chunks/doc p95 | chunk tokens p50 | chunk tokens p95 | retained tokens | truncated docs | token multiplier | overlap overhead | tiny chunk rate |
@@ -44,15 +56,16 @@
 | `paragraph_aware_1024` | 102.3 | 100.00% | 0.00% | 1.00 |
 | `hybrid_short_whole_long_chunk` | 102.3 | 97.71% | 3.00% | 0.98 |
 
+## Example Files
+
+Before/after chunk previews are stored under:
+
+```text
+examples/sample/
+```
 
 ## Notes
 
 - Token counts use the same approximate convention as corpus profiling: `ceil(chars / 4)`.
 - Prefix strategies are baselines, not recommended final systems.
 - Retrieval quality still needs a later embedding/index experiment after the chunking choice is narrowed.
-
-## Takeaways
-
-- Prefix-only baselines are too lossy: `first_512` truncates 59.20% of docs and retains only 11.53% of tokens.
-- `paragraph_aware_1024` is the strongest no-truncation baseline: 100% retained tokens, near-zero overhead, and 4.26 mean chunks/doc.
-- `hybrid_short_whole_long_chunk` is the best production candidate so far: 98.49% retained tokens, 0.26% truncated docs, 4.19 mean chunks/doc, and extreme long docs capped at 128 chunks.
