@@ -148,3 +148,23 @@ they're no longer needed. Exception: something handed to the user for testing
   default oversubscription hurts on multi-worker setups. For an 8-worker
   serve on a 56-core box, `OMP_NUM_THREADS=7` is the sensible per-worker
   share.
+
+### RAGDOLL Evaluation
+- **RAGDoll runs TREC-style evaluation for RAG systems** using Pi-backed LLM
+  judges. It supports query–passage relevance judging, citation support
+  assessment, nugget/rubric scoring, and pairwise system comparison.
+
+- **Inputs and outputs are JSONL-based**, which makes runs easy to reproduce,
+  debug, and compare against human qrels. For relevance judging, each query is
+  paired with candidate passages and RAGDoll produces automatic relevance labels.
+  
+## Notes
+- Use `uv` for Python dependency management.
+- Run commands from the repository root.
+- RAGDoll evaluation inputs should use JSONL format.
+- For UMBRELA relevance judging, input rows should contain:
+  - `qid`
+  - `query`
+  - `candidates`
+  - each candidate should contain `docid` and `doc.segment`
+
