@@ -51,6 +51,7 @@ except (OSError, ValueError) as _e:
 import asyncio
 import os
 import sys
+import time
 from contextlib import asynccontextmanager
 from pathlib import Path
 
@@ -60,8 +61,14 @@ from pydantic import BaseModel, Field
 
 from encoder import EncoderConfig
 from errors import EngineLoadError
+from request_logging import install as _install_request_logging
 from search_engine import SearchEngine
 from startup_banner import print_startup_banner
+
+# Enrich uvicorn's opaque "Invalid HTTP request received." warning with the
+# client address + raw payload, so scanner/TLS-to-plaintext noise is
+# identifiable instead of anonymous. No-op if uvicorn internals move.
+_install_request_logging()
 
 
 # ---------------------------------------------------------------------------
@@ -132,6 +139,11 @@ class BatchSearchRequest(BaseModel):
     with_text: bool = True
 
 
+class DocsRequest(BaseModel):
+    docids: list[str] = Field(..., min_length=1, max_length=4096,
+                              description="docids like `shard_00042_1337`.")
+
+
 # ---------------------------------------------------------------------------
 # app
 # ---------------------------------------------------------------------------
@@ -143,11 +155,16 @@ ENGINE: SearchEngine | None = None
 # not from running multiple concurrent encodes inside one). Override via
 # SEARCH_INFLIGHT_PER_WORKER for benchmarking.
 SEARCH_SEM: asyncio.Semaphore | None = None
+# Separate cap for docstore-only endpoints (/doc, /docs) so doc fetches
+# neither queue behind GPU encodes nor fan into unbounded threads. Docstore
+# reads are mmap+zstd (thread-safe via threading.local decoders) and release
+# the GIL during decompress, so a small >1 cap is safe and useful.
+DOC_SEM: asyncio.Semaphore | None = None
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global ENGINE, SEARCH_SEM
+    global ENGINE, SEARCH_SEM, DOC_SEM
     try:
         ENGINE = load_engine_from_env()
     except EngineLoadError as e:
@@ -155,7 +172,9 @@ async def lifespan(app: FastAPI):
         # Re-raise so the worker exits — better than serving 500s forever.
         raise
     SEARCH_SEM = asyncio.Semaphore(_env_int("SEARCH_INFLIGHT_PER_WORKER", 1))
-    print(f"[server] in-flight cap per worker = {SEARCH_SEM._value}", flush=True)
+    DOC_SEM = asyncio.Semaphore(_env_int("DOC_INFLIGHT_PER_WORKER", 4))
+    print(f"[server] in-flight cap per worker = {SEARCH_SEM._value} "
+          f"(search) / {DOC_SEM._value} (doc fetch)", flush=True)
     # If gunicorn's when_ready hook already printed the master banner,
     # print_startup_banner is a no-op (env-sentinel guard). Otherwise this
     # is a direct-uvicorn launch and the per-process print is what the
@@ -166,6 +185,7 @@ async def lifespan(app: FastAPI):
         ENGINE.close()
         ENGINE = None
     SEARCH_SEM = None
+    DOC_SEM = None
 
 
 app = FastAPI(title="trec-rag-26 search-serve", lifespan=lifespan)
@@ -272,6 +292,71 @@ async def search_get(
                       beam_width=beam_width, with_text=with_text),
         "GET /search",
     )
+
+
+# ---------------------------------------------------------------------------
+# doc-by-id endpoints — docstore only, no encode / ANN involved
+# ---------------------------------------------------------------------------
+
+def _require_docstore():
+    eng = _require_engine()
+    if eng.docstore is None:
+        raise HTTPException(status_code=503,
+                            detail="engine loaded without a docstore")
+    return eng.docstore
+
+
+def _fetch_docs(docstore, docids: list[str]) -> tuple[list[str | None], list[str]]:
+    """Fetch each docid, tolerating bad ones. Returns (texts aligned to
+    input order with None for misses, list of missing/invalid docids).
+    Runs inside a worker thread — everything here may block."""
+    texts: list[str | None] = []
+    missing: list[str] = []
+    for did in docids:
+        try:
+            texts.append(docstore.get_text(did))
+        except Exception:
+            # malformed docid (ValueError), unknown shard (EngineLoadError),
+            # row out of range (struct.error) — all "not found" to callers.
+            texts.append(None)
+            missing.append(did)
+    return texts, missing
+
+
+@app.get("/doc/{docid}")
+async def get_doc(docid: str):
+    """Fetch one document's text by docid (e.g. `shard_00042_1337`)."""
+    ds = _require_docstore()
+    assert DOC_SEM is not None
+    t0 = time.perf_counter()
+    async with DOC_SEM:
+        texts, missing = await asyncio.to_thread(_fetch_docs, ds, [docid])
+    if missing:
+        raise HTTPException(status_code=404, detail=f"docid {docid!r} not found")
+    print(f"[req] GET /doc n=1 total={(time.perf_counter()-t0)*1000:.2f}ms",
+          flush=True)
+    return {"docid": docid, "text": texts[0]}
+
+
+@app.post("/doc/batch")
+async def get_docs(req: DocsRequest):
+    """Batch fetch documents by docid. Response `docs` is aligned to the
+    request order; unknown/invalid docids get `text: null` and are listed
+    in `missing` (the endpoint never 404s for partial misses).
+    (Named /doc/batch, not /docs — GET /docs is FastAPI's Swagger UI.)"""
+    ds = _require_docstore()
+    assert DOC_SEM is not None
+    t0 = time.perf_counter()
+    async with DOC_SEM:
+        texts, missing = await asyncio.to_thread(_fetch_docs, ds, req.docids)
+    total_ms = (time.perf_counter() - t0) * 1000
+    print(f"[req] POST /doc/batch n={len(req.docids)} missing={len(missing)} "
+          f"total={total_ms:.2f}ms", flush=True)
+    return {
+        "docs": [{"docid": d, "text": t} for d, t in zip(req.docids, texts)],
+        "found": len(req.docids) - len(missing),
+        "missing": missing,
+    }
 
 
 @app.post("/search/batch")
