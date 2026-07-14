@@ -8,12 +8,15 @@ production scheme `<docid>#c<k>` so the parent docid is always derivable via
 
 Strategies:
   band       paragraph-aware packing into a target token band (default
-             350-500) with a hard ceiling (default 700). Paragraphs stay
+             200-500) with a hard ceiling (default 700). Paragraphs stay
              whole when possible; oversized paragraphs fall through
              single-newline -> sentence-end -> hard word cut. A chunk may
              exceed the target band (never the hard max) only to keep a
-             paragraph whole instead of emitting a runt. Runt tails merge
-             into the previous chunk when the merge stays under the hard max.
+             paragraph whole instead of emitting a runt. Under-min chunks
+             fold into their previous chunk when the merge stays under the
+             hard max — with hard_max >= target_max + target_min the fold
+             always fits, which is why the default min is 200 (350 left
+             unfoldable runts: 450 + 349 > 700).
   para_pack  greedy paragraph packing to one max-token budget (the
              chunking-1pct "para" strategy).
   fixed      sliding word window with overlap (the chunking-1pct "fixed"
@@ -81,7 +84,7 @@ def _paragraph_pieces(text: str, piece_budget_words: int, hard_words: int) -> li
 
 
 def chunk_band(text: str, *, tokens_per_word: float = 1.3,
-               target_min: int = 350, target_max: int = 500,
+               target_min: int = 200, target_max: int = 500,
                hard_max: int = 700) -> list[str]:
     tmin = _to_words(target_min, tokens_per_word)
     tmax = max(tmin, _to_words(target_max, tokens_per_word))
@@ -112,11 +115,18 @@ def chunk_band(text: str, *, tokens_per_word: float = 1.3,
     if cur:
         chunks.append("\n\n".join(cur))
 
-    if (len(chunks) >= 2
-            and n_words(chunks[-1]) < tmin
-            and n_words(chunks[-2]) + n_words(chunks[-1]) <= hmax):
-        chunks[-2:] = ["\n\n".join(chunks[-2:])]
-    return chunks
+    # Fold any under-min chunk into its previous neighbor when the merge
+    # stays under the hard cap (mostly runt tails). With the default band
+    # this always fits: hard_max >= target_max + target_min, so a sub-min
+    # tail behind a <=target_max chunk can never burst the cap. Never folds
+    # across document boundaries — chunking is per-document.
+    folded: list[str] = []
+    for c in chunks:
+        if folded and n_words(c) < tmin and n_words(folded[-1]) + n_words(c) <= hmax:
+            folded[-1] = folded[-1] + "\n\n" + c
+        else:
+            folded.append(c)
+    return folded
 
 
 def chunk_para_pack(text: str, *, tokens_per_word: float = 1.3,
@@ -161,9 +171,9 @@ def chunk_fixed(text: str, *, tokens_per_word: float = 1.3,
 STRATEGIES: dict[str, dict] = {
     "band": {
         "fn": chunk_band,
-        "label": "Target band (paragraph-aware, 350-500 target / 700 hard)",
+        "label": "Target band (paragraph-aware, 200-500 target / 700 hard)",
         "params": [
-            {"name": "target_min", "label": "target min (tok)", "default": 350, "min": 20, "max": 4000, "step": 10},
+            {"name": "target_min", "label": "target min (tok)", "default": 200, "min": 20, "max": 4000, "step": 10},
             {"name": "target_max", "label": "target max (tok)", "default": 500, "min": 50, "max": 4000, "step": 10},
             {"name": "hard_max", "label": "hard max (tok)", "default": 700, "min": 50, "max": 8000, "step": 10},
         ],

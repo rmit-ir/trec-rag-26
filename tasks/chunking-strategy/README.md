@@ -25,7 +25,7 @@ memory at startup (~300 MB).
 
 | name | idea | dials |
 |---|---|---|
-| `band` | paragraph-aware packing into a target token band; a chunk may exceed the band only to keep a paragraph whole, never past the hard max; runt tails merge backwards | `target_min` 350, `target_max` 500, `hard_max` 700 |
+| `band` | paragraph-aware packing into a target token band; a chunk may exceed the band only to keep a paragraph whole, never past the hard max; under-min chunks fold into the previous chunk (with `hard_max >= target_max + target_min` the fold always fits) | `target_min` 200, `target_max` 500, `hard_max` 700 |
 | `para_pack` | greedy paragraph packing to a single budget (the chunking-1pct "para" strategy) | `max_tokens` 1024 |
 | `fixed` | sliding word window with overlap (the chunking-1pct "fixed" strategy) | `chunk_tokens` 1024, `overlap_tokens` 128 |
 
