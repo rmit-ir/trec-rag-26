@@ -103,7 +103,14 @@
 </main>
 <script>
 const $ = id => document.getElementById(id);
-const state = { info: null, offset: 0, limit: 50, doc: null, tab: 'chunks' };
+const state = { info: null, offset: 0, limit: 50, doc: null, tab: 'chunks', focusPage: null };
+
+function syncUrl() {
+  const u = new URLSearchParams(currentParams());
+  if (state.doc !== null) u.set('doc', state.doc);
+  if (state.focusPage) u.set('page', state.focusPage);
+  history.replaceState(null, '', '?' + u.toString());
+}
 
 const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
 const api = async (url) => {
@@ -187,6 +194,8 @@ async function openDoc(i, focusChunk) {
 
 async function refreshChunks(focusChunk) {
   if (state.doc === null) return;
+  state.focusPage = (focusChunk !== undefined && focusChunk !== null) ? focusChunk + 1 : null;
+  syncUrl();
   const p = currentParams();
   const d = await api(`/api/chunks/${state.doc}?${qs(p)}`);
   $('docId').textContent = d.docid;
@@ -229,13 +238,22 @@ async function loadStats() {
 }
 
 async function init() {
+  const u = new URLSearchParams(location.search);
   state.info = await api('/api/info');
   $('parquetPath').textContent = state.info.parquet;
   $('parquetPath').title = state.info.parquet;
   $('tpw').value = state.info.tokens_per_word;
   $('strategy').innerHTML = Object.entries(state.info.strategies)
     .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+  if (u.get('strategy') && state.info.strategies[u.get('strategy')]) $('strategy').value = u.get('strategy');
   renderParamCtls();
+  // restore dials from the URL (refresh keeps the whole view)
+  document.querySelectorAll('#paramCtls input').forEach(inp => {
+    const v = u.get(inp.dataset.name);
+    if (v !== null) { if (inp.type === 'checkbox') inp.checked = v === '1'; else inp.value = v; }
+  });
+  if (u.get('tokens_per_word')) $('tpw').value = u.get('tokens_per_word');
+  if (u.get('title_chunks')) $('titleChunks').checked = u.get('title_chunks') === '1';
   $('strategy').addEventListener('change', () => { renderParamCtls(); refreshChunks(); });
   $('tpw').addEventListener('input', debounce(() => { loadList(); refreshChunks(); }, 300));
   $('prevPage').addEventListener('click', () => { state.offset = Math.max(0, state.offset - state.limit); loadList(); });
@@ -252,8 +270,10 @@ async function init() {
   $('titleChunks').addEventListener('change', () => refreshChunks());
   $('tabChunks').addEventListener('click', () => setTab('chunks'));
   $('tabRaw').addEventListener('click', () => setTab('raw'));
+  const doc0 = u.get('doc') !== null ? Math.max(0, Math.min(+u.get('doc'), state.info.n_docs - 1)) : 0;
+  state.offset = Math.floor(doc0 / state.limit) * state.limit;
   await loadList();
-  openDoc(0);
+  openDoc(doc0, u.get('page') ? +u.get('page') - 1 : undefined);
 }
 
 function setTab(t) {
