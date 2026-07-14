@@ -6,9 +6,10 @@ parquet shard, chunk them live with any registered strategy, tweak the dials
 chunk reads. Also computes chunk-size distributions over a doc sample.
 
 Token counts are estimated as `words × tokens_per_word` (default 1.3).
-Chunk ids follow the production scheme `<docid>_<page>` with page starting
-at 1 (e.g. `shard_00000_3908_1`). Parent docid derives via
-`chunk_id.rsplit("_", 1)[0]`, adjacent pages are `_<page±1>`.
+Chunk ids follow the production scheme `<docid>_p<page>` with page starting
+at 1 (e.g. `shard_00000_3908_p1`). Parent docid derives via
+`chunk_id.rsplit("_p", 1)[0]` (unambiguous — rows are pure digits, so `_p`
+never occurs inside a docid), adjacent pages are `_p<page±1>`.
 
 ## Run
 
@@ -50,7 +51,7 @@ Cross-strategy options:
 
 `chunkers.py` is pure stdlib — no web deps — and doubles as the pipeline
 chunking step. Corpus jsonl in, chunk jsonl out, same `{"id", "contents"}`
-format `encode_documents.py` consumes; ids become `<docid>_<page>`:
+format `encode_documents.py` consumes; ids become `<docid>_p<page>`:
 
 ```bash
 python tasks/chunking-strategy/scripts/chunkers.py \

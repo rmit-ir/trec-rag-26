@@ -9,10 +9,11 @@ Two consumers:
           --in shard_00000.jsonl --out chunks_00000.jsonl
 
     Input: one {"id", "contents"} json per line (prepare_corpus format).
-    Output: same format with ids <docid>_<page> (page starts at 1, e.g.
-    shard_00000_3908_1) — drop-in input for encode_documents.py; nothing
-    downstream changes. Parent docid = chunk_id.rsplit("_", 1)[0];
-    adjacent pages = _<page±1>.
+    Output: same format with ids <docid>_p<page> (page starts at 1, e.g.
+    shard_00000_3908_p1) — drop-in input for encode_documents.py; nothing
+    downstream changes. Parent docid = chunk_id.rsplit("_p", 1)[0]
+    (unambiguous: rows are pure digits, so "_p" never occurs in a docid);
+    adjacent pages = _p<page±1>.
 
 All budgets are given in TOKENS and converted to word budgets internally with
 the word->token factor (1 word ~ 1.3 tokens for English). Chunk ids follow the
@@ -265,7 +266,7 @@ def main() -> None:
 
     ap = argparse.ArgumentParser(
         description="Chunk corpus jsonl ({'id','contents'} per line) into "
-                    "chunk jsonl with ids <docid>_<page>, page from 1.")
+                    "chunk jsonl with ids <docid>_p<page>, page from 1.")
     ap.add_argument("--strategy", default="band", choices=sorted(STRATEGIES))
     ap.add_argument("--tokens-per-word", type=float, default=1.3)
     ap.add_argument("--param", action="append", default=[], metavar="K=V",
@@ -295,7 +296,7 @@ def main() -> None:
             parts = run_strategy(args.strategy, rec["contents"],
                                  args.tokens_per_word, params)
             for k, c in enumerate(parts):
-                fout.write(json.dumps({"id": f"{rec['id']}_{k + 1}", "contents": c},
+                fout.write(json.dumps({"id": f"{rec['id']}_p{k + 1}", "contents": c},
                                       ensure_ascii=False) + "\n")
             n_docs += 1
             n_chunks += len(parts)

@@ -74,8 +74,9 @@ uv run --group notebook python -m ipykernel install --user \
   strategies live (target band / hard max / overlap dials, words×1.3 token
   estimates, chunk-size distributions). `scripts/chunkers.py` holds the
   strategies and doubles as the pipeline chunking CLI (corpus jsonl in,
-  chunk jsonl out). Chunk ids are `<docid>_<page>` (page from 1, e.g.
-  `shard_00000_3908_1`) so the parent docid is derivable downstream.
+  chunk jsonl out). Chunk ids are `<docid>_p<page>` (page from 1, e.g.
+  `shard_00000_3908_p1`) so the parent docid is derivable downstream
+  (`rsplit("_p", 1)[0]` — unambiguous, rows are pure digits).
 
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 

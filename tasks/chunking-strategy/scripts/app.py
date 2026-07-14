@@ -12,7 +12,7 @@ estimates (words * tokens-per-word) plus corpus-sample statistics.
       --port 8377
 
 Docids mirror production (`shard_<NNNNN>_<row>` from prepare_corpus), chunk
-ids mirror the production scheme `<docid>_<page>` (page starts at 1).
+ids mirror the production scheme `<docid>_p<page>` (page starts at 1).
 """
 from __future__ import annotations
 
@@ -108,9 +108,9 @@ def search_docs(q: str, limit: int = 50,
                 tokens_per_word: float = DEFAULT_TOKENS_PER_WORD) -> dict:
     """Prefix search over docids / chunk ids. Accepts a docid prefix
     ('shard_00000_42' or just '42'), an exact docid ('42484_' — trailing
-    underscore pins the row), or a full chunk id ('shard_00000_42484_3',
-    page from 1 — the 0-based chunk index is returned so the UI can
-    highlight that page)."""
+    underscore pins the row), or a full chunk id ('shard_00000_42484_p3'
+    or '42484_p3', page from 1 — the 0-based chunk index is returned so
+    the UI can highlight that page)."""
     q = q.strip()
     chunk_k = None
     base = q
@@ -122,10 +122,12 @@ def search_docs(q: str, limit: int = 50,
     else:
         row_q = base
     exact = False
-    if "_" in row_q:  # page-qualified: <row>_<page>, or '<row>_' = exact row
+    if "_" in row_q:  # page-qualified: <row>_p<page>, or '<row>_' = exact row
         row_part, _, page_part = row_q.partition("_")
         row_q = row_part if row_part.isdigit() else "~nomatch"
         exact = True
+        if page_part.startswith("p"):
+            page_part = page_part[1:]
         if page_part.isdigit() and int(page_part) >= 1:
             chunk_k = int(page_part) - 1
     matches = []
@@ -168,7 +170,7 @@ def get_chunks(i: int, request: Request) -> dict:
     chunks = []
     for k, c in enumerate(parts):
         w = chunkers.n_words(c)
-        chunks.append({"id": f"{docid}_{k + 1}", "k": k, "page": k + 1, "text": c,
+        chunks.append({"id": f"{docid}_p{k + 1}", "k": k, "page": k + 1, "text": c,
                        "words": w, "est_tokens": round(w * tpw)})
     return {"i": i, "docid": docid, "strategy": strategy,
             "tokens_per_word": tpw, "params": params,
