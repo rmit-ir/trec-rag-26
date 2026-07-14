@@ -61,6 +61,14 @@ Endpoints:
   one-liner / non-JSON clients. Same response, same timings.
 - `POST /search/batch` — `{ "queries": ["...", "..."], ... }` (only POST;
   batch query lists don't fit well in a URL).
+- `GET  /doc/{docid}` — fetch one document's text by docid, e.g.
+  `/doc/shard_00042_1337`. 404 if the docid is malformed or unknown.
+  Docstore-only: no encode, no ANN — cheap (~1 ms) and does not queue
+  behind searches (own `DOC_INFLIGHT_PER_WORKER` semaphore, default 4).
+- `POST /doc/batch` — `{ "docids": ["shard_00042_1337", ...] }` (max 4096).
+  Response `docs` is aligned to request order; unknown/invalid docids get
+  `text: null` and are listed in `missing` — partial misses never 404.
+  (Named `/doc/batch`, not `/docs`, because `GET /docs` is the Swagger UI.)
 - `GET /health` — engine state + index metadata
 - `GET /server-info` — live host introspection
 - `GET /docs` — OpenAPI / Swagger UI

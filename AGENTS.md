@@ -39,6 +39,28 @@ Proactively clean up: kill background tasks and throwaway resources once
 they're no longer needed. Exception: something handed to the user for testing
 (e.g. a dev server) stays running until they say they're done.
 
+## Notebooks
+
+Exploratory Jupyter notebooks live in `tmp/` and are the one deliberate
+exception to "each task gets its own env" — they use the **repo root** env's
+`notebook` dependency group (`pandas`, `pyarrow`, `matplotlib`, `ipykernel`,
+`jupyter`, `nbconvert`), not a `tasks/<task>/` env.
+
+```bash
+# Install dependencies and run notebook in VS Code
+uv sync --group notebook
+
+# OR Execute headlessly (runs all cells, writes outputs back in place)
+uv run --group notebook jupyter nbconvert --to notebook --execute --inplace tmp/<name>.ipynb
+
+# OR Open interactively in Jupyter Lab
+uv run --group notebook jupyter lab tmp/<name>.ipynb
+
+# OR Register a kernel for VS Code / any Jupyter frontend
+uv run --group notebook python -m ipykernel install --user \
+  --name trec-rag-notebook --display-name "trec-rag (notebook)"
+```
+
 ## Active Tasks
 
 - **Creating local custom index** — working in `tasks/custom_index/`. All
@@ -148,3 +170,23 @@ they're no longer needed. Exception: something handed to the user for testing
   default oversubscription hurts on multi-worker setups. For an 8-worker
   serve on a 56-core box, `OMP_NUM_THREADS=7` is the sensible per-worker
   share.
+
+### RAGDOLL Evaluation
+- **RAGDoll runs TREC-style evaluation for RAG systems** using Pi-backed LLM
+  judges. It supports query–passage relevance judging, citation support
+  assessment, nugget/rubric scoring, and pairwise system comparison.
+
+- **Inputs and outputs are JSONL-based**, which makes runs easy to reproduce,
+  debug, and compare against human qrels. For relevance judging, each query is
+  paired with candidate passages and RAGDoll produces automatic relevance labels.
+  
+## Notes
+- Use `uv` for Python dependency management.
+- Run commands from the repository root.
+- RAGDoll evaluation inputs should use JSONL format.
+- For UMBRELA relevance judging, input rows should contain:
+  - `qid`
+  - `query`
+  - `candidates`
+  - each candidate should contain `docid` and `doc.segment`
+
