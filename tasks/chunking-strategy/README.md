@@ -41,8 +41,10 @@ Cross-strategy options:
   gray zone is kept whole ("over target" badge); with this on it is split at
   sentences so chunks hug the band.
 - `title_chunks` (any strategy, "+title in chunks" in the UI): prepend
-  `<doc title> (page N)` to every chunk after the first, so later chunks
-  carry the doc topic and their position into the embedding. Title = first
+  `Page N of document: <doc title>` to every chunk after the first, so later
+  chunks carry the doc topic and their position into the embedding (jina v5
+  mean-pools, so the marker's position in the chunk doesn't matter). Title =
+  first
   non-empty line; if over 30 words it's cut at the last sentence end inside
   the budget, else the last comma, else hard at 30 words. Applied after
   packing — a titled chunk can exceed the hard cap by the title length.

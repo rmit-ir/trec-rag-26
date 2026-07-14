@@ -252,7 +252,7 @@ def run_strategy(name: str, text: str, tokens_per_word: float,
         title = _first_line_title(text)
         if title:
             chunks = [chunks[0]] + [
-                f"{title} (page {p})\n\n{c}"
+                f"Page {p} of document: {title}\n\n{c}"
                 for p, c in enumerate(chunks[1:], start=2)
             ]
     return chunks
