@@ -73,8 +73,9 @@ uv run --group notebook python -m ipykernel install --user \
   (FastAPI + vanilla-JS UI) to browse a parquet shard and tune chunking
   strategies live (target band / hard max / overlap dials, words×1.3 token
   estimates, chunk-size distributions). `scripts/chunkers.py` holds the
-  strategies; the chosen one lifts into the production chunker. Chunk ids
-  are `<docid>#c<k>` so the parent docid is derivable downstream.
+  strategies and doubles as the pipeline chunking CLI (corpus jsonl in,
+  chunk jsonl out). Chunk ids are `<docid>_<page>` (page from 1, e.g.
+  `shard_00000_3908_1`) so the parent docid is derivable downstream.
 
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 

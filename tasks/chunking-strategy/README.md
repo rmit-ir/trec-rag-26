@@ -6,8 +6,9 @@ parquet shard, chunk them live with any registered strategy, tweak the dials
 chunk reads. Also computes chunk-size distributions over a doc sample.
 
 Token counts are estimated as `words × tokens_per_word` (default 1.3).
-Chunk ids follow the production scheme `<docid>#c<k>` (docid derivable via
-`chunk_id.rsplit("#c", 1)[0]`, adjacent chunks are `#c<k±1>`).
+Chunk ids follow the production scheme `<docid>_<page>` with page starting
+at 1 (e.g. `shard_00000_3908_1`). Parent docid derives via
+`chunk_id.rsplit("_", 1)[0]`, adjacent pages are `_<page±1>`.
 
 ## Run
 
@@ -38,18 +39,18 @@ Cross-strategy options:
 - `split_over_target` (band): by default a paragraph in the target_max..hard_max
   gray zone is kept whole ("over target" badge); with this on it is split at
   sentences so chunks hug the band.
-- `title_chunks` (any strategy, "+title in chunks" in the UI): prepend the
-  doc's title to every chunk after the first, so later chunks carry the doc
-  topic into their embedding. Title = first non-empty line; if over 30 words
-  it's cut at the last sentence end inside the budget, else the last comma,
-  else hard at 30 words. Applied after packing — a titled chunk can exceed
-  the hard cap by the title length.
+- `title_chunks` (any strategy, "+title in chunks" in the UI): prepend
+  `<doc title> (page N)` to every chunk after the first, so later chunks
+  carry the doc topic and their position into the embedding. Title = first
+  non-empty line; if over 30 words it's cut at the last sentence end inside
+  the budget, else the last comma, else hard at 30 words. Applied after
+  packing — a titled chunk can exceed the hard cap by the title length.
 
 ## Chunking step for the index pipeline (standalone CLI)
 
 `chunkers.py` is pure stdlib — no web deps — and doubles as the pipeline
 chunking step. Corpus jsonl in, chunk jsonl out, same `{"id", "contents"}`
-format `encode_documents.py` consumes; ids become `<docid>#c<k>`:
+format `encode_documents.py` consumes; ids become `<docid>_<page>`:
 
 ```bash
 python tasks/chunking-strategy/scripts/chunkers.py \

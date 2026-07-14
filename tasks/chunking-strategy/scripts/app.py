@@ -12,7 +12,7 @@ estimates (words * tokens-per-word) plus corpus-sample statistics.
       --port 8377
 
 Docids mirror production (`shard_<NNNNN>_<row>` from prepare_corpus), chunk
-ids mirror the production scheme `<docid>#c<k>`.
+ids mirror the production scheme `<docid>_<page>` (page starts at 1).
 """
 from __future__ import annotations
 
@@ -107,16 +107,13 @@ def list_docs(offset: int = 0, limit: int = 50,
 def search_docs(q: str, limit: int = 50,
                 tokens_per_word: float = DEFAULT_TOKENS_PER_WORD) -> dict:
     """Prefix search over docids / chunk ids. Accepts a docid prefix
-    ('shard_00000_42' or just '42'), or a full chunk id
-    ('shard_00000_42484#c3' — the chunk index is returned so the UI can
-    highlight that chunk)."""
+    ('shard_00000_42' or just '42'), an exact docid ('42484_' — trailing
+    underscore pins the row), or a full chunk id ('shard_00000_42484_3',
+    page from 1 — the 0-based chunk index is returned so the UI can
+    highlight that page)."""
     q = q.strip()
     chunk_k = None
     base = q
-    if "#" in q:
-        base, _, suffix = q.partition("#")
-        if suffix.startswith("c") and suffix[1:].isdigit():
-            chunk_k = int(suffix[1:])
     prefix = STATE["docid_prefix"] + "_"
     if base.startswith(prefix):
         row_q = base[len(prefix):]
@@ -124,12 +121,22 @@ def search_docs(q: str, limit: int = 50,
         row_q = ""  # partial shard prefix typed: everything matches
     else:
         row_q = base
+    exact = False
+    if "_" in row_q:  # page-qualified: <row>_<page>, or '<row>_' = exact row
+        row_part, _, page_part = row_q.partition("_")
+        row_q = row_part if row_part.isdigit() else "~nomatch"
+        exact = True
+        if page_part.isdigit() and int(page_part) >= 1:
+            chunk_k = int(page_part) - 1
     matches = []
     if row_q == "" or row_q.isdigit():
         texts = STATE["texts"]
         limit = max(1, min(limit, 500))
         for i in range(len(texts)):
-            if not str(i).startswith(row_q):
+            if exact:
+                if str(i) != row_q:
+                    continue
+            elif not str(i).startswith(row_q):
                 continue
             w = chunkers.n_words(texts[i])
             matches.append({
@@ -161,7 +168,7 @@ def get_chunks(i: int, request: Request) -> dict:
     chunks = []
     for k, c in enumerate(parts):
         w = chunkers.n_words(c)
-        chunks.append({"id": f"{docid}#c{k}", "k": k, "text": c,
+        chunks.append({"id": f"{docid}_{k + 1}", "k": k, "page": k + 1, "text": c,
                        "words": w, "est_tokens": round(w * tpw)})
     return {"i": i, "docid": docid, "strategy": strategy,
             "tokens_per_word": tpw, "params": params,

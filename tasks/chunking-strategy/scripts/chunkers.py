@@ -9,8 +9,10 @@ Two consumers:
           --in shard_00000.jsonl --out chunks_00000.jsonl
 
     Input: one {"id", "contents"} json per line (prepare_corpus format).
-    Output: same format with ids <docid>#c<k> — drop-in input for
-    encode_documents.py; nothing downstream changes.
+    Output: same format with ids <docid>_<page> (page starts at 1, e.g.
+    shard_00000_3908_1) — drop-in input for encode_documents.py; nothing
+    downstream changes. Parent docid = chunk_id.rsplit("_", 1)[0];
+    adjacent pages = _<page±1>.
 
 All budgets are given in TOKENS and converted to word budgets internally with
 the word->token factor (1 word ~ 1.3 tokens for English). Chunk ids follow the
@@ -249,8 +251,8 @@ def run_strategy(name: str, text: str, tokens_per_word: float,
         title = _first_line_title(text)
         if title:
             chunks = [chunks[0]] + [
-                c if c.startswith(title) else f"{title}\n\n{c}"
-                for c in chunks[1:]
+                f"{title} (page {p})\n\n{c}"
+                for p, c in enumerate(chunks[1:], start=2)
             ]
     return chunks
 
@@ -263,7 +265,7 @@ def main() -> None:
 
     ap = argparse.ArgumentParser(
         description="Chunk corpus jsonl ({'id','contents'} per line) into "
-                    "chunk jsonl with ids <docid>#c<k>.")
+                    "chunk jsonl with ids <docid>_<page>, page from 1.")
     ap.add_argument("--strategy", default="band", choices=sorted(STRATEGIES))
     ap.add_argument("--tokens-per-word", type=float, default=1.3)
     ap.add_argument("--param", action="append", default=[], metavar="K=V",
@@ -293,7 +295,7 @@ def main() -> None:
             parts = run_strategy(args.strategy, rec["contents"],
                                  args.tokens_per_word, params)
             for k, c in enumerate(parts):
-                fout.write(json.dumps({"id": f"{rec['id']}#c{k}", "contents": c},
+                fout.write(json.dumps({"id": f"{rec['id']}_{k + 1}", "contents": c},
                                       ensure_ascii=False) + "\n")
             n_docs += 1
             n_chunks += len(parts)
