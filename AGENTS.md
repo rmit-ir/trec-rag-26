@@ -69,6 +69,12 @@ uv run --group notebook python -m ipykernel install --user \
   built-index dir (`data/built-indexes/<RUN>/`). Provides `SearchEngine`
   Python library, ad-hoc CLI, FastAPI REST. Designed to extract into a
   standalone repo post-submission.
+- **Chunking strategy** — working in `tasks/chunking-strategy/`. Web app
+  (FastAPI + vanilla-JS UI) to browse a parquet shard and tune chunking
+  strategies live (target band / hard max / overlap dials, words×1.3 token
+  estimates, chunk-size distributions). `scripts/chunkers.py` holds the
+  strategies; the chosen one lifts into the production chunker. Chunk ids
+  are `<docid>#c<k>` so the parent docid is derivable downstream.
 
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 

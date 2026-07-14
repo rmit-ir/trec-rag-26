@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>chunking-strategy browser</title>
+<style>
+  :root {
+    --bg: #101418; --panel: #171d24; --panel2: #1e2630; --border: #2b3644;
+    --fg: #d7dee8; --dim: #8496ab; --accent: #58a6ff;
+    --in: #2ea04326; --in-b: #2ea043; --under: #d2992222; --under-b: #d29922;
+    --over: #f0883e22; --over-b: #f0883e; --hard: #f8514922; --hard-b: #f85149;
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.45 system-ui, sans-serif; background: var(--bg); color: var(--fg); height: 100vh; display: flex; flex-direction: column; }
+  header { padding: 10px 14px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; flex-wrap: wrap; gap: 10px 18px; align-items: center; }
+  header h1 { font-size: 15px; margin: 0 8px 0 0; white-space: nowrap; }
+  header .path { color: var(--dim); font-size: 12px; max-width: 34ch; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .ctl { display: flex; align-items: center; gap: 5px; font-size: 12px; color: var(--dim); }
+  .ctl input, .ctl select { background: var(--panel2); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; padding: 4px 6px; font-size: 13px; }
+  .ctl input[type=number] { width: 70px; }
+  button { background: var(--panel2); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; padding: 5px 10px; cursor: pointer; font-size: 13px; }
+  button:hover { border-color: var(--accent); }
+  main { flex: 1; display: flex; min-height: 0; }
+  #sidebar { width: 330px; min-width: 330px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--panel); }
+  #sidebar .nav { padding: 8px; display: flex; gap: 6px; align-items: center; border-bottom: 1px solid var(--border); }
+  #sidebar .nav input { width: 80px; }
+  #doclist { flex: 1; overflow-y: auto; }
+  .docitem { padding: 7px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
+  .docitem:hover { background: var(--panel2); }
+  .docitem.active { background: var(--panel2); border-left: 3px solid var(--accent); padding-left: 7px; }
+  .docitem .id { font-family: ui-monospace, monospace; font-size: 12px; color: var(--accent); }
+  .docitem .meta { color: var(--dim); font-size: 11px; }
+  .docitem .prev { color: var(--dim); font-size: 12px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  #content { flex: 1; overflow-y: auto; padding: 14px 18px; min-width: 0; }
+  .dochead { display: flex; gap: 14px; align-items: baseline; flex-wrap: wrap; margin-bottom: 10px; }
+  .dochead .id { font-family: ui-monospace, monospace; color: var(--accent); font-size: 15px; }
+  .dochead .meta { color: var(--dim); font-size: 12px; }
+  .tabs { display: inline-flex; gap: 2px; }
+  .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  .chunk { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .chunk .head { display: flex; gap: 12px; align-items: center; padding: 6px 10px; font-size: 12px; background: var(--panel); border-bottom: 1px solid var(--border); }
+  .chunk .head .cid { font-family: ui-monospace, monospace; color: var(--accent); }
+  .badge { padding: 1px 8px; border-radius: 10px; font-size: 11px; border: 1px solid; }
+  .b-in    { background: var(--in);    border-color: var(--in-b);    color: var(--in-b); }
+  .b-under { background: var(--under); border-color: var(--under-b); color: var(--under-b); }
+  .b-over  { background: var(--over);  border-color: var(--over-b);  color: var(--over-b); }
+  .b-hard  { background: var(--hard);  border-color: var(--hard-b);  color: var(--hard-b); }
+  .chunk pre, #rawview pre { margin: 0; padding: 10px 12px; white-space: pre-wrap; word-break: break-word; font: 13px/1.5 ui-monospace, monospace; color: var(--fg); }
+  #statsbox { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 12px 14px; margin-bottom: 14px; display: none; }
+  #statsbox h3 { margin: 0 0 8px; font-size: 13px; }
+  #statsbox .nums { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
+  .hrow { display: flex; align-items: center; gap: 8px; font-size: 11px; font-family: ui-monospace, monospace; }
+  .hrow .lbl { width: 90px; color: var(--dim); text-align: right; }
+  .hrow .bar { height: 12px; background: var(--accent); border-radius: 2px; min-width: 1px; }
+  .hrow .cnt { color: var(--dim); }
+  .dim { color: var(--dim); }
+  #status { font-size: 12px; color: var(--dim); margin-left: auto; }
+</style>
+</head>
+<body>
+<header>
+  <h1>chunking-strategy</h1>
+  <span class="path" id="parquetPath" title=""></span>
+  <span class="ctl">strategy
+    <select id="strategy"></select>
+  </span>
+  <span class="ctl" id="paramCtls"></span>
+  <span class="ctl">tok/word <input type="number" id="tpw" step="0.05" min="0.5" max="4" value="1.3"></span>
+  <span class="ctl">stats sample <input type="number" id="sampleN" value="200" min="10" max="5000" step="10">
+    <button id="statsBtn">corpus stats</button></span>
+  <span id="status"></span>
+</header>
+<main>
+  <div id="sidebar">
+    <div class="nav">
+      <button id="prevPage">&lt;</button>
+      <button id="nextPage">&gt;</button>
+      <span class="ctl">jump #<input type="number" id="jump" min="0" value="0"></span>
+      <span class="dim" id="pageInfo"></span>
+    </div>
+    <div id="doclist"></div>
+  </div>
+  <div id="content">
+    <div id="statsbox"></div>
+    <div class="dochead">
+      <span class="id" id="docId">pick a doc</span>
+      <span class="meta" id="docMeta"></span>
+      <span class="tabs">
+        <button id="tabChunks" class="on">chunks</button>
+        <button id="tabRaw">raw doc</button>
+      </span>
+    </div>
+    <div id="chunkview"></div>
+    <div id="rawview" style="display:none"><pre id="rawtext"></pre></div>
+  </div>
+</main>
+<script>
+const $ = id => document.getElementById(id);
+const state = { info: null, offset: 0, limit: 50, doc: null, tab: 'chunks' };
+
+const debounce = (fn, ms) => { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; };
+const api = async (url) => {
+  $('status').textContent = '...';
+  const r = await fetch(url);
+  if (!r.ok) { $('status').textContent = 'error ' + r.status; throw new Error(await r.text()); }
+  $('status').textContent = '';
+  return r.json();
+};
+
+function currentParams() {
+  const p = { strategy: $('strategy').value, tokens_per_word: $('tpw').value };
+  document.querySelectorAll('#paramCtls input').forEach(inp => p[inp.dataset.name] = inp.value);
+  return p;
+}
+const qs = obj => Object.entries(obj).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
+
+function renderParamCtls() {
+  const spec = state.info.strategies[$('strategy').value];
+  $('paramCtls').innerHTML = spec.params.map(p =>
+    `<span class="ctl">${p.label}
+       <input type="number" data-name="${p.name}" value="${p.default}"
+              min="${p.min}" max="${p.max}" step="${p.step}"></span>`).join('');
+  document.querySelectorAll('#paramCtls input').forEach(inp =>
+    inp.addEventListener('input', debounce(refreshChunks, 300)));
+}
+
+function bandClass(tok, p) {
+  const s = $('strategy').value;
+  if (s === 'band') {
+    if (tok > +p.hard_max) return ['b-hard', 'over hard'];
+    if (tok > +p.target_max) return ['b-over', 'over target'];
+    if (tok < +p.target_min) return ['b-under', 'under target'];
+    return ['b-in', 'in band'];
+  }
+  const cap = s === 'para_pack' ? +p.max_tokens : +p.chunk_tokens;
+  return tok > cap ? ['b-hard', 'over max'] : ['b-in', 'ok'];
+}
+
+async function loadList() {
+  const d = await api(`/api/docs?offset=${state.offset}&limit=${state.limit}&tokens_per_word=${$('tpw').value}`);
+  $('pageInfo').textContent = `${d.offset}–${Math.min(d.offset + d.limit, d.total) - 1} / ${d.total}`;
+  $('doclist').innerHTML = d.docs.map(doc =>
+    `<div class="docitem" data-i="${doc.i}" id="doc-${doc.i}">
+       <div class="id">${doc.docid}</div>
+       <div class="meta">${doc.words} words · ~${doc.est_tokens} tok</div>
+       <div class="prev">${doc.preview.replace(/</g, '&lt;')}</div>
+     </div>`).join('');
+  document.querySelectorAll('.docitem').forEach(el =>
+    el.addEventListener('click', () => openDoc(+el.dataset.i)));
+  if (state.doc !== null) highlight();
+}
+
+function highlight() {
+  document.querySelectorAll('.docitem').forEach(el => el.classList.toggle('active', +el.dataset.i === state.doc));
+}
+
+async function openDoc(i) {
+  state.doc = i;
+  highlight();
+  await refreshChunks();
+}
+
+async function refreshChunks() {
+  if (state.doc === null) return;
+  const p = currentParams();
+  const d = await api(`/api/chunks/${state.doc}?${qs(p)}`);
+  $('docId').textContent = d.docid;
+  $('docMeta').textContent = `${d.doc_words} words · ~${Math.round(d.doc_words * p.tokens_per_word)} tok → ${d.n_chunks} chunk${d.n_chunks === 1 ? '' : 's'} (${d.strategy})`;
+  $('chunkview').innerHTML = d.chunks.map(c => {
+    const [cls, lbl] = bandClass(c.est_tokens, p);
+    return `<div class="chunk">
+      <div class="head"><span class="cid">${c.id}</span>
+        <span class="dim">${c.words} words · ~${c.est_tokens} tok</span>
+        <span class="badge ${cls}">${lbl}</span></div>
+      <pre>${c.text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>
+    </div>`;
+  }).join('');
+  const raw = await api(`/api/doc/${state.doc}`);
+  $('rawtext').textContent = raw.text;
+}
+
+async function loadStats() {
+  const p = currentParams();
+  const d = await api(`/api/stats?sample=${$('sampleN').value}&${qs(p)}`);
+  const maxCnt = Math.max(...Object.values(d.histogram));
+  const buckets = Object.keys(d.histogram).map(Number).sort((a, b) => a - b);
+  $('statsbox').style.display = 'block';
+  $('statsbox').innerHTML = `<h3>chunk-size distribution — ${d.strategy}, first ${d.sample_docs} docs</h3>
+    <div class="nums">${d.n_chunks} chunks · ${d.chunks_per_doc} chunks/doc ·
+      tokens mean ${d.tokens.mean} · p10 ${d.tokens.p10} · p50 ${d.tokens.p50} ·
+      p90 ${d.tokens.p90} · max ${d.tokens.max}</div>` +
+    buckets.map(b => {
+      const c = d.histogram[b];
+      return `<div class="hrow"><span class="lbl">${b}–${b + d.histogram_bucket_tokens - 1}</span>
+        <div class="bar" style="width:${Math.round(500 * c / maxCnt)}px"></div>
+        <span class="cnt">${c}</span></div>`;
+    }).join('');
+}
+
+async function init() {
+  state.info = await api('/api/info');
+  $('parquetPath').textContent = state.info.parquet;
+  $('parquetPath').title = state.info.parquet;
+  $('tpw').value = state.info.tokens_per_word;
+  $('strategy').innerHTML = Object.entries(state.info.strategies)
+    .map(([k, v]) => `<option value="${k}">${v.label}</option>`).join('');
+  renderParamCtls();
+  $('strategy').addEventListener('change', () => { renderParamCtls(); refreshChunks(); });
+  $('tpw').addEventListener('input', debounce(() => { loadList(); refreshChunks(); }, 300));
+  $('prevPage').addEventListener('click', () => { state.offset = Math.max(0, state.offset - state.limit); loadList(); });
+  $('nextPage').addEventListener('click', () => {
+    if (state.offset + state.limit < state.info.n_docs) { state.offset += state.limit; loadList(); }
+  });
+  $('jump').addEventListener('change', () => {
+    const i = Math.max(0, Math.min(+$('jump').value, state.info.n_docs - 1));
+    state.offset = Math.floor(i / state.limit) * state.limit;
+    loadList().then(() => openDoc(i));
+  });
+  $('statsBtn').addEventListener('click', loadStats);
+  $('tabChunks').addEventListener('click', () => setTab('chunks'));
+  $('tabRaw').addEventListener('click', () => setTab('raw'));
+  await loadList();
+  openDoc(0);
+}
+
+function setTab(t) {
+  state.tab = t;
+  $('tabChunks').classList.toggle('on', t === 'chunks');
+  $('tabRaw').classList.toggle('on', t === 'raw');
+  $('chunkview').style.display = t === 'chunks' ? '' : 'none';
+  $('rawview').style.display = t === 'raw' ? '' : 'none';
+}
+
+init();
+</script>
+</body>
+</html>
