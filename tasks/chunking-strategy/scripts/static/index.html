@@ -38,7 +38,9 @@
   .dochead .meta { color: var(--dim); font-size: 12px; }
   .tabs { display: inline-flex; gap: 2px; }
   .tabs button.on { border-color: var(--accent); color: var(--accent); }
+  #sidebar .nav input#search { background: var(--panel2); color: var(--fg); border: 1px solid var(--border); border-radius: 5px; padding: 4px 8px; font: 12px ui-monospace, monospace; }
   .chunk { border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px; overflow: hidden; }
+  .chunk.focus { outline: 2px solid var(--accent); }
   .chunk .head { display: flex; gap: 12px; align-items: center; padding: 6px 10px; font-size: 12px; background: var(--panel); border-bottom: 1px solid var(--border); }
   .chunk .head .cid { font-family: ui-monospace, monospace; color: var(--accent); }
   .badge { padding: 1px 8px; border-radius: 10px; font-size: 11px; border: 1px solid; }
@@ -73,6 +75,9 @@
 </header>
 <main>
   <div id="sidebar">
+    <div class="nav">
+      <input id="search" style="flex:1" placeholder="search docid / chunk id prefix">
+    </div>
     <div class="nav">
       <button id="prevPage">&lt;</button>
       <button id="nextPage">&gt;</button>
@@ -137,31 +142,45 @@ function bandClass(tok, p) {
   return tok > cap ? ['b-hard', 'over max'] : ['b-in', 'ok'];
 }
 
-async function loadList() {
-  const d = await api(`/api/docs?offset=${state.offset}&limit=${state.limit}&tokens_per_word=${$('tpw').value}`);
-  $('pageInfo').textContent = `${d.offset}–${Math.min(d.offset + d.limit, d.total) - 1} / ${d.total}`;
-  $('doclist').innerHTML = d.docs.map(doc =>
+function renderDocs(docs, focusChunk) {
+  $('doclist').innerHTML = docs.map(doc =>
     `<div class="docitem" data-i="${doc.i}" id="doc-${doc.i}">
        <div class="id">${doc.docid}</div>
        <div class="meta">${doc.words} words · ~${doc.est_tokens} tok</div>
        <div class="prev">${doc.preview.replace(/</g, '&lt;')}</div>
      </div>`).join('');
   document.querySelectorAll('.docitem').forEach(el =>
-    el.addEventListener('click', () => openDoc(+el.dataset.i)));
+    el.addEventListener('click', () => openDoc(+el.dataset.i, focusChunk)));
   if (state.doc !== null) highlight();
+}
+
+async function loadList() {
+  const d = await api(`/api/docs?offset=${state.offset}&limit=${state.limit}&tokens_per_word=${$('tpw').value}`);
+  $('pageInfo').textContent = `${d.offset}–${Math.min(d.offset + d.limit, d.total) - 1} / ${d.total}`;
+  renderDocs(d.docs);
+}
+
+async function runSearch() {
+  const q = $('search').value.trim();
+  if (!q) { loadList(); return; }
+  const d = await api(`/api/search?q=${encodeURIComponent(q)}&limit=${state.limit}&tokens_per_word=${$('tpw').value}`);
+  $('pageInfo').textContent = `${d.matches.length} match${d.matches.length === 1 ? '' : 'es'}`;
+  renderDocs(d.matches, d.chunk_k);
+  // exact chunk id pasted -> open the doc and focus that chunk directly
+  if (d.chunk_k !== null && d.matches.length === 1) openDoc(d.matches[0].i, d.chunk_k);
 }
 
 function highlight() {
   document.querySelectorAll('.docitem').forEach(el => el.classList.toggle('active', +el.dataset.i === state.doc));
 }
 
-async function openDoc(i) {
+async function openDoc(i, focusChunk) {
   state.doc = i;
   highlight();
-  await refreshChunks();
+  await refreshChunks(focusChunk);
 }
 
-async function refreshChunks() {
+async function refreshChunks(focusChunk) {
   if (state.doc === null) return;
   const p = currentParams();
   const d = await api(`/api/chunks/${state.doc}?${qs(p)}`);
@@ -169,13 +188,19 @@ async function refreshChunks() {
   $('docMeta').textContent = `${d.doc_words} words · ~${Math.round(d.doc_words * p.tokens_per_word)} tok → ${d.n_chunks} chunk${d.n_chunks === 1 ? '' : 's'} (${d.strategy})`;
   $('chunkview').innerHTML = d.chunks.map(c => {
     const [cls, lbl] = bandClass(c.est_tokens, p);
-    return `<div class="chunk">
+    const focus = c.k === focusChunk ? ' focus' : '';
+    return `<div class="chunk${focus}" id="chunk-${c.k}">
       <div class="head"><span class="cid">${c.id}</span>
         <span class="dim">${c.words} words · ~${c.est_tokens} tok</span>
         <span class="badge ${cls}">${lbl}</span></div>
       <pre>${c.text.replace(/&/g, '&amp;').replace(/</g, '&lt;')}</pre>
     </div>`;
   }).join('');
+  if (focusChunk !== undefined && focusChunk !== null) {
+    setTab('chunks');
+    const el = $(`chunk-${focusChunk}`);
+    if (el) el.scrollIntoView({ block: 'start' });
+  }
   const raw = await api(`/api/doc/${state.doc}`);
   $('rawtext').textContent = raw.text;
 }
@@ -218,6 +243,7 @@ async function init() {
     loadList().then(() => openDoc(i));
   });
   $('statsBtn').addEventListener('click', loadStats);
+  $('search').addEventListener('input', debounce(runSearch, 250));
   $('tabChunks').addEventListener('click', () => setTab('chunks'));
   $('tabRaw').addEventListener('click', () => setTab('raw'));
   await loadList();

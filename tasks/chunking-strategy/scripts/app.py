@@ -103,6 +103,47 @@ def list_docs(offset: int = 0, limit: int = 50,
     return {"offset": offset, "limit": limit, "total": len(texts), "docs": page}
 
 
+@app.get("/api/search")
+def search_docs(q: str, limit: int = 50,
+                tokens_per_word: float = DEFAULT_TOKENS_PER_WORD) -> dict:
+    """Prefix search over docids / chunk ids. Accepts a docid prefix
+    ('shard_00000_42' or just '42'), or a full chunk id
+    ('shard_00000_42484#c3' — the chunk index is returned so the UI can
+    highlight that chunk)."""
+    q = q.strip()
+    chunk_k = None
+    base = q
+    if "#" in q:
+        base, _, suffix = q.partition("#")
+        if suffix.startswith("c") and suffix[1:].isdigit():
+            chunk_k = int(suffix[1:])
+    prefix = STATE["docid_prefix"] + "_"
+    if base.startswith(prefix):
+        row_q = base[len(prefix):]
+    elif base and STATE["docid_prefix"].startswith(base):
+        row_q = ""  # partial shard prefix typed: everything matches
+    else:
+        row_q = base
+    matches = []
+    if row_q == "" or row_q.isdigit():
+        texts = STATE["texts"]
+        limit = max(1, min(limit, 500))
+        for i in range(len(texts)):
+            if not str(i).startswith(row_q):
+                continue
+            w = chunkers.n_words(texts[i])
+            matches.append({
+                "i": i,
+                "docid": _docid(i),
+                "words": w,
+                "est_tokens": round(w * tokens_per_word),
+                "preview": re.sub(r"\s+", " ", texts[i][:160]).strip(),
+            })
+            if len(matches) >= limit:
+                break
+    return {"q": q, "chunk_k": chunk_k, "matches": matches}
+
+
 @app.get("/api/doc/{i}")
 def get_doc(i: int, tokens_per_word: float = DEFAULT_TOKENS_PER_WORD) -> dict:
     t = _doc(i)
