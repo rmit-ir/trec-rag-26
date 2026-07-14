@@ -393,6 +393,16 @@ real numbers.
 | `WARMUP_MADVISE_OFFSETS` | `true` | preload offsets files (~4 GB) |
 | `WARMUP_MADVISE_PQ` | `false` | preload `ann_pq_compressed.bin` (~64 GB) — set on PQ-bound boxes |
 | `PRINT_SERVER_INFO` | `true` | dump host introspection at startup |
+| `RAM_WATCHDOG` | `true` | arm the RAM watchdog (`ram_watchdog.py`) in the gunicorn master and every worker. When system memory usage (`1 - MemAvailable/MemTotal`) crosses the kill threshold, the whole process group gets SIGTERM, then SIGKILL after the grace period — before the box starts thrashing / the kernel OOM killer picks victims. Page cache doesn't count, so mmap'd index files never trip it. |
+| `RAM_KILL_FRACTION` | `0.70` | watchdog kill threshold (warn at threshold − 10%) |
+| `RAM_WATCHDOG_INTERVAL` | `2` | watchdog poll seconds |
+| `RAM_WATCHDOG_GRACE` | `15` | SIGTERM → SIGKILL escalation seconds |
+
+**Size `-w` by RAM before launching.** Each worker holds ~74 GB resident on
+the climbmix-full index (64 GB PQ table + ~30 GB inflated docids + model —
+see "Disk reads on startup"). Rule of thumb:
+`workers ≤ MemAvailable × 0.6 / 74 GB` — e.g. a 256 GB box supports **2**
+workers, not 8. The watchdog is the backstop, not the sizing tool.
 
 ## When the engine fails to load
 

@@ -70,6 +70,14 @@ from startup_banner import print_startup_banner
 # identifiable instead of anonymous. No-op if uvicorn internals move.
 _install_request_logging()
 
+# RAM watchdog (RAM_WATCHDOG / RAM_KILL_FRACTION, default kill at 70%):
+# engine load is ~74 GB resident per worker on climbmix-full, so an
+# oversized -w melts smaller boxes. Armed per worker here (and in the
+# gunicorn master via gunicorn_conf.on_starting); whichever process sees
+# the threshold first SIGTERMs the whole process group, then SIGKILLs.
+from ram_watchdog import start_from_env as _start_ram_watchdog
+_start_ram_watchdog(f"ram-watchdog pid={os.getpid()}")
+
 
 # ---------------------------------------------------------------------------
 # config — env vars only; no CLI args at the worker level

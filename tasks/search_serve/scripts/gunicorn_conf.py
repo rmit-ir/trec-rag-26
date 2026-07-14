@@ -36,8 +36,15 @@ def on_starting(server):
     """Runs once in the master, before any worker fork. Print server-info
     here so workers don't each spew a redundant copy of the same dump.
     Sets a sentinel env var so worker-side `SearchEngine.load()` knows to
-    skip its own print."""
+    skip its own print. Also arms the RAM watchdog in the master — engine
+    load is ~74 GB/worker on climbmix-full, and the watchdog kills the whole
+    process group before an oversized -w drives the box into OOM."""
     sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+    try:
+        from ram_watchdog import start_from_env
+        start_from_env("ram-watchdog master")
+    except Exception as e:
+        server.log.warning(f"[gunicorn] ram watchdog failed to start: {e!r}")
     try:
         from pathlib import Path
         from server_info import print_server_info
