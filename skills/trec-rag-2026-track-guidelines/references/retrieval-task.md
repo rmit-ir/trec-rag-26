@@ -10,20 +10,18 @@ Use this reference when building, explaining, or validating the TREC RAG 2026 Re
 
 ## Input Format: Topics
 
-Topics are provided as JSONL in `trec_rag_2026_queries.jsonl`. Each line contains a topic ID, a short keyword-style title, and a longer narrative-style topic description.
+Topics are provided as TSV in `trec_rag_2026_queries.tsv`. Each line contains the topic ID and the topic text, separated by a tab.
 
-```jsonl
-{"id":"1","title":"Industrial Revolution causes and effects","narrative":"I'm trying to understand how the Industrial Revolution began, what caused it, and how it changed societies, economies, and populations in different countries. I'm also interested in the roles of key figures like Henry Ford, the impact of technological advancements, and how industrialization connects to topics like urbanization, migration, and modern innovations such as robotics and extended reality."}
-{"id":"2","title":"Prisons inmate rights rehabilitation incarceration","narrative":"I'm trying to understand how prisons operate, including issues like inmate rights, rehabilitation, voting, and the impact of race and profit motives on incarceration. Can you explain how correctional facilities address mental health, discipline, and recidivism, and also discuss the ethical and legal challenges inmates face?"}
+```tsv
+rag2026-37	I work for a New York City council member whose district has a lot of transit riders but also some small businesses worried about delivery costs. Can you help me understand whether congestion pricing is a credible and fair way to fund the MTA? What should we weigh about the revenue promise, who pays, who benefits, environmental tradeoffs in places like the Bronx and New Jersey, and whether the MTA and Albany can be held accountable for actually spending the money on reliable service instead of repeating past mistakes?
 ```
 
 Required fields:
 
-- `id`: topic identifier. Preserve this exactly in all outputs.
-- `title`: short topic title, usually a few keywords. Preserve this exactly in outputs that include topic metadata. Use it as the default initial retrieval query unless the system intentionally performs query rewriting or decomposition internally.
-- `narrative`: long-form topic description. Preserve this exactly in outputs that include topic metadata. Use it to understand the full information need and to guide query rewriting, decomposition, evidence selection, and generation.
+- First column: topic identifier. Preserve this exactly in all outputs.
+- Second column: topic text, usually a two- to three-sentence description of the information need. Use it as the default initial retrieval query unless the system intentionally performs query rewriting or decomposition internally. For `RAG` output, copy this value exactly into `metadata.narrative`.
 
-## Input Format: ClimbMix Documents
+## Input Format: Documents
 
 For baseline systems, retrieve ClimbMix documents from the Pyserini REST API. The configured index name is:
 
@@ -31,14 +29,45 @@ For baseline systems, retrieve ClimbMix documents from the Pyserini REST API. Th
 climbmix-400b
 ```
 
-Search returns candidate objects with at least:
+Search returns a response with a `candidates` array. Each candidate represents one retrieved ClimbMix document:
+
+```json
+{
+  "api": "v1",
+  "index": "climbmix-400b",
+  "query": { "text": "congestion pricing MTA funding accountability" },
+  "candidates": [
+    {
+      "docid": "shard_00459_61697",
+      "rank": 1,
+      "score": 12.483799934387207,
+      "doc": "..."
+    }
+  ]
+}
+```
+
+Document fetch by ClimbMix document ID returns one document wrapper:
+
+```json
+{
+  "api": "v1",
+  "index": "climbmix-400b",
+  "docid": "shard_00459_61697",
+  "doc": "..."
+}
+```
+
+Document field rules:
 
 - `docid`: ClimbMix document ID to use in submissions.
-- `rank`: returned rank.
-- `score`: retrieval score.
-- `doc`: parsed or stored document contents when available.
+- `rank`: returned rank for a search candidate.
+- `score`: retrieval score for a search candidate.
+- `doc`: ClimbMix document contents. The Pyserini REST API schema allows this payload to be a string, object, array, number, boolean, or null depending on index contents and `parse` behavior. Current ClimbMix search responses commonly return `doc` as a string containing the document text.
 
-ClimbMix documents commonly expose document text through the returned `doc` payload. When a system needs full document contents for generation, fetch by `docid` through the document endpoint.
+Use `docid` as the external identifier in Retrieval run files and RAG `references`. Use the document text from `doc` as evidence content. Do not put full `doc` payloads, raw snippets, `rank`, or `score` in official Retrieval or RAG outputs unless official instructions explicitly require them.
+
+When a system needs full document contents for generation, fetch by `docid` through the document endpoint. If `doc` is an object, extract its text-bearing field such as `text` or `contents`; if it is a string, use the string directly as the document text. If the API returns raw stored JSON instead of parsed content, parse it according to the `pyserini-rest-api` skill before extracting the document text.
 
 ## Output Format: Ranked Results
 
@@ -59,7 +88,7 @@ Example:
 
 Field rules:
 
-- `topic_id`: topic identifier from `trec_rag_2026_queries.jsonl`.
+- `topic_id`: topic identifier from `trec_rag_2026_queries.tsv`.
 - `Q0`: fixed string.
 - `docid`: ClimbMix document ID.
 - `rank`: rank of the retrieved document for that topic, starting at 1.

@@ -2,7 +2,7 @@
 name: trec-rag-2026-track-guidelines
 description: Use when discussing, building, validating, or explaining the TREC RAG 2026 track, systems, baselines, participation, or submissions. This skill covers the 2026 track overview, public status, organizers, participation guidance, Retrieval and Retrieval-Augmented Generation tasks, ClimbMix/Pyserini REST retrieval defaults, required input and output formats, citation rules, and validation checks for agent-created TREC RAG 2026 runs.
 metadata:
-  version: v0.2.0
+  version: v0.3.0
 ---
 
 # TREC RAG 2026 Track Guidelines
@@ -28,13 +28,13 @@ This skill is addressed to you, the agent or developer building, validating, or 
 - Submission upload procedures and portal-specific requirements are still not specified in the public TREC RAG materials; verify them before submission-critical work.
 - Primary retrieval corpus/index: ClimbMix.
 - Pyserini REST index name: `climbmix-400b`.
-- Topic input filename: `trec_rag_2026_queries.jsonl`.
+- Topic input filename: `trec_rag_2026_queries.tsv`.
 - Retrieval output filename: `r_output_trec_rag_2026.tsv`.
 - RAG output filename: `rag_output_trec_rag_2026.jsonl`.
-- RAG evaluation: organizer-run, anonymized system-by-system battles over submitted responses, with optional nugget-based diagnostic analysis.
+- RAG response length: up to 1024 words per topic.
+- RAG sentence citation limit: up to 3 references per answer sentence.
+- RAG evaluation: organizer-run, anonymized system-by-system battles over submitted responses plus individualized nugget rubric scoring in the style of AutoNuggetizer.
 - Retrieval depth: participant-chosen; there is no fixed maximum number of submitted documents per topic.
-- Baseline retrieval depth: top 100 ClimbMix documents per topic.
-- Baseline RAG generator: the agent using this skill, unless a custom generator is specified.
 
 ## Track Overview And Participation
 
@@ -54,18 +54,9 @@ Use [references/trec-rag-overview.md](references/trec-rag-overview.md) for conve
 - For Retrieval (`R`) task requirements, output format, and validation rules, read [references/retrieval-task.md](references/retrieval-task.md).
 - For Retrieval-Augmented Generation (`RAG`) task requirements, output format, citation rules, and validation rules, read [references/rag-task.md](references/rag-task.md).
 - For released development topics, nuggets, rubrics, projected qrels, smoke tests, retrieval tuning, prompt iteration, or practice evaluation, read [references/development-data.md](references/development-data.md).
-- For the default ClimbMix baseline contract and baseline workflow, read [references/pyserini-climbmix-baseline.md](references/pyserini-climbmix-baseline.md).
 - For Pyserini REST API access, authentication, endpoint docs, command examples, response parsing, health checks, query behavior, or error handling, use the `pyserini-rest-api` skill.
 
-Read only the reference files needed for the requested task. If the request asks for a baseline and does not specify a custom retriever, use the Pyserini/ClimbMix baseline reference.
-
-## Baseline Routing
-
-When building a baseline, use [references/pyserini-climbmix-baseline.md](references/pyserini-climbmix-baseline.md) for the full workflow. In that baseline, Pyserini/ClimbMix provides the candidate evidence pool, and the agent using this skill is the default `RAG` answer generator unless a custom generator is specified.
-
-Do not duplicate Pyserini REST implementation guidance in this skill. If the request turns from baseline policy into API mechanics, route to `pyserini-rest-api` and load only the API references needed for the implementation detail.
-
-You may add query rewriting, decomposition, reranking, passage selection, deduplication, or custom retrieval. These are internal system choices. Preserve the original topic ID, title, and narrative in required output fields. Do not add diagnostic fields such as rewritten queries unless official instructions or an external request explicitly asks for them.
+Read only the reference files needed for the requested task. For API mechanics, route to `pyserini-rest-api` and load only the API references needed for the implementation detail.
 
 ## Validation Checklist
 
