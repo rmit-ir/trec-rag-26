@@ -24,6 +24,7 @@
   main { flex: 1; display: flex; min-height: 0; }
   #sidebar { width: 330px; min-width: 330px; border-right: 1px solid var(--border); display: flex; flex-direction: column; background: var(--panel); }
   #sidebar .nav { padding: 8px; display: flex; gap: 6px; align-items: center; border-bottom: 1px solid var(--border); }
+  #sidebar .navinfo { padding: 4px 10px; font-size: 11px; justify-content: center; }
   #sidebar .nav input { width: 80px; }
   #doclist { flex: 1; overflow-y: auto; }
   .docitem { padding: 7px 10px; border-bottom: 1px solid var(--border); cursor: pointer; }
@@ -86,8 +87,8 @@
       <button id="nextPage">&gt;</button>
       <button id="randBtn" title="random doc">🎲</button>
       <span class="ctl">jump #<input type="number" id="jump" min="0" value="0"></span>
-      <span class="dim" id="pageInfo"></span>
     </div>
+    <div class="nav navinfo"><span class="dim" id="pageInfo"></span></div>
     <div id="doclist"></div>
   </div>
   <div id="content">
