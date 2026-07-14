@@ -181,36 +181,49 @@ def get_chunks(i: int, request: Request) -> dict:
 @app.get("/api/stats")
 def stats(request: Request) -> dict:
     """Chunk the first `sample` docs with the given strategy/params and
-    return the chunk-size distribution."""
+    return the chunk-size and doc-length distributions."""
     q = dict(request.query_params)
     sample = min(int(q.pop("sample", 200)), len(STATE["texts"]))
     strategy, tpw, params = _chunk_params(request)
     sizes: list[int] = []
+    doc_sizes: list[int] = []
     n_docs = 0
     for i in range(sample):
-        parts = chunkers.run_strategy(strategy, STATE["texts"][i], tpw, params)
+        text = STATE["texts"][i]
+        doc_sizes.append(round(chunkers.n_words(text) * tpw))
+        parts = chunkers.run_strategy(strategy, text, tpw, params)
         sizes.extend(round(chunkers.n_words(c) * tpw) for c in parts)
         n_docs += 1
     if not sizes:
         return {"sample_docs": n_docs, "n_chunks": 0}
-    sizes.sort()
-    qtile = lambda p: sizes[min(len(sizes) - 1, int(p * len(sizes)))]
-    # fixed-width histogram buckets of 100 tokens
-    hist: dict[str, int] = {}
-    for s in sizes:
-        b = (s // 100) * 100
-        hist[f"{b}"] = hist.get(f"{b}", 0) + 1
+
+    def dist(values: list[int], bucket: int, cap: int) -> dict:
+        """Summary + fixed-width histogram; sizes >= cap pool into the cap
+        bucket (rendered as 'cap+')."""
+        values = sorted(values)
+        qtile = lambda p: values[min(len(values) - 1, int(p * len(values)))]
+        hist: dict[str, int] = {}
+        for s in values:
+            b = min((s // bucket) * bucket, cap)
+            hist[f"{b}"] = hist.get(f"{b}", 0) + 1
+        return {
+            "n": len(values),
+            "tokens": {
+                "mean": round(statistics.fmean(values), 1),
+                "p10": qtile(0.10), "p50": qtile(0.50),
+                "p90": qtile(0.90), "max": values[-1],
+            },
+            "bucket": bucket,
+            "cap": cap,
+            "histogram": hist,
+        }
+
     return {
         "sample_docs": n_docs,
         "n_chunks": len(sizes),
         "chunks_per_doc": round(len(sizes) / n_docs, 3),
-        "tokens": {
-            "mean": round(statistics.fmean(sizes), 1),
-            "p10": qtile(0.10), "p50": qtile(0.50),
-            "p90": qtile(0.90), "max": sizes[-1],
-        },
-        "histogram_bucket_tokens": 100,
-        "histogram": hist,
+        "chunks": dist(sizes, 100, 2000),
+        "docs": dist(doc_sizes, 200, 4000),
         "strategy": strategy, "params": params, "tokens_per_word": tpw,
     }
 

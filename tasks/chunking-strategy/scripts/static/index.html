@@ -52,6 +52,8 @@
   #statsbox { border: 1px solid var(--border); border-radius: 8px; background: var(--panel); padding: 12px 14px; margin-bottom: 14px; display: none; }
   #statsbox h3 { margin: 0 0 8px; font-size: 13px; }
   #statsbox .nums { color: var(--dim); font-size: 12px; margin-bottom: 8px; }
+  .distwrap { display: flex; gap: 28px; flex-wrap: wrap; }
+  .distwrap .dist { flex: 1; min-width: 380px; }
   .hrow { display: flex; align-items: center; gap: 8px; font-size: 11px; font-family: ui-monospace, monospace; }
   .hrow .lbl { width: 90px; color: var(--dim); text-align: right; }
   .hrow .bar { height: 12px; background: var(--accent); border-radius: 2px; min-width: 1px; }
@@ -219,22 +221,32 @@ async function refreshChunks(focusChunk) {
   $('rawtext').textContent = raw.text;
 }
 
+function distPanel(title, sub, dd, barMax) {
+  const maxCnt = Math.max(...Object.values(dd.histogram));
+  const buckets = Object.keys(dd.histogram).map(Number).sort((a, b) => a - b);
+  const t = dd.tokens;
+  return `<div class="dist"><h3>${title}</h3>
+    <div class="nums">${sub} · tokens mean ${t.mean} · p10 ${t.p10} · p50 ${t.p50} ·
+      p90 ${t.p90} · max ${t.max}</div>` +
+    buckets.map(b => {
+      const c = dd.histogram[b];
+      const lbl = b >= dd.cap ? `${b}+` : `${b}–${b + dd.bucket - 1}`;
+      return `<div class="hrow"><span class="lbl">${lbl}</span>
+        <div class="bar" style="width:${Math.round(barMax * c / maxCnt)}px"></div>
+        <span class="cnt">${c}</span></div>`;
+    }).join('') + '</div>';
+}
+
 async function loadStats() {
   const p = currentParams();
   const d = await api(`/api/stats?sample=${$('sampleN').value}&${qs(p)}`);
-  const maxCnt = Math.max(...Object.values(d.histogram));
-  const buckets = Object.keys(d.histogram).map(Number).sort((a, b) => a - b);
   $('statsbox').style.display = 'block';
-  $('statsbox').innerHTML = `<h3>chunk-size distribution — ${d.strategy}, first ${d.sample_docs} docs</h3>
-    <div class="nums">${d.n_chunks} chunks · ${d.chunks_per_doc} chunks/doc ·
-      tokens mean ${d.tokens.mean} · p10 ${d.tokens.p10} · p50 ${d.tokens.p50} ·
-      p90 ${d.tokens.p90} · max ${d.tokens.max}</div>` +
-    buckets.map(b => {
-      const c = d.histogram[b];
-      return `<div class="hrow"><span class="lbl">${b}–${b + d.histogram_bucket_tokens - 1}</span>
-        <div class="bar" style="width:${Math.round(500 * c / maxCnt)}px"></div>
-        <span class="cnt">${c}</span></div>`;
-    }).join('');
+  $('statsbox').innerHTML = `<div class="distwrap">` +
+    distPanel(`chunk-size distribution — ${d.strategy}, first ${d.sample_docs} docs`,
+              `${d.n_chunks} chunks · ${d.chunks_per_doc} chunks/doc`, d.chunks, 320) +
+    distPanel(`doc-length distribution — first ${d.sample_docs} docs`,
+              `${d.sample_docs} docs`, d.docs, 320) +
+    `</div>`;
 }
 
 async function init() {
