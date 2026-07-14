@@ -84,6 +84,7 @@
     <div class="nav">
       <button id="prevPage">&lt;</button>
       <button id="nextPage">&gt;</button>
+      <button id="randBtn" title="random doc">🎲</button>
       <span class="ctl">jump #<input type="number" id="jump" min="0" value="0"></span>
       <span class="dim" id="pageInfo"></span>
     </div>
@@ -278,6 +279,12 @@ async function init() {
     loadList().then(() => openDoc(i));
   });
   $('statsBtn').addEventListener('click', loadStats);
+  $('randBtn').addEventListener('click', () => {
+    const i = Math.floor(Math.random() * state.info.n_docs);
+    state.offset = Math.floor(i / state.limit) * state.limit;
+    $('search').value = '';
+    loadList().then(() => openDoc(i));
+  });
   $('search').addEventListener('input', debounce(runSearch, 250));
   $('titleChunks').addEventListener('change', () => refreshChunks());
   $('tabChunks').addEventListener('click', () => setTab('chunks'));
