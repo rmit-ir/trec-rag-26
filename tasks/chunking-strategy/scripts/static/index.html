@@ -69,6 +69,7 @@
   </span>
   <span class="ctl" id="paramCtls"></span>
   <span class="ctl">tok/word <input type="number" id="tpw" step="0.05" min="0.5" max="4" value="1.3"></span>
+  <span class="ctl"><input type="checkbox" id="titleChunks"> +title in chunks</span>
   <span class="ctl">stats sample <input type="number" id="sampleN" value="200" min="10" max="5000" step="10">
     <button id="statsBtn">corpus stats</button></span>
   <span id="status"></span>
@@ -114,20 +115,24 @@ const api = async (url) => {
 };
 
 function currentParams() {
-  const p = { strategy: $('strategy').value, tokens_per_word: $('tpw').value };
-  document.querySelectorAll('#paramCtls input').forEach(inp => p[inp.dataset.name] = inp.value);
+  const p = { strategy: $('strategy').value, tokens_per_word: $('tpw').value,
+              title_chunks: $('titleChunks').checked ? 1 : 0 };
+  document.querySelectorAll('#paramCtls input').forEach(inp =>
+    p[inp.dataset.name] = inp.type === 'checkbox' ? (inp.checked ? 1 : 0) : inp.value);
   return p;
 }
 const qs = obj => Object.entries(obj).map(([k, v]) => `${k}=${encodeURIComponent(v)}`).join('&');
 
 function renderParamCtls() {
   const spec = state.info.strategies[$('strategy').value];
-  $('paramCtls').innerHTML = spec.params.map(p =>
-    `<span class="ctl">${p.label}
+  $('paramCtls').innerHTML = spec.params.map(p => p.type === 'bool'
+    ? `<span class="ctl"><input type="checkbox" data-name="${p.name}"${+p.default ? ' checked' : ''}> ${p.label}</span>`
+    : `<span class="ctl">${p.label}
        <input type="number" data-name="${p.name}" value="${p.default}"
               min="${p.min}" max="${p.max}" step="${p.step}"></span>`).join('');
   document.querySelectorAll('#paramCtls input').forEach(inp =>
-    inp.addEventListener('input', debounce(refreshChunks, 300)));
+    inp.addEventListener(inp.type === 'checkbox' ? 'change' : 'input',
+                         debounce(refreshChunks, 300)));
 }
 
 function bandClass(tok, p) {
@@ -244,6 +249,7 @@ async function init() {
   });
   $('statsBtn').addEventListener('click', loadStats);
   $('search').addEventListener('input', debounce(runSearch, 250));
+  $('titleChunks').addEventListener('change', () => refreshChunks());
   $('tabChunks').addEventListener('click', () => setTab('chunks'));
   $('tabRaw').addEventListener('click', () => setTab('raw'));
   await loadList();

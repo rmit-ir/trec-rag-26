@@ -1,5 +1,16 @@
-"""Chunking strategies, shared by the browser app (and later the production
-chunker once a strategy is chosen).
+"""Chunking strategies — standalone module AND pipeline chunking step.
+
+Pure stdlib (regex + json), no third-party deps, so it runs in any task env.
+Two consumers:
+  - the browser app (app.py) imports it for the interactive playground
+  - the index pipeline invokes it as a CLI to chunk corpus jsonl shards:
+
+      python chunkers.py --strategy band --param target_max=500 \
+          --in shard_00000.jsonl --out chunks_00000.jsonl
+
+    Input: one {"id", "contents"} json per line (prepare_corpus format).
+    Output: same format with ids <docid>#c<k> — drop-in input for
+    encode_documents.py; nothing downstream changes.
 
 All budgets are given in TOKENS and converted to word budgets internally with
 the word->token factor (1 word ~ 1.3 tokens for English). Chunk ids follow the
@@ -85,13 +96,16 @@ def _paragraph_pieces(text: str, piece_budget_words: int, hard_words: int) -> li
 
 def chunk_band(text: str, *, tokens_per_word: float = 1.3,
                target_min: int = 200, target_max: int = 500,
-               hard_max: int = 700) -> list[str]:
+               hard_max: int = 700, split_over_target: int = 0) -> list[str]:
     tmin = _to_words(target_min, tokens_per_word)
     tmax = max(tmin, _to_words(target_max, tokens_per_word))
     hmax = max(tmax, _to_words(hard_max, tokens_per_word))
-    # Pre-split monster paragraphs at the band midpoint-ish so their pieces
-    # land inside the target band rather than at the hard ceiling.
-    pieces = _paragraph_pieces(text, tmax, hmax)
+    # Paragraphs over the split threshold are pre-split into <=target_max
+    # pieces. Default: only paragraphs over hard_max (paragraph integrity
+    # wins inside the 500-700 gray zone). split_over_target=1: any paragraph
+    # over target_max is split at sentences — chunks hug the band, at the
+    # cost of cutting mid-paragraph.
+    pieces = _paragraph_pieces(text, tmax, tmax if split_over_target else hmax)
 
     chunks: list[str] = []
     cur: list[str] = []
@@ -171,11 +185,12 @@ def chunk_fixed(text: str, *, tokens_per_word: float = 1.3,
 STRATEGIES: dict[str, dict] = {
     "band": {
         "fn": chunk_band,
-        "label": "Target band (paragraph-aware, 200-500 target / 700 hard)",
+        "label": "Target band (paragraph-aware)",
         "params": [
             {"name": "target_min", "label": "target min (tok)", "default": 200, "min": 20, "max": 4000, "step": 10},
             {"name": "target_max", "label": "target max (tok)", "default": 500, "min": 50, "max": 4000, "step": 10},
             {"name": "hard_max", "label": "hard max (tok)", "default": 700, "min": 50, "max": 8000, "step": 10},
+            {"name": "split_over_target", "label": "split paras > target", "default": 0, "type": "bool"},
         ],
     },
     "para_pack": {
@@ -196,9 +211,95 @@ STRATEGIES: dict[str, dict] = {
 }
 
 
+def _first_line_title(text: str, max_words: int = 30) -> str:
+    """Title = the doc's first non-empty line. A line within max_words is
+    taken whole; a longer one is cut at the last sentence end inside the
+    budget, else the last comma (dropped), else a hard word cut."""
+    for line in text.splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        spans = list(_WORD.finditer(line))
+        if len(spans) <= max_words:
+            return line
+        prefix = line[: spans[max_words - 1].end()]
+        last = None
+        for m in _SENT_END.finditer(prefix):
+            last = m
+        if last:
+            return prefix[: last.end()].strip()
+        cut = max(prefix.rfind(","), prefix.rfind("，"))
+        if cut > 0:
+            return prefix[:cut].strip()
+        return prefix.strip()
+    return ""
+
+
 def run_strategy(name: str, text: str, tokens_per_word: float,
                  params: dict[str, int]) -> list[str]:
     spec = STRATEGIES[name]
     known = {p["name"] for p in spec["params"]}
     kwargs = {k: int(v) for k, v in params.items() if k in known}
-    return spec["fn"](text, tokens_per_word=tokens_per_word, **kwargs)
+    chunks = spec["fn"](text, tokens_per_word=tokens_per_word, **kwargs)
+    # Contextual title: prepend the doc's first line to every chunk after
+    # the first, so later chunks carry the doc's topic into their embedding.
+    # Applied post-hoc — a titled chunk may exceed the hard cap by up to
+    # max_words title words; the UI badge makes that visible.
+    if params.get("title_chunks") and len(chunks) > 1:
+        title = _first_line_title(text)
+        if title:
+            chunks = [chunks[0]] + [
+                c if c.startswith(title) else f"{title}\n\n{c}"
+                for c in chunks[1:]
+            ]
+    return chunks
+
+
+def main() -> None:
+    """CLI: chunk a corpus jsonl into a chunk jsonl (the pipeline step)."""
+    import argparse
+    import json
+    import sys
+
+    ap = argparse.ArgumentParser(
+        description="Chunk corpus jsonl ({'id','contents'} per line) into "
+                    "chunk jsonl with ids <docid>#c<k>.")
+    ap.add_argument("--strategy", default="band", choices=sorted(STRATEGIES))
+    ap.add_argument("--tokens-per-word", type=float, default=1.3)
+    ap.add_argument("--param", action="append", default=[], metavar="K=V",
+                    help="strategy param override, repeatable "
+                         "(e.g. --param target_max=500 --param title_chunks=1)")
+    ap.add_argument("--in", dest="inp", default="-",
+                    help="input jsonl path, '-' = stdin")
+    ap.add_argument("--out", default="-",
+                    help="output jsonl path, '-' = stdout")
+    args = ap.parse_args()
+
+    params: dict[str, int] = {}
+    for kv in args.param:
+        k, sep, v = kv.partition("=")
+        if not sep or not v.lstrip("-").isdigit():
+            raise SystemExit(f"bad --param {kv!r}, expected K=<int>")
+        params[k] = int(v)
+
+    fin = sys.stdin if args.inp == "-" else open(args.inp, "rt", encoding="utf-8")
+    fout = sys.stdout if args.out == "-" else open(args.out, "wt", encoding="utf-8")
+    n_docs = n_chunks = 0
+    with fin, fout:
+        for line in fin:
+            if not line.strip():
+                continue
+            rec = json.loads(line)
+            parts = run_strategy(args.strategy, rec["contents"],
+                                 args.tokens_per_word, params)
+            for k, c in enumerate(parts):
+                fout.write(json.dumps({"id": f"{rec['id']}#c{k}", "contents": c},
+                                      ensure_ascii=False) + "\n")
+            n_docs += 1
+            n_chunks += len(parts)
+    print(f"[chunkers] {n_docs} docs -> {n_chunks} chunks "
+          f"(strategy={args.strategy} params={params})", file=sys.stderr)
+
+
+if __name__ == "__main__":
+    main()

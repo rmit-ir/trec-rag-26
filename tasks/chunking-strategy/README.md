@@ -25,13 +25,40 @@ memory at startup (~300 MB).
 
 | name | idea | dials |
 |---|---|---|
-| `band` | paragraph-aware packing into a target token band; a chunk may exceed the band only to keep a paragraph whole, never past the hard max; under-min chunks fold into the previous chunk (with `hard_max >= target_max + target_min` the fold always fits) | `target_min` 200, `target_max` 500, `hard_max` 700 |
+| `band` | paragraph-aware packing into a target token band; a chunk may exceed the band only to keep a paragraph whole, never past the hard max; under-min chunks fold into the previous chunk (with `hard_max >= target_max + target_min` the fold always fits) | `target_min` 200, `target_max` 500, `hard_max` 700, `split_over_target` off |
 | `para_pack` | greedy paragraph packing to a single budget (the chunking-1pct "para" strategy) | `max_tokens` 1024 |
 | `fixed` | sliding word window with overlap (the chunking-1pct "fixed" strategy) | `chunk_tokens` 1024, `overlap_tokens` 128 |
 
 All strategies fall back for oversized paragraphs: split at the last single
 `\n` inside the budget, else the last sentence end (`.!?。！？`), else a hard
 word cut — same hierarchy validated in `docs/chunking-1pct-findings.md`.
+
+Cross-strategy options:
+
+- `split_over_target` (band): by default a paragraph in the target_max..hard_max
+  gray zone is kept whole ("over target" badge); with this on it is split at
+  sentences so chunks hug the band.
+- `title_chunks` (any strategy, "+title in chunks" in the UI): prepend the
+  doc's title to every chunk after the first, so later chunks carry the doc
+  topic into their embedding. Title = first non-empty line; if over 30 words
+  it's cut at the last sentence end inside the budget, else the last comma,
+  else hard at 30 words. Applied after packing — a titled chunk can exceed
+  the hard cap by the title length.
+
+## Chunking step for the index pipeline (standalone CLI)
+
+`chunkers.py` is pure stdlib — no web deps — and doubles as the pipeline
+chunking step. Corpus jsonl in, chunk jsonl out, same `{"id", "contents"}`
+format `encode_documents.py` consumes; ids become `<docid>#c<k>`:
+
+```bash
+python tasks/chunking-strategy/scripts/chunkers.py \
+  --strategy band --param target_max=500 --param title_chunks=1 \
+  --in work/<run>/corpus/shard_00000.jsonl \
+  --out work/<run>/chunked/shard_00000.jsonl
+```
+
+(`--in - --out -` for stdin/stdout; stats go to stderr.)
 
 ## API (what the UI calls)
 
