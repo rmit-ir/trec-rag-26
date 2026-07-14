@@ -77,6 +77,12 @@ def search(
     q_vecs = model.encode(queries, convert_to_numpy=True,
                           normalize_embeddings=enc["normalize"],
                           **encode_kwargs).astype(np.float32, copy=False)
+    # Matryoshka index: queries must get the same truncate + L2 renorm the
+    # document vectors got (see truncate_vectors.py).
+    if enc.get("matryoshka_truncated_from"):
+        q_vecs = np.ascontiguousarray(q_vecs[:, : int(enc["dim"])])
+        norms = np.linalg.norm(q_vecs, axis=1, keepdims=True)
+        np.divide(q_vecs, norms, out=q_vecs, where=norms > 0)
 
     kind = idx_meta["kind"]
     log_aio_slots("before", num_threads=num_threads)

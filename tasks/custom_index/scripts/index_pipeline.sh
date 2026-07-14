@@ -9,8 +9,18 @@
 # the verbatim command line you need to re-launch.
 #
 # Required env vars:
-#   RUN_NAME, NSHARDS, MODEL, BATCH, NUM_WORKERS, DEVICE, INDEX_KIND, METRIC, SORT,
-#   GRAPH_DEGREE, COMPLEXITY, BUILD_MEM_GB, SEARCH_MEM_GB, PQ_DISK_BYTES, INDEX_THREADS
+#   RUN_NAME, NSHARDS, MODEL, BATCH, TRUNCATE_DIM, NUM_WORKERS, DEVICE, INDEX_KIND,
+#   METRIC, SORT, GRAPH_DEGREE, COMPLEXITY, BUILD_MEM_GB, SEARCH_MEM_GB,
+#   PQ_DISK_BYTES, INDEX_THREADS
+#
+# TRUNCATE_DIM semantics:
+#   0   -> build the index at the model's native dim (no truncation)
+#   >0  -> matryoshka-truncate encoded vectors to this dim (+ L2 renorm) in a
+#          separate step and build the index from the truncated copies. The
+#          native-dim encodes under work/<run>/encoded/ are KEPT (re-deriving
+#          any dim from them is cheap; re-encoding is GPU-days). Query-side
+#          truncation is automatic — search.py / search_serve read
+#          matryoshka_truncated_from from the index's encoding_meta.json.
 #
 # NSHARDS semantics:
 #   >0  -> use that many leading parquet shards (e.g. 16 for a smoke run)
@@ -45,6 +55,7 @@ PARAMS=(
   "NSHARDS=16"
   "MODEL=jinaai/jina-embeddings-v5-text-nano"
   "BATCH=10"
+  "TRUNCATE_DIM=0"
   "NUM_WORKERS=0"
   "DEVICE=auto"
   "INDEX_KIND=memory"
@@ -106,7 +117,7 @@ mkdir -p "${WORK_DIR}" "${CORPUS_DIR}" "${ENCODED_DIR}" "${INDEX_DIR}" "${LOG_DI
 log() { echo "[$(date -Is)] $*" | tee -a "${LOG_FILE}"; }
 
 log "index pipeline start  run_name=${RUN_NAME}"
-log "nshards=${NSHARDS} model=${MODEL} batch=${BATCH} num_workers=${NUM_WORKERS} device=${DEVICE} kind=${INDEX_KIND} metric=${METRIC} sort=${SORT}"
+log "nshards=${NSHARDS} model=${MODEL} batch=${BATCH} truncate_dim=${TRUNCATE_DIM} num_workers=${NUM_WORKERS} device=${DEVICE} kind=${INDEX_KIND} metric=${METRIC} sort=${SORT}"
 log "diskann: R=${GRAPH_DEGREE} L=${COMPLEXITY} build_mem_gb=${BUILD_MEM_GB} search_mem_gb=${SEARCH_MEM_GB} pq_disk_bytes=${PQ_DISK_BYTES} threads=${INDEX_THREADS}"
 
 # ---- 0. resolve / install task env deps (fail fast on dep issues) --------
@@ -163,11 +174,27 @@ n_fbin=$(ls "${ENCODED_DIR}"/*.fbin 2>/dev/null | wc -l)
 log "encoded ${n_fbin} shard fbin files"
 [[ "${n_fbin}" -gt 0 ]] || { log "no fbin produced — aborting"; exit 1; }
 
+# ---- 2.5 optional matryoshka truncation -----------------------------------
+# Produces a parallel per-shard dir the build step consumes instead of the
+# native-dim encodes. Resumable (already-truncated shards are skipped).
+BUILD_SRC_DIR="${ENCODED_DIR}"
+if (( TRUNCATE_DIM > 0 )); then
+  TRUNCATED_DIR="${WORK_DIR}/encoded-${TRUNCATE_DIM}d"
+  log "step 2.5: matryoshka-truncate to ${TRUNCATE_DIM}d -> ${TRUNCATED_DIR}"
+  uv run --project "${TASK_DIR}" python \
+    "${TASK_DIR}/scripts/truncate_vectors.py" \
+    --encoded-dir "${ENCODED_DIR}" \
+    --out-dir "${TRUNCATED_DIR}" \
+    --truncate-dim "${TRUNCATE_DIM}" \
+    2>&1 | tee -a "${LOG_FILE}"
+  BUILD_SRC_DIR="${TRUNCATED_DIR}"
+fi
+
 # ---- 3. concat + build DiskANN index -------------------------------------
-log "step 3: build DiskANN index (${INDEX_KIND})"
+log "step 3: build DiskANN index (${INDEX_KIND}) from ${BUILD_SRC_DIR}"
 uv run --project "${TASK_DIR}" python \
   "${TASK_DIR}/scripts/build_diskann_index.py" \
-  --encoded-dir "${ENCODED_DIR}" \
+  --encoded-dir "${BUILD_SRC_DIR}" \
   --out-dir "${INDEX_DIR}" \
   --kind "${INDEX_KIND}" \
   --metric "${METRIC}" \

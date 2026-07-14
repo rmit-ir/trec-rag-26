@@ -135,7 +135,7 @@ def main() -> int:
         shard_meta_files = sorted(args.encoded_dir.glob("*.meta.json"))
         if shard_meta_files:
             first = json.loads(shard_meta_files[0].read_text())
-            (args.out_dir / "encoding_meta.json").write_text(json.dumps({
+            carry = {
                 "model": first["model"],
                 "dim": first["dim"],
                 "normalize": first["normalize"],
@@ -147,7 +147,15 @@ def main() -> int:
                 "trust_remote_code": first.get("trust_remote_code", False),
                 "dtype": first.get("dtype"),
                 "n_shards": len(shard_meta_files),
-            }, indent=2))
+            }
+            # Matryoshka provenance (set by truncate_vectors.py). Consumers
+            # (search.py, search_serve) truncate+renormalize query vectors
+            # to `dim` when matryoshka_truncated_from is present.
+            for key in ("matryoshka_truncated_from", "renormalized"):
+                if key in first:
+                    carry[key] = first[key]
+            (args.out_dir / "encoding_meta.json").write_text(
+                json.dumps(carry, indent=2))
     else:
         vec_path = args.vectors
 

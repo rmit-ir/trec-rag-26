@@ -69,9 +69,16 @@ class SentenceTransformerEncoder:
         self.dtype = _resolve_dtype(cfg.dtype, self.device)
         self.dim = int(encoding_meta["dim"])
         self.normalize = bool(encoding_meta.get("normalize", True))
+        # Matryoshka index: document vectors were truncated to `dim` and
+        # L2-renormalized (truncate_vectors.py in tasks/custom_index), so
+        # query vectors must get the identical transform after encoding.
+        self.matryoshka_truncated_from = encoding_meta.get("matryoshka_truncated_from")
         trust = bool(encoding_meta.get("trust_remote_code", False))
+        matryoshka = (f" matryoshka={self.matryoshka_truncated_from}->{self.dim}d"
+                      if self.matryoshka_truncated_from else "")
         print(f"[encoder] sentence-transformers: model={model_name} "
-              f"device={self.device} dtype={self.dtype} trust_remote_code={trust}",
+              f"device={self.device} dtype={self.dtype} trust_remote_code={trust}"
+              f"{matryoshka}",
               flush=True)
         self._model = SentenceTransformer(
             model_name, device=self.device, trust_remote_code=trust,
@@ -89,7 +96,12 @@ class SentenceTransformerEncoder:
             queries, convert_to_numpy=True, show_progress_bar=False,
             normalize_embeddings=self.normalize, **self._kwargs,
         )
-        return v.astype(np.float32, copy=False)
+        v = v.astype(np.float32, copy=False)
+        if self.matryoshka_truncated_from:
+            v = np.ascontiguousarray(v[:, : self.dim])
+            norms = np.linalg.norm(v, axis=1, keepdims=True)
+            np.divide(v, norms, out=v, where=norms > 0)
+        return v
 
 
 _ENCODER_REGISTRY: dict[str, type] = {

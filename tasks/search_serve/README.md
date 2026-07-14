@@ -10,7 +10,11 @@ introspection summary, warms up the encoder + ANN + docstore, then serves.
 scripts/
   errors.py         EngineLoadError + missing-parts hints
   server_info.py    timeout-bounded host introspection (CPU/GPU/RAM/disk/aio)
-  encoder.py        QueryEncoder protocol + SentenceTransformerEncoder (CPU/CUDA)
+  encoder.py        QueryEncoder protocol + SentenceTransformerEncoder (CPU/CUDA).
+                    Matryoshka-aware: when the index's encoding_meta.json has
+                    matryoshka_truncated_from, query vectors are truncated to
+                    `dim` and L2-renormalized after encoding — same transform
+                    the document vectors got (tasks/custom_index/truncate_vectors.py)
   docstore.py       FlatShardDocStore — mmap'd per-shard reader
   search_engine.py  SearchEngine — load + validate + search + warm-up
   cli.py            ad-hoc CLI

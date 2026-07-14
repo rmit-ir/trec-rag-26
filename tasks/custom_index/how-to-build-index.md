@@ -144,9 +144,16 @@ See `tasks/search_serve/README.md` for the search engine that consumes it.
      `sorted-index %% N == rank` and whose `.fbin` doesn't yet exist; encodes
      one, repeats. On idle, checks `.prepare_fail` (exit 1) or
      `.prepare_done` (re-glob; exit 0 if drained).
-3. **`build_diskann_index.py`** — concatenates per-shard `.fbin` files into
+3. **`truncate_vectors.py`** *(only when `TRUNCATE_DIM > 0`)* — streams each
+   shard `.fbin`, keeps the first `TRUNCATE_DIM` dims, L2-renormalizes, and
+   writes a parallel per-shard dir (`encoded-<D>d/`, docids hardlinked). The
+   native-dim encodes are kept — deriving another dim from them is minutes;
+   re-encoding is GPU-days. Per-shard resumable.
+4. **`build_diskann_index.py`** — concatenates per-shard `.fbin` files into
    one `vectors.fbin` (and `docids.txt`), then calls `diskannpy.build_disk_index`.
-4. **`search.py`** — runs two sample queries and prints top-k for a sanity check.
+   Carries `matryoshka_truncated_from`/`renormalized` into the index's
+   `encoding_meta.json` so query encoders apply the identical transform.
+5. **`search.py`** — runs two sample queries and prints top-k for a sanity check.
 
 ### 3.2 Pipeline knobs
 
@@ -161,6 +168,7 @@ the verbatim command line you need.
 | `NSHARDS` | `>0` = leading N shards (smoke); `<=0` = all shards available |
 | `MODEL` | HF model id; default `jinaai/jina-embeddings-v5-text-nano` |
 | `BATCH` | model.encode GPU batch size. 10 is the winner from the streaming bench at seq=512 |
+| `TRUNCATE_DIM` | `0` = build at native dim; `>0` = matryoshka-truncate vectors to this dim (+ L2 renorm) before the build. Native-dim encodes are kept under `work/<RUN>/encoded/`; truncated copies go to `work/<RUN>/encoded-<D>d/`. Query-side truncation is automatic (via `matryoshka_truncated_from` in `encoding_meta.json`). 256 measured 2.45× smaller index, ~10–25% faster search (`docs/chunking-1pct-findings.md`) |
 | `NUM_WORKERS` | encoder parent: `0` = auto (one worker per visible CUDA device) |
 | `DEVICE` | `auto` / `cuda` / `cpu`. `auto` picks `cuda` if visible |
 | `INDEX_KIND` | `disk` (full corpus, CPU+SSD serve) or `memory` (smoke only) |
