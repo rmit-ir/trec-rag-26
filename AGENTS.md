@@ -14,6 +14,12 @@ TREC RAG 2026 Official Skills: https://github.com/TREC-RAG/trec-rag-skills.git
 - For command-line tools (`huggingface-cli`/`hf`, etc.), prefer `uvx <tool> …`
   — `uvx` runs each tool in its own ephemeral env, so it never pollutes either
   the system, the root env, or the task env.
+- **Data artifacts live under `data/`, never under `tasks/`.** `tasks/<task>/`
+  holds code, configs, and logs only. Built indexes go under
+  `data/built-indexes/<RUN>/`; corpora and large intermediates go elsewhere
+  under `data/`. Task scripts should point their output paths at `data/`, not
+  at their own task dir — keeps large artifacts out of the code tree and
+  consistent across tasks.
 
 ## Running Long Commands
 
