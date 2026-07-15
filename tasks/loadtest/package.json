@@ -1,0 +1,15 @@
+{
+  "name": "loadtest",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Load-test jobs for TREC RAG 2026 services (k6). One script per job under tests/.",
+  "scripts": {
+    "search": "k6 run tests/search.js",
+    "search:smoke": "k6 run --vus 1 --iterations 1 tests/search.js",
+    "search:load": "k6 run -e VUS=8 -e DURATION=60s tests/search.js",
+    "search:stress": "k6 run -e MODE=stress tests/search.js"
+  },
+  "devDependencies": {
+    "@types/k6": "^1.4.0"
+  }
+}
