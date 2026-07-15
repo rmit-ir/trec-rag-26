@@ -18,9 +18,9 @@ from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
 
-from src.utils.search_dense import search_dense
-from src.utils.search_sparse import search_sparse
-from src.utils.search_types import SearchHit
+from utils.search_dense import search_dense
+from utils.search_sparse import search_sparse
+from utils.search_types import SearchHit
 
 
 def rrf_fuse(rankings: list[list[SearchHit]], *, rrf_k: int = 60,
@@ -32,17 +32,20 @@ def rrf_fuse(rankings: list[list[SearchHit]], *, rrf_k: int = 60,
     if source_names is None:
         source_names = [f"src{i}" for i in range(len(rankings))]
 
+    # Fuse on the retrieval-unit id (chunk id for chunks, docid for documents) so
+    # distinct chunks of the same document stay separate.
     fused: dict[str, SearchHit] = {}
     for li, ranking in enumerate(rankings):
         w = weights[li]
         name = source_names[li]
         for rank, hit in enumerate(ranking, start=1):
-            docid = hit["docid"]
-            entry = fused.get(docid)
+            unit_id = hit["id"]
+            entry = fused.get(unit_id)
             if entry is None:
-                entry = {"docid": docid, "score": 0.0, "rank": 0,
-                         "text": None, "meta": {"sources": {}}}
-                fused[docid] = entry
+                entry = {"id": unit_id, "docid": hit["docid"], "kind": hit["kind"],
+                         "score": 0.0, "rank": 0, "text": None,
+                         "meta": {"sources": {}}}
+                fused[unit_id] = entry
             entry["score"] += w * (1.0 / (rrf_k + rank))
             entry["meta"]["sources"][name] = {"rank": rank, "score": hit["score"]}
             # Keep any available text (dense/sparse/pyserini may or may not include it).

@@ -19,7 +19,7 @@ import os
 import urllib.request
 from typing import Any
 
-from src.utils.search_types import SearchHit
+from utils.search_types import SearchHit, make_hit
 
 try:  # optional; env still works without it
     from dotenv import load_dotenv
@@ -67,13 +67,13 @@ def search_dense(query: str, k: int = 10, *, with_text: bool = True,
     data = post_json(f"{base}/search", body, auth_headers(), timeout)
     hits: list[SearchHit] = []
     for i, h in enumerate(data.get("hits", []), start=1):
-        hits.append({
-            "docid": h["docid"],
-            "score": float(h["score"]),
-            "rank": h.get("rank", i),
-            "text": h.get("text"),
-            "meta": {"source": "dense"},
-        })
+        hits.append(make_hit(
+            h["docid"],
+            score=float(h["score"]),
+            rank=h.get("rank", i),
+            text=h.get("text"),
+            meta={"source": "dense"},
+        ))
     return hits
 
 

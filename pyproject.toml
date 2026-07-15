@@ -8,6 +8,17 @@ dependencies = [
     "python-dotenv>=1.0",
 ]
 
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+# src-layout: packages live under src/ but are exposed at the top level, so they
+# import as `utils.*` / `tools.*` (not `src.utils.*`). `uv sync` installs them
+# editable, so imports resolve no matter where a script is run from.
+[tool.hatch.build.targets.wheel]
+sources = ["src"]
+packages = ["src/utils", "src/tools"]
+
 [dependency-groups]
 notebook = [
     "pandas",

@@ -5,7 +5,7 @@ Talks to index-server (``/api/search``) and returns hits normalized to
 
 Config (loaded from ``.env`` if python-dotenv is installed):
 
-- ``SPARSE_SEARCH_URL``  base URL (default: http://127.0.0.1:8085)
+- ``SPARSE_SEARCH_URL``  base URL (default: the hosted index-server endpoint)
 - ``SEARCH_API_KEY``     reused if the sparse endpoint is behind Basic auth.
 """
 from __future__ import annotations
@@ -13,7 +13,7 @@ from __future__ import annotations
 import os
 from typing import Any
 
-from src.utils.search_types import SearchHit
+from utils.search_types import SearchHit, make_hit
 
 try:
     from dotenv import load_dotenv
@@ -23,9 +23,9 @@ except ImportError:  # pragma: no cover
     pass
 
 # Reuse the shared auth + POST helpers so both clients behave identically.
-from src.utils.search_dense import auth_headers, post_json
+from utils.search_dense import auth_headers, post_json
 
-DEFAULT_SPARSE_URL = "http://127.0.0.1:8085"
+DEFAULT_SPARSE_URL = "https://index-climbmix-bm25.dsync.net"
 
 
 def search_sparse(query: str, k: int = 10, *, url: str | None = None,
@@ -38,13 +38,13 @@ def search_sparse(query: str, k: int = 10, *, url: str | None = None,
     hits: list[SearchHit] = []
     for i, h in enumerate(data.get("hits", {}).get("hits", []), start=1):
         source = h.get("_source") or {}
-        hits.append({
-            "docid": h["_id"],
-            "score": float(h["_score"]),
-            "rank": i,
-            "text": source.get("contents"),
-            "meta": {"source": "sparse", "_index": h.get("_index")},
-        })
+        hits.append(make_hit(
+            h["_id"],
+            score=float(h["_score"]),
+            rank=i,
+            text=source.get("contents"),
+            meta={"source": "sparse", "_index": h.get("_index")},
+        ))
     return hits
 
 

@@ -21,7 +21,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
-from src.utils.search_types import SearchHit
+from utils.search_types import SearchHit, make_hit
 
 try:  # optional; env still works without it
     from dotenv import load_dotenv
@@ -57,13 +57,13 @@ def search_pyserini(query: str, k: int = 10, *, url: str | None = None,
 
     hits: list[SearchHit] = []
     for i, c in enumerate(data.get("candidates", []), start=1):
-        hits.append({
-            "docid": c["docid"],
-            "score": float(c["score"]),
-            "rank": c.get("rank", i),
-            "text": c.get("doc"),
-            "meta": {"source": "pyserini", "index": index, "api": api},
-        })
+        hits.append(make_hit(
+            c["docid"],
+            score=float(c["score"]),
+            rank=c.get("rank", i),
+            text=c.get("doc"),
+            meta={"source": "pyserini", "index": index, "api": api},
+        ))
     return hits
 
 

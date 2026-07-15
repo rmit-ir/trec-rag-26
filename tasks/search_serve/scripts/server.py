@@ -59,6 +59,7 @@ from fastapi import FastAPI, HTTPException, Query
 from fastapi.responses import ORJSONResponse
 from pydantic import BaseModel, Field
 
+from access_log import get_access_log
 from encoder import EncoderConfig
 from errors import EngineLoadError
 from request_logging import install as _install_request_logging
@@ -269,9 +270,11 @@ async def _do_search(req: SearchRequest, endpoint_label: str) -> dict:
         beam_width=req.beam_width, with_text=req.with_text,
     )
     _log_timings(endpoint_label, result)
+    hits = result.hits[0]
+    get_access_log().log(req.query, [h.docid for h in hits])
     return {
         "query": req.query,
-        "hits": [h.to_dict() for h in result.hits[0]],
+        "hits": [h.to_dict() for h in hits],
         "timings": result.timings.to_dict(),
         "metadata": result.metadata.to_dict(),
     }
@@ -376,6 +379,9 @@ async def search_batch(req: BatchSearchRequest):
         beam_width=req.beam_width, with_text=req.with_text,
     )
     _log_timings("/search/batch", result)
+    alog = get_access_log()
+    for q, hits in zip(req.queries, result.hits):
+        alog.log(q, [h.docid for h in hits])
     return {
         "queries": req.queries,
         "results": [[h.to_dict() for h in hits] for hits in result.hits],
