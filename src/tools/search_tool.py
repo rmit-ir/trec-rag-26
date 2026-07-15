@@ -49,21 +49,14 @@ SEARCH_TOOL: dict[str, Any] = {
                 "description": "Number of fused passages to return (default 10).",
                 "default": 10,
             },
-            "prf": {
-                "type": "string",
-                "enum": ["none", "rm3", "rocchio"],
-                "description": "Pseudo-relevance feedback for the sparse side "
-                               "(default none).",
-                "default": "none",
-            },
         },
         "required": ["query"],
     },
 }
 
 
-def run_search_tool(query: str, k: int = 10, prf: str | None = None,
-                    max_chars: int = 500, **kwargs: Any) -> str:
+def run_search_tool(query: str, k: int = 10, max_chars: int = 500,
+                    **kwargs: Any) -> str:
     """Execute the tool and return a JSON string of results (for a tool result).
 
     Each result: ``{rank, docid, rrf_score, text}`` with text truncated to
@@ -71,7 +64,7 @@ def run_search_tool(query: str, k: int = 10, prf: str | None = None,
     so the agent can react instead of crashing.
     """
     try:
-        hits = search(query, k=k, prf=(None if prf in (None, "none") else prf), **kwargs)
+        hits = search(query, k=k, **kwargs)
     except Exception as e:  # surface as tool output, not an exception
         return json.dumps({"error": f"{type(e).__name__}: {e}"})
 
@@ -81,11 +74,11 @@ def run_search_tool(query: str, k: int = 10, prf: str | None = None,
         results.append({
             "rank": h["rank"],
             "docid": h["docid"],
-            "rrf_score": round(h["rrf_score"], 6),
+            "rrf_score": round(h["score"], 6),
             "text": text[:max_chars],
         })
-    return json.dumps({"query": query, "k": k, "prf": prf or "none",
-                       "results": results}, ensure_ascii=False)
+    return json.dumps({"query": query, "k": k, "results": results},
+                      ensure_ascii=False)
 
 
 def main() -> None:
@@ -94,11 +87,10 @@ def main() -> None:
     ap = argparse.ArgumentParser(description="Hybrid search tool")
     ap.add_argument("query", nargs="+")
     ap.add_argument("--k", type=int, default=10)
-    ap.add_argument("--prf", choices=["none", "rm3", "rocchio"], default="none")
     ap.add_argument("--max-chars", type=int, default=300)
     args = ap.parse_args()
 
-    out = run_search_tool(" ".join(args.query), k=args.k, prf=args.prf,
+    out = run_search_tool(" ".join(args.query), k=args.k,
                           max_chars=args.max_chars)
     print(json.dumps(json.loads(out), indent=2, ensure_ascii=False))
 

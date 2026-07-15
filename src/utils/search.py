@@ -7,58 +7,64 @@ and fuses their ranked lists with RRF:
 
 RRF is rank-based, so it needs no score calibration between the two very
 different scoring scales (cosine/IP vs BM25). Returns fused hits sorted by
-rrf_score, each ``{docid, rrf_score, rank, score_dense, score_sparse, text}``.
+rrf_score.
+
+``SearchHit`` is the single result type shared by every retrieval backend
+(``search_dense``, ``search_sparse``, ``search_pyserini``, and the fused
+results here). Common fields are typed; anything backend-specific lives in the
+untyped ``meta`` dict.
 """
 from __future__ import annotations
 
 from concurrent.futures import ThreadPoolExecutor
-from typing import Any
 
 from src.utils.search_dense import search_dense
 from src.utils.search_sparse import search_sparse
+from src.utils.search_types import SearchHit
 
 
-def rrf_fuse(rankings: list[list[dict[str, Any]]], *, rrf_k: int = 60,
+def rrf_fuse(rankings: list[list[SearchHit]], *, rrf_k: int = 60,
              weights: list[float] | None = None,
-             source_names: list[str] | None = None) -> list[dict[str, Any]]:
-    """Fuse ranked lists (each ``{docid, score, rank, text}``) via RRF."""
+             source_names: list[str] | None = None) -> list[SearchHit]:
+    """Fuse ranked ``SearchHit`` lists via RRF into a single ranked list."""
     if weights is None:
         weights = [1.0] * len(rankings)
     if source_names is None:
         source_names = [f"src{i}" for i in range(len(rankings))]
 
-    fused: dict[str, dict[str, Any]] = {}
+    fused: dict[str, SearchHit] = {}
     for li, ranking in enumerate(rankings):
         w = weights[li]
         name = source_names[li]
         for rank, hit in enumerate(ranking, start=1):
             docid = hit["docid"]
-            entry = fused.setdefault(docid, {
-                "docid": docid, "rrf_score": 0.0, "text": None,
-            })
-            entry["rrf_score"] += w * (1.0 / (rrf_k + rank))
-            entry[f"score_{name}"] = hit.get("score")
-            entry[f"rank_{name}"] = rank
-            # Keep any available text (dense/sparse may or may not include it).
+            entry = fused.get(docid)
+            if entry is None:
+                entry = {"docid": docid, "score": 0.0, "rank": 0,
+                         "text": None, "meta": {"sources": {}}}
+                fused[docid] = entry
+            entry["score"] += w * (1.0 / (rrf_k + rank))
+            entry["meta"]["sources"][name] = {"rank": rank, "score": hit["score"]}
+            # Keep any available text (dense/sparse/pyserini may or may not include it).
             if entry["text"] is None and hit.get("text") is not None:
                 entry["text"] = hit["text"]
 
-    ordered = sorted(fused.values(), key=lambda e: e["rrf_score"], reverse=True)
+    ordered = sorted(fused.values(), key=lambda e: e["score"], reverse=True)
     for rank, e in enumerate(ordered, start=1):
         e["rank"] = rank
     return ordered
 
 
 def search(query: str, k: int = 10, *, dense_k: int | None = None,
-           sparse_k: int | None = None, prf: str | None = None,
-           rrf_k: int = 60, with_text: bool = True,
+           sparse_k: int | None = None, rrf_k: int = 60, with_text: bool = True,
            weights: tuple[float, float] | None = None,
-           timeout: float = 30.0, **prf_params: Any) -> list[dict[str, Any]]:
+           timeout: float = 30.0) -> list[SearchHit]:
     """Hybrid dense+sparse search fused with RRF; returns top-``k`` fused hits.
 
     ``dense_k``/``sparse_k`` control each retriever's depth (default ``max(k,
     50)`` so fusion has enough candidates). ``weights`` = (dense, sparse) RRF
-    weights. ``prf`` and ``prf_params`` are forwarded to the sparse side.
+    weights. Fused hits carry ``score`` = RRF score and
+    ``meta["sources"][name] = {rank, score}`` per backend.
     """
     depth = max(k, 50)
     dk = dense_k or depth
@@ -66,7 +72,7 @@ def search(query: str, k: int = 10, *, dense_k: int | None = None,
 
     with ThreadPoolExecutor(max_workers=2) as ex:
         f_dense = ex.submit(search_dense, query, dk, with_text=with_text, timeout=timeout)
-        f_sparse = ex.submit(search_sparse, query, sk, prf=prf, timeout=timeout, **prf_params)
+        f_sparse = ex.submit(search_sparse, query, sk, timeout=timeout)
         dense = f_dense.result()
         sparse = f_sparse.result()
 
@@ -77,9 +83,7 @@ def search(query: str, k: int = 10, *, dense_k: int | None = None,
 
 
 if __name__ == "__main__":  # quick manual check
-    import json
     import sys
     q = " ".join(sys.argv[1:]) or "influenza vaccination"
-    for h in search(q, k=10, prf="rm3"):
-        print(h["rank"], h["docid"], round(h["rrf_score"], 5),
-              "d=", h.get("rank_dense"), "s=", h.get("rank_sparse"))
+    for h in search(q, k=10):
+        print(h["rank"], h["docid"], round(h["score"], 5), h["meta"]["sources"])

@@ -19,6 +19,8 @@ import os
 import urllib.request
 from typing import Any
 
+from src.utils.search_types import SearchHit
+
 try:  # optional; env still works without it
     from dotenv import load_dotenv
 
@@ -53,8 +55,8 @@ def post_json(url: str, body: dict[str, Any], headers: dict[str, str],
 
 def search_dense(query: str, k: int = 10, *, with_text: bool = True,
                  complexity: int | None = None, beam_width: int | None = None,
-                 url: str | None = None, timeout: float = 30.0) -> list[dict[str, Any]]:
-    """Run dense retrieval. Returns hits as ``{docid, score, rank, text}``."""
+                 url: str | None = None, timeout: float = 30.0) -> list["SearchHit"]:
+    """Run dense retrieval. Returns a list of ``SearchHit`` (see search.py)."""
     base = (url or os.environ.get("DENSE_SEARCH_URL", DEFAULT_DENSE_URL)).rstrip("/")
     body: dict[str, Any] = {"query": query, "k": k, "with_text": with_text}
     if complexity is not None:
@@ -63,13 +65,14 @@ def search_dense(query: str, k: int = 10, *, with_text: bool = True,
         body["beam_width"] = beam_width
 
     data = post_json(f"{base}/search", body, auth_headers(), timeout)
-    hits: list[dict[str, Any]] = []
+    hits: list[SearchHit] = []
     for i, h in enumerate(data.get("hits", []), start=1):
         hits.append({
             "docid": h["docid"],
             "score": float(h["score"]),
             "rank": h.get("rank", i),
             "text": h.get("text"),
+            "meta": {"source": "dense"},
         })
     return hits
 

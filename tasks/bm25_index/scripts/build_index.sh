@@ -9,8 +9,7 @@
 # Storage flags:
 #   -storePositions  -> phrase/proximity queries
 #   -storeContents   -> document text retrievable via index-server /doc + _source
-#   -storeDocvectors -> per-doc term vectors; REQUIRED for RM3 / Rocchio PRF
-#   (no -storeRaw: contents already stored)
+#   (no -storeDocvectors: PRF/RM3 not used; no -storeRaw: contents already stored)
 set -euo pipefail
 
 TASK_DIR="$(cd "$(dirname "$0")/.." && pwd)"
@@ -44,5 +43,5 @@ exec java -Xmx64g -cp "$ANSERINI_JAR" io.anserini.index.IndexCollection \
   -index "$INDEX" \
   -generator DefaultLuceneDocumentGenerator \
   -threads "$THREADS" \
-  -storePositions -storeContents -storeDocvectors \
+  -storePositions -storeContents \
   $OPTIMIZE_FLAG
