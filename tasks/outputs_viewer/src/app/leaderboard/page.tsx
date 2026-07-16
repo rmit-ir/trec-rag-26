@@ -24,8 +24,8 @@ interface Row {
   answerPct: number | null;
   answerNet: number;
   answerRated: number;
-  paragraphPct: number | null;
-  paragraphRated: number;
+  sentencePct: number | null;
+  sentenceRated: number;
   citationPct: number | null;
   citationRated: number;
   [tagCol: string]: unknown;
@@ -105,8 +105,8 @@ function Leaderboard() {
         answerPct: a?.answer.pctUp == null ? null : Math.round(a.answer.pctUp * 100),
         answerNet: (a?.answer ?? empty).net,
         answerRated: (a?.answer ?? empty).rated,
-        paragraphPct: a?.paragraph.pctUp == null ? null : Math.round(a.paragraph.pctUp * 100),
-        paragraphRated: (a?.paragraph ?? empty).rated,
+        sentencePct: a?.sentence.pctUp == null ? null : Math.round(a.sentence.pctUp * 100),
+        sentenceRated: (a?.sentence ?? empty).rated,
         citationPct: a?.citation.pctUp == null ? null : Math.round(a.citation.pctUp * 100),
         citationRated: (a?.citation ?? empty).rated,
       };
@@ -132,13 +132,13 @@ function Leaderboard() {
       },
       { field: "answerNet", headerName: "Answer net", type: "number", width: 105 },
       {
-        field: "paragraphPct",
-        headerName: "Paragraph % up",
+        field: "sentencePct",
+        headerName: "Sentence % up",
         type: "number",
         width: 150,
-        renderCell: (p) => pctCell(p.row.paragraphPct, p.row.paragraphRated),
+        renderCell: (p) => pctCell(p.row.sentencePct, p.row.sentenceRated),
       },
-      { field: "paragraphRated", headerName: "¶ rated", type: "number", width: 90 },
+      { field: "sentenceRated", headerName: "Sent. rated", type: "number", width: 100 },
       {
         field: "citationPct",
         headerName: "Citation % up",

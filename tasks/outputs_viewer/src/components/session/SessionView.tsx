@@ -233,8 +233,11 @@ export default function SessionView({
           gridTemplateColumns: {
             xs: "1fr",
             md: doc
-              ? "240px minmax(0, 1fr) minmax(280px, 360px)"
-              : "270px minmax(0, 1fr)",
+              ? "300px minmax(0, 1fr) minmax(280px, 360px)"
+              : "340px minmax(0, 1fr)",
+            xl: doc
+              ? "360px minmax(0, 1fr) minmax(300px, 400px)"
+              : "380px minmax(0, 1fr)",
           },
         }}
       >

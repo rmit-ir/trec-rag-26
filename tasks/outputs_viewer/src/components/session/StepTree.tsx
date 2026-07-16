@@ -136,7 +136,11 @@ export default function StepTree({
       </Box>
       <ListItemText
         primary={
-          <Typography variant="body2" sx={{ fontWeight: generation ? 700 : 600, display: "flex", alignItems: "center", gap: 0.5 }}>
+          <Typography
+            component="div"
+            variant="body2"
+            sx={{ fontWeight: generation ? 700 : 600, display: "flex", alignItems: "center", gap: 0.5 }}
+          >
             {generation && typeof step.turn === "number"
               ? `Turn ${step.turn + 1} · generation`
               : `${i + 1}. ${stepKind(step)}`}

@@ -12,9 +12,9 @@ import FeedbackWidget from "@/components/FeedbackWidget";
 import CitationChip from "./CitationChip";
 
 /**
- * Answer, paragraph by paragraph: consecutive sentences grouped into cards
- * (headings start new groups). Sentences stay visually distinct; citations
- * render as [n] chips after each sentence and open the doc sidebar.
+ * Answer grouped only by explicit heading-like entries. Sentences stay
+ * visually distinct; citations render as [n] chips after each sentence and
+ * open the doc sidebar.
  */
 export default function AnswerView({
   system,
@@ -39,23 +39,9 @@ export default function AnswerView({
     <Stack spacing={1.5}>
       <Card>
         <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-          <Stack
-            direction="row"
-            alignItems="center"
-            justifyContent="space-between"
-            spacing={1}
-            sx={{ mb: 0.5 }}
-          >
-            <Typography variant="overline" color="text.secondary">
-              Narrative
-            </Typography>
-            <FeedbackWidget
-              system={system}
-              sessionId={sessionId}
-              target={{ type: "answer" }}
-              label="Full answer"
-            />
-          </Stack>
+          <Typography variant="overline" color="text.secondary">
+            Task description
+          </Typography>
           <Typography variant="body1">{output.metadata?.narrative}</Typography>
         </CardContent>
       </Card>
@@ -63,16 +49,30 @@ export default function AnswerView({
       {paragraphs.map((p) => (
         <Card key={p.index}>
           <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
-            <Stack direction="row" alignItems="flex-start" spacing={1}>
-              <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-                {p.heading ? (
-                  <Typography variant="h5" sx={{ mb: 0.75 }}>
-                    {p.heading}
-                  </Typography>
-                ) : null}
-                {p.sentences.map((s) => (
+            {p.index === 0 ? (
+              <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 0.5 }}>
+                <FeedbackWidget
+                  system={system}
+                  sessionId={sessionId}
+                  target={{ type: "answer" }}
+                  label="Full answer"
+                />
+              </Box>
+            ) : null}
+            {p.heading ? (
+              <Typography variant="h5" sx={{ mb: 0.75 }}>
+                {p.heading}
+              </Typography>
+            ) : null}
+            {p.sentences.map((s) => (
+              <Stack
+                key={s.sentenceIndex}
+                direction="row"
+                alignItems="flex-start"
+                spacing={0.5}
+              >
+                <Box sx={{ flexGrow: 1, minWidth: 0 }}>
                   <Typography
-                    key={s.sentenceIndex}
                     variant="body1"
                     component="p"
                     sx={{
@@ -95,20 +95,15 @@ export default function AnswerView({
                       />
                     ))}
                   </Typography>
-                ))}
-              </Box>
-              <Box sx={{ flexShrink: 0 }}>
+                </Box>
                 <FeedbackWidget
                   system={system}
                   sessionId={sessionId}
-                  target={{ type: "paragraph", paragraphIndex: p.index }}
+                  target={{ type: "sentence", sentenceIndex: s.sentenceIndex }}
                   compact
                 />
-              </Box>
-            </Stack>
-            <Typography variant="caption" color="text.disabled">
-              ¶ {p.index + 1}
-            </Typography>
+              </Stack>
+            ))}
           </CardContent>
         </Card>
       ))}

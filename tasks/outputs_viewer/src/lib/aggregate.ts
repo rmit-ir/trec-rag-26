@@ -23,7 +23,7 @@ export function tallyRatings(records: FeedbackRecord[]): RatingAgg {
 export interface SystemAgg {
   system: string;
   answer: RatingAgg;
-  paragraph: RatingAgg;
+  sentence: RatingAgg;
   citation: RatingAgg;
   tagCounts: Record<string, number>;
   total: number;
@@ -46,7 +46,7 @@ export function aggregateBySystem(records: FeedbackRecord[]): SystemAgg[] {
     out.push({
       system,
       answer: tallyRatings(byType("answer")),
-      paragraph: tallyRatings(byType("paragraph")),
+      sentence: tallyRatings(byType("sentence")),
       citation: tallyRatings(byType("citation")),
       tagCounts,
       total: recs.length,

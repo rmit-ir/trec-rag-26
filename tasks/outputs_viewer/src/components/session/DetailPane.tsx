@@ -381,7 +381,7 @@ function RatingIcon({ rating }: { rating: FeedbackRecord["rating"] }) {
 }
 
 function targetLabel(r: FeedbackRecord): string {
-  if (r.target.type === "paragraph") return `¶${(r.target.paragraphIndex ?? 0) + 1}`;
+  if (r.target.type === "sentence") return `sentence ${(r.target.sentenceIndex ?? 0) + 1}`;
   if (r.target.type === "citation") return `citation ${r.target.docid}`;
   return "full answer";
 }

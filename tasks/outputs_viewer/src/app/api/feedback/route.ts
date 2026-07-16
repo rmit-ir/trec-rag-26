@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   return NextResponse.json({ records });
 }
 
-const TARGET_TYPES: FeedbackTargetType[] = ["answer", "paragraph", "citation"];
+const TARGET_TYPES: FeedbackTargetType[] = ["answer", "sentence", "citation"];
 
 export async function POST(req: Request) {
   let body: Record<string, unknown>;
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   const system = String(body.system ?? "");
   const sessionId = String(body.sessionId ?? "");
   const target = body.target as
-    | { type?: string; paragraphIndex?: number; docid?: string }
+    | { type?: string; sentenceIndex?: number; docid?: string }
     | undefined;
   if (!user) return NextResponse.json({ error: "user required" }, { status: 400 });
   if (!system || !sessionId) {
@@ -52,7 +52,7 @@ export async function POST(req: Request) {
     sessionId,
     target: {
       type: target.type as FeedbackTargetType,
-      ...(target.type === "paragraph" ? { paragraphIndex: Number(target.paragraphIndex ?? 0) } : {}),
+      ...(target.type === "sentence" ? { sentenceIndex: Number(target.sentenceIndex ?? 0) } : {}),
       ...(target.type === "citation" ? { docid: String(target.docid ?? "") } : {}),
     },
     rating,

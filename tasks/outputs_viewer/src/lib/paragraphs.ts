@@ -6,8 +6,6 @@ export interface Paragraph {
   sentences: { text: string; citations: number[]; sentenceIndex: number }[];
 }
 
-const MAX_SENTENCES_PER_PARAGRAPH = 4;
-
 /** Heading heuristic: markdown '#', or a short citation-less line ending in ':'
  * or with no terminal punctuation. */
 function isHeading(s: AnswerSentence): boolean {
@@ -19,8 +17,9 @@ function isHeading(s: AnswerSentence): boolean {
 }
 
 /**
- * Group consecutive answer sentences into paragraphs: a heading starts a new
- * group (and becomes its title); otherwise groups cap at N sentences.
+ * Group answer sentences only when the output contains an explicit
+ * heading-like entry. Without headings, the answer remains one continuous
+ * group rather than inventing paragraph boundaries in the viewer.
  */
 export function groupIntoParagraphs(answer: AnswerSentence[]): Paragraph[] {
   const paragraphs: Paragraph[] = [];
@@ -43,10 +42,7 @@ export function groupIntoParagraphs(answer: AnswerSentence[]): Paragraph[] {
       };
       return;
     }
-    // cap: 4 sentences for plain runs, 8 under a heading
-    const cap = current?.heading ? 8 : MAX_SENTENCES_PER_PARAGRAPH;
-    if (!current || current.sentences.length >= cap) {
-      flush();
+    if (!current) {
       current = { index: paragraphs.length, sentences: [] };
     }
     const target: Paragraph = current;

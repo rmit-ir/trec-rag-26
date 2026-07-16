@@ -110,7 +110,7 @@ function SummaryView() {
     );
   }
 
-  const typeOrder = ["answer", "paragraph", "citation"];
+  const typeOrder = ["answer", "sentence", "citation"];
 
   return (
     <Stack spacing={2}>
@@ -145,8 +145,8 @@ function SummaryView() {
             xAxis={[{ data: bySystem.map((s) => s.system), scaleType: "band" }]}
             yAxis={[{ label: "ratings", tickMinStep: 1 }]}
             series={[
-              { data: bySystem.map((s) => s.answer.up + s.paragraph.up + s.citation.up), label: "up", color: viz.up },
-              { data: bySystem.map((s) => s.answer.down + s.paragraph.down + s.citation.down), label: "down", color: viz.down },
+              { data: bySystem.map((s) => s.answer.up + s.sentence.up + s.citation.up), label: "up", color: viz.up },
+              { data: bySystem.map((s) => s.answer.down + s.sentence.down + s.citation.down), label: "down", color: viz.down },
             ]}
             borderRadius={4}
             grid={{ horizontal: true }}
@@ -167,7 +167,7 @@ function SummaryView() {
           />
         </ChartCard>
 
-        <ChartCard title="Feedback per target type" subtitle="answer vs paragraph vs citation">
+        <ChartCard title="Feedback per target type" subtitle="answer vs sentence vs citation">
           <BarChart
             height={220}
             xAxis={[{ data: typeOrder, scaleType: "band" }]}

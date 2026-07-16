@@ -133,11 +133,11 @@ export interface DocResult {
   text: string;
 }
 
-export type FeedbackTargetType = "answer" | "paragraph" | "citation";
+export type FeedbackTargetType = "answer" | "sentence" | "citation";
 
 export interface FeedbackTarget {
   type: FeedbackTargetType;
-  paragraphIndex?: number;
+  sentenceIndex?: number;
   docid?: string;
 }
 
@@ -155,7 +155,7 @@ export interface FeedbackRecord {
 
 /** Stable key identifying a feedback target within (user, system, session). */
 export function targetKey(t: FeedbackTarget): string {
-  if (t.type === "paragraph") return `paragraph:${t.paragraphIndex ?? -1}`;
+  if (t.type === "sentence") return `sentence:${t.sentenceIndex ?? -1}`;
   if (t.type === "citation") return `citation:${t.docid ?? ""}`;
   return "answer";
 }

@@ -27,7 +27,7 @@ import { useUrlState } from "@/lib/client/urlState";
 import type { FeedbackRecord } from "@/lib/types";
 
 function targetLabel(r: FeedbackRecord): string {
-  if (r.target.type === "paragraph") return `paragraph ¶${(r.target.paragraphIndex ?? 0) + 1}`;
+  if (r.target.type === "sentence") return `sentence ${(r.target.sentenceIndex ?? 0) + 1}`;
   if (r.target.type === "citation") return `citation ${r.target.docid}`;
   return "full answer";
 }
@@ -137,7 +137,7 @@ function FeedbackList() {
         >
           <MenuItem value="">all targets</MenuItem>
           <MenuItem value="answer">answer</MenuItem>
-          <MenuItem value="paragraph">paragraph</MenuItem>
+          <MenuItem value="sentence">sentence</MenuItem>
           <MenuItem value="citation">citation</MenuItem>
         </TextField>
         <Typography variant="body2" color="text.secondary">
