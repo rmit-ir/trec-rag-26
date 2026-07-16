@@ -50,6 +50,25 @@ def main() -> int:
     seen_topics: set[str] = set()
     for path in files:
         internal = json.loads(path.read_text(encoding="utf-8"))
+
+        # A crashed run still writes a schema-valid artifact: the answer is a
+        # single "Run failed: ..." sentence with no references, which passes
+        # every rule in validate_rag_output. An expired AWS token once turned
+        # all 119 test topics into exactly that. The run's own status is the
+        # only thing that can tell them apart, so gate on it before the
+        # schema check.
+        status = internal.get("trace", {}).get("status")
+        if status is None:
+            print(f"FAIL {path}", file=sys.stderr)
+            print("  - no trace.status; cannot confirm the run succeeded",
+                  file=sys.stderr)
+            return 1
+        if status not in ("completed", "budget_exhausted"):
+            print(f"FAIL {path}", file=sys.stderr)
+            print(f"  - run status is {status!r}, not a finished run",
+                  file=sys.stderr)
+            return 1
+
         official = submission_output(internal)
         errors = validate_rag_output(official)
         if errors:
