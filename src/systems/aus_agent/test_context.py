@@ -908,6 +908,32 @@ class AgentFlowTest(unittest.TestCase):
         ]
         self.assertEqual(len(user_messages), 1)
 
+    def test_uncited_report_ships_after_repeated_refusals(self):
+        # The corpus may genuinely have nothing to offer. Push the model back
+        # for evidence, but ship an honest evidence-gap answer rather than
+        # looping to the backstop and failing the run.
+        provider = FakeProvider([
+            _turn(text="No evidence supports the request.", input_tokens=100),
+            _turn(text="No evidence supports the request.", input_tokens=100),
+            _turn(text="No evidence supports the request.", input_tokens=100),
+        ])
+
+        summary, captured = self._run(provider)
+
+        self.assertEqual(summary["status"], "completed")
+        self.assertEqual(summary["committed_documents"], 0)
+        self.assertEqual(captured["output"]["references"], [])
+        self.assertEqual(
+            captured["output"]["answer"][0]["text"],
+            "No evidence supports the request.")
+        # Refused twice, accepted on the third attempt.
+        feedback = [
+            m["text"] for m in provider.messages
+            if m["role"] == "user" and "did not satisfy" in m["text"]
+        ]
+        self.assertEqual(len(feedback), 2)
+        self.assertIn("no evidence has been committed", feedback[0])
+
     def test_safety_backstop_stops_commit_without_staged_loop(self):
         provider = FakeProvider([
             _turn(

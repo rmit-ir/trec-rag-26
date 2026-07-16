@@ -109,6 +109,15 @@ _QUOTE_RE = re.compile(r"^>\s+")
 _EMPHASIS_RE = re.compile(r"\*{1,3}([^*]+)\*{1,3}|__([^_]+)__|`([^`]+)`")
 MAX_REPORT_WORDS = 1024
 TARGET_REPORT_WORDS = 950
+# An uncited report is bounced so the model goes and gets evidence, but the
+# search backend may genuinely have nothing to offer. After this many refusals
+# an honest evidence-gap answer beats looping to the safety backstop and
+# failing the run outright.
+MAX_UNCITED_REFUSALS = 2
+_UNCITED_ERRORS = (
+    "no sentence carries a citation",
+    "no evidence has been committed",
+)
 
 
 def _strip_markers(line: str) -> str:
@@ -155,9 +164,11 @@ def _parse_final_prose(
 
     An uncited report is refused even when *nothing* has been committed: with no
     evidence retained, every claim can only have come from prior knowledge,
-    which the contract forbids. ``allow_uncited`` is the escape hatch for a
-    genuinely exhausted budget, where the best available answer has to be taken
-    as-is rather than failing the run.
+    which the contract forbids. ``allow_uncited`` is the escape hatch for the
+    cases where refusing again would be worse than accepting — an exhausted
+    budget, or a corpus that genuinely has nothing to offer after the model has
+    been sent back for evidence ``MAX_UNCITED_REFUSALS`` times. An honest
+    evidence-gap answer beats looping to the safety backstop and failing.
     """
     repairs: list[str] = []
     if not text or not text.strip():
@@ -444,6 +455,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     stop_reason: str | None = None
     sentences: list[dict[str, Any]] | None = None
     repairs: list[str] = []
+    uncited_refusals = 0
     context_tokens = 0
     peak_context_tokens = 0
 
@@ -590,7 +602,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     # it after the expiry loses nothing and saves a turn.
                     candidate, _, notes = _parse_final_prose(
                         turn.get("text"), set(ledger.committed_docids),
-                        allow_uncited=finishing)
+                        allow_uncited=(
+                            finishing
+                            or uncited_refusals >= MAX_UNCITED_REFUSALS))
                     if candidate is not None:
                         sentences = candidate
                         repairs = notes
@@ -698,11 +712,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             if not calls:
                 candidate, validation_errors, notes = _parse_final_prose(
                     turn.get("text"), set(ledger.committed_docids),
-                    allow_uncited=finishing)
+                    allow_uncited=(
+                        finishing or uncited_refusals >= MAX_UNCITED_REFUSALS))
                 if candidate is not None:
                     sentences = candidate
                     repairs = notes
                     break
+                if any(error.startswith(_UNCITED_ERRORS)
+                       for error in validation_errors):
+                    uncited_refusals += 1
                 if rounds >= safety_max_rounds:
                     raise RuntimeError(
                         "runaway-loop safety backstop reached while correcting "
