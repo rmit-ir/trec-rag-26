@@ -69,6 +69,10 @@ def search(
 
     model = SentenceTransformer(enc["model"],
                                 trust_remote_code=bool(enc.get("trust_remote_code", False)))
+    # Pin the query window to the doc-side value the index was built at (jina v5
+    # otherwise defaults to max_position_embeddings=8192).
+    if enc.get("max_seq_len"):
+        model.max_seq_length = int(enc["max_seq_len"])
     encode_kwargs = {}
     if enc.get("task"):
         encode_kwargs["task"] = enc["task"]

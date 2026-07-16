@@ -84,6 +84,13 @@ class SentenceTransformerEncoder:
             model_name, device=self.device, trust_remote_code=trust,
             model_kwargs={"dtype": self.dtype},
         )
+        # Match the document-side truncation window recorded at build time.
+        # jina v5 defaults max_seq_length to max_position_embeddings (8192) if
+        # unset; the index was built at encoding_meta["max_seq_len"], so pin the
+        # query encoder to the same value for a faithful transform.
+        max_seq_len = encoding_meta.get("max_seq_len")
+        if max_seq_len:
+            self._model.max_seq_length = int(max_seq_len)
         self._kwargs: dict = {}
         if encoding_meta.get("task"):
             self._kwargs["task"] = encoding_meta["task"]

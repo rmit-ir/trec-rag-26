@@ -30,6 +30,71 @@ encoding_meta.json    # model, dim, task, prompt names (used by search.py)
 index_meta.json       # diskann build args + elapsed time
 ```
 
+## Pipeline at a glance (current: chunked + pre-tokenized)
+
+> The production pipeline is **chunk-based** and **pre-tokenized**. Chunk ids
+> are `shard_NNNNN_<docrow>_p<page>` so the parent docid is recoverable
+> (`chunk_id.rsplit("_p",1)[0]`). Tokenization is split out as its own CPU stage
+> so the GPUs stay saturated during encode, and the token store is reused for
+> fine-tuning. Older sections below describe the earlier doc-level / text-encode
+> flow and are kept for reference.
+
+```
+ data/climbmix-400b-shuffle/          6543 parquet shards, ~559 GB
+   shard_NNNNN.parquet  (col: text)   one row = one document
+        │
+        │  prepare_corpus.sh            parquet → jsonl, atomic + .ready markers
+        ▼
+ work/<run>/corpus/  (doc jsonl)       {id:"shard_NNNNN_<row>", text}
+        │
+        │  chunk_corpus.py              paragraph-aware band chunking
+        │                               target 200–500 tok / hard 700 (words×1.3)
+        ▼
+ work/<run>/corpus/  (CHUNK jsonl)     {id:"shard_NNNNN_<row>_p<page>", contents}
+   ~1.6 TB · 921.9 M chunks            ← single source of truth for chunk TEXT
+        │
+        ├───────────────────────── two siblings, run concurrently ─────────────┐
+        │  (chunk id + text ready now, before the encode's internal sort)       │
+        ▼                                                                       ▼
+ tokenize_corpus.py  (128 CPU workers)                       build_chunk_docstore.py (48 CPU)
+   "Document: "+text → HF ids, cap 1024, truncation=True        chunk_id → zstd-9(text)
+        ▼                                                                       ▼
+ work/<run>/tokens/  (ragged)                                docstore/  (chunk_id → text)
+   shard.ids.u32  int32, Σlen concatenated                     shard.bin       zstd frames
+   shard.len.i16  int16 [N] per-chunk length                   shard.offsets.bin uint64[N+1]
+   ~1.4 TB · also the FINE-TUNING input                        shard.ids.bin   chunk ids (row order)
+        │                                                       ~575 GB · zstd.dict + manifest
+        │  encode_pretokenized.py  (8 GPU, batch 256)                           │
+        │   per shard: argsort by len desc → dynamic-pad batch →                │
+        │   module.forward(task="retrieval") → last-token pool → L2 norm        │
+        ▼   (GPU-bound, 100% util; ≡ model.encode, cosine 1.0)                  │
+ work/<run>/encoded/                                                            │
+   shard.fbin  (uint32 N, uint32 dim=768, then N×768 float32)                   │
+   shard.docids.txt  (chunk id per row)  ~2.8 TB                                │
+        │                                                                       │
+        │  truncate_vectors.py           matryoshka 768→256 + L2 renorm         │
+        ▼                                                                       │
+ work/<run>/encoded-256d/  shard.fbin [N,256] float32  ~0.94 TB                 │
+        │                                                                       │
+        │  build_diskann_index.py        concat → vectors.fbin; DiskANN disk    │
+        ▼   build (mips, R=64, L=100, PQ 32 B/vec, 500 GB build cap)            │
+ data/built-indexes/<run>/  ◄───────────────────────────────────────────────── ┘
+   ann_disk.index (+ pq/medoids/…)   DiskANN disk index (256-d vectors)
+   docids.txt                        chunk id per index row
+   encoding_meta.json                model, dim=256, max_seq_len=1024, task,
+                                     prompt names, matryoshka_truncated_from
+   chunking_meta.json                chunker params (for provenance / re-chunk)
+   docstore/                         chunk_id → text  (built above, in place)
+
+ SERVE (tasks/search_serve):
+   query ──"Query: "+q──► encode (jina v5) ──truncate 256d+renorm──► [256] vec
+        └─► DiskANN search ─► index rows ─► chunk_ids (docids.txt)
+                                              └─► docstore.get_text(chunk_id) ─► text
+```
+
+Shapes in one line: **parquet(text) → doc jsonl → chunk jsonl(id,text) →
+{ tokens(int32 ids) → fbin[N,768] → fbin[N,256] → DiskANN } ∥ { docstore chunk_id→text }**.
+
 ## 0. One-time setup
 
 ### 0.1 Sync the task uv env
