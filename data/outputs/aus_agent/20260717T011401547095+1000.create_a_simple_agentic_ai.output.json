@@ -1,0 +1,3782 @@
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a6054ad",
+    "narrative": "create a simple agentic ai for personal mental-wellness support. id like to have - two agents: one would be a 'Mood Agent' that reads your check-ins (text or voice) to see what your emotions are. then theres an 'Intervention Agent' that suggests quick exercises, like breathing or journaling prompts - the workflow should be: the mood bot flags a really low or high mood, and then pings the intervention bot to help out - maybe I can use an NLU tool like dialogflow? and we MUST encrypt all the data and let people delete their history - if it gets confused it should ask follow up questions and if it sees someone is repeatedly low (eg 3 times in a row) it needs to escalate to a human counselor how do I test it? we could measure engagement and self-reported mood improvement. maybe just pilot it with 20 users for 2 weeks?",
+    "run_id": "aus-agent-dev-full",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_00790_32561",
+    "shard_03267_26477",
+    "shard_01760_16589",
+    "shard_05804_76151",
+    "shard_01889_81206",
+    "shard_01265_17602",
+    "shard_01011_40109",
+    "shard_03621_51868",
+    "shard_03635_53090",
+    "shard_01520_36695",
+    "shard_03934_15204",
+    "shard_04327_46066",
+    "shard_01673_36386",
+    "shard_04600_7439",
+    "shard_04583_83423",
+    "shard_01459_12678"
+  ],
+  "answer": [
+    {
+      "text": "A practical build for this two-agent personal mental-wellness assistant should start from the general insight behind multi-agent AI: specialized agents handling separate subtasks tend to outperform one monolithic agent trying to do everything at once.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Popular frameworks such as AutoGen, ChatDev, and LangGraph demonstrate this specialization pattern in production systems and are reasonable starting points for orchestrating your Mood Agent and Intervention Agent.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "For the handoff between the two agents, there are two established design patterns: a routing-based system, where an orchestrator decides which agent to invoke based on the incoming message, and a broadcast-based system, where the message goes to all agents and each decides whether to act.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "Routing is simpler to debug but creates a single point of failure if it misclassifies a message, while broadcast avoids that bottleneck at the cost of redundant processing, so a lightweight routing layer that forwards a \"mood flag\" event to the Intervention Agent is a reasonable choice for a two-agent pipeline.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "For the Mood Agent's NLU, Dialogflow is workable because it is built around intents, entities, and contexts, and it offers built-in sentiment analysis via Google's Natural Language API that returns a positive, negative, or neutral score alongside detected intent.",
+      "citations": [
+        2,
+        3
+      ]
+    },
+    {
+      "text": "Google's own documentation for this feature explicitly recommends handing off users with very negative sentiment scores to live human agents, which matches the mood-flag-to-intervention pipeline you described.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Kore.ai offers a comparable pattern, scoring utterances across six core emotions such as sadness and fear, storing them as session context, and letting developers write conditional-transition rules that trigger escalation to a live agent.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "For voice check-ins, voice-based mood detection is promising but imperfect: a system analyzing combined text and audio (Cogito) reached about 77% accuracy detecting depression from intonation, energy, and pauses, and its creators describe such tools as screening aids for clinicians rather than replacements.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "A privacy-conscious option is the Xpression app, which listens for acoustic features like pitch and loudness rather than recording actual words, letting it flag emotional state without storing raw speech content.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "When the Mood Agent is uncertain, standard chatbot design uses a confidence-score threshold: if the intent-matching score falls below the threshold, the system triggers a fallback that asks the user to repeat or clarify, or transfers to a human.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "Related design vocabulary includes \"explicit confirmation\" (asking the user to clarify), \"implicit confirmation\" (repeating details back so the user can correct a misunderstanding), and \"handoff\" (breaking out of the bot flow to a human agent), all of which map onto your \"ask follow-up questions when confused\" requirement.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "No document in the evidence gathered specifies an exact \"three low check-ins in a row\" escalation threshold, so that particular number should be treated as a design choice to validate empirically rather than an industry standard.",
+      "citations": []
+    },
+    {
+      "text": "The underlying escalation logic is still well precedented: Catholic Charities' \"Sister Hope\" chatbot stays conversational for minor concerns but automatically connects a user to a human counselor by phone once language suggests a crisis, and in its rollout 19 of roughly 2,700 participants were routed to crisis help this way.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "The Appa Health pilot shows a complementary model, pairing a scripted CBT app with trained near-peer mentors supervised by licensed clinicians who serve as a bridge to professional care when a participant's risk profile changes.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "For the Intervention Agent's content, deep breathing techniques such as 4-7-8 and box breathing have study support as non-pharmacological treatments for anxiety, depression, and stress, working by counteracting the fast, shallow breathing the body produces under stress.",
+      "citations": [
+        11
+      ]
+    },
+    {
+      "text": "Therapeutic journaling also has direct supporting evidence: in one 12-week online journaling program, participants reported fewer depressive symptoms and less anxiety after just one month.",
+      "citations": [
+        11
+      ]
+    },
+    {
+      "text": "Woebot is a close real-world analog to your whole concept, using CBT-style daily check-ins to track mood and deliver mood-appropriate tools, and a Stanford peer-reviewed study found significant reductions in anxiety and depression versus a control group, with 85% of participants engaging daily or near-daily.",
+      "citations": [
+        12
+      ]
+    },
+    {
+      "text": "On encryption and deletion, best-practice guidance for mental-health apps calls for encrypting data in transit and at rest, using salted/hashed authentication with multi-factor authentication, complying with HIPAA or GDPR as applicable, minimizing collected data, and maintaining a breach-response plan.",
+      "citations": [
+        13
+      ]
+    },
+    {
+      "text": "The deletion mechanics differ by storage model: on-device data is erased by deleting the app, but server-stored data requires a clearly described way for users to request removal, and EU-facing servers must meet EU data-residency rules.",
+      "citations": [
+        14
+      ]
+    },
+    {
+      "text": "For testing, two small pilots map closely onto your 20-user, two-week plan.",
+      "citations": []
+    },
+    {
+      "text": "The Appa Health pilot enrolled just 14 adolescents over 12 weeks using the PHQ-8 and GAD-7 self-report scales plus qualitative interviews, and reported 100% of participants feeling better with over 85% willing to recommend the program.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "The larger Project Cheria pilot (124 adults, 3 months) combined PHQ-9 and mood scores with objective engagement data, averaging 7.5 hours per week of use.",
+      "citations": [
+        15
+      ]
+    },
+    {
+      "text": "Following that template, a 20-user, two-week pilot should collect a validated self-report measure such as PHQ-9 at baseline and endpoint, log engagement metrics like check-in frequency and exercise completion rate, and track how many mood flags and escalations occurred, since false-escalation rates matter as much as sensitivity in a tool like this.",
+      "citations": [
+        10,
+        15
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "6847465956a0f6376a6054ad",
+    "status": "completed",
+    "metadata": {
+      "model": "au.anthropic.claude-sonnet-5",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-dev-full",
+      "query_source": "create a simple agentic ai for personal mental-wellness support. id like to have - two agents: one would be a 'Mood Agent' that reads your check-ins (text or voice) to see what your emotions are. then theres an 'Intervention Agent' that suggests quick exercises, like breathing or journaling prompts - the workflow should be: the mood bot flags a really low or high mood, and then pings the intervention bot to help out - maybe I can use an NLU tool like dialogflow? and we MUST encrypt all the data and let people delete their history - if it gets confused it should ask follow up questions and if it sees someone is repeatedly low (eg 3 times in a row) it needs to escalate to a human counselor how do I test it? we could measure engagement and self-reported mood improvement. maybe just pilot it with 20 users for 2 weeks?"
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 9,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 9,
+        "commit_context": 3
+      },
+      "retrieved_docids": [
+        "shard_00031_62930",
+        "shard_00059_5175",
+        "shard_00244_27844",
+        "shard_00268_26862",
+        "shard_00354_37573",
+        "shard_00442_39172",
+        "shard_00497_15806",
+        "shard_00543_36046",
+        "shard_00566_22710",
+        "shard_00673_60494",
+        "shard_00676_41126",
+        "shard_00732_47868",
+        "shard_00790_32561",
+        "shard_01011_40109",
+        "shard_01098_8779",
+        "shard_01131_61189",
+        "shard_01259_40533",
+        "shard_01265_17602",
+        "shard_01269_46222",
+        "shard_01345_83311",
+        "shard_01353_43071",
+        "shard_01356_78454",
+        "shard_01446_84594",
+        "shard_01459_12678",
+        "shard_01520_36695",
+        "shard_01673_36386",
+        "shard_01707_25702",
+        "shard_01760_16589",
+        "shard_01775_18191",
+        "shard_01889_81206",
+        "shard_01943_11512",
+        "shard_01991_80853",
+        "shard_02325_49100",
+        "shard_02552_81346",
+        "shard_02598_40402",
+        "shard_02615_70185",
+        "shard_02662_26922",
+        "shard_02745_15989",
+        "shard_02799_50743",
+        "shard_02962_46917",
+        "shard_03064_47819",
+        "shard_03111_81090",
+        "shard_03126_39853",
+        "shard_03145_28504",
+        "shard_03173_31311",
+        "shard_03267_26477",
+        "shard_03377_65704",
+        "shard_03409_14699",
+        "shard_03427_9806",
+        "shard_03537_64705",
+        "shard_03621_51868",
+        "shard_03635_53090",
+        "shard_03805_79798",
+        "shard_03831_30122",
+        "shard_03854_60293",
+        "shard_03934_15204",
+        "shard_04007_9827",
+        "shard_04010_65074",
+        "shard_04120_60511",
+        "shard_04267_39510",
+        "shard_04308_82697",
+        "shard_04327_46066",
+        "shard_04519_9025",
+        "shard_04522_75902",
+        "shard_04567_82095",
+        "shard_04579_74682",
+        "shard_04583_83423",
+        "shard_04600_7439",
+        "shard_04626_61341",
+        "shard_04906_58403",
+        "shard_04934_26911",
+        "shard_04961_54145",
+        "shard_04993_33515",
+        "shard_05182_53600",
+        "shard_05269_7779",
+        "shard_05272_49449",
+        "shard_05306_38197",
+        "shard_05430_50111",
+        "shard_05438_63060",
+        "shard_05594_77532",
+        "shard_05659_35514",
+        "shard_05673_30694",
+        "shard_05713_7101",
+        "shard_05804_76151",
+        "shard_05858_31347",
+        "shard_05871_59346",
+        "shard_06225_63656",
+        "shard_06331_1326",
+        "shard_06473_58229",
+        "shard_06533_75931"
+      ],
+      "tokens": {
+        "input": 346385,
+        "input_uncached": 197835,
+        "output": 10797,
+        "cache_read": 106161,
+        "cache_write": 42389,
+        "total": 357182,
+        "processed_input": 240224,
+        "processed": 251021,
+        "context_tokens": 50771,
+        "peak_context_tokens": 88895,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00790_32561",
+          "shard_01011_40109",
+          "shard_01265_17602",
+          "shard_01459_12678",
+          "shard_01520_36695",
+          "shard_01673_36386",
+          "shard_01760_16589",
+          "shard_01889_81206",
+          "shard_03267_26477",
+          "shard_03621_51868",
+          "shard_03635_53090",
+          "shard_03934_15204",
+          "shard_04327_46066",
+          "shard_04583_83423",
+          "shard_04600_7439",
+          "shard_05804_76151"
+        ],
+        "rejected": [
+          "shard_00031_62930",
+          "shard_00059_5175",
+          "shard_00244_27844",
+          "shard_00268_26862",
+          "shard_00354_37573",
+          "shard_00442_39172",
+          "shard_00497_15806",
+          "shard_00543_36046",
+          "shard_00566_22710",
+          "shard_00673_60494",
+          "shard_00676_41126",
+          "shard_00732_47868",
+          "shard_01098_8779",
+          "shard_01131_61189",
+          "shard_01259_40533",
+          "shard_01269_46222",
+          "shard_01345_83311",
+          "shard_01353_43071",
+          "shard_01356_78454",
+          "shard_01446_84594",
+          "shard_01707_25702",
+          "shard_01775_18191",
+          "shard_01943_11512",
+          "shard_01991_80853",
+          "shard_02325_49100",
+          "shard_02552_81346",
+          "shard_02598_40402",
+          "shard_02615_70185",
+          "shard_02662_26922",
+          "shard_02745_15989",
+          "shard_02799_50743",
+          "shard_02962_46917",
+          "shard_03064_47819",
+          "shard_03111_81090",
+          "shard_03126_39853",
+          "shard_03145_28504",
+          "shard_03173_31311",
+          "shard_03377_65704",
+          "shard_03409_14699",
+          "shard_03427_9806",
+          "shard_03537_64705",
+          "shard_03805_79798",
+          "shard_03831_30122",
+          "shard_03854_60293",
+          "shard_04007_9827",
+          "shard_04010_65074",
+          "shard_04120_60511",
+          "shard_04267_39510",
+          "shard_04308_82697",
+          "shard_04519_9025",
+          "shard_04522_75902",
+          "shard_04567_82095",
+          "shard_04579_74682",
+          "shard_04626_61341",
+          "shard_04906_58403",
+          "shard_04934_26911",
+          "shard_04961_54145",
+          "shard_04993_33515",
+          "shard_05182_53600",
+          "shard_05269_7779",
+          "shard_05272_49449",
+          "shard_05306_38197",
+          "shard_05430_50111",
+          "shard_05438_63060",
+          "shard_05594_77532",
+          "shard_05659_35514",
+          "shard_05673_30694",
+          "shard_05713_7101",
+          "shard_05858_31347",
+          "shard_05871_59346",
+          "shard_06225_63656",
+          "shard_06331_1326",
+          "shard_06473_58229",
+          "shard_06533_75931"
+        ]
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Produce a complete,\nwell-organized, evidence-grounded response using only the available\nsearch/retrieval tools and evidence returned by them. Prior knowledge may help\nyou choose searches, but it is not evidence and must not support factual claims.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most complete reasonable interpretation that\nstays in scope. Do not ask the user clarifying or confirming questions; proceed\non the strongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, determine internally:\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. Begin with multiple complementary queries in parallel across independent\n   coverage areas.\n2. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n4. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n5. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n6. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- On that turn, `commit_context` must be the first control action.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- New search calls may follow `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If available evidence does not support a requested\npoint, state the evidence gap rather than inventing an answer.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, produce the best answer\nthe committed evidence permits and explicitly identify the remaining evidence\ngaps.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers at the\n  end of the supporting sentence's line, e.g.\n  `Vaccination reduced hospitalizations among older adults. [docid_1] [docid_2]`\n- Citation markers are stripped from the submitted sentence, so a marker must\n  never act as a word in the sentence: write `the trial reports X [docid].`,\n  never `as [docid] reports, X.`\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or\n  any preamble, meta-commentary, or closing remarks around the report; every\n  line must be a report sentence.\n- Aim for about 950 words, excluding citation markers. 1024 words is a hard\n  limit set by the evaluation, and an over-length report costs a full rewrite,\n  so plan the report's scope to land under the target rather than writing long\n  and trimming.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Research request:\n\ncreate a simple agentic ai for personal mental-wellness support. id like to have - two agents: one would be a 'Mood Agent' that reads your check-ins (text or voice) to see what your emotions are. then theres an 'Intervention Agent' that suggests quick exercises, like breathing or journaling prompts - the workflow should be: the mood bot flags a really low or high mood, and then pings the intervention bot to help out - maybe I can use an NLU tool like dialogflow? and we MUST encrypt all the data and let people delete their history - if it gets confused it should ask follow up questions and if it sees someone is repeatedly low (eg 3 times in a row) it needs to escalate to a human counselor how do I test it? we could measure engagement and self-reported mood improvement. maybe just pilot it with 20 users for 2 weeks?\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_vzHgHbYvsiFZa70MWovrSh",
+              "name": "search",
+              "arguments": {
+                "query": "multi-agent AI architecture mental health chatbot mood detection intervention"
+              }
+            },
+            {
+              "id": "tooluse_vdqBST0llhNQMR4jHM1WLa",
+              "name": "search",
+              "arguments": {
+                "query": "chatbot escalation to human counselor mental health crisis detection"
+              }
+            },
+            {
+              "id": "tooluse_cTUL7fP7FSTc34DPu4AcSP",
+              "name": "search",
+              "arguments": {
+                "query": "Dialogflow NLU intent detection sentiment analysis conversational agent"
+              }
+            },
+            {
+              "id": "tooluse_soQywTA6ZLOIUr0MJ1qoNE",
+              "name": "search",
+              "arguments": {
+                "query": "digital mental health app data privacy encryption right to delete data"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T01:11:59.546+10:00",
+        "t_end": "2026-07-17T01:12:06.561+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 7014.7,
+          "context_tokens": 3400,
+          "peak_context_tokens": 3400,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7015,
+          "tokens": {
+            "input": 3400,
+            "input_uncached": 352,
+            "output": 643,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 4043,
+            "processed_input": 352,
+            "processed": 995,
+            "context": 3400
+          },
+          "provider_usage": {
+            "inputTokens": 352,
+            "outputTokens": 643,
+            "totalTokens": 4043,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 3400,
+            "input_uncached": 352,
+            "output": 643,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 4043,
+            "processed_input": 352,
+            "processed": 995
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "multi-agent AI architecture mental health chatbot mood detection intervention"
+        },
+        "output": {
+          "query": "multi-agent AI architecture mental health chatbot mood detection intervention",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00244_27844",
+              "docid": "shard_00244_27844",
+              "kind": "document",
+              "rrf_score": 0.026847,
+              "truncated": false,
+              "original_chars": 18144,
+              "returned_chars": 18144
+            },
+            {
+              "rank": 2,
+              "id": "shard_03427_9806",
+              "docid": "shard_03427_9806",
+              "kind": "document",
+              "rrf_score": 0.026671,
+              "truncated": false,
+              "original_chars": 3456,
+              "returned_chars": 3456
+            },
+            {
+              "rank": 3,
+              "id": "shard_05272_49449",
+              "docid": "shard_05272_49449",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3450,
+              "returned_chars": 3450
+            },
+            {
+              "rank": 4,
+              "id": "shard_00031_62930",
+              "docid": "shard_00031_62930",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 6375,
+              "returned_chars": 6375
+            },
+            {
+              "rank": 5,
+              "id": "shard_01098_8779",
+              "docid": "shard_01098_8779",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 2681,
+              "returned_chars": 2681
+            },
+            {
+              "rank": 6,
+              "id": "shard_03831_30122",
+              "docid": "shard_03831_30122",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 6375,
+              "returned_chars": 6375
+            },
+            {
+              "rank": 7,
+              "id": "shard_01673_36386",
+              "docid": "shard_01673_36386",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3486,
+              "returned_chars": 3486
+            },
+            {
+              "rank": 8,
+              "id": "shard_00497_15806",
+              "docid": "shard_00497_15806",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 6375,
+              "returned_chars": 6375
+            },
+            {
+              "rank": 9,
+              "id": "shard_01991_80853",
+              "docid": "shard_01991_80853",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 5883,
+              "returned_chars": 5883
+            },
+            {
+              "rank": 10,
+              "id": "shard_03377_65704",
+              "docid": "shard_03377_65704",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": true,
+              "original_chars": 63643,
+              "returned_chars": 20436
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00244_27844",
+          "shard_03427_9806",
+          "shard_05272_49449",
+          "shard_00031_62930",
+          "shard_01098_8779",
+          "shard_03831_30122",
+          "shard_01673_36386",
+          "shard_00497_15806",
+          "shard_01991_80853",
+          "shard_03377_65704"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00244_27844",
+            "score": 0.026847
+          },
+          {
+            "docid": "shard_03427_9806",
+            "score": 0.026671
+          },
+          {
+            "docid": "shard_05272_49449",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00031_62930",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01098_8779",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03831_30122",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01673_36386",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00497_15806",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01991_80853",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_03377_65704",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_vzHgHbYvsiFZa70MWovrSh",
+        "id": "step-0001",
+        "t_start": "2026-07-17T01:12:06.562+10:00",
+        "t_end": "2026-07-17T01:12:07.497+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 934.751,
+          "context_tokens": 3400,
+          "peak_context_tokens": 3400,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7951,
+          "cumulative_tokens": {
+            "input": 3400,
+            "input_uncached": 352,
+            "output": 643,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 4043,
+            "processed_input": 352,
+            "processed": 995
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00244_27844",
+            "shard_03427_9806",
+            "shard_05272_49449",
+            "shard_00031_62930",
+            "shard_01098_8779",
+            "shard_03831_30122",
+            "shard_01673_36386",
+            "shard_00497_15806",
+            "shard_01991_80853",
+            "shard_03377_65704"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "chatbot escalation to human counselor mental health crisis detection"
+        },
+        "output": {
+          "query": "chatbot escalation to human counselor mental health crisis detection",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01520_36695",
+              "docid": "shard_01520_36695",
+              "kind": "document",
+              "rrf_score": 0.025486,
+              "truncated": false,
+              "original_chars": 3546,
+              "returned_chars": 3546
+            },
+            {
+              "rank": 2,
+              "id": "shard_05713_7101",
+              "docid": "shard_05713_7101",
+              "kind": "document",
+              "rrf_score": 0.024971,
+              "truncated": false,
+              "original_chars": 6285,
+              "returned_chars": 6285
+            },
+            {
+              "rank": 3,
+              "id": "shard_01775_18191",
+              "docid": "shard_01775_18191",
+              "kind": "document",
+              "rrf_score": 0.023643,
+              "truncated": false,
+              "original_chars": 3698,
+              "returned_chars": 3698
+            },
+            {
+              "rank": 4,
+              "id": "shard_00268_26862",
+              "docid": "shard_00268_26862",
+              "kind": "document",
+              "rrf_score": 0.023545,
+              "truncated": false,
+              "original_chars": 3714,
+              "returned_chars": 3714
+            },
+            {
+              "rank": 5,
+              "id": "shard_00676_41126",
+              "docid": "shard_00676_41126",
+              "kind": "document",
+              "rrf_score": 0.022739,
+              "truncated": false,
+              "original_chars": 2555,
+              "returned_chars": 2555
+            },
+            {
+              "rank": 6,
+              "id": "shard_01707_25702",
+              "docid": "shard_01707_25702",
+              "kind": "document",
+              "rrf_score": 0.022511,
+              "truncated": false,
+              "original_chars": 2443,
+              "returned_chars": 2443
+            },
+            {
+              "rank": 7,
+              "id": "shard_03126_39853",
+              "docid": "shard_03126_39853",
+              "kind": "document",
+              "rrf_score": 0.022002,
+              "truncated": false,
+              "original_chars": 2678,
+              "returned_chars": 2678
+            },
+            {
+              "rank": 8,
+              "id": "shard_06225_63656",
+              "docid": "shard_06225_63656",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 419,
+              "returned_chars": 419
+            },
+            {
+              "rank": 9,
+              "id": "shard_04567_82095",
+              "docid": "shard_04567_82095",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3845,
+              "returned_chars": 3845
+            },
+            {
+              "rank": 10,
+              "id": "shard_04308_82697",
+              "docid": "shard_04308_82697",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1203,
+              "returned_chars": 1203
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01520_36695",
+          "shard_05713_7101",
+          "shard_01775_18191",
+          "shard_00268_26862",
+          "shard_00676_41126",
+          "shard_01707_25702",
+          "shard_03126_39853",
+          "shard_06225_63656",
+          "shard_04567_82095",
+          "shard_04308_82697"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01520_36695",
+            "score": 0.025486
+          },
+          {
+            "docid": "shard_05713_7101",
+            "score": 0.024971
+          },
+          {
+            "docid": "shard_01775_18191",
+            "score": 0.023643
+          },
+          {
+            "docid": "shard_00268_26862",
+            "score": 0.023545
+          },
+          {
+            "docid": "shard_00676_41126",
+            "score": 0.022739
+          },
+          {
+            "docid": "shard_01707_25702",
+            "score": 0.022511
+          },
+          {
+            "docid": "shard_03126_39853",
+            "score": 0.022002
+          },
+          {
+            "docid": "shard_06225_63656",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04567_82095",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04308_82697",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_vdqBST0llhNQMR4jHM1WLa",
+        "id": "step-0002",
+        "t_start": "2026-07-17T01:12:06.562+10:00",
+        "t_end": "2026-07-17T01:12:07.181+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 619.054,
+          "context_tokens": 3400,
+          "peak_context_tokens": 3400,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7951,
+          "cumulative_tokens": {
+            "input": 3400,
+            "input_uncached": 352,
+            "output": 643,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 4043,
+            "processed_input": 352,
+            "processed": 995
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01520_36695",
+            "shard_05713_7101",
+            "shard_01775_18191",
+            "shard_00268_26862",
+            "shard_00676_41126",
+            "shard_01707_25702",
+            "shard_03126_39853",
+            "shard_06225_63656",
+            "shard_04567_82095",
+            "shard_04308_82697"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Dialogflow NLU intent detection sentiment analysis conversational agent"
+        },
+        "output": {
+          "query": "Dialogflow NLU intent detection sentiment analysis conversational agent",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00442_39172",
+              "docid": "shard_00442_39172",
+              "kind": "document",
+              "rrf_score": 0.026754,
+              "truncated": false,
+              "original_chars": 3662,
+              "returned_chars": 3662
+            },
+            {
+              "rank": 2,
+              "id": "shard_05673_30694",
+              "docid": "shard_05673_30694",
+              "kind": "document",
+              "rrf_score": 0.024697,
+              "truncated": false,
+              "original_chars": 3229,
+              "returned_chars": 3229
+            },
+            {
+              "rank": 3,
+              "id": "shard_05804_76151",
+              "docid": "shard_05804_76151",
+              "kind": "document",
+              "rrf_score": 0.024541,
+              "truncated": false,
+              "original_chars": 2739,
+              "returned_chars": 2739
+            },
+            {
+              "rank": 4,
+              "id": "shard_05438_63060",
+              "docid": "shard_05438_63060",
+              "kind": "document",
+              "rrf_score": 0.023137,
+              "truncated": false,
+              "original_chars": 3344,
+              "returned_chars": 3344
+            },
+            {
+              "rank": 5,
+              "id": "shard_01760_16589",
+              "docid": "shard_01760_16589",
+              "kind": "document",
+              "rrf_score": 0.022617,
+              "truncated": false,
+              "original_chars": 3656,
+              "returned_chars": 3656
+            },
+            {
+              "rank": 6,
+              "id": "shard_01356_78454",
+              "docid": "shard_01356_78454",
+              "kind": "document",
+              "rrf_score": 0.020771,
+              "truncated": false,
+              "original_chars": 4396,
+              "returned_chars": 4396
+            },
+            {
+              "rank": 7,
+              "id": "shard_04267_39510",
+              "docid": "shard_04267_39510",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 11187,
+              "returned_chars": 11187
+            },
+            {
+              "rank": 8,
+              "id": "shard_05430_50111",
+              "docid": "shard_05430_50111",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 13429,
+              "returned_chars": 13429
+            },
+            {
+              "rank": 9,
+              "id": "shard_04934_26911",
+              "docid": "shard_04934_26911",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3341,
+              "returned_chars": 3341
+            },
+            {
+              "rank": 10,
+              "id": "shard_03145_28504",
+              "docid": "shard_03145_28504",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 4134,
+              "returned_chars": 4134
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00442_39172",
+          "shard_05673_30694",
+          "shard_05804_76151",
+          "shard_05438_63060",
+          "shard_01760_16589",
+          "shard_01356_78454",
+          "shard_04267_39510",
+          "shard_05430_50111",
+          "shard_04934_26911",
+          "shard_03145_28504"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00442_39172",
+            "score": 0.026754
+          },
+          {
+            "docid": "shard_05673_30694",
+            "score": 0.024697
+          },
+          {
+            "docid": "shard_05804_76151",
+            "score": 0.024541
+          },
+          {
+            "docid": "shard_05438_63060",
+            "score": 0.023137
+          },
+          {
+            "docid": "shard_01760_16589",
+            "score": 0.022617
+          },
+          {
+            "docid": "shard_01356_78454",
+            "score": 0.020771
+          },
+          {
+            "docid": "shard_04267_39510",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05430_50111",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04934_26911",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03145_28504",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_cTUL7fP7FSTc34DPu4AcSP",
+        "id": "step-0003",
+        "t_start": "2026-07-17T01:12:06.562+10:00",
+        "t_end": "2026-07-17T01:12:07.186+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 623.804,
+          "context_tokens": 3400,
+          "peak_context_tokens": 3400,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7951,
+          "cumulative_tokens": {
+            "input": 3400,
+            "input_uncached": 352,
+            "output": 643,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 4043,
+            "processed_input": 352,
+            "processed": 995
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00442_39172",
+            "shard_05673_30694",
+            "shard_05804_76151",
+            "shard_05438_63060",
+            "shard_01760_16589",
+            "shard_01356_78454",
+            "shard_04267_39510",
+            "shard_05430_50111",
+            "shard_04934_26911",
+            "shard_03145_28504"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "digital mental health app data privacy encryption right to delete data"
+        },
+        "output": {
+          "query": "digital mental health app data privacy encryption right to delete data",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05182_53600",
+              "docid": "shard_05182_53600",
+              "kind": "document",
+              "rrf_score": 0.026438,
+              "truncated": false,
+              "original_chars": 3855,
+              "returned_chars": 3855
+            },
+            {
+              "rank": 2,
+              "id": "shard_04583_83423",
+              "docid": "shard_04583_83423",
+              "kind": "document",
+              "rrf_score": 0.024625,
+              "truncated": false,
+              "original_chars": 3806,
+              "returned_chars": 3806
+            },
+            {
+              "rank": 3,
+              "id": "shard_04600_7439",
+              "docid": "shard_04600_7439",
+              "kind": "document",
+              "rrf_score": 0.024321,
+              "truncated": false,
+              "original_chars": 3719,
+              "returned_chars": 3719
+            },
+            {
+              "rank": 4,
+              "id": "shard_06473_58229",
+              "docid": "shard_06473_58229",
+              "kind": "document",
+              "rrf_score": 0.01961,
+              "truncated": false,
+              "original_chars": 4962,
+              "returned_chars": 4962
+            },
+            {
+              "rank": 5,
+              "id": "shard_02598_40402",
+              "docid": "shard_02598_40402",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 862,
+              "returned_chars": 862
+            },
+            {
+              "rank": 6,
+              "id": "shard_04519_9025",
+              "docid": "shard_04519_9025",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": true,
+              "original_chars": 46448,
+              "returned_chars": 20227
+            },
+            {
+              "rank": 7,
+              "id": "shard_03409_14699",
+              "docid": "shard_03409_14699",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 18475,
+              "returned_chars": 18475
+            },
+            {
+              "rank": 8,
+              "id": "shard_01353_43071",
+              "docid": "shard_01353_43071",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2894,
+              "returned_chars": 2894
+            },
+            {
+              "rank": 9,
+              "id": "shard_02325_49100",
+              "docid": "shard_02325_49100",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 15205,
+              "returned_chars": 15205
+            },
+            {
+              "rank": 10,
+              "id": "shard_03173_31311",
+              "docid": "shard_03173_31311",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4164,
+              "returned_chars": 4164
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05182_53600",
+          "shard_04583_83423",
+          "shard_04600_7439",
+          "shard_06473_58229",
+          "shard_02598_40402",
+          "shard_04519_9025",
+          "shard_03409_14699",
+          "shard_01353_43071",
+          "shard_02325_49100",
+          "shard_03173_31311"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05182_53600",
+            "score": 0.026438
+          },
+          {
+            "docid": "shard_04583_83423",
+            "score": 0.024625
+          },
+          {
+            "docid": "shard_04600_7439",
+            "score": 0.024321
+          },
+          {
+            "docid": "shard_06473_58229",
+            "score": 0.01961
+          },
+          {
+            "docid": "shard_02598_40402",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04519_9025",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03409_14699",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01353_43071",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02325_49100",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03173_31311",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_soQywTA6ZLOIUr0MJ1qoNE",
+        "id": "step-0004",
+        "t_start": "2026-07-17T01:12:06.562+10:00",
+        "t_end": "2026-07-17T01:12:07.263+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 700.449,
+          "context_tokens": 3400,
+          "peak_context_tokens": 3400,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7951,
+          "cumulative_tokens": {
+            "input": 3400,
+            "input_uncached": 352,
+            "output": 643,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 4043,
+            "processed_input": 352,
+            "processed": 995
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05182_53600",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_06473_58229",
+            "shard_02598_40402",
+            "shard_04519_9025",
+            "shard_03409_14699",
+            "shard_01353_43071",
+            "shard_02325_49100",
+            "shard_03173_31311"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_vzHgHbYvsiFZa70MWovrSh",
+            "tooluse_vdqBST0llhNQMR4jHM1WLa",
+            "tooluse_cTUL7fP7FSTc34DPu4AcSP",
+            "tooluse_soQywTA6ZLOIUr0MJ1qoNE"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_P9jndjqVnDkTg2GF8Tt7Mi",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01673_36386",
+                    "reason": "Woebot: CBT-based mood-tracking chatbot with Stanford peer-reviewed pilot study showing reduced anxiety/depression, 85% daily engagement - directly informs intervention agent design and pilot testing precedent."
+                  },
+                  {
+                    "docid": "shard_01520_36695",
+                    "reason": "Sister Hope chatbot: concrete example of escalation rule (mention of death/suicide connects user to human counselor via phone call), with real engagement/crisis-help numbers from a live pilot."
+                  },
+                  {
+                    "docid": "shard_05804_76151",
+                    "reason": "Dialogflow's built-in sentiment analysis feature and its documented recommendation to hand off very negative sentiment users to live agents - directly supports the low/high mood flag -> escalation mechanism."
+                  },
+                  {
+                    "docid": "shard_01760_16589",
+                    "reason": "Explains Dialogflow NLU architecture components (intents, entities, contexts, fallback intent) used to build follow-up clarifying questions when the agent is confused."
+                  },
+                  {
+                    "docid": "shard_04600_7439",
+                    "reason": "Concrete privacy/security best-practice checklist for mental health apps: encryption in transit/at rest, MFA, HIPAA/GDPR compliance, data minimization, anonymization, breach response plan."
+                  },
+                  {
+                    "docid": "shard_04583_83423",
+                    "reason": "Explains mechanics of user-initiated data deletion, definition of encryption, and EU/legal data-storage requirements relevant to 'let people delete their history' requirement."
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_TsRBq3XiRUE9fA5zGdbQuu",
+              "name": "search",
+              "arguments": {
+                "query": "pilot study digital mental health intervention sample size two weeks self-reported mood improvement engagement metrics"
+              }
+            },
+            {
+              "id": "tooluse_BvbEXlsJ2nEwROQ4APnVdc",
+              "name": "search",
+              "arguments": {
+                "query": "multi-agent AI system orchestrator handoff pattern one agent triggers another"
+              }
+            },
+            {
+              "id": "tooluse_O9txNJDu1lQlYIe16HCXlS",
+              "name": "search",
+              "arguments": {
+                "query": "breathing exercise journaling prompt effectiveness anxiety mood evidence"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T01:12:07.497+10:00",
+        "t_end": "2026-07-17T01:12:28.415+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 20917.118,
+          "context_tokens": 85004,
+          "peak_context_tokens": 85004,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 28868,
+          "tokens": {
+            "input": 85004,
+            "input_uncached": 81956,
+            "output": 2016,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 87020,
+            "processed_input": 81956,
+            "processed": 83972,
+            "context": 85004
+          },
+          "provider_usage": {
+            "inputTokens": 81956,
+            "outputTokens": 2016,
+            "totalTokens": 87020,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 88404,
+            "input_uncached": 82308,
+            "output": 2659,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 91063,
+            "processed_input": 82308,
+            "processed": 84967
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00244_27844",
+            "shard_03427_9806",
+            "shard_05272_49449",
+            "shard_00031_62930",
+            "shard_01098_8779",
+            "shard_03831_30122",
+            "shard_01673_36386",
+            "shard_00497_15806",
+            "shard_01991_80853",
+            "shard_03377_65704",
+            "shard_01520_36695",
+            "shard_05713_7101",
+            "shard_01775_18191",
+            "shard_00268_26862",
+            "shard_00676_41126",
+            "shard_01707_25702",
+            "shard_03126_39853",
+            "shard_06225_63656",
+            "shard_04567_82095",
+            "shard_04308_82697",
+            "shard_00442_39172",
+            "shard_05673_30694",
+            "shard_05804_76151",
+            "shard_05438_63060",
+            "shard_01760_16589",
+            "shard_01356_78454",
+            "shard_04267_39510",
+            "shard_05430_50111",
+            "shard_04934_26911",
+            "shard_03145_28504",
+            "shard_05182_53600",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_06473_58229",
+            "shard_02598_40402",
+            "shard_04519_9025",
+            "shard_03409_14699",
+            "shard_01353_43071",
+            "shard_02325_49100",
+            "shard_03173_31311"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01673_36386",
+              "reason": "Woebot: CBT-based mood-tracking chatbot with Stanford peer-reviewed pilot study showing reduced anxiety/depression, 85% daily engagement - directly informs intervention agent design and pilot testing precedent."
+            },
+            {
+              "docid": "shard_01520_36695",
+              "reason": "Sister Hope chatbot: concrete example of escalation rule (mention of death/suicide connects user to human counselor via phone call), with real engagement/crisis-help numbers from a live pilot."
+            },
+            {
+              "docid": "shard_05804_76151",
+              "reason": "Dialogflow's built-in sentiment analysis feature and its documented recommendation to hand off very negative sentiment users to live agents - directly supports the low/high mood flag -> escalation mechanism."
+            },
+            {
+              "docid": "shard_01760_16589",
+              "reason": "Explains Dialogflow NLU architecture components (intents, entities, contexts, fallback intent) used to build follow-up clarifying questions when the agent is confused."
+            },
+            {
+              "docid": "shard_04600_7439",
+              "reason": "Concrete privacy/security best-practice checklist for mental health apps: encryption in transit/at rest, MFA, HIPAA/GDPR compliance, data minimization, anonymization, breach response plan."
+            },
+            {
+              "docid": "shard_04583_83423",
+              "reason": "Explains mechanics of user-initiated data deletion, definition of encryption, and EU/legal data-storage requirements relevant to 'let people delete their history' requirement."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01673_36386\", \"shard_01520_36695\", \"shard_05804_76151\", \"shard_01760_16589\", \"shard_04583_83423\", \"shard_04600_7439\"], \"rejected\": [{\"docid\": \"shard_00244_27844\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03427_9806\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05272_49449\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00031_62930\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01098_8779\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03831_30122\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00497_15806\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01991_80853\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03377_65704\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05713_7101\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01775_18191\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00268_26862\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00676_41126\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01707_25702\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03126_39853\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06225_63656\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04567_82095\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04308_82697\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00442_39172\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05673_30694\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05438_63060\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01356_78454\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04267_39510\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05430_50111\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04934_26911\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03145_28504\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05182_53600\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06473_58229\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02598_40402\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04519_9025\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03409_14699\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01353_43071\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02325_49100\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03173_31311\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 85,004 / 500,000 tokens (17.0%) · elapsed: 0m 28s]",
+        "failed": false,
+        "tool_call_id": "tooluse_P9jndjqVnDkTg2GF8Tt7Mi",
+        "id": "step-0006",
+        "t_start": "2026-07-17T01:12:28.415+10:00",
+        "t_end": "2026-07-17T01:12:28.418+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 3.188,
+          "context_tokens": 85004,
+          "peak_context_tokens": 85004,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 28872,
+          "cumulative_tokens": {
+            "input": 88404,
+            "input_uncached": 82308,
+            "output": 2659,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 91063,
+            "processed_input": 82308,
+            "processed": 84967
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00244_27844",
+            "shard_03427_9806",
+            "shard_05272_49449",
+            "shard_00031_62930",
+            "shard_01098_8779",
+            "shard_03831_30122",
+            "shard_01673_36386",
+            "shard_00497_15806",
+            "shard_01991_80853",
+            "shard_03377_65704",
+            "shard_01520_36695",
+            "shard_05713_7101",
+            "shard_01775_18191",
+            "shard_00268_26862",
+            "shard_00676_41126",
+            "shard_01707_25702",
+            "shard_03126_39853",
+            "shard_06225_63656",
+            "shard_04567_82095",
+            "shard_04308_82697",
+            "shard_00442_39172",
+            "shard_05673_30694",
+            "shard_05804_76151",
+            "shard_05438_63060",
+            "shard_01760_16589",
+            "shard_01356_78454",
+            "shard_04267_39510",
+            "shard_05430_50111",
+            "shard_04934_26911",
+            "shard_03145_28504",
+            "shard_05182_53600",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_06473_58229",
+            "shard_02598_40402",
+            "shard_04519_9025",
+            "shard_03409_14699",
+            "shard_01353_43071",
+            "shard_02325_49100",
+            "shard_03173_31311"
+          ],
+          "committed": [
+            "shard_01673_36386",
+            "shard_01520_36695",
+            "shard_05804_76151",
+            "shard_01760_16589",
+            "shard_04583_83423",
+            "shard_04600_7439"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_00244_27844",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03427_9806",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05272_49449",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00031_62930",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01098_8779",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03831_30122",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00497_15806",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01991_80853",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03377_65704",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05713_7101",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01775_18191",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00268_26862",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00676_41126",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01707_25702",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03126_39853",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06225_63656",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04567_82095",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04308_82697",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00442_39172",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05673_30694",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05438_63060",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01356_78454",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04267_39510",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05430_50111",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04934_26911",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03145_28504",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05182_53600",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06473_58229",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02598_40402",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04519_9025",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03409_14699",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01353_43071",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02325_49100",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03173_31311",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "pilot study digital mental health intervention sample size two weeks self-reported mood improvement engagement metrics"
+        },
+        "output": {
+          "query": "pilot study digital mental health intervention sample size two weeks self-reported mood improvement engagement metrics",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06533_75931",
+              "docid": "shard_06533_75931",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4523,
+              "returned_chars": 4523
+            },
+            {
+              "rank": 2,
+              "id": "shard_00673_60494",
+              "docid": "shard_00673_60494",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": true,
+              "original_chars": 113422,
+              "returned_chars": 19690
+            },
+            {
+              "rank": 3,
+              "id": "shard_01459_12678",
+              "docid": "shard_01459_12678",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 4209,
+              "returned_chars": 4209
+            },
+            {
+              "rank": 4,
+              "id": "shard_05858_31347",
+              "docid": "shard_05858_31347",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": true,
+              "original_chars": 57572,
+              "returned_chars": 19487
+            },
+            {
+              "rank": 5,
+              "id": "shard_05871_59346",
+              "docid": "shard_05871_59346",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1039,
+              "returned_chars": 1039
+            },
+            {
+              "rank": 6,
+              "id": "shard_01259_40533",
+              "docid": "shard_01259_40533",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": true,
+              "original_chars": 27913,
+              "returned_chars": 19703
+            },
+            {
+              "rank": 7,
+              "id": "shard_03854_60293",
+              "docid": "shard_03854_60293",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3016,
+              "returned_chars": 3016
+            },
+            {
+              "rank": 8,
+              "id": "shard_03934_15204",
+              "docid": "shard_03934_15204",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": true,
+              "original_chars": 56332,
+              "returned_chars": 20407
+            },
+            {
+              "rank": 9,
+              "id": "shard_05306_38197",
+              "docid": "shard_05306_38197",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 1187,
+              "returned_chars": 1187
+            },
+            {
+              "rank": 10,
+              "id": "shard_03064_47819",
+              "docid": "shard_03064_47819",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": true,
+              "original_chars": 52625,
+              "returned_chars": 20397
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06533_75931",
+          "shard_00673_60494",
+          "shard_01459_12678",
+          "shard_05858_31347",
+          "shard_05871_59346",
+          "shard_01259_40533",
+          "shard_03854_60293",
+          "shard_03934_15204",
+          "shard_05306_38197",
+          "shard_03064_47819"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06533_75931",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00673_60494",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01459_12678",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05858_31347",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05871_59346",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01259_40533",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03854_60293",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_03934_15204",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_05306_38197",
+            "score": 0.015385
+          },
+          {
+            "docid": "shard_03064_47819",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_TsRBq3XiRUE9fA5zGdbQuu",
+        "id": "step-0007",
+        "t_start": "2026-07-17T01:12:28.419+10:00",
+        "t_end": "2026-07-17T01:12:30.298+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1878.935,
+          "context_tokens": 85004,
+          "peak_context_tokens": 85004,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30751,
+          "cumulative_tokens": {
+            "input": 88404,
+            "input_uncached": 82308,
+            "output": 2659,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 91063,
+            "processed_input": 82308,
+            "processed": 84967
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06533_75931",
+            "shard_00673_60494",
+            "shard_01459_12678",
+            "shard_05858_31347",
+            "shard_05871_59346",
+            "shard_01259_40533",
+            "shard_03854_60293",
+            "shard_03934_15204",
+            "shard_05306_38197",
+            "shard_03064_47819"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "multi-agent AI system orchestrator handoff pattern one agent triggers another"
+        },
+        "output": {
+          "query": "multi-agent AI system orchestrator handoff pattern one agent triggers another",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04579_74682",
+              "docid": "shard_04579_74682",
+              "kind": "document",
+              "rrf_score": 0.024611,
+              "truncated": false,
+              "original_chars": 3801,
+              "returned_chars": 3801
+            },
+            {
+              "rank": 2,
+              "id": "shard_03111_81090",
+              "docid": "shard_03111_81090",
+              "kind": "document",
+              "rrf_score": 0.024108,
+              "truncated": false,
+              "original_chars": 2377,
+              "returned_chars": 2377
+            },
+            {
+              "rank": 3,
+              "id": "shard_02962_46917",
+              "docid": "shard_02962_46917",
+              "kind": "document",
+              "rrf_score": 0.0241,
+              "truncated": false,
+              "original_chars": 3198,
+              "returned_chars": 3198
+            },
+            {
+              "rank": 4,
+              "id": "shard_00790_32561",
+              "docid": "shard_00790_32561",
+              "kind": "document",
+              "rrf_score": 0.023669,
+              "truncated": false,
+              "original_chars": 3486,
+              "returned_chars": 3486
+            },
+            {
+              "rank": 5,
+              "id": "shard_05659_35514",
+              "docid": "shard_05659_35514",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3880,
+              "returned_chars": 3880
+            },
+            {
+              "rank": 6,
+              "id": "shard_02799_50743",
+              "docid": "shard_02799_50743",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3855,
+              "returned_chars": 3855
+            },
+            {
+              "rank": 7,
+              "id": "shard_03267_26477",
+              "docid": "shard_03267_26477",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3722,
+              "returned_chars": 3722
+            },
+            {
+              "rank": 8,
+              "id": "shard_03635_53090",
+              "docid": "shard_03635_53090",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 6623,
+              "returned_chars": 6623
+            },
+            {
+              "rank": 9,
+              "id": "shard_03537_64705",
+              "docid": "shard_03537_64705",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 605,
+              "returned_chars": 605
+            },
+            {
+              "rank": 10,
+              "id": "shard_01345_83311",
+              "docid": "shard_01345_83311",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 10047,
+              "returned_chars": 10047
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04579_74682",
+          "shard_03111_81090",
+          "shard_02962_46917",
+          "shard_00790_32561",
+          "shard_05659_35514",
+          "shard_02799_50743",
+          "shard_03267_26477",
+          "shard_03635_53090",
+          "shard_03537_64705",
+          "shard_01345_83311"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04579_74682",
+            "score": 0.024611
+          },
+          {
+            "docid": "shard_03111_81090",
+            "score": 0.024108
+          },
+          {
+            "docid": "shard_02962_46917",
+            "score": 0.0241
+          },
+          {
+            "docid": "shard_00790_32561",
+            "score": 0.023669
+          },
+          {
+            "docid": "shard_05659_35514",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02799_50743",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03267_26477",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03635_53090",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03537_64705",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01345_83311",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_BvbEXlsJ2nEwROQ4APnVdc",
+        "id": "step-0008",
+        "t_start": "2026-07-17T01:12:28.419+10:00",
+        "t_end": "2026-07-17T01:12:29.362+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 942.689,
+          "context_tokens": 85004,
+          "peak_context_tokens": 85004,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30751,
+          "cumulative_tokens": {
+            "input": 88404,
+            "input_uncached": 82308,
+            "output": 2659,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 91063,
+            "processed_input": 82308,
+            "processed": 84967
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04579_74682",
+            "shard_03111_81090",
+            "shard_02962_46917",
+            "shard_00790_32561",
+            "shard_05659_35514",
+            "shard_02799_50743",
+            "shard_03267_26477",
+            "shard_03635_53090",
+            "shard_03537_64705",
+            "shard_01345_83311"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "breathing exercise journaling prompt effectiveness anxiety mood evidence"
+        },
+        "output": {
+          "query": "breathing exercise journaling prompt effectiveness anxiety mood evidence",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04327_46066",
+              "docid": "shard_04327_46066",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3362,
+              "returned_chars": 3362
+            },
+            {
+              "rank": 2,
+              "id": "shard_04906_58403",
+              "docid": "shard_04906_58403",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4523,
+              "returned_chars": 4523
+            },
+            {
+              "rank": 3,
+              "id": "shard_04007_9827",
+              "docid": "shard_04007_9827",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 417,
+              "returned_chars": 417
+            },
+            {
+              "rank": 4,
+              "id": "shard_00543_36046",
+              "docid": "shard_00543_36046",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 11543,
+              "returned_chars": 11543
+            },
+            {
+              "rank": 5,
+              "id": "shard_04522_75902",
+              "docid": "shard_04522_75902",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2548,
+              "returned_chars": 2548
+            },
+            {
+              "rank": 6,
+              "id": "shard_01446_84594",
+              "docid": "shard_01446_84594",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 8901,
+              "returned_chars": 8901
+            },
+            {
+              "rank": 7,
+              "id": "shard_04993_33515",
+              "docid": "shard_04993_33515",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1718,
+              "returned_chars": 1718
+            },
+            {
+              "rank": 8,
+              "id": "shard_02662_26922",
+              "docid": "shard_02662_26922",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 10995,
+              "returned_chars": 10995
+            },
+            {
+              "rank": 9,
+              "id": "shard_00732_47868",
+              "docid": "shard_00732_47868",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 4638,
+              "returned_chars": 4638
+            },
+            {
+              "rank": 10,
+              "id": "shard_02745_15989",
+              "docid": "shard_02745_15989",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 4368,
+              "returned_chars": 4368
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04327_46066",
+          "shard_04906_58403",
+          "shard_04007_9827",
+          "shard_00543_36046",
+          "shard_04522_75902",
+          "shard_01446_84594",
+          "shard_04993_33515",
+          "shard_02662_26922",
+          "shard_00732_47868",
+          "shard_02745_15989"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04327_46066",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04906_58403",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04007_9827",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00543_36046",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04522_75902",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01446_84594",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_04993_33515",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02662_26922",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_00732_47868",
+            "score": 0.015385
+          },
+          {
+            "docid": "shard_02745_15989",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_O9txNJDu1lQlYIe16HCXlS",
+        "id": "step-0009",
+        "t_start": "2026-07-17T01:12:28.419+10:00",
+        "t_end": "2026-07-17T01:12:29.333+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 914.012,
+          "context_tokens": 85004,
+          "peak_context_tokens": 85004,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30751,
+          "cumulative_tokens": {
+            "input": 88404,
+            "input_uncached": 82308,
+            "output": 2659,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 91063,
+            "processed_input": 82308,
+            "processed": 84967
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04327_46066",
+            "shard_04906_58403",
+            "shard_04007_9827",
+            "shard_00543_36046",
+            "shard_04522_75902",
+            "shard_01446_84594",
+            "shard_04993_33515",
+            "shard_02662_26922",
+            "shard_00732_47868",
+            "shard_02745_15989"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_P9jndjqVnDkTg2GF8Tt7Mi",
+            "tooluse_TsRBq3XiRUE9fA5zGdbQuu",
+            "tooluse_BvbEXlsJ2nEwROQ4APnVdc",
+            "tooluse_O9txNJDu1lQlYIe16HCXlS"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_ZZKASEtxqVSGiikswnpS5I",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_03934_15204",
+                    "reason": "Appa Health pilot: concrete small-n (n=14) 12-week design using PHQ-8 and GAD-7 self-report measures, engagement/satisfaction metrics (100% felt better, 85% would recommend), and escalation exclusion criteria for suicidal ideation plus mentor-to-clinician supervision model."
+                  },
+                  {
+                    "docid": "shard_01459_12678",
+                    "reason": "Project Cheria pilot study: PHQ-9 and mood-score outcome measures, quantitative engagement metric (7.5 hours/week average usage), and emphasis on therapist review of tracked data - directly informs the requested pilot/testing design."
+                  },
+                  {
+                    "docid": "shard_03267_26477",
+                    "reason": "Explains routing-based vs broadcast-based multi-agent system architectures, directly informing how a Mood Agent orchestrator can trigger/hand off to an Intervention Agent, including single-point-of-failure tradeoffs."
+                  },
+                  {
+                    "docid": "shard_03635_53090",
+                    "reason": "Virtual-assistant glossary defining Escalation, Handoff, Fallback, Explicit/Implicit Confirmation, and Sentiment Analysis terms - directly supports designing the 'ask follow-up questions when confused' and human escalation mechanisms."
+                  },
+                  {
+                    "docid": "shard_04327_46066",
+                    "reason": "Evidence for breathing (4-7-8, box breathing) and therapeutic journaling as effective quick interventions, including a specific 12-week online journaling study showing reduced depressive/anxiety symptoms within one month."
+                  },
+                  {
+                    "docid": "shard_00790_32561",
+                    "reason": "General multi-agent architecture rationale (specialization/modularization beats single monolithic agent) with named frameworks (AutoGen, ChatDev, LangGraph) supporting the two-agent design choice."
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_x7OEEtxhUog2MB9s2Oj1S7",
+              "name": "search",
+              "arguments": {
+                "query": "chatbot detects repeated low mood scores escalate human clinician threshold"
+              }
+            },
+            {
+              "id": "tooluse_hwkdNkNjbUkghesqbrvc3G",
+              "name": "search",
+              "arguments": {
+                "query": "voice emotion recognition speech sentiment analysis mental health app"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0010",
+        "t_start": "2026-07-17T01:12:30.298+10:00",
+        "t_end": "2026-07-17T01:12:47.961+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 17662.598,
+          "context_tokens": 88895,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 48414,
+          "tokens": {
+            "input": 88895,
+            "input_uncached": 73271,
+            "output": 1545,
+            "cache_read": 3048,
+            "cache_write": 12576,
+            "total": 90440,
+            "processed_input": 85847,
+            "processed": 87392,
+            "context": 88895
+          },
+          "provider_usage": {
+            "inputTokens": 73271,
+            "outputTokens": 1545,
+            "totalTokens": 90440,
+            "cacheReadInputTokens": 3048,
+            "cacheWriteInputTokens": 12576,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 12576
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 177299,
+            "input_uncached": 155579,
+            "output": 4204,
+            "cache_read": 9144,
+            "cache_write": 12576,
+            "total": 181503,
+            "processed_input": 168155,
+            "processed": 172359
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06533_75931",
+            "shard_00673_60494",
+            "shard_01459_12678",
+            "shard_05858_31347",
+            "shard_05871_59346",
+            "shard_01259_40533",
+            "shard_03854_60293",
+            "shard_03934_15204",
+            "shard_05306_38197",
+            "shard_03064_47819",
+            "shard_04579_74682",
+            "shard_03111_81090",
+            "shard_02962_46917",
+            "shard_00790_32561",
+            "shard_05659_35514",
+            "shard_02799_50743",
+            "shard_03267_26477",
+            "shard_03635_53090",
+            "shard_03537_64705",
+            "shard_01345_83311",
+            "shard_04327_46066",
+            "shard_04906_58403",
+            "shard_04007_9827",
+            "shard_00543_36046",
+            "shard_04522_75902",
+            "shard_01446_84594",
+            "shard_04993_33515",
+            "shard_02662_26922",
+            "shard_00732_47868",
+            "shard_02745_15989"
+          ],
+          "committed": [
+            "shard_01520_36695",
+            "shard_01673_36386",
+            "shard_01760_16589",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_05804_76151"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_03934_15204",
+              "reason": "Appa Health pilot: concrete small-n (n=14) 12-week design using PHQ-8 and GAD-7 self-report measures, engagement/satisfaction metrics (100% felt better, 85% would recommend), and escalation exclusion criteria for suicidal ideation plus mentor-to-clinician supervision model."
+            },
+            {
+              "docid": "shard_01459_12678",
+              "reason": "Project Cheria pilot study: PHQ-9 and mood-score outcome measures, quantitative engagement metric (7.5 hours/week average usage), and emphasis on therapist review of tracked data - directly informs the requested pilot/testing design."
+            },
+            {
+              "docid": "shard_03267_26477",
+              "reason": "Explains routing-based vs broadcast-based multi-agent system architectures, directly informing how a Mood Agent orchestrator can trigger/hand off to an Intervention Agent, including single-point-of-failure tradeoffs."
+            },
+            {
+              "docid": "shard_03635_53090",
+              "reason": "Virtual-assistant glossary defining Escalation, Handoff, Fallback, Explicit/Implicit Confirmation, and Sentiment Analysis terms - directly supports designing the 'ask follow-up questions when confused' and human escalation mechanisms."
+            },
+            {
+              "docid": "shard_04327_46066",
+              "reason": "Evidence for breathing (4-7-8, box breathing) and therapeutic journaling as effective quick interventions, including a specific 12-week online journaling study showing reduced depressive/anxiety symptoms within one month."
+            },
+            {
+              "docid": "shard_00790_32561",
+              "reason": "General multi-agent architecture rationale (specialization/modularization beats single monolithic agent) with named frameworks (AutoGen, ChatDev, LangGraph) supporting the two-agent design choice."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01459_12678\", \"shard_03934_15204\", \"shard_00790_32561\", \"shard_03267_26477\", \"shard_03635_53090\", \"shard_04327_46066\"], \"rejected\": [{\"docid\": \"shard_06533_75931\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00673_60494\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05858_31347\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05871_59346\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01259_40533\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03854_60293\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05306_38197\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03064_47819\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04579_74682\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03111_81090\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02962_46917\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05659_35514\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02799_50743\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03537_64705\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01345_83311\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04906_58403\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04007_9827\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00543_36046\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04522_75902\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01446_84594\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04993_33515\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02662_26922\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00732_47868\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02745_15989\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 88,895 / 500,000 tokens (17.8%) · elapsed: 0m 48s]",
+        "failed": false,
+        "tool_call_id": "tooluse_ZZKASEtxqVSGiikswnpS5I",
+        "id": "step-0011",
+        "t_start": "2026-07-17T01:12:47.961+10:00",
+        "t_end": "2026-07-17T01:12:47.964+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 2.418,
+          "context_tokens": 88895,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 48417,
+          "cumulative_tokens": {
+            "input": 177299,
+            "input_uncached": 155579,
+            "output": 4204,
+            "cache_read": 9144,
+            "cache_write": 12576,
+            "total": 181503,
+            "processed_input": 168155,
+            "processed": 172359
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06533_75931",
+            "shard_00673_60494",
+            "shard_01459_12678",
+            "shard_05858_31347",
+            "shard_05871_59346",
+            "shard_01259_40533",
+            "shard_03854_60293",
+            "shard_03934_15204",
+            "shard_05306_38197",
+            "shard_03064_47819",
+            "shard_04579_74682",
+            "shard_03111_81090",
+            "shard_02962_46917",
+            "shard_00790_32561",
+            "shard_05659_35514",
+            "shard_02799_50743",
+            "shard_03267_26477",
+            "shard_03635_53090",
+            "shard_03537_64705",
+            "shard_01345_83311",
+            "shard_04327_46066",
+            "shard_04906_58403",
+            "shard_04007_9827",
+            "shard_00543_36046",
+            "shard_04522_75902",
+            "shard_01446_84594",
+            "shard_04993_33515",
+            "shard_02662_26922",
+            "shard_00732_47868",
+            "shard_02745_15989"
+          ],
+          "committed": [
+            "shard_01459_12678",
+            "shard_03934_15204",
+            "shard_00790_32561",
+            "shard_03267_26477",
+            "shard_03635_53090",
+            "shard_04327_46066"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_06533_75931",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00673_60494",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05858_31347",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05871_59346",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01259_40533",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03854_60293",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05306_38197",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03064_47819",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04579_74682",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03111_81090",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02962_46917",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05659_35514",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02799_50743",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03537_64705",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01345_83311",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04906_58403",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04007_9827",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00543_36046",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04522_75902",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01446_84594",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04993_33515",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02662_26922",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00732_47868",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02745_15989",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "chatbot detects repeated low mood scores escalate human clinician threshold"
+        },
+        "output": {
+          "query": "chatbot detects repeated low mood scores escalate human clinician threshold",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03805_79798",
+              "docid": "shard_03805_79798",
+              "kind": "document",
+              "rrf_score": 0.023459,
+              "truncated": false,
+              "original_chars": 6292,
+              "returned_chars": 6292
+            },
+            {
+              "rank": 2,
+              "id": "shard_01889_81206",
+              "docid": "shard_01889_81206",
+              "kind": "document",
+              "rrf_score": 0.022767,
+              "truncated": false,
+              "original_chars": 2506,
+              "returned_chars": 2506
+            },
+            {
+              "rank": 3,
+              "id": "shard_06331_1326",
+              "docid": "shard_06331_1326",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2195,
+              "returned_chars": 2195
+            },
+            {
+              "rank": 4,
+              "id": "shard_03621_51868",
+              "docid": "shard_03621_51868",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3127,
+              "returned_chars": 3127
+            },
+            {
+              "rank": 5,
+              "id": "shard_04626_61341",
+              "docid": "shard_04626_61341",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3040,
+              "returned_chars": 3040
+            },
+            {
+              "rank": 6,
+              "id": "shard_05594_77532",
+              "docid": "shard_05594_77532",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 4261,
+              "returned_chars": 4261
+            },
+            {
+              "rank": 7,
+              "id": "shard_00059_5175",
+              "docid": "shard_00059_5175",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 7385,
+              "returned_chars": 7385
+            },
+            {
+              "rank": 8,
+              "id": "shard_01265_17602",
+              "docid": "shard_01265_17602",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 5998,
+              "returned_chars": 5998
+            },
+            {
+              "rank": 9,
+              "id": "shard_02615_70185",
+              "docid": "shard_02615_70185",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1908,
+              "returned_chars": 1908
+            },
+            {
+              "rank": 10,
+              "id": "shard_02552_81346",
+              "docid": "shard_02552_81346",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3452,
+              "returned_chars": 3452
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03805_79798",
+          "shard_01889_81206",
+          "shard_06331_1326",
+          "shard_03621_51868",
+          "shard_04626_61341",
+          "shard_05594_77532",
+          "shard_00059_5175",
+          "shard_01265_17602",
+          "shard_02615_70185",
+          "shard_02552_81346"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03805_79798",
+            "score": 0.023459
+          },
+          {
+            "docid": "shard_01889_81206",
+            "score": 0.022767
+          },
+          {
+            "docid": "shard_06331_1326",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03621_51868",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04626_61341",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05594_77532",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00059_5175",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01265_17602",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02615_70185",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02552_81346",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_x7OEEtxhUog2MB9s2Oj1S7",
+        "id": "step-0012",
+        "t_start": "2026-07-17T01:12:47.964+10:00",
+        "t_end": "2026-07-17T01:12:48.860+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 895.783,
+          "context_tokens": 88895,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 49313,
+          "cumulative_tokens": {
+            "input": 177299,
+            "input_uncached": 155579,
+            "output": 4204,
+            "cache_read": 9144,
+            "cache_write": 12576,
+            "total": 181503,
+            "processed_input": 168155,
+            "processed": 172359
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03805_79798",
+            "shard_01889_81206",
+            "shard_06331_1326",
+            "shard_03621_51868",
+            "shard_04626_61341",
+            "shard_05594_77532",
+            "shard_00059_5175",
+            "shard_01265_17602",
+            "shard_02615_70185",
+            "shard_02552_81346"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "voice emotion recognition speech sentiment analysis mental health app"
+        },
+        "output": {
+          "query": "voice emotion recognition speech sentiment analysis mental health app",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01269_46222",
+              "docid": "shard_01269_46222",
+              "kind": "document",
+              "rrf_score": 0.02837,
+              "truncated": false,
+              "original_chars": 4285,
+              "returned_chars": 4285
+            },
+            {
+              "rank": 2,
+              "id": "shard_00566_22710",
+              "docid": "shard_00566_22710",
+              "kind": "document",
+              "rrf_score": 0.022987,
+              "truncated": false,
+              "original_chars": 3996,
+              "returned_chars": 3996
+            },
+            {
+              "rank": 3,
+              "id": "shard_01011_40109",
+              "docid": "shard_01011_40109",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2732,
+              "returned_chars": 2732
+            },
+            {
+              "rank": 4,
+              "id": "shard_04961_54145",
+              "docid": "shard_04961_54145",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3417,
+              "returned_chars": 3417
+            },
+            {
+              "rank": 5,
+              "id": "shard_04120_60511",
+              "docid": "shard_04120_60511",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 830,
+              "returned_chars": 830
+            },
+            {
+              "rank": 6,
+              "id": "shard_01943_11512",
+              "docid": "shard_01943_11512",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": true,
+              "original_chars": 60859,
+              "returned_chars": 20471
+            },
+            {
+              "rank": 7,
+              "id": "shard_04010_65074",
+              "docid": "shard_04010_65074",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2863,
+              "returned_chars": 2863
+            },
+            {
+              "rank": 8,
+              "id": "shard_00354_37573",
+              "docid": "shard_00354_37573",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3471,
+              "returned_chars": 3471
+            },
+            {
+              "rank": 9,
+              "id": "shard_01131_61189",
+              "docid": "shard_01131_61189",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1164,
+              "returned_chars": 1164
+            },
+            {
+              "rank": 10,
+              "id": "shard_05269_7779",
+              "docid": "shard_05269_7779",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 14360,
+              "returned_chars": 14360
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01269_46222",
+          "shard_00566_22710",
+          "shard_01011_40109",
+          "shard_04961_54145",
+          "shard_04120_60511",
+          "shard_01943_11512",
+          "shard_04010_65074",
+          "shard_00354_37573",
+          "shard_01131_61189",
+          "shard_05269_7779"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01269_46222",
+            "score": 0.02837
+          },
+          {
+            "docid": "shard_00566_22710",
+            "score": 0.022987
+          },
+          {
+            "docid": "shard_01011_40109",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04961_54145",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04120_60511",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01943_11512",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04010_65074",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00354_37573",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01131_61189",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_05269_7779",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_hwkdNkNjbUkghesqbrvc3G",
+        "id": "step-0013",
+        "t_start": "2026-07-17T01:12:47.964+10:00",
+        "t_end": "2026-07-17T01:12:48.813+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 848.855,
+          "context_tokens": 88895,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 49313,
+          "cumulative_tokens": {
+            "input": 177299,
+            "input_uncached": 155579,
+            "output": 4204,
+            "cache_read": 9144,
+            "cache_write": 12576,
+            "total": 181503,
+            "processed_input": 168155,
+            "processed": 172359
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01269_46222",
+            "shard_00566_22710",
+            "shard_01011_40109",
+            "shard_04961_54145",
+            "shard_04120_60511",
+            "shard_01943_11512",
+            "shard_04010_65074",
+            "shard_00354_37573",
+            "shard_01131_61189",
+            "shard_05269_7779"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_ZZKASEtxqVSGiikswnpS5I",
+            "tooluse_x7OEEtxhUog2MB9s2Oj1S7",
+            "tooluse_hwkdNkNjbUkghesqbrvc3G"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_k4icnuHMc10qSehEVBsUl9",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_03621_51868",
+                    "reason": "Explains chatbot confidence-score thresholds that trigger either a fallback (ask user to repeat/clarify) or handoff to a human team when matching confidence is low - directly supports the 'if confused, ask follow-up questions' requirement."
+                  },
+                  {
+                    "docid": "shard_01889_81206",
+                    "reason": "Kore.ai example of real-time sentiment/tone scoring stored as conversational context that triggers conditional transitions and escalation to a live human agent - reinforces the mood-flag-to-escalation mechanism with a different vendor example."
+                  },
+                  {
+                    "docid": "shard_01011_40109",
+                    "reason": "Xpression voice-based mood-diary app: analyzes acoustic features (pitch, loudness) without recording actual words for privacy, and automatically emails mood logs to a psychologist - directly informs privacy-preserving voice check-in design."
+                  },
+                  {
+                    "docid": "shard_01265_17602",
+                    "reason": "Describes Cogito's voice-based depression detection (77% accuracy from combined text+audio neural network) and clarifies these tools are screening aids for clinicians, not replacements - useful accuracy benchmark and scope caveat for voice mood detection."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-17T01:12:48.860+10:00",
+        "t_end": "2026-07-17T01:12:59.232+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 10371.612,
+          "context_tokens": 71509,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 59685,
+          "tokens": {
+            "input": 71509,
+            "input_uncached": 35553,
+            "output": 789,
+            "cache_read": 15624,
+            "cache_write": 20332,
+            "total": 72298,
+            "processed_input": 55885,
+            "processed": 56674,
+            "context": 71509
+          },
+          "provider_usage": {
+            "inputTokens": 35553,
+            "outputTokens": 789,
+            "totalTokens": 72298,
+            "cacheReadInputTokens": 15624,
+            "cacheWriteInputTokens": 20332,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 20332
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 248808,
+            "input_uncached": 191132,
+            "output": 4993,
+            "cache_read": 24768,
+            "cache_write": 32908,
+            "total": 253801,
+            "processed_input": 224040,
+            "processed": 229033
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03805_79798",
+            "shard_01889_81206",
+            "shard_06331_1326",
+            "shard_03621_51868",
+            "shard_04626_61341",
+            "shard_05594_77532",
+            "shard_00059_5175",
+            "shard_01265_17602",
+            "shard_02615_70185",
+            "shard_02552_81346",
+            "shard_01269_46222",
+            "shard_00566_22710",
+            "shard_01011_40109",
+            "shard_04961_54145",
+            "shard_04120_60511",
+            "shard_01943_11512",
+            "shard_04010_65074",
+            "shard_00354_37573",
+            "shard_01131_61189",
+            "shard_05269_7779"
+          ],
+          "committed": [
+            "shard_00790_32561",
+            "shard_01459_12678",
+            "shard_01520_36695",
+            "shard_01673_36386",
+            "shard_01760_16589",
+            "shard_03267_26477",
+            "shard_03635_53090",
+            "shard_03934_15204",
+            "shard_04327_46066",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_05804_76151"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_03621_51868",
+              "reason": "Explains chatbot confidence-score thresholds that trigger either a fallback (ask user to repeat/clarify) or handoff to a human team when matching confidence is low - directly supports the 'if confused, ask follow-up questions' requirement."
+            },
+            {
+              "docid": "shard_01889_81206",
+              "reason": "Kore.ai example of real-time sentiment/tone scoring stored as conversational context that triggers conditional transitions and escalation to a live human agent - reinforces the mood-flag-to-escalation mechanism with a different vendor example."
+            },
+            {
+              "docid": "shard_01011_40109",
+              "reason": "Xpression voice-based mood-diary app: analyzes acoustic features (pitch, loudness) without recording actual words for privacy, and automatically emails mood logs to a psychologist - directly informs privacy-preserving voice check-in design."
+            },
+            {
+              "docid": "shard_01265_17602",
+              "reason": "Describes Cogito's voice-based depression detection (77% accuracy from combined text+audio neural network) and clarifies these tools are screening aids for clinicians, not replacements - useful accuracy benchmark and scope caveat for voice mood detection."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01889_81206\", \"shard_03621_51868\", \"shard_01265_17602\", \"shard_01011_40109\"], \"rejected\": [{\"docid\": \"shard_03805_79798\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06331_1326\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04626_61341\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05594_77532\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00059_5175\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02615_70185\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02552_81346\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01269_46222\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00566_22710\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04961_54145\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04120_60511\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01943_11512\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04010_65074\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00354_37573\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01131_61189\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05269_7779\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 71,509 / 500,000 tokens (14.3%) · elapsed: 0m 59s]",
+        "failed": false,
+        "tool_call_id": "tooluse_k4icnuHMc10qSehEVBsUl9",
+        "id": "step-0015",
+        "t_start": "2026-07-17T01:12:59.232+10:00",
+        "t_end": "2026-07-17T01:12:59.234+10:00",
+        "turn": 3,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 1.975,
+          "context_tokens": 71509,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 59687,
+          "cumulative_tokens": {
+            "input": 248808,
+            "input_uncached": 191132,
+            "output": 4993,
+            "cache_read": 24768,
+            "cache_write": 32908,
+            "total": 253801,
+            "processed_input": 224040,
+            "processed": 229033
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03805_79798",
+            "shard_01889_81206",
+            "shard_06331_1326",
+            "shard_03621_51868",
+            "shard_04626_61341",
+            "shard_05594_77532",
+            "shard_00059_5175",
+            "shard_01265_17602",
+            "shard_02615_70185",
+            "shard_02552_81346",
+            "shard_01269_46222",
+            "shard_00566_22710",
+            "shard_01011_40109",
+            "shard_04961_54145",
+            "shard_04120_60511",
+            "shard_01943_11512",
+            "shard_04010_65074",
+            "shard_00354_37573",
+            "shard_01131_61189",
+            "shard_05269_7779"
+          ],
+          "committed": [
+            "shard_01889_81206",
+            "shard_03621_51868",
+            "shard_01265_17602",
+            "shard_01011_40109"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_03805_79798",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06331_1326",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04626_61341",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05594_77532",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00059_5175",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02615_70185",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02552_81346",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01269_46222",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00566_22710",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04961_54145",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04120_60511",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01943_11512",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04010_65074",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00354_37573",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01131_61189",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05269_7779",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_k4icnuHMc10qSehEVBsUl9"
+          ]
+        },
+        "output": {
+          "text": "A practical build for this two-agent personal mental-wellness assistant should start from the general insight behind multi-agent AI: a single monolithic agent handling both mood-reading and intervention-suggesting tends to perform worse than two specialized agents, because focused subtasks let each agent do a better job than one agent trying to do everything at once.\n\nPopular multi-agent frameworks such as AutoGen, ChatDev, and LangGraph demonstrate this specialization pattern in production systems and are reasonable starting points for orchestrating your Mood Agent and Intervention Agent.\n\nFor the handoff between the two agents, there are two established design patterns: a routing-based system, where an orchestrator layer decides which agent to invoke based on the incoming message, and a broadcast-based system, where the message goes to all agents simultaneously and each decides whether to act.\n\nRouting is simpler to reason about but creates a single point of failure if the router misclassifies a message, while broadcast avoids that bottleneck at the cost of more redundant processing, so for a two-agent mood-and-intervention pipeline a lightweight routing layer that forwards a \"mood flag\" event to the Intervention Agent is a reasonable, easy-to-debug choice.\n\nFor the Mood Agent's natural-language understanding, Dialogflow is a workable choice because it is built as an NLU engine around intents (what the user wants), entities (specifics of what they want), and contexts (how prior turns change meaning), and it also offers built-in sentiment analysis through Google's Natural Language API that returns a positive, negative, or neutral score with every detected intent.\n\nGoogle's own documentation for this feature explicitly recommends handing off users with very negative sentiment scores to live human agents, which is precisely the mood-flag-to-intervention (and eventually to-counselor) pipeline you described.\n\nKore.ai offers a comparable pattern: its engine scores utterances on a continuous scale across six core emotions such as sadness and fear, stores these as session-level context variables, and lets developers write conditional-transition rules that steer the conversation or trigger escalation to a live agent, which is a useful alternative if Dialogflow's sentiment granularity proves too coarse.\n\nFor voice check-ins, note that voice-based mood detection is an active but imperfect technology: one MIT-derived system (Cogito) analyzing combined text and audio reached about 77% accuracy in classifying depression from intonation, energy, and pauses, and its own creators describe such tools as screening aids for clinicians rather than replacements for them.\n\nA privacy-conscious voice option worth studying is the Xpression app, which listens for acoustic features like pitch and loudness rather than recording actual words, meaning it can flag emotional state (calm, happy, sad, angry, anxious) without storing raw speech content, a pattern your Mood Agent could adopt to minimize sensitive audio retention.\n\nWhen the Mood Agent or NLU layer is uncertain, standard chatbot design uses a confidence-score threshold: if the matching score for user intent falls below the threshold, the system triggers a fallback that either asks the user to repeat or clarify, or transfers the conversation to a human, which maps directly onto your \"ask follow-up questions when confused\" requirement.\n\nRelated conversational-design vocabulary is useful here too: \"explicit confirmation\" (the assistant asks the user to clarify how to help), \"implicit confirmation\" (repeating details back so the user can correct a misunderstanding), and \"handoff\" (breaking out of the bot flow to a human agent) are all established mechanisms your fallback logic can reuse.\n\nFor escalation after repeated low mood, no single document in the evidence gathered specifies an exact \"three times in a row\" threshold, so this specific numeric rule should be treated as a design choice you set and validate empirically rather than an industry-standard figure, but the underlying escalation logic is well precedented.\n\nCatholic Charities' \"Sister Hope\" chatbot shows a working real-world escalation pattern: it stays conversational for minor concerns but automatically connects a user to a human counselor by phone the moment language suggesting a crisis (such as mentions of death or suicide) appears, and in its rollout, 19 of roughly 2,700 participants were routed to crisis help this way.\n\nThe Appa Health pilot shows a complementary model, pairing a scripted CBT app with trained near-peer mentors who are supervised by licensed clinicians and who serve as a bridge to professional care when a participant's risk profile changes, which is a good template for what your \"human counselor\" step should actually connect to.\n\nFor the Intervention Agent's content, deep breathing techniques such as 4-7-8 and box breathing have psychological-study support as non-pharmacological treatments for anxiety, depression, and stress, working by counteracting the fast, shallow breathing the body produces under stress.\n\nTherapeutic journaling also has direct supporting evidence: in one 12-week online journaling program, participants reported fewer depressive symptoms and less anxiety after just one month, with resilience gains continuing through the program, which supports using structured journaling prompts as a quick, evidence-grounded exercise.\n\nWoebot is a close real-world analog to your whole concept, using CBT-style daily check-in conversations to track mood and deliver mood-appropriate tools, and a Stanford peer-reviewed study of it found significant reductions in anxiety and depression versus an information-only control group, with 85% of participants engaging daily or near-daily.\n\nOn encryption and deletion, best-practice guidance for mental-health apps calls for encrypting data both in transit (via TLS/SSL) and at rest, using salted/hashed authentication with multi-factor authentication, complying with HIPAA or GDPR as applicable, minimizing collected data, offering de-identification or pseudonymous use, and maintaining a breach-response plan.\n\nOn the deletion requirement specifically, the mechanics differ by storage model: if mood-check-in data lives only on-device, deleting the app deletes the data, but if it is stored on servers you must give users a clear, described way to contact you and have their data removed, and if the app is EU-facing the servers (or an equivalent legal safeguard) need to meet EU data-residency rules.\n\nFor testing, two small pilot precedents map closely onto your 20-user, two-week plan: the Appa Health pilot enrolled just 14 adolescents over 12 weeks using the PHQ-8 and GAD-7 self-report scales plus qualitative interviews, and reported 100% of participants feeling better with over 85% willing to recommend the program, while the larger Project Cheria pilot (124 adults, 3 months) combined PHQ-9 and mood scores with objective engagement data (7.5 hours/week average use) correlated against wearable physiological signals.\n\nFollowing that template, a practical 20-user, two-week pilot for your app would collect a validated self-report measure (PHQ-9 or PHQ-8, optionally paired with a simple daily 1-5 mood scale) at baseline and at the two-week endpoint, log engagement metrics such as check-in frequency, completion rate of suggested exercises, and time-in-app, and track how many mood flags were raised and how many escalations were correctly or incorrectly triggered, since false escalation rates matter as much as sensitivity does in a mental-health tool of this kind.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0016",
+        "t_start": "2026-07-17T01:12:59.234+10:00",
+        "t_end": "2026-07-17T01:13:42.894+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 43658.793,
+          "context_tokens": 46806,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 103346,
+          "tokens": {
+            "input": 46806,
+            "input_uncached": 1369,
+            "output": 3726,
+            "cache_read": 35956,
+            "cache_write": 9481,
+            "total": 50532,
+            "processed_input": 10850,
+            "processed": 14576,
+            "context": 46806
+          },
+          "provider_usage": {
+            "inputTokens": 1369,
+            "outputTokens": 3726,
+            "totalTokens": 50532,
+            "cacheReadInputTokens": 35956,
+            "cacheWriteInputTokens": 9481,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 9481
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 295614,
+            "input_uncached": 192501,
+            "output": 8719,
+            "cache_read": 60724,
+            "cache_write": 42389,
+            "total": 304333,
+            "processed_input": 234890,
+            "processed": 243609
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00790_32561",
+            "shard_01011_40109",
+            "shard_01265_17602",
+            "shard_01459_12678",
+            "shard_01520_36695",
+            "shard_01673_36386",
+            "shard_01760_16589",
+            "shard_01889_81206",
+            "shard_03267_26477",
+            "shard_03621_51868",
+            "shard_03635_53090",
+            "shard_03934_15204",
+            "shard_04327_46066",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_05804_76151"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "user_message",
+          "text": "Your attempted final response did not satisfy the final-report contract already defined in the system instructions.\nProblems:\n- no sentence carries a citation; support factual sentences with committed docids in [docid] markers at the end of the sentence\n- report is 1117 words; the hard maximum is 1024 — rewrite it at about 950 words, cutting the least load-bearing material rather than trimming a few words\nCorrect it in the next turn in this same conversation. Emit tool calls only if more evidence is genuinely needed; otherwise write only the corrected report: plain prose, one sentence per line, with [docid] citation markers.\n[context budget: 46,806 / 500,000 tokens (9.4%) · elapsed: 1m 43s]"
+        },
+        "output": {
+          "text": "A practical build for this two-agent personal mental-wellness assistant should start from the general insight behind multi-agent AI: specialized agents handling separate subtasks tend to outperform one monolithic agent trying to do everything at once. [shard_00790_32561]\nPopular frameworks such as AutoGen, ChatDev, and LangGraph demonstrate this specialization pattern in production systems and are reasonable starting points for orchestrating your Mood Agent and Intervention Agent. [shard_00790_32561]\n\nFor the handoff between the two agents, there are two established design patterns: a routing-based system, where an orchestrator decides which agent to invoke based on the incoming message, and a broadcast-based system, where the message goes to all agents and each decides whether to act. [shard_03267_26477]\nRouting is simpler to debug but creates a single point of failure if it misclassifies a message, while broadcast avoids that bottleneck at the cost of redundant processing, so a lightweight routing layer that forwards a \"mood flag\" event to the Intervention Agent is a reasonable choice for a two-agent pipeline. [shard_03267_26477]\n\nFor the Mood Agent's NLU, Dialogflow is workable because it is built around intents, entities, and contexts, and it offers built-in sentiment analysis via Google's Natural Language API that returns a positive, negative, or neutral score alongside detected intent. [shard_01760_16589] [shard_05804_76151]\nGoogle's own documentation for this feature explicitly recommends handing off users with very negative sentiment scores to live human agents, which matches the mood-flag-to-intervention pipeline you described. [shard_05804_76151]\nKore.ai offers a comparable pattern, scoring utterances across six core emotions such as sadness and fear, storing them as session context, and letting developers write conditional-transition rules that trigger escalation to a live agent. [shard_01889_81206]\n\nFor voice check-ins, voice-based mood detection is promising but imperfect: a system analyzing combined text and audio (Cogito) reached about 77% accuracy detecting depression from intonation, energy, and pauses, and its creators describe such tools as screening aids for clinicians rather than replacements. [shard_01265_17602]\nA privacy-conscious option is the Xpression app, which listens for acoustic features like pitch and loudness rather than recording actual words, letting it flag emotional state without storing raw speech content. [shard_01011_40109]\n\nWhen the Mood Agent is uncertain, standard chatbot design uses a confidence-score threshold: if the intent-matching score falls below the threshold, the system triggers a fallback that asks the user to repeat or clarify, or transfers to a human. [shard_03621_51868]\nRelated design vocabulary includes \"explicit confirmation\" (asking the user to clarify), \"implicit confirmation\" (repeating details back so the user can correct a misunderstanding), and \"handoff\" (breaking out of the bot flow to a human agent), all of which map onto your \"ask follow-up questions when confused\" requirement. [shard_03635_53090]\n\nNo document in the evidence gathered specifies an exact \"three low check-ins in a row\" escalation threshold, so that particular number should be treated as a design choice to validate empirically rather than an industry standard.\nThe underlying escalation logic is still well precedented: Catholic Charities' \"Sister Hope\" chatbot stays conversational for minor concerns but automatically connects a user to a human counselor by phone once language suggests a crisis, and in its rollout 19 of roughly 2,700 participants were routed to crisis help this way. [shard_01520_36695]\nThe Appa Health pilot shows a complementary model, pairing a scripted CBT app with trained near-peer mentors supervised by licensed clinicians who serve as a bridge to professional care when a participant's risk profile changes. [shard_03934_15204]\n\nFor the Intervention Agent's content, deep breathing techniques such as 4-7-8 and box breathing have study support as non-pharmacological treatments for anxiety, depression, and stress, working by counteracting the fast, shallow breathing the body produces under stress. [shard_04327_46066]\nTherapeutic journaling also has direct supporting evidence: in one 12-week online journaling program, participants reported fewer depressive symptoms and less anxiety after just one month. [shard_04327_46066]\nWoebot is a close real-world analog to your whole concept, using CBT-style daily check-ins to track mood and deliver mood-appropriate tools, and a Stanford peer-reviewed study found significant reductions in anxiety and depression versus a control group, with 85% of participants engaging daily or near-daily. [shard_01673_36386]\n\nOn encryption and deletion, best-practice guidance for mental-health apps calls for encrypting data in transit and at rest, using salted/hashed authentication with multi-factor authentication, complying with HIPAA or GDPR as applicable, minimizing collected data, and maintaining a breach-response plan. [shard_04600_7439]\nThe deletion mechanics differ by storage model: on-device data is erased by deleting the app, but server-stored data requires a clearly described way for users to request removal, and EU-facing servers must meet EU data-residency rules. [shard_04583_83423]\n\nFor testing, two small pilots map closely onto your 20-user, two-week plan.\nThe Appa Health pilot enrolled just 14 adolescents over 12 weeks using the PHQ-8 and GAD-7 self-report scales plus qualitative interviews, and reported 100% of participants feeling better with over 85% willing to recommend the program. [shard_03934_15204]\nThe larger Project Cheria pilot (124 adults, 3 months) combined PHQ-9 and mood scores with objective engagement data, averaging 7.5 hours per week of use. [shard_01459_12678]\nFollowing that template, a 20-user, two-week pilot should collect a validated self-report measure such as PHQ-9 at baseline and endpoint, log engagement metrics like check-in frequency and exercise completion rate, and track how many mood flags and escalations occurred, since false-escalation rates matter as much as sensitivity in a tool like this. [shard_03934_15204] [shard_01459_12678]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0017",
+        "t_start": "2026-07-17T01:13:42.896+10:00",
+        "t_end": "2026-07-17T01:14:01.546+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 18649.487,
+          "context_tokens": 50771,
+          "peak_context_tokens": 88895,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 121997,
+          "tokens": {
+            "input": 50771,
+            "input_uncached": 5334,
+            "output": 2078,
+            "cache_read": 45437,
+            "cache_write": 0,
+            "total": 52849,
+            "processed_input": 5334,
+            "processed": 7412,
+            "context": 50771
+          },
+          "provider_usage": {
+            "inputTokens": 5334,
+            "outputTokens": 2078,
+            "totalTokens": 52849,
+            "cacheReadInputTokens": 45437
+          },
+          "cumulative_tokens": {
+            "input": 346385,
+            "input_uncached": 197835,
+            "output": 10797,
+            "cache_read": 106161,
+            "cache_write": 42389,
+            "total": 357182,
+            "processed_input": 240224,
+            "processed": 251021
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00790_32561",
+            "shard_01011_40109",
+            "shard_01265_17602",
+            "shard_01459_12678",
+            "shard_01520_36695",
+            "shard_01673_36386",
+            "shard_01760_16589",
+            "shard_01889_81206",
+            "shard_03267_26477",
+            "shard_03621_51868",
+            "shard_03635_53090",
+            "shard_03934_15204",
+            "shard_04327_46066",
+            "shard_04583_83423",
+            "shard_04600_7439",
+            "shard_05804_76151"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_00790_32561",
+        "shard_03267_26477",
+        "shard_01760_16589",
+        "shard_05804_76151",
+        "shard_01889_81206",
+        "shard_01265_17602",
+        "shard_01011_40109",
+        "shard_03621_51868",
+        "shard_03635_53090",
+        "shard_01520_36695",
+        "shard_03934_15204",
+        "shard_04327_46066",
+        "shard_01673_36386",
+        "shard_04600_7439",
+        "shard_04583_83423",
+        "shard_01459_12678"
+      ],
+      "answer": [
+        {
+          "text": "A practical build for this two-agent personal mental-wellness assistant should start from the general insight behind multi-agent AI: specialized agents handling separate subtasks tend to outperform one monolithic agent trying to do everything at once.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Popular frameworks such as AutoGen, ChatDev, and LangGraph demonstrate this specialization pattern in production systems and are reasonable starting points for orchestrating your Mood Agent and Intervention Agent.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "For the handoff between the two agents, there are two established design patterns: a routing-based system, where an orchestrator decides which agent to invoke based on the incoming message, and a broadcast-based system, where the message goes to all agents and each decides whether to act.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Routing is simpler to debug but creates a single point of failure if it misclassifies a message, while broadcast avoids that bottleneck at the cost of redundant processing, so a lightweight routing layer that forwards a \"mood flag\" event to the Intervention Agent is a reasonable choice for a two-agent pipeline.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "For the Mood Agent's NLU, Dialogflow is workable because it is built around intents, entities, and contexts, and it offers built-in sentiment analysis via Google's Natural Language API that returns a positive, negative, or neutral score alongside detected intent.",
+          "citations": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "Google's own documentation for this feature explicitly recommends handing off users with very negative sentiment scores to live human agents, which matches the mood-flag-to-intervention pipeline you described.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Kore.ai offers a comparable pattern, scoring utterances across six core emotions such as sadness and fear, storing them as session context, and letting developers write conditional-transition rules that trigger escalation to a live agent.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "For voice check-ins, voice-based mood detection is promising but imperfect: a system analyzing combined text and audio (Cogito) reached about 77% accuracy detecting depression from intonation, energy, and pauses, and its creators describe such tools as screening aids for clinicians rather than replacements.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "A privacy-conscious option is the Xpression app, which listens for acoustic features like pitch and loudness rather than recording actual words, letting it flag emotional state without storing raw speech content.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "When the Mood Agent is uncertain, standard chatbot design uses a confidence-score threshold: if the intent-matching score falls below the threshold, the system triggers a fallback that asks the user to repeat or clarify, or transfers to a human.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "Related design vocabulary includes \"explicit confirmation\" (asking the user to clarify), \"implicit confirmation\" (repeating details back so the user can correct a misunderstanding), and \"handoff\" (breaking out of the bot flow to a human agent), all of which map onto your \"ask follow-up questions when confused\" requirement.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "No document in the evidence gathered specifies an exact \"three low check-ins in a row\" escalation threshold, so that particular number should be treated as a design choice to validate empirically rather than an industry standard.",
+          "citations": []
+        },
+        {
+          "text": "The underlying escalation logic is still well precedented: Catholic Charities' \"Sister Hope\" chatbot stays conversational for minor concerns but automatically connects a user to a human counselor by phone once language suggests a crisis, and in its rollout 19 of roughly 2,700 participants were routed to crisis help this way.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "The Appa Health pilot shows a complementary model, pairing a scripted CBT app with trained near-peer mentors supervised by licensed clinicians who serve as a bridge to professional care when a participant's risk profile changes.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "For the Intervention Agent's content, deep breathing techniques such as 4-7-8 and box breathing have study support as non-pharmacological treatments for anxiety, depression, and stress, working by counteracting the fast, shallow breathing the body produces under stress.",
+          "citations": [
+            11
+          ]
+        },
+        {
+          "text": "Therapeutic journaling also has direct supporting evidence: in one 12-week online journaling program, participants reported fewer depressive symptoms and less anxiety after just one month.",
+          "citations": [
+            11
+          ]
+        },
+        {
+          "text": "Woebot is a close real-world analog to your whole concept, using CBT-style daily check-ins to track mood and deliver mood-appropriate tools, and a Stanford peer-reviewed study found significant reductions in anxiety and depression versus a control group, with 85% of participants engaging daily or near-daily.",
+          "citations": [
+            12
+          ]
+        },
+        {
+          "text": "On encryption and deletion, best-practice guidance for mental-health apps calls for encrypting data in transit and at rest, using salted/hashed authentication with multi-factor authentication, complying with HIPAA or GDPR as applicable, minimizing collected data, and maintaining a breach-response plan.",
+          "citations": [
+            13
+          ]
+        },
+        {
+          "text": "The deletion mechanics differ by storage model: on-device data is erased by deleting the app, but server-stored data requires a clearly described way for users to request removal, and EU-facing servers must meet EU data-residency rules.",
+          "citations": [
+            14
+          ]
+        },
+        {
+          "text": "For testing, two small pilots map closely onto your 20-user, two-week plan.",
+          "citations": []
+        },
+        {
+          "text": "The Appa Health pilot enrolled just 14 adolescents over 12 weeks using the PHQ-8 and GAD-7 self-report scales plus qualitative interviews, and reported 100% of participants feeling better with over 85% willing to recommend the program.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "The larger Project Cheria pilot (124 adults, 3 months) combined PHQ-9 and mood scores with objective engagement data, averaging 7.5 hours per week of use.",
+          "citations": [
+            15
+          ]
+        },
+        {
+          "text": "Following that template, a 20-user, two-week pilot should collect a validated self-report measure such as PHQ-9 at baseline and endpoint, log engagement metrics like check-in frequency and exercise completion rate, and track how many mood flags and escalations occurred, since false-escalation rates matter as much as sensitivity in a tool like this.",
+          "citations": [
+            10,
+            15
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-17T01:11:59.546+10:00",
+    "ended_at": "2026-07-17T01:14:01.547+10:00",
+    "duration_ms": 122001,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}
