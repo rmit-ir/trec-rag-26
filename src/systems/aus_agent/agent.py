@@ -130,6 +130,8 @@ def _extract_citations(line: str) -> list[str]:
 def _parse_final_prose(
     text: str | None,
     committed_docids: set[str],
+    *,
+    allow_uncited: bool = False,
 ) -> tuple[list[dict[str, Any]] | None, list[str], list[str]]:
     """Parse the attempted final report into cited sentences.
 
@@ -147,9 +149,15 @@ def _parse_final_prose(
       * a docid that was never committed — that citation is dropped.
 
     Rejected (only what the model itself must resolve): an empty response, a
-    report with no sentences, a report that cites nothing while committed
-    evidence exists, and an over-length report — truncating that one would cut
-    the conclusion, so the model re-prioritizes instead.
+    report with no sentences, a report that cites nothing, and an over-length
+    report — truncating that one would cut the conclusion, so the model
+    re-prioritizes instead.
+
+    An uncited report is refused even when *nothing* has been committed: with no
+    evidence retained, every claim can only have come from prior knowledge,
+    which the contract forbids. ``allow_uncited`` is the escape hatch for a
+    genuinely exhausted budget, where the best available answer has to be taken
+    as-is rather than failing the run.
     """
     repairs: list[str] = []
     if not text or not text.strip():
@@ -216,10 +224,18 @@ def _parse_final_prose(
             sentence["citations"] = sentence["citations"][:3]
 
     errors: list[str] = []
-    if committed_docids and not any(s["citations"] for s in sentences):
-        errors.append(
-            "no sentence carries a citation; support factual sentences with "
-            "committed docids in [docid] markers at the end of the sentence")
+    if not allow_uncited and not any(s["citations"] for s in sentences):
+        if committed_docids:
+            errors.append(
+                "no sentence carries a citation; support factual sentences "
+                "with committed docids in [docid] markers at the end of the "
+                "sentence")
+        else:
+            errors.append(
+                "no evidence has been committed, so every claim in this "
+                "report would be unsupported prior knowledge; search for "
+                "evidence and retain the supporting documents with "
+                "commit_context before writing the final report")
     words = _word_count(sentences)
     if words > MAX_REPORT_WORDS:
         errors.append(
@@ -573,7 +589,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     # (uncommitted) evidence can never be cited, so accepting
                     # it after the expiry loses nothing and saves a turn.
                     candidate, _, notes = _parse_final_prose(
-                        turn.get("text"), set(ledger.committed_docids))
+                        turn.get("text"), set(ledger.committed_docids),
+                        allow_uncited=finishing)
                     if candidate is not None:
                         sentences = candidate
                         repairs = notes
@@ -680,7 +697,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
             if not calls:
                 candidate, validation_errors, notes = _parse_final_prose(
-                    turn.get("text"), set(ledger.committed_docids))
+                    turn.get("text"), set(ledger.committed_docids),
+                    allow_uncited=finishing)
                 if candidate is not None:
                     sentences = candidate
                     repairs = notes

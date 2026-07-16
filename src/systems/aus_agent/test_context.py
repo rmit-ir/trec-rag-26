@@ -549,9 +549,21 @@ class AgentFlowTest(unittest.TestCase):
         self.assertIn("hard maximum is 1024", errors[0])
         self.assertIn("about 950 words", errors[0])
 
-    def test_final_prose_parser_allows_uncited_report_without_evidence(self):
+    def test_uncited_report_is_refused_when_nothing_was_committed(self):
+        # Regression: a run that committed no evidence must not be allowed to
+        # ship a report written from the model's prior knowledge.
         sentences, errors, _ = agent._parse_final_prose(
-            "No committed evidence supports the requested comparison.", set())
+            "A skater tucking the arms in raises angular velocity.\n"
+            "Angular momentum is conserved without external torque.",
+            set(),
+        )
+        self.assertIsNone(sentences)
+        self.assertIn("no evidence has been committed", errors[0])
+
+    def test_uncited_report_is_allowed_once_the_budget_is_exhausted(self):
+        sentences, errors, _ = agent._parse_final_prose(
+            "No committed evidence supports the requested comparison.",
+            set(), allow_uncited=True)
         self.assertEqual(errors, [])
         self.assertEqual(sentences[0]["citations"], [])
 
@@ -802,21 +814,26 @@ class AgentFlowTest(unittest.TestCase):
                 calls=[_call("s2", "search", query="beta")],
                 input_tokens=100,
             ),
-            _turn(
-                text="No evidence was retained.",
-                input_tokens=100,
-            ),
+            # alpha's batch expired and beta was refused, so nothing is
+            # retained yet; retrieve again and commit properly.
+            _turn(calls=[_call("s3", "search", query="gamma")],
+                  input_tokens=100),
+            _turn(calls=[_call("c1", "commit_context", documents=[
+                {"docid": "g", "reason": "the one retained fact"}])],
+                input_tokens=100),
+            _turn(text="Supported finding. [g]", input_tokens=100),
         ])
 
         summary, captured = self._run(provider)
         trajectory = captured["trajectory"]
         self.assertEqual(summary["status"], "completed")
-        self.assertEqual(summary["committed_documents"], 0)
-        self.assertEqual(summary["rejected_documents"], 3)
-        self.assertEqual(trajectory["tool_call_counts"]["search"], 1)
-        self.assertEqual(trajectory["tool_call_counts_all"]["search"], 2)
+        self.assertEqual(summary["committed_documents"], 1)
+        # a, b, c expired unresolved; h, i were staged but not selected.
+        self.assertEqual(summary["rejected_documents"], 5)
+        self.assertEqual(trajectory["tool_call_counts"]["search"], 2)
+        self.assertEqual(trajectory["tool_call_counts_all"]["search"], 3)
         self.assertEqual(
-            trajectory["tool_call_counts_all"]["commit_context"], 1)
+            trajectory["tool_call_counts_all"]["commit_context"], 2)
         self.assertIn(REJECTION_PREFIX, provider.tool_results["s1"])
         self.assertIn("actions refused", provider.tool_results["s2"])
 
@@ -837,16 +854,20 @@ class AgentFlowTest(unittest.TestCase):
                 ],
                 input_tokens=100,
             ),
-            _turn(
-                text="The invalid batch retained no evidence.",
-                input_tokens=100,
-            ),
+            # The invalid batch expired, so retrieve again and commit validly.
+            _turn(calls=[_call("s3", "search", query="gamma")],
+                  input_tokens=100),
+            _turn(calls=[_call("c2", "commit_context", documents=[
+                {"docid": "g", "reason": "the one retained fact"}])],
+                input_tokens=100),
+            _turn(text="Supported finding. [g]", input_tokens=100),
         ])
 
         summary, captured = self._run(provider)
         self.assertEqual(summary["status"], "completed")
-        self.assertEqual(summary["committed_documents"], 0)
-        self.assertEqual(summary["rejected_documents"], 3)
+        self.assertEqual(summary["committed_documents"], 1)
+        # a, b, c expired after the invalid commit; h, i were not selected.
+        self.assertEqual(summary["rejected_documents"], 5)
         self.assertIn(REJECTION_PREFIX, provider.tool_results["s1"])
         self.assertIn("batch expired", provider.tool_results["s2"])
         commit_steps = [
@@ -864,27 +885,28 @@ class AgentFlowTest(unittest.TestCase):
                 calls=[_call("s1", "search", query="alpha")],
                 input_tokens=100,
             ),
-            _turn(
-                text="No committed evidence supports the request.",
-                input_tokens=100,
-            ),
+            _turn(calls=[_call("c1", "commit_context", documents=[
+                {"docid": "b", "reason": "direct evidence"}])],
+                input_tokens=100),
+            # A fresh batch is staged and then left unresolved because the
+            # model decides it already has what it needs.
+            _turn(calls=[_call("s2", "search", query="gamma")],
+                  input_tokens=100),
+            _turn(text="Supported finding. [b]", input_tokens=100),
         ])
 
         summary, captured = self._run(provider)
         self.assertEqual(summary["status"], "completed")
-        self.assertEqual(summary["committed_documents"], 0)
-        self.assertEqual(summary["rejected_documents"], 3)
-        self.assertIn(REJECTION_PREFIX, provider.tool_results["s1"])
+        self.assertEqual(summary["committed_documents"], 1)
+        self.assertEqual(captured["output"]["references"], ["b"])
+        # The gamma batch expired rather than carrying forward.
+        self.assertIn(REJECTION_PREFIX, provider.tool_results["s2"])
         # The expired batch does not cost an extra correction turn.
         user_messages = [
             message["text"] for message in provider.messages
             if message["role"] == "user"
         ]
         self.assertEqual(len(user_messages), 1)
-        self.assertEqual(
-            captured["output"]["answer"][0]["text"],
-            "No committed evidence supports the request.",
-        )
 
     def test_safety_backstop_stops_commit_without_staged_loop(self):
         provider = FakeProvider([
