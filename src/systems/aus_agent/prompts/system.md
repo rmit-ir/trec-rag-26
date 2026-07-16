@@ -121,8 +121,10 @@ plain flowing prose in that same turn:
   use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or
   any preamble, meta-commentary, or closing remarks around the report; every
   line must be a report sentence.
-- The complete report must contain at most 1024 words, excluding citation
-  markers.
+- Aim for about 950 words, excluding citation markers. 1024 words is a hard
+  limit set by the evaluation, and an over-length report costs a full rewrite,
+  so plan the report's scope to land under the target rather than writing long
+  and trimming.
 - If validation feedback identifies problems (uncommitted docids, Markdown or
   JSON formatting, excessive citations, missing citations, or excessive
   length), correct the report on the next turn in this same continuous

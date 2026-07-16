@@ -452,7 +452,7 @@ class AgentFlowTest(unittest.TestCase):
         self.assertEqual(stats["total"], 180)
 
     def test_final_prose_parser_extracts_sentences_and_citations(self):
-        sentences, errors = agent._parse_final_prose(
+        sentences, errors, repairs = agent._parse_final_prose(
             "Vaccination reduced hospitalizations by 40% [a], with the "
             "largest effect in older adults. [b]\n"
             "\n"
@@ -461,6 +461,7 @@ class AgentFlowTest(unittest.TestCase):
             {"a", "b", "c"},
         )
         self.assertEqual(errors, [])
+        self.assertEqual(repairs, [])
         self.assertEqual(sentences, [
             {
                 "text": (
@@ -479,48 +480,84 @@ class AgentFlowTest(unittest.TestCase):
             },
         ])
 
-    def test_final_prose_parser_rejects_json_markdown_and_bad_citations(self):
-        sentences, errors = agent._parse_final_prose(
-            json.dumps({"answer": []}), {"a"})
-        self.assertIsNone(sentences)
-        self.assertIn("plain prose lines", errors[0])
+    def test_citation_only_line_folds_into_preceding_sentence(self):
+        # The format Sonnet 5 actually produces: markers on their own line.
+        sentences, errors, repairs = agent._parse_final_prose(
+            "That toolbox includes rigid transformations and the Pythagorean "
+            "theorem.\n"
+            "[a]\n"
+            "\n"
+            "Competition geometry adds a second toolbox.\n"
+            "[b] [c]\n",
+            {"a", "b", "c"},
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual([s["citations"] for s in sentences], [["a"], ["b", "c"]])
+        self.assertEqual(len(repairs), 2)
+        self.assertIn("folded a citation-only line", repairs[0])
 
-        sentences, errors = agent._parse_final_prose(
-            "## Findings\n- A bullet point. [a]", {"a"})
-        self.assertIsNone(sentences)
-        self.assertIn("Markdown syntax", errors[0])
-        self.assertIn("Markdown syntax", errors[1])
-        self.assertIn("contains no sentences", errors[2])
+    def test_markdown_is_repaired_rather_than_rejected(self):
+        sentences, errors, repairs = agent._parse_final_prose(
+            "## Findings\n"
+            "```\n"
+            "- A bullet point survives as a sentence. [a]\n"
+            "1. So does a numbered one. [b]\n"
+            "> And a quoted one. [c]\n"
+            "This has **bold** and *italic* and `code`. [a]\n",
+            {"a", "b", "c"},
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual([s["text"] for s in sentences], [
+            "A bullet point survives as a sentence.",
+            "So does a numbered one.",
+            "And a quoted one.",
+            "This has bold and italic and code.",
+        ])
+        self.assertTrue(any("dropped a Markdown heading" in r for r in repairs))
+        self.assertTrue(any("code fence" in r for r in repairs))
+        self.assertTrue(any("emphasis" in r for r in repairs))
 
-        sentences, errors = agent._parse_final_prose(
-            "Claim. [missing]", {"a"})
-        self.assertIsNone(sentences)
-        self.assertIn("uncommitted docids: missing", errors[0])
+    def test_bad_citations_are_repaired_rather_than_rejected(self):
+        sentences, errors, repairs = agent._parse_final_prose(
+            "Claim with a hallucinated id. [a] [missing]\n"
+            "Overcited claim. [a] [b] [c] [d]\n",
+            {"a", "b", "c", "d"},
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(sentences[0]["citations"], ["a"])
+        self.assertEqual(sentences[1]["citations"], ["a", "b", "c"])
+        self.assertTrue(any("uncommitted docids missing" in r for r in repairs))
+        self.assertTrue(any("beyond the first 3" in r for r in repairs))
 
-        sentences, errors = agent._parse_final_prose(
-            "Overcited claim. [a] [b] [c] [d]", {"a", "b", "c", "d"})
+    def test_final_prose_parser_rejects_only_unrepairable_reports(self):
+        sentences, errors, _ = agent._parse_final_prose("", {"a"})
         self.assertIsNone(sentences)
-        self.assertIn("cites 4 docids; max 3", errors[0])
+        self.assertIn("empty", errors[0])
 
-        sentences, errors = agent._parse_final_prose(
+        sentences, errors, _ = agent._parse_final_prose("## Only a heading", {"a"})
+        self.assertIsNone(sentences)
+        self.assertIn("contains no sentences", errors[0])
+
+        sentences, errors, _ = agent._parse_final_prose(
             "A report that never cites its committed evidence.", {"a"})
         self.assertIsNone(sentences)
         self.assertIn("no sentence carries a citation", errors[0])
 
-        sentences, errors = agent._parse_final_prose(
-            " ".join(["word"] * 1025), set())
+        sentences, errors, _ = agent._parse_final_prose(
+            " ".join(["word"] * 1025) + " [a]", {"a"})
         self.assertIsNone(sentences)
-        self.assertIn("maximum is 1024", errors[0])
+        self.assertIn("hard maximum is 1024", errors[0])
+        self.assertIn("about 950 words", errors[0])
 
     def test_final_prose_parser_allows_uncited_report_without_evidence(self):
-        sentences, errors = agent._parse_final_prose(
+        sentences, errors, _ = agent._parse_final_prose(
             "No committed evidence supports the requested comparison.", set())
         self.assertEqual(errors, [])
         self.assertEqual(sentences[0]["citations"], [])
 
     def test_final_prose_word_count_excludes_citation_markers(self):
         text = " ".join(["word"] * 1024) + " [a]"
-        sentences, errors = agent._parse_final_prose(text, {"a"})
+        sentences, errors, _ = agent._parse_final_prose(text, {"a"})
         self.assertEqual(errors, [])
         self.assertEqual(agent._word_count(sentences), 1024)
         self.assertEqual(sentences[0]["citations"], ["a"])

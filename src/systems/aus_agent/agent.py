@@ -100,80 +100,135 @@ def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
 # e.g. ``[shard_00459_61697]`` or ``[shard_a, shard_b]``.
 _CITATION_MARKER_RE = re.compile(r"\[([^\[\]]+)\]")
 _CITATION_TOKEN_SPLIT_RE = re.compile(r"[,;\s]+")
-# Markdown structure the final report must not contain: headings, bullet or
-# numbered list markers, blockquotes, and fences.
-_MARKDOWN_LINE_RE = re.compile(r"^(#{1,6}\s|[-*+]\s|>\s|\d{1,3}[.)]\s|```)")
+# Markdown the model may reach for despite the contract. Headings and fences
+# carry no citable claim and are dropped; the rest is unwrapped in place.
+_FENCE_RE = re.compile(r"^\s*```")
+_HEADING_RE = re.compile(r"^#{1,6}\s+")
+_LIST_MARKER_RE = re.compile(r"^([-*+]|\d{1,3}[.)])\s+")
+_QUOTE_RE = re.compile(r"^>\s+")
+_EMPHASIS_RE = re.compile(r"\*{1,3}([^*]+)\*{1,3}|__([^_]+)__|`([^`]+)`")
+MAX_REPORT_WORDS = 1024
+TARGET_REPORT_WORDS = 950
+
+
+def _strip_markers(line: str) -> str:
+    """Remove citation markers and tidy the whitespace they leave behind."""
+    text = _CITATION_MARKER_RE.sub(" ", line)
+    text = re.sub(r"\s+", " ", text).strip()
+    return re.sub(r"\s+([.,;:!?])", r"\1", text)
+
+
+def _extract_citations(line: str) -> list[str]:
+    citations: list[str] = []
+    for match in _CITATION_MARKER_RE.finditer(line):
+        for token in _CITATION_TOKEN_SPLIT_RE.split(match.group(1)):
+            if token and token not in citations:
+                citations.append(token)
+    return citations
 
 
 def _parse_final_prose(
     text: str | None,
     committed_docids: set[str],
-) -> tuple[list[dict[str, Any]] | None, list[str]]:
-    """Parse and validate the attempted final report.
+) -> tuple[list[dict[str, Any]] | None, list[str], list[str]]:
+    """Parse the attempted final report into cited sentences.
 
     The contract is prose, one sentence per line, citing committed docids with
-    inline ``[docid]`` markers. Markers are stripped from the submitted
-    sentence text, so they must never act as grammatical parts of a sentence.
+    inline ``[docid]`` markers. The parser repairs anything whose intent is
+    unambiguous and only rejects what it cannot resolve on the model's behalf,
+    because every rejection costs a full correction turn at full context size.
+
+    Repaired (recorded in the returned notes, never bounced back):
+      * a citation-only line — the model routinely puts a sentence's markers on
+        the line below it, so they fold into the preceding sentence;
+      * Markdown — fences and headings are dropped (no citable claim), list and
+        quote markers and emphasis are unwrapped in place;
+      * more than three citations on a sentence — the extras are dropped; and
+      * a docid that was never committed — that citation is dropped.
+
+    Rejected (only what the model itself must resolve): an empty response, a
+    report with no sentences, a report that cites nothing while committed
+    evidence exists, and an over-length report — truncating that one would cut
+    the conclusion, so the model re-prioritizes instead.
     """
-    errors: list[str] = []
+    repairs: list[str] = []
     if not text or not text.strip():
-        return None, ["response is empty"]
-    stripped = text.strip()
-    if stripped.startswith("{") or stripped.startswith("```"):
-        return None, [
-            "the final report must be plain prose lines with [docid] "
-            "citation markers, not JSON or a fenced block"
-        ]
+        return None, ["response is empty"], repairs
 
     sentences: list[dict[str, Any]] = []
-    any_citation = False
-    for number, raw_line in enumerate(stripped.splitlines(), 1):
+    for number, raw_line in enumerate(text.strip().splitlines(), 1):
         line = raw_line.strip()
         if not line:
             continue
-        if _MARKDOWN_LINE_RE.match(line) or "**" in line:
-            errors.append(
-                f"line {number} uses Markdown syntax; write plain prose "
-                "sentences without headings, list markers, bold, or fences")
+        if _FENCE_RE.match(line):
+            repairs.append(f"line {number}: dropped a Markdown code fence")
             continue
-        citations: list[str] = []
-        for match in _CITATION_MARKER_RE.finditer(line):
-            for token in _CITATION_TOKEN_SPLIT_RE.split(match.group(1)):
-                if token and token not in citations:
-                    citations.append(token)
-        sentence = _CITATION_MARKER_RE.sub(" ", line)
-        sentence = re.sub(r"\s+", " ", sentence).strip()
-        sentence = re.sub(r"\s+([.,;:!?])", r"\1", sentence)
+        if _HEADING_RE.match(line):
+            repairs.append(f"line {number}: dropped a Markdown heading")
+            continue
+        marker = _LIST_MARKER_RE.match(line) or _QUOTE_RE.match(line)
+        if marker:
+            line = line[marker.end():].strip()
+            repairs.append(
+                f"line {number}: unwrapped a Markdown list/quote marker")
+        unemphasised = _EMPHASIS_RE.sub(
+            lambda m: next(g for g in m.groups() if g is not None), line)
+        if unemphasised != line:
+            repairs.append(f"line {number}: unwrapped Markdown emphasis")
+            line = unemphasised
+
+        citations = _extract_citations(line)
+        sentence = _strip_markers(line)
         if not sentence:
-            errors.append(
-                f"line {number} contains citation markers but no sentence "
-                "text")
+            if citations and sentences:
+                previous = sentences[-1]["citations"]
+                previous.extend(
+                    docid for docid in citations if docid not in previous)
+                repairs.append(
+                    f"line {number}: folded a citation-only line into the "
+                    "preceding sentence")
+            else:
+                repairs.append(
+                    f"line {number}: dropped citation markers with no sentence")
             continue
-        if len(citations) > 3:
-            errors.append(
-                f"line {number} cites {len(citations)} docids; max 3")
-        unknown = [
-            docid for docid in citations if docid not in committed_docids]
-        if unknown:
-            errors.append(
-                f"line {number} cites uncommitted docids: "
-                + ", ".join(unknown))
-        if citations:
-            any_citation = True
         sentences.append({"text": sentence, "citations": citations})
 
     if not sentences:
-        return None, errors + ["the report contains no sentences"]
-    if committed_docids and not any_citation:
+        return None, ["the report contains no sentences"], repairs
+
+    for index, sentence in enumerate(sentences, 1):
+        unknown = [
+            docid for docid in sentence["citations"]
+            if docid not in committed_docids
+        ]
+        if unknown:
+            sentence["citations"] = [
+                docid for docid in sentence["citations"]
+                if docid in committed_docids
+            ]
+            repairs.append(
+                f"sentence {index}: dropped uncommitted docids "
+                + ", ".join(unknown))
+        if len(sentence["citations"]) > 3:
+            repairs.append(
+                f"sentence {index}: dropped citations beyond the first 3 "
+                + ", ".join(sentence["citations"][3:]))
+            sentence["citations"] = sentence["citations"][:3]
+
+    errors: list[str] = []
+    if committed_docids and not any(s["citations"] for s in sentences):
         errors.append(
             "no sentence carries a citation; support factual sentences with "
-            "committed docids in [docid] markers")
-    if _word_count(sentences) > 1024:
+            "committed docids in [docid] markers at the end of the sentence")
+    words = _word_count(sentences)
+    if words > MAX_REPORT_WORDS:
         errors.append(
-            f"report is {_word_count(sentences)} words; maximum is 1024")
+            f"report is {words} words; the hard maximum is {MAX_REPORT_WORDS}"
+            f" — rewrite it at about {TARGET_REPORT_WORDS} words, cutting the "
+            "least load-bearing material rather than trimming a few words")
     if errors:
-        return None, errors
-    return sentences, []
+        return None, errors, repairs
+    return sentences, [], repairs
 
 
 def _map_citations(sentences: list[dict[str, Any]],
@@ -372,6 +427,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     status = "completed"
     stop_reason: str | None = None
     sentences: list[dict[str, Any]] | None = None
+    repairs: list[str] = []
     context_tokens = 0
     peak_context_tokens = 0
 
@@ -516,10 +572,11 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     # The turn may itself be a valid final report. Staged
                     # (uncommitted) evidence can never be cited, so accepting
                     # it after the expiry loses nothing and saves a turn.
-                    candidate, _ = _parse_final_prose(
+                    candidate, _, notes = _parse_final_prose(
                         turn.get("text"), set(ledger.committed_docids))
                     if candidate is not None:
                         sentences = candidate
+                        repairs = notes
                         break
                     if rounds >= safety_max_rounds:
                         raise RuntimeError(
@@ -622,10 +679,11 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     "context_budget_exhausted"] = budget_hit
 
             if not calls:
-                candidate, validation_errors = _parse_final_prose(
+                candidate, validation_errors, notes = _parse_final_prose(
                     turn.get("text"), set(ledger.committed_docids))
                 if candidate is not None:
                     sentences = candidate
+                    repairs = notes
                     break
                 if rounds >= safety_max_rounds:
                     raise RuntimeError(
@@ -876,6 +934,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "committed": sorted(ledger.committed_docids),
         "rejected": sorted(ledger.rejected_docids),
     }
+    # Repairs are applied silently to save a correction turn; record them so
+    # the leniency stays auditable rather than invisible.
+    trajectory.trace["summary"]["report_repairs"] = repairs
     if stop_reason is not None:
         trajectory.trace["summary"]["stop_reason"] = stop_reason
     paths = save_run("aus_agent", query, trajectory=trajectory, output=output)

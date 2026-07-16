@@ -58,10 +58,51 @@ selection evidence.
 - `providers/base.py` — the per-provider contract.
 - `providers/bedrock.py` — boto3 `bedrock-runtime` Converse implementation
   (region `ap-southeast-2`, adaptive extended thinking, reasoning blocks
-  replayed verbatim). Note: Sonnet 5 only supports `thinking.type=adaptive`
-  (`enabled`+`budget_tokens` is rejected), returns signature-only
-  `reasoningContent` (empty text), so the harness also records the model's
-  plain-text narration between tool calls as trajectory reasoning.
+  replayed verbatim, prompt caching via `cachePoint`). Note: Sonnet 5 only
+  supports `thinking.type=adaptive` (`enabled`+`budget_tokens` is rejected),
+  returns signature-only `reasoningContent` (empty text), so the harness also
+  records the model's plain-text narration between tool calls as trajectory
+  reasoning.
+
+## Prompt caching
+
+Claude on Bedrock has **no automatic caching** (unlike Nova) — every cached
+prefix needs an explicit `{"cachePoint": {"type": "default"}}` block. Bedrock
+chains `tools` → `system` → `messages` and measures the per-checkpoint token
+minimum against their cumulative total, so stable content must precede volatile
+content. Two of the four checkpoints Claude allows are used:
+
+1. a **static** one at the end of `system`, covering tools + system; and
+2. a **rolling** one at the end of the last *settled* user message.
+
+"Settled" rests on an invariant of the staged-context protocol: compaction only
+ever rewrites the one batch held in the ledger's `pending` list, and the commit
+that triggers it clears `pending`, so each tool result is compacted exactly
+once. By the time `compact_tool_results` returns, every message then in history
+has reached its final bytes — hence `_settled_count = len(self._messages)`.
+The freshly staged batch appended afterwards sits *outside* the breakpoint: it
+is about to be rewritten, so caching it would buy an entry the next turn
+invalidates. The rolling point is anchored on a **user** message so that signed
+`reasoningContent` assistant messages are never touched.
+
+Anthropic models on Bedrock support simplified cache management — one
+checkpoint at the end of the static content, and the service looks back ~20
+content blocks for the longest matching prefix — so a single rolling checkpoint
+suffices and old breakpoints need not be retained. Measured across the dev
+topics, a turn adds 2–13 content blocks, comfortably inside that window.
+
+Cache entries are **prefixes, not segments**: every entry starts at byte zero,
+so moving the breakpoint forward writes a superset of the previous entry rather
+than evicting the front. Measured on one dev topic: 40.7% fewer effective input
+units (~35% cheaper end to end). Note that with caching on, `usage.inputTokens`
+counts only non-cached input; the true context size is
+`inputTokens + cacheReadInputTokens + cacheWriteInputTokens`, which is what
+`_usage_token_stats` reports and what the 500K budget is compared against.
+
+Caveat: the default TTL is 5 minutes, refreshed on every hit. Typical turns are
+~20 s, but a single very long generation can let the cache lapse and force a
+re-write. AWS documents the 1-hour TTL only for Opus 4.5 / Haiku 4.5 /
+Sonnet 4.5. Pass `caching=False` to `BedrockProvider` to disable.
 
 The high `--safety-max-rounds` setting is only a runaway-loop backstop.
 Normal research termination uses `--context-token-budget`, compared with the
@@ -121,15 +162,31 @@ the model emitted them.
 
 The final-report contract is part of the original system prompt: plain prose,
 one sentence per line, citations as inline `[docid]` markers on the supporting
-sentence's line. The model writes at its natural register instead of
-serializing JSON; the harness parses the lines, strips the markers (they must
-never act as words in a sentence), and maps docids to reference indices for
-the organizer schema. When the model emits no tool calls, that same turn is
-parsed as the attempted final answer. Markdown/JSON formatting, uncommitted
-docids, more than three citations per sentence, a cited-evidence report with
-no citations at all, or a report over 1024 words receives concise feedback in
-the same conversation, and the same model corrects itself on its next turn.
-No separate final prompt or compressor call is introduced.
+sentence's line, targeting ~950 words against the organizer's hard 1024-word
+limit. The model writes at its natural register instead of serializing JSON;
+the harness parses the lines, strips the markers (they must never act as words
+in a sentence), and maps docids to reference indices for the organizer schema.
+When the model emits no tool calls, that same turn is parsed as the attempted
+final answer.
+
+The parser **repairs rather than rejects** wherever the intent is unambiguous,
+because every rejection costs a full correction turn at full context size.
+Repaired silently and recorded in `trace.summary.report_repairs`:
+
+- a citation-only line — the model routinely puts a sentence's markers on the
+  line below it, so they fold into the preceding sentence (this alone was 78%
+  of all observed correction problems);
+- Markdown — fences and headings are dropped (neither carries a citable claim,
+  and the schema cannot represent them), while list/quote markers and emphasis
+  are unwrapped in place, keeping the sentence;
+- more than three citations on one sentence — the extras are dropped; and
+- a docid that was never committed — that citation is dropped.
+
+Only what the model itself must resolve is bounced back for a same-conversation
+correction: an empty response, a report with no sentences, a report that cites
+nothing while committed evidence exists, and an over-length report (truncating
+that one would cut the conclusion, so the model re-prioritizes instead). No
+separate final prompt or compressor call is introduced.
 
 Search is the normal evidence tool. AUS requests full backend hits and applies
 its own independent per-result staging budget before returning text to the
