@@ -7,7 +7,11 @@
     "search": "k6 run tests/search.js",
     "search:smoke": "k6 run --vus 1 --iterations 1 tests/search.js",
     "search:load": "k6 run -e VUS=8 -e DURATION=60s tests/search.js",
-    "search:stress": "k6 run -e MODE=stress tests/search.js"
+    "search:stress": "k6 run -e MODE=stress tests/search.js",
+    "bm25": "k6 run tests/bm25.js",
+    "bm25:smoke": "k6 run --vus 1 --iterations 1 tests/bm25.js",
+    "bm25:load": "k6 run -e VUS=8 -e DURATION=60s tests/bm25.js",
+    "bm25:stress": "k6 run -e MODE=stress tests/bm25.js"
   },
   "devDependencies": {
     "@types/k6": "^1.4.0"
