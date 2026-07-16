@@ -18,11 +18,19 @@ export default function CitationChip({
   onOpen: (docid: string) => void;
 }) {
   if (!docid) {
-    return <Chip size="small" label={`[${index + 1}]`} sx={{ height: 18, mx: 0.25 }} />;
+    return (
+      <Chip
+        component="span"
+        size="small"
+        label={`[${index + 1}]`}
+        sx={{ height: 18, mx: 0.25 }}
+      />
+    );
   }
   return (
     <Tooltip title={docid}>
       <Chip
+        component="span"
         size="small"
         label={`[${index + 1}]`}
         clickable

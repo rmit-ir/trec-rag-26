@@ -15,9 +15,12 @@ import json
 import sys
 from pathlib import Path
 
-sys.path.insert(0, str(Path(__file__).resolve().parent))  # providers/, agent
+_SRC_ROOT = Path(__file__).resolve().parents[2]
+_src_root = str(_SRC_ROOT)
+sys.path[:] = [entry for entry in sys.path if entry != _src_root]
+sys.path.insert(0, _src_root)
 
-from agent import run_agent
+from systems.aus_agent.agent import run_agent
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_TOPICS = (_REPO_ROOT / "data/official/trec-rag-2026-data/trec-rag-2026"
@@ -50,8 +53,18 @@ def main() -> None:
                     help="model id (default: BEDROCK_MODEL_ID env or "
                          "au.anthropic.claude-sonnet-5)")
     ap.add_argument("--k", type=int, default=10, help="search results per call")
-    ap.add_argument("--max-rounds", type=int, default=12,
-                    help="model-turn budget before forcing the final answer")
+    ap.add_argument(
+        "--context-token-budget", type=int, default=500_000,
+        help="stop retrieval when one generation's provider-reported input "
+             "context reaches this size (default: 500000)")
+    ap.add_argument(
+        "--safety-max-rounds", "--max-rounds", type=int, default=100,
+        help="runaway-loop safety backstop, not the normal research budget "
+             "(default: 100)")
+    ap.add_argument(
+        "--max-committed-per-step", type=int, default=6,
+        help="maximum documents commit_context may retain from one staged "
+             "batch (default: 6)")
     ap.add_argument("--run-id", default="aus-agent-dev")
     args = ap.parse_args()
 
@@ -71,7 +84,11 @@ def main() -> None:
         try:
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
-                                max_rounds=args.max_rounds, run_id=args.run_id)
+                                context_token_budget=args.context_token_budget,
+                                safety_max_rounds=args.safety_max_rounds,
+                                max_committed_per_step=(
+                                    args.max_committed_per_step),
+                                run_id=args.run_id)
         except Exception as e:  # keep --all going
             failures += 1
             print(f"    ERROR {type(e).__name__}: {e}", flush=True)

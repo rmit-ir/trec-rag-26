@@ -24,7 +24,7 @@ import HorizontalRuleIcon from "@mui/icons-material/HorizontalRule";
 import { fetcher } from "@/lib/client/api";
 import { fmtDuration, stepDurationMs } from "@/lib/gantt";
 import { fmtMelbourne } from "@/lib/time";
-import type { FeedbackRecord, OutputFile, TrajectoryStep } from "@/lib/types";
+import type { FeedbackRecord, OutputFile, TraceFile, TraceStep } from "@/lib/types";
 import AnswerView from "./AnswerView";
 import CitationChip from "./CitationChip";
 import { StepIcon, stepKind, TruncText, useStepColor, type NodeSelection } from "./stepMeta";
@@ -42,11 +42,20 @@ export function normalizeDtab(selection: NodeSelection, dtab: string | null): st
 const KNOWN_KEYS = new Set([
   "type",
   "tool_name",
+  "input",
   "arguments",
   "output",
+  "tool_call_id",
   "failed",
   "returned",
   "returned_docids",
+  "id",
+  "parent_id",
+  "t_start",
+  "t_end",
+  "turn",
+  "stats",
+  "context",
 ]);
 
 /** "Details" tab body for a step — args, output, returned docids, extras. */
@@ -55,7 +64,7 @@ function StepDetails({
   activeDoc,
   onOpenDoc,
 }: {
-  step: TrajectoryStep;
+  step: TraceStep;
   activeDoc: string | null;
   onOpenDoc: (docid: string) => void;
 }) {
@@ -67,6 +76,10 @@ function StepDetails({
       ? step.returned.filter((r) => r.score != null).map((r) => [r.docid, r.score as number])
       : [],
   );
+  const context = step.context;
+  const stats = step.stats;
+  const tokens = stats?.tokens;
+  const cumulativeTokens = stats?.cumulative_tokens;
   const extras = Object.entries(step).filter(
     ([k, v]) => !KNOWN_KEYS.has(k) && v != null && typeof v !== "object",
   );
@@ -75,9 +88,150 @@ function StepDetails({
     step.arguments != null &&
     !(typeof step.arguments === "object" && Object.keys(step.arguments as object).length === 0) &&
     step.arguments !== "";
+  const hasInput = step.input != null;
+  const hasOutput =
+    step.output != null &&
+    step.output !== "" &&
+    !(typeof step.output === "object" && Object.keys(step.output as object).length === 0);
 
   return (
     <Stack spacing={1.5}>
+      {stats ? (
+        <Box>
+          <Typography variant="overline" color="text.secondary">
+            Step stats
+          </Typography>
+          <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+            {stats.duration_ms != null ? (
+              <Chip size="small" variant="outlined" label={`latency ${fmtDuration(stats.duration_ms)}`} />
+            ) : null}
+            {tokens?.input != null ? (
+              <Chip size="small" variant="outlined" label={`input ${tokens.input.toLocaleString()} tok`} />
+            ) : null}
+            {tokens?.output != null ? (
+              <Chip size="small" variant="outlined" label={`output ${tokens.output.toLocaleString()} tok`} />
+            ) : null}
+            {tokens?.cache_read != null ? (
+              <Chip size="small" variant="outlined" label={`cache read ${tokens.cache_read.toLocaleString()}`} />
+            ) : null}
+            {tokens?.cache_write != null ? (
+              <Chip size="small" variant="outlined" label={`cache write ${tokens.cache_write.toLocaleString()}`} />
+            ) : null}
+            {tokens?.total != null ? (
+              <Chip size="small" color="primary" variant="outlined" label={`this generation ${tokens.total.toLocaleString()} tok`} />
+            ) : null}
+            {cumulativeTokens?.processed != null ? (
+              <Chip
+                size="small"
+                color="primary"
+                label={`processed so far ${cumulativeTokens.processed.toLocaleString()} tok`}
+                title={`Input ${cumulativeTokens.processed_input?.toLocaleString() ?? "—"} + output ${cumulativeTokens.output?.toLocaleString() ?? "—"}`}
+              />
+            ) : null}
+            {stats.context_tokens != null ? (
+              <Chip
+                size="small"
+                color="secondary"
+                variant="outlined"
+                label={
+                  stats.context_budget_tokens
+                    ? `context ${stats.context_tokens.toLocaleString()} / ${stats.context_budget_tokens.toLocaleString()} (${((stats.context_tokens / stats.context_budget_tokens) * 100).toFixed(1)}%)`
+                    : `context ${stats.context_tokens.toLocaleString()} tok`
+                }
+              />
+            ) : null}
+            {stats.peak_context_tokens != null &&
+            stats.peak_context_tokens !== stats.context_tokens ? (
+              <Chip
+                size="small"
+                color="secondary"
+                variant="outlined"
+                label={`peak context ${stats.peak_context_tokens.toLocaleString()} tok`}
+              />
+            ) : null}
+            {stats.elapsed_ms != null ? (
+              <Chip size="small" variant="outlined" label={`elapsed ${fmtDuration(stats.elapsed_ms)}`} />
+            ) : null}
+            {stats.cost_usd != null ? (
+              <Chip size="small" variant="outlined" label={`$${stats.cost_usd.toFixed(4)}`} />
+            ) : null}
+          </Box>
+        </Box>
+      ) : null}
+
+      {context &&
+      ((context.staged?.length ?? 0) > 0 ||
+        (context.committed?.length ?? 0) > 0 ||
+        (context.rejected?.length ?? 0) > 0) ? (
+        <Box>
+          <Typography variant="overline" color="text.secondary">
+            Context decision
+          </Typography>
+          <Stack spacing={0.75} sx={{ mt: 0.25 }}>
+            {(context.staged?.length ?? 0) > 0 ? (
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Staged ({context.staged?.length})
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+                  {context.staged?.map((docid) => (
+                    <Chip
+                      key={`staged-${docid}`}
+                      size="small"
+                      variant="outlined"
+                      label={docid}
+                      clickable
+                      onClick={() => onOpenDoc(docid)}
+                      sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            ) : null}
+            {(context.committed?.length ?? 0) > 0 ? (
+              <Box>
+                <Typography variant="caption" color="success.main" sx={{ fontWeight: 700 }}>
+                  Committed / selected ({context.committed?.length})
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+                  {context.committed?.map((docid) => (
+                    <Chip
+                      key={`committed-${docid}`}
+                      size="small"
+                      color="success"
+                      label={docid}
+                      clickable
+                      onClick={() => onOpenDoc(docid)}
+                      sx={{ fontFamily: "monospace", fontSize: "0.68rem" }}
+                    />
+                  ))}
+                </Box>
+              </Box>
+            ) : null}
+            {(context.rejected?.length ?? 0) > 0 ? (
+              <Box>
+                <Typography variant="caption" color="text.secondary">
+                  Rejected ({context.rejected?.length})
+                </Typography>
+                <Box sx={{ display: "flex", flexWrap: "wrap", gap: 0.5, mt: 0.25 }}>
+                  {context.rejected?.map((item) => (
+                    <Tooltip key={`rejected-${item.docid}`} title={item.reason ?? "Agent marked this document irrelevant"}>
+                      <Chip
+                        size="small"
+                        label={item.docid}
+                        clickable
+                        onClick={() => onOpenDoc(item.docid)}
+                        sx={{ fontFamily: "monospace", fontSize: "0.68rem", opacity: 0.7 }}
+                      />
+                    </Tooltip>
+                  ))}
+                </Box>
+              </Box>
+            ) : null}
+          </Stack>
+        </Box>
+      ) : null}
+
       {extras.length > 0 ? (
         <Box>
           <Button size="small" onClick={() => setShowExtras((s) => !s)}>
@@ -109,19 +263,42 @@ function StepDetails({
         </Box>
       ) : null}
 
-      {typeof step.output === "string" && step.output ? (
+      {hasInput ? (
+        <Box>
+          <Typography variant="overline" color="text.secondary">
+            Generation input
+          </Typography>
+          <TruncText
+            mono
+            limit={1800}
+            text={
+              typeof step.input === "string"
+                ? step.input
+                : JSON.stringify(step.input, null, 2)
+            }
+          />
+        </Box>
+      ) : null}
+
+      {hasOutput ? (
         <Box>
           <Typography variant="overline" color="text.secondary">
             {step.type === "reasoning"
               ? "Reasoning"
               : step.type === "output_text"
                 ? "Output text"
-                : "Tool output"}
+                : step.type === "generation"
+                  ? "Generation output"
+                  : "Tool output"}
           </Typography>
           <TruncText
-            text={step.output}
-            mono={step.type === "tool_call"}
-            limit={step.type === "tool_call" ? 500 : 900}
+            text={
+              typeof step.output === "string"
+                ? step.output
+                : JSON.stringify(step.output, null, 2)
+            }
+            mono={step.type === "tool_call" || typeof step.output === "object"}
+            limit={step.type === "tool_call" ? 500 : 1800}
           />
         </Box>
       ) : null}
@@ -269,6 +446,7 @@ export default function DetailPane({
   dtab,
   onDtabChange,
   steps,
+  trace,
   output,
   system,
   sessionId,
@@ -278,7 +456,8 @@ export default function DetailPane({
   selection: NodeSelection;
   dtab: string | null;
   onDtabChange: (dtab: string | null) => void;
-  steps: TrajectoryStep[];
+  steps: TraceStep[];
+  trace: TraceFile | null;
   output: OutputFile;
   system: string;
   sessionId: string;
@@ -290,7 +469,11 @@ export default function DetailPane({
   const step = typeof selection === "number" ? steps[selection] : undefined;
 
   const header =
-    selection === "answer" ? (
+    selection === "input" ? (
+      <Typography variant="subtitle2" sx={{ px: 1.5, pt: 1 }}>
+        Trace input
+      </Typography>
+    ) : selection === "answer" ? (
       <Typography variant="subtitle2" sx={{ px: 1.5, pt: 1 }}>
         Final answer
       </Typography>
@@ -343,7 +526,18 @@ export default function DetailPane({
         ))}
       </Tabs>
       <Box sx={{ p: 1.5 }}>
-        {selection === "answer" ? (
+        {selection === "input" ? (
+          tab === "details" ? (
+            <Stack spacing={1.5}>
+              <Typography variant="body2" color="text.secondary">
+                Initial model input. Later generations reference tool-result steps instead of duplicating their payloads.
+              </Typography>
+              <TruncText mono limit={6000} text={JSON.stringify(trace?.input ?? {}, null, 2)} />
+            </Stack>
+          ) : (
+            <TruncText mono limit={6000} text={JSON.stringify(trace?.input ?? {}, null, 2)} />
+          )
+        ) : selection === "answer" ? (
           tab === "answer" ? (
             <AnswerView
               system={system}
@@ -355,7 +549,19 @@ export default function DetailPane({
           ) : tab === "sentences" ? (
             <SentencesTable output={output} activeDoc={activeDoc} onOpenDoc={onOpenDoc} />
           ) : tab === "raw" ? (
-            <TruncText mono limit={4000} text={JSON.stringify(output, null, 2)} />
+            <TruncText
+              mono
+              limit={4000}
+              text={JSON.stringify(
+                {
+                  metadata: output.metadata,
+                  references: output.references,
+                  answer: output.answer,
+                },
+                null,
+                2,
+              )}
+            />
           ) : (
             <SessionFeedback system={system} sessionId={sessionId} />
           )
@@ -367,7 +573,7 @@ export default function DetailPane({
           )
         ) : (
           <Typography color="text.secondary" variant="body2">
-            This trajectory has no step #{String(selection)}.
+            This output trace has no step #{String(selection)}.
           </Typography>
         )}
       </Box>

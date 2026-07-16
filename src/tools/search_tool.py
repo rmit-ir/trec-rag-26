@@ -46,13 +46,14 @@ SEARCH_TOOL: dict[str, Any] = {
 }
 
 
-def run_search_tool(query: str, k: int = 10, max_chars: int = 500,
+def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
                     **kwargs: Any) -> str:
     """Execute the tool and return a JSON string of results (for a tool result).
 
-    Each result: ``{rank, docid, rrf_score, text}`` with text truncated to
-    ``max_chars``. Errors are returned as ``{"error": "..."}`` rather than raised
-    so the agent can react instead of crashing.
+    Each result is ``{rank, docid, rrf_score, text}``. Text is truncated to
+    ``max_chars``; pass ``None`` to preserve the complete text returned by the
+    search backend. Errors are returned as ``{"error": "..."}`` rather than
+    raised so the agent can react instead of crashing.
     """
     try:
         hits = search(query, k=k, **kwargs)
@@ -68,7 +69,7 @@ def run_search_tool(query: str, k: int = 10, max_chars: int = 500,
             "docid": h["docid"],
             "kind": h["kind"],
             "rrf_score": round(h["score"], 6),
-            "text": text[:max_chars],
+            "text": text if max_chars is None else text[:max_chars],
         })
     return json.dumps({"query": query, "k": k, "results": results},
                       ensure_ascii=False)

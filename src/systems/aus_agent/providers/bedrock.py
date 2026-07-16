@@ -32,7 +32,7 @@ try:  # creds/config from the repo root .env
 except ImportError:  # pragma: no cover
     pass
 
-from providers.base import ModelTurn, Provider
+from .base import ModelTurn, Provider
 
 DEFAULT_MODEL_ID = "au.anthropic.claude-sonnet-5"
 DEFAULT_REGION = "ap-southeast-2"
@@ -131,6 +131,24 @@ class BedrockProvider(Provider):
             for r in results
         ]
         self._messages.append({"role": "user", "content": content})
+
+    def compact_tool_results(self, replacements: dict[str, str]) -> None:
+        """Compact earlier toolResult texts without touching signed messages."""
+        remaining = dict(replacements)
+        for message in self._messages:
+            if message.get("role") != "user":
+                continue
+            for block in message.get("content", []):
+                result = block.get("toolResult")
+                if not isinstance(result, dict):
+                    continue
+                tool_use_id = result.get("toolUseId")
+                if tool_use_id not in remaining:
+                    continue
+                result["content"] = [{"text": remaining.pop(tool_use_id)}]
+        if remaining:
+            missing = ", ".join(sorted(remaining))
+            raise KeyError(f"tool results not found for compaction: {missing}")
 
     @property
     def raw_messages(self) -> list[Any]:

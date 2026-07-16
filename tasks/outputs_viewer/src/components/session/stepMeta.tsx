@@ -7,21 +7,29 @@ import PsychologyOutlinedIcon from "@mui/icons-material/PsychologyOutlined";
 import SearchIcon from "@mui/icons-material/Search";
 import DescriptionOutlinedIcon from "@mui/icons-material/DescriptionOutlined";
 import NotesIcon from "@mui/icons-material/Notes";
+import FactCheckOutlinedIcon from "@mui/icons-material/FactCheckOutlined";
 import { useColorScheme } from "@mui/material/styles";
 import { STEP_COLORS } from "@/lib/palette";
-import type { TrajectoryStep } from "@/lib/types";
+import type { TraceStep } from "@/lib/types";
 
-/** Selection in the master-detail session view: a step index or the answer node. */
-export type NodeSelection = number | "answer";
+/** Selection in the master-detail session view. */
+export type NodeSelection = number | "input" | "answer";
 
-export function stepKind(step: TrajectoryStep): string {
+export function stepKind(step: TraceStep): string {
   if (step.type === "tool_call") return step.tool_name ?? "tool_call";
   return step.type;
 }
 
-export function stepColorKey(step: TrajectoryStep): keyof typeof STEP_COLORS {
+export function stepColorKey(step: TraceStep): keyof typeof STEP_COLORS {
   const kind = stepKind(step);
-  if (kind === "reasoning" || kind === "search" || kind === "get_document" || kind === "output_text") {
+  if (
+    kind === "generation" ||
+    kind === "reasoning" ||
+    kind === "search" ||
+    kind === "get_document" ||
+    kind === "commit_context" ||
+    kind === "output_text"
+  ) {
     return kind;
   }
   return "other";
@@ -31,13 +39,16 @@ export function StepIcon({
   step,
   fontSize = "small",
 }: {
-  step: TrajectoryStep;
+  step: TraceStep;
   fontSize?: "small" | "inherit";
 }) {
   const kind = stepColorKey(step);
-  if (kind === "reasoning") return <PsychologyOutlinedIcon fontSize={fontSize} />;
+  if (kind === "generation" || kind === "reasoning") {
+    return <PsychologyOutlinedIcon fontSize={fontSize} />;
+  }
   if (kind === "search") return <SearchIcon fontSize={fontSize} />;
   if (kind === "get_document") return <DescriptionOutlinedIcon fontSize={fontSize} />;
+  if (kind === "commit_context") return <FactCheckOutlinedIcon fontSize={fontSize} />;
   return <NotesIcon fontSize={fontSize} />;
 }
 
@@ -49,22 +60,42 @@ export function useIsDark(): boolean {
 export function useStepColor() {
   const dark = useIsDark();
   return React.useCallback(
-    (step: TrajectoryStep) => STEP_COLORS[stepColorKey(step)][dark ? "dark" : "light"],
+    (step: TraceStep) => STEP_COLORS[stepColorKey(step)][dark ? "dark" : "light"],
     [dark],
   );
 }
 
 export const STEP_LEGEND: { key: keyof typeof STEP_COLORS; label: string; icon: React.ReactNode }[] = [
+  { key: "generation", label: "generation", icon: <PsychologyOutlinedIcon sx={{ fontSize: 14 }} /> },
   { key: "reasoning", label: "reasoning", icon: <PsychologyOutlinedIcon sx={{ fontSize: 14 }} /> },
   { key: "search", label: "search", icon: <SearchIcon sx={{ fontSize: 14 }} /> },
   { key: "get_document", label: "get_document", icon: <DescriptionOutlinedIcon sx={{ fontSize: 14 }} /> },
+  { key: "commit_context", label: "commit_context", icon: <FactCheckOutlinedIcon sx={{ fontSize: 14 }} /> },
   { key: "output_text", label: "output_text", icon: <NotesIcon sx={{ fontSize: 14 }} /> },
 ];
 
 /** One-line summary for the tree row: query, docid, or leading words. */
-export function stepSummary(step: TrajectoryStep): string {
+export function stepSummary(step: TraceStep): string {
   const kind = stepKind(step);
   const args = step.arguments;
+  if (kind === "generation" && step.output && typeof step.output === "object") {
+    const generated = step.output as Record<string, unknown>;
+    const calls = Array.isArray(generated.tool_calls) ? generated.tool_calls : [];
+    if (calls.length > 0) {
+      const names = calls
+        .map((call) =>
+          call && typeof call === "object"
+            ? String((call as Record<string, unknown>).name ?? "tool")
+            : "tool",
+        )
+        .join(", ");
+      return `issued ${calls.length} tool call${calls.length === 1 ? "" : "s"}: ${names}`;
+    }
+    if (typeof generated.text === "string" && generated.text) {
+      return generated.text.trim().split(/\s+/).slice(0, 12).join(" ");
+    }
+    return "continued the agent conversation";
+  }
   if (kind === "search") {
     if (args && typeof args === "object") {
       const a = args as Record<string, unknown>;

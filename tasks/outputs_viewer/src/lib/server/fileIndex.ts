@@ -5,7 +5,7 @@ import { OUTPUTS_DIR } from "./env";
 import type { OutputsIndex, SessionHeader } from "@/lib/types";
 
 /**
- * In-memory index over data/outputs/<system>/<ts>.<slug>.{output,trajectory}.json.
+ * In-memory index over data/outputs/<system>/<ts>.<slug>.output.json.
  *
  * Cheap per-request re-scan: readdir + stat everything (a few hundred entries),
  * then re-read ONLY files whose (mtimeMs, size) signature changed since the
@@ -20,10 +20,10 @@ interface CachedHeader {
   runId?: string;
   status?: string;
   model?: string;
+  hasTrace?: boolean;
 }
 
 const outputHeaderCache = new Map<string, CachedHeader>(); // key: abs path of output.json
-const trajHeaderCache = new Map<string, CachedHeader>(); // key: abs path of trajectory.json
 
 function sigOf(st: fs.Stats): string {
   return `${st.mtimeMs}:${st.size}`;
@@ -49,32 +49,18 @@ function readOutputHeader(file: string, st: fs.Stats): CachedHeader {
       narrativeId: meta.narrative_id,
       narrativeSnippet: snippet(meta.narrative),
       runId: meta.run_id,
+      hasTrace: data?.trace != null && typeof data.trace === "object",
+      status:
+        typeof data?.trace?.status === "string" ? data.trace.status : undefined,
+      model:
+        typeof data?.trace?.metadata?.model === "string"
+          ? data.trace.metadata.model
+          : undefined,
     };
   } catch {
     // unparsable file: keep an empty header, still listed
   }
   outputHeaderCache.set(file, h);
-  return h;
-}
-
-function readTrajectoryHeader(file: string, st: fs.Stats): CachedHeader {
-  const sig = sigOf(st);
-  const hit = trajHeaderCache.get(file);
-  if (hit && hit.sig === sig) return hit;
-  let h: CachedHeader = { sig };
-  try {
-    // Trajectories can be large (100s of KB); parse and discard immediately.
-    const data = JSON.parse(fs.readFileSync(file, "utf8"));
-    h = {
-      sig,
-      status: typeof data?.status === "string" ? data.status : undefined,
-      model:
-        typeof data?.metadata?.model === "string" ? data.metadata.model : undefined,
-    };
-  } catch {
-    // ignore
-  }
-  trajHeaderCache.set(file, h);
   return h;
 }
 
@@ -111,37 +97,29 @@ export function scanOutputs(): OutputsIndex {
       const { ts, slug } = m.groups as { ts: string; slug: string };
       const sessionId = `${ts}.${slug}`;
       const outPath = path.join(dir, name);
-      const trajPath = path.join(dir, `${sessionId}.trajectory.json`);
       let outSt: fs.Stats;
       try {
         outSt = fs.statSync(outPath);
       } catch {
         continue;
       }
-      let trajSt: fs.Stats | null = null;
-      try {
-        trajSt = fs.statSync(trajPath);
-      } catch {
-        trajSt = null;
-      }
       const oh = readOutputHeader(outPath, outSt);
-      const th = trajSt ? readTrajectoryHeader(trajPath, trajSt) : undefined;
       sessions.push({
         system,
         sessionId,
         ts,
         slug,
-        mtime: Math.max(outSt.mtimeMs, trajSt?.mtimeMs ?? 0),
+        mtime: outSt.mtimeMs,
         narrativeId: oh.narrativeId,
         narrativeSnippet: oh.narrativeSnippet,
         runId: oh.runId,
-        status: th?.status,
-        model: th?.model,
-        hasTrajectory: trajSt != null,
+        status: oh.status,
+        model: oh.model,
+        hasTrace: oh.hasTrace === true,
       });
       count += 1;
     }
-    systems.push({ system, sessionCount: count });
+    if (count > 0) systems.push({ system, sessionCount: count });
   }
 
   sessions.sort((a, b) => b.ts.localeCompare(a.ts));
@@ -152,13 +130,12 @@ export function scanOutputs(): OutputsIndex {
 export function sessionPaths(
   system: string,
   sessionId: string,
-): { outPath: string; trajPath: string | null } | null {
+): { outPath: string } | null {
   // Path-safety: components must not escape data/outputs. `+` is legal —
   // new artifact stamps look like 20260716T182552491269+1000 (offset suffix);
   // the id is otherwise treated as an opaque string.
   if (!/^[\w.+-]+$/.test(system) || !/^[\w.+-]+$/.test(sessionId)) return null;
   const outPath = path.join(OUTPUTS_DIR, system, `${sessionId}.output.json`);
   if (!fs.existsSync(outPath)) return null;
-  const trajPath = path.join(OUTPUTS_DIR, system, `${sessionId}.trajectory.json`);
-  return { outPath, trajPath: fs.existsSync(trajPath) ? trajPath : null };
+  return { outPath };
 }

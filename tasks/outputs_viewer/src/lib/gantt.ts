@@ -1,10 +1,10 @@
-import type { TrajectoryStep, TrajectoryFile } from "./types";
+import type { TraceFile, TraceStep } from "./types";
 
 /**
  * Pure Gantt layout for the session timeline (no React/MUI imports so it is
  * unit-testable standalone).
  *
- * Timing contract (src/ragrun/trajectory.py): optional per-item `t_start` /
+ * Timing contract (output.json.trace): optional per-step `t_start` /
  * `t_end` (ISO 8601 with offset — Melbourne local, e.g.
  * `2026-07-16T18:25:52.490+10:00`) and 0-based `turn`; optional run-level
  * `started_at` / `ended_at`. Date parsing handles offsets, so all layout math
@@ -12,7 +12,7 @@ import type { TrajectoryStep, TrajectoryFile } from "./types";
  */
 
 export interface GanttSpan {
-  /** index into trajectory.result */
+  /** index into trace.steps */
   index: number;
   /** ms offsets relative to layout t0 */
   start: number;
@@ -53,7 +53,7 @@ function parseMs(iso: string | undefined): number | null {
 }
 
 /** True when EVERY step carries parseable t_start/t_end (per-session detection). */
-export function hasFullTimings(steps: TrajectoryStep[]): boolean {
+export function hasFullTimings(steps: TraceStep[]): boolean {
   return (
     steps.length > 0 &&
     steps.every((s) => parseMs(s.t_start) != null && parseMs(s.t_end) != null)
@@ -72,7 +72,7 @@ export function fmtDuration(ms: number): string {
 }
 
 /** Per-step duration in ms, when the step carries timings. */
-export function stepDurationMs(step: TrajectoryStep): number | null {
+export function stepDurationMs(step: TraceStep): number | null {
   const a = parseMs(step.t_start);
   const b = parseMs(step.t_end);
   if (a == null || b == null || b < a) return null;
@@ -119,8 +119,8 @@ export function niceTicks(totalMs: number, maxTicks = 8): GanttTick[] {
  * so lanes are reused across turns.
  */
 export function computeGanttLayout(
-  steps: TrajectoryStep[],
-  trajectory?: Pick<TrajectoryFile, "started_at" | "ended_at">,
+  steps: TraceStep[],
+  trace?: Pick<TraceFile, "started_at" | "ended_at">,
 ): GanttLayout | null {
   if (!hasFullTimings(steps)) return null;
 
@@ -131,8 +131,8 @@ export function computeGanttLayout(
     turn: typeof s.turn === "number" ? s.turn : null,
   }));
 
-  const runStart = parseMs(trajectory?.started_at);
-  const runEnd = parseMs(trajectory?.ended_at);
+  const runStart = parseMs(trace?.started_at);
+  const runEnd = parseMs(trace?.ended_at);
   const t0 = Math.min(...parsed.map((p) => p.startAbs), ...(runStart != null ? [runStart] : []));
   const t1 = Math.max(...parsed.map((p) => p.endAbs), ...(runEnd != null ? [runEnd] : []));
   const total = Math.max(t1 - t0, 1);

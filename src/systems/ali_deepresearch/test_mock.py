@@ -130,6 +130,12 @@ def main() -> int:
           kinds == ["reasoning", "tool_call", "reasoning", "tool_call",
                     "reasoning", "output_text"])
     check("raw_messages present", "raw_messages" in trajectory)
+    check("trajectory top-level keys match reference schema",
+          set(trajectory) == {
+              "metadata", "query_id", "tool_call_counts",
+              "tool_call_counts_all", "status", "retrieved_docids",
+              "result", "raw_messages",
+          })
 
     # search tool_call carries the sample's extras
     search_item = next(it for it in trajectory["result"]
@@ -142,28 +148,32 @@ def main() -> int:
     cited = {c for s in answer for c in s["citations"]}
     check("every reference cited", cited == set(range(len(references))))
 
-    # ---- timing fields (wall-clock + turn grouping) ----------------------
-    # ISO strings from ragrun.now_iso share one UTC offset within a run, so
-    # lexicographic comparison == chronological comparison.
+    # ---- strict trajectory + rich output trace ---------------------------
     items = trajectory["result"]
-    check("run started_at/ended_at present and ordered",
-          isinstance(trajectory.get("started_at"), str)
-          and isinstance(trajectory.get("ended_at"), str)
-          and trajectory["started_at"] <= trajectory["ended_at"])
-    check("every item has t_start/t_end/turn",
+    check("trajectory omits viewer-only timing fields",
+          all(not ({"t_start", "t_end", "turn", "stats", "context",
+                    "documents"} & it.keys()) for it in items)
+          and "started_at" not in trajectory and "ended_at" not in trajectory)
+    trace = output.get("trace", {})
+    trace_items = trace.get("steps", [])
+    check("output.trace has run bounds",
+          isinstance(trace.get("started_at"), str)
+          and isinstance(trace.get("ended_at"), str)
+          and trace["started_at"] <= trace["ended_at"])
+    check("every trace step has t_start/t_end/turn",
           all(isinstance(it.get("t_start"), str)
               and isinstance(it.get("t_end"), str)
-              and isinstance(it.get("turn"), int) for it in items))
-    check("each item t_start <= t_end",
-          all(it["t_start"] <= it["t_end"] for it in items))
-    starts = [it["t_start"] for it in items]
+              and isinstance(it.get("turn"), int) for it in trace_items))
+    check("each trace step t_start <= t_end",
+          all(it["t_start"] <= it["t_end"] for it in trace_items))
+    starts = [it["t_start"] for it in trace_items]
     check("item t_start non-decreasing (sequential loop)",
           all(a <= b for a, b in zip(starts, starts[1:])))
     check("turn indices are [0, 0, 1, 1, 2, 2]",
-          [it["turn"] for it in items] == [0, 0, 1, 1, 2, 2])
+          [it["turn"] for it in trace_items] == [0, 0, 1, 1, 2, 2])
     check("items lie within run bounds",
-          trajectory["started_at"] <= items[0]["t_start"]
-          and items[-1]["t_end"] <= trajectory["ended_at"])
+          trace["started_at"] <= trace_items[0]["t_start"]
+          and trace_items[-1]["t_end"] <= trace["ended_at"])
 
     print()
     print(f"trajectory: {paths['trajectory']}")

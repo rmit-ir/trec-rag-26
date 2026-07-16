@@ -62,6 +62,17 @@ class Provider(ABC):
         """Answer ALL pending tool calls from the last turn, in order.
         ``results`` items: ``{"id", "content", "is_error"}``."""
 
+    def compact_tool_results(self, replacements: dict[str, str]) -> None:
+        """Replace old tool-result content by tool-call id.
+
+        Providers should implement this when staged context is enabled.  Only
+        user-authored tool-result messages may be rewritten; signed/reasoning
+        assistant messages must remain byte-for-byte unchanged.
+        """
+        if replacements:
+            raise NotImplementedError(
+                f"{type(self).__name__} does not support context compaction")
+
     @property
     @abstractmethod
     def raw_messages(self) -> list[Any]:

@@ -1,7 +1,7 @@
 """TREC RAG 2026 output object + run persistence — the ``*.output.json`` half.
 
-``build_rag_output`` produces one output object per topic, exactly per the
-track's ``rag-task.md`` (see skills/trec-rag-2026-track-guidelines/references):
+``build_rag_output`` produces the organizer-facing fields from the track's
+``rag-task.md`` (see skills/trec-rag-2026-track-guidelines/references):
 
     {
       "metadata": {team_id, narrative_id, narrative, run_id, run_desc},
@@ -9,8 +9,9 @@ track's ``rag-task.md`` (see skills/trec-rag-2026-track-guidelines/references):
       "answer": [{"text": "<sentence>", "citations": [0, 1]}, ...]
     }
 
-``save_run`` writes both run artifacts to
-``data/outputs/<system-name>/<ISO8601>.<query-first-5-words>.{trajectory,output}.json``.
+``save_run`` embeds the rich execution trace at top-level ``output.trace`` for
+internal analysis. Use ``submission_output`` to strip it when creating the
+official JSONL.
 """
 from __future__ import annotations
 
@@ -68,6 +69,19 @@ def build_rag_output(*, narrative_id: str, narrative: str, run_id: str,
         },
         "references": list(references),
         "answer": answer,
+    }
+
+
+def submission_output(obj: dict[str, Any]) -> dict[str, Any]:
+    """Return the exact organizer-facing projection, excluding ``trace``."""
+    return {
+        "metadata": dict(obj["metadata"]),
+        "references": list(obj["references"]),
+        "answer": [
+            {"text": sentence["text"],
+             "citations": list(sentence["citations"])}
+            for sentence in obj["answer"]
+        ],
     }
 
 
@@ -140,8 +154,12 @@ def save_run(system_name: str, query: str, *, trajectory: dict[str, Any],
         "trajectory": out_dir / f"{ts}.{slug}.trajectory.json",
         "output": out_dir / f"{ts}.{slug}.output.json",
     }
+    trace = getattr(trajectory, "trace", None)
+    if trace is not None:
+        output["trace"] = trace
+
     paths["trajectory"].write_text(
-        json.dumps(trajectory, ensure_ascii=False, indent=2))
+        json.dumps(dict(trajectory), ensure_ascii=False, indent=2))
     paths["output"].write_text(
         json.dumps(output, ensure_ascii=False, indent=2))
 

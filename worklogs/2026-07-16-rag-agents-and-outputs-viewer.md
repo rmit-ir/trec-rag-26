@@ -133,3 +133,23 @@ Dev server: `pnpm dev` → http://localhost:3618.
 - Add Azure OpenAI / OpenAI Responses providers to `aus_agent`.
 - Batch-run dev topics across systems and compare in the dashboard.
 - Consider committing `data/outputs/` + feedback data (now un-ignored).
+
+## Agent-intervention principle
+
+- Minimize code-level intervention in model decisions. Prefer improving the
+  system prompt, tool semantics, and trace observability over adding
+  query-specific filters, blacklists, heuristics, or hidden corrective model
+  calls.
+- Judge a tool call by its contextual purpose, not by literal argument values.
+  A query that looks unusual in one task can be legitimate in another; do not
+  reject words such as `placeholder` as special cases.
+- Use detailed traces to identify the actual incentive or instruction failure.
+  In the observed no-op search case, the model emitted the query itself after
+  coverage was already sufficient. The likely prompt-level cause was wording
+  that encouraged continued improvement whenever budget remained. The budget
+  is now described as a hard ceiling rather than a spending target, and tool
+  calls must correspond to a concrete unmet requirement or evidence gap.
+- Keep hard validation for structural contracts, safety, resource boundaries,
+  and data integrity. Do not use it to silently mask ordinary model-policy
+  failures that should remain visible and be corrected at the instruction
+  level.

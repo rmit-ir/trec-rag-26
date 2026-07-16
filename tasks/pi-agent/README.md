@@ -55,21 +55,18 @@ under `tasks/`), mirroring the Python `ragrun` package exactly:
   `tool_call_counts_all`, `status` (`completed|failed|budget_exhausted`),
   `retrieved_docids` (sorted union over all tool calls), `result`
   (interleaved `reasoning` / `tool_call` / `output_text` items — shaped like
-  `data/sample-files/run_InfoSeekQA_1000_*.json`), run-level `started_at` /
-  `ended_at`, `raw_messages` (pi-native message history incl. the finalize
-  turn). Each result item additionally carries optional wall-clock timing:
-  `t_start` / `t_end` (Melbourne-local ISO 8601 with ms + offset, e.g.
-  `2026-07-16T18:21:34.342+10:00`) and `turn` (0-based model-turn index).
-  Items sharing a `turn` with overlapping `[t_start, t_end]` ran in
-  PARALLEL (dashboards render them as parallel lanes); reasoning items span
-  the whole model turn, tool calls span their own execution, and the
-  `output_text` item spans the final strict-JSON turn. Old artifacts
-  without these fields stay valid.
+  `data/sample-files/run_InfoSeekQA_1000_*.json`) and `raw_messages`. This is
+  the strict retrieval-analysis/training projection: it intentionally omits
+  timings, token stats, context state, and structured document payloads.
 - `<ts>.<slug>.output.json` — the track's RAG output object:
   `{metadata: {team_id, narrative_id, narrative, run_id, run_desc},
   references, answer: [{text, citations}]}` — ≤1024 words, ≤3 citations per
-  sentence, every reference cited, no extra metadata keys. Violations (if
-  any) are written alongside as `*.output.violations.json`.
+  sentence, every reference cited, no extra metadata keys — plus the internal
+  top-level `trace` used by the Outputs Viewer. `trace` contains timed model
+  and tool steps, parallel spans, token/cost stats, structured retrieved
+  documents, and future staged/committed context state. Strip `trace` with the
+  submission exporter before creating the official JSONL. Violations (if any)
+  are written alongside as `*.output.violations.json`.
 
 `<ts>` is a compact Melbourne-local stamp with UTC offset
 (`20260716T163259123000+1000`, `+1100` during AEDT — mirror of Python
@@ -95,8 +92,8 @@ src/agent.ts       system prompt + agentic tool loop (pi-agent-core
 src/time.ts        Melbourne-local timestamp helpers (nowIso, runTimestamp) —
                    offset derived from the tz database via Intl.DateTimeFormat
                    (never hardcoded; +10:00 AEST / +11:00 AEDT)
-src/trajectory.ts  TS port of src/ragrun/trajectory.py (TrajectoryBuilder,
-                   incl. per-item t_start/t_end/turn + run started_at/ended_at)
+src/trajectory.ts  dual recorder: strict sample-compatible trajectory plus
+                   rich output.trace steps (timings/tokens/docs/context)
 src/outputs.ts     TS port of src/ragrun/outputs.py (timestamp/slug/build/
                    validate/save)
 src/cli.ts         --query | --qid [--topics] | --all; --model --k
@@ -152,15 +149,14 @@ words, and `references` keeps only cited docids (first-citation order).
   `tool_execution_end` fires in completion order. Both our tools are
   stateless HTTP calls, so they declare `executionMode: "parallel"` and the
   config sets `toolExecution: "parallel"` — when the model emits several
-  tool calls in one turn, their trajectory items share a `turn` and their
+  tool calls in one turn, their output trace steps share a `turn` and their
   `[t_start, t_end]` genuinely overlap. Whether same-turn batches actually
   occur is up to the model (Claude on Bedrock does emit multi-tool turns).
 - **Tool loop:** we drive the low-level `runAgentLoop` directly (rather than
   the stateful `Agent` class) because it exposes `shouldStopAfterTurn` — the
   clean way to implement `--max-rounds` without aborting mid-turn — and an
-  event sink (`tool_execution_start/end`, `message_end`) from which the
-  trajectory (thinking blocks → `reasoning` items, tool calls → `tool_call`
-  items with returned docids) is recorded. Thinking content arrives as
+  event sink (`tool_execution_start/end`, `message_end`) from which both the
+  strict trajectory and rich output trace are recorded. Thinking content arrives as
   `thinking` content blocks on assistant messages and is captured verbatim.
 - **Search endpoints:** both hosted search services 403 default user agents;
   all requests send `User-Agent: trec-rag-search/1.0` like the Python

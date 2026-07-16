@@ -38,19 +38,25 @@ export default function AnswerView({
   return (
     <Stack spacing={1.5}>
       <Card>
-        <CardContent sx={{ display: "flex", alignItems: "flex-start", gap: 2, py: 1.5, "&:last-child": { pb: 1.5 } }}>
-          <Box sx={{ flexGrow: 1 }}>
+        <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
+          <Stack
+            direction="row"
+            alignItems="center"
+            justifyContent="space-between"
+            spacing={1}
+            sx={{ mb: 0.5 }}
+          >
             <Typography variant="overline" color="text.secondary">
               Narrative
             </Typography>
-            <Typography variant="body1">{output.metadata?.narrative}</Typography>
-          </Box>
-          <FeedbackWidget
-            system={system}
-            sessionId={sessionId}
-            target={{ type: "answer" }}
-            label="Full answer"
-          />
+            <FeedbackWidget
+              system={system}
+              sessionId={sessionId}
+              target={{ type: "answer" }}
+              label="Full answer"
+            />
+          </Stack>
+          <Typography variant="body1">{output.metadata?.narrative}</Typography>
         </CardContent>
       </Card>
 

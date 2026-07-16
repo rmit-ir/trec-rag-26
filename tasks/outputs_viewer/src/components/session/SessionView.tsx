@@ -12,12 +12,46 @@ import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import { fetcher } from "@/lib/client/api";
 import { useUrlState } from "@/lib/client/urlState";
-import type { SessionDetail } from "@/lib/types";
+import type { SessionDetail, TokenStats, TraceStep } from "@/lib/types";
 import Timeline from "./Timeline";
 import StepTree from "./StepTree";
 import DetailPane from "./DetailPane";
 import DocSidebar from "./DocSidebar";
 import type { NodeSelection } from "./stepMeta";
+import { fmtDuration } from "@/lib/gantt";
+
+function withCumulativeTokenUsage(steps: TraceStep[]): TraceStep[] {
+  const keys: (keyof TokenStats)[] = [
+    "input",
+    "input_uncached",
+    "output",
+    "cache_read",
+    "cache_write",
+    "total",
+    "processed_input",
+    "processed",
+  ];
+  const cumulative: TokenStats = {};
+  let sawUsage = false;
+  return steps.map((step) => {
+    const direct = step.stats?.tokens;
+    if (direct) {
+      sawUsage = true;
+      for (const key of keys) {
+        const value = direct[key];
+        if (typeof value === "number") cumulative[key] = (cumulative[key] ?? 0) + value;
+      }
+    }
+    if (!sawUsage || step.stats?.cumulative_tokens) return step;
+    return {
+      ...step,
+      stats: {
+        ...step.stats,
+        cumulative_tokens: { ...cumulative },
+      },
+    };
+  });
+}
 
 /**
  * Session view, PostHog-LLM-trace style: one unified layout instead of
@@ -28,8 +62,8 @@ import type { NodeSelection } from "./stepMeta";
  *   BELOW  master-detail: step tree (filterable, Answer node appended) |
  *          tabbed detail pane | doc sidebar (opens on citation/docid click).
  *
- * URL state: ?step=<index|answer> (default answer), ?dtab=<detail tab>,
- * ?doc=<docid>. Legacy ?tab=answer|trajectory URLs are migrated in place.
+ * URL state: ?step=<index|input|answer> (default answer),
+ * ?dtab=<detail tab>, ?doc=<docid>.
  */
 export default function SessionView({
   system,
@@ -44,18 +78,11 @@ export default function SessionView({
   );
   const { get, set, setMany } = useUrlState();
 
-  // ---- legacy ?tab= migration (old links keep working) --------------------
-  const legacyTab = get("tab");
-  React.useEffect(() => {
-    if (legacyTab == null) return;
-    // trajectory → select the first step; answer → default (answer node)
-    setMany({ tab: null, step: legacyTab === "trajectory" ? "0" : null });
-  }, [legacyTab, setMany]);
-
   // ---- selection from URL --------------------------------------------------
   const stepParam = get("step");
   const selection: NodeSelection = React.useMemo(() => {
     if (stepParam == null || stepParam === "answer") return "answer";
+    if (stepParam === "input") return "input";
     const n = Number(stepParam);
     return Number.isInteger(n) && n >= 0 ? n : "answer";
   }, [stepParam]);
@@ -85,10 +112,32 @@ export default function SessionView({
     );
   }
 
-  const trajectory = data.trajectory;
-  const steps = trajectory?.result ?? [];
-  const meta = trajectory?.metadata ?? {};
-  const counts = trajectory?.tool_call_counts ?? {};
+  const trace = data.trace;
+  const steps = withCumulativeTokenUsage(trace?.steps ?? []);
+  const meta = trace?.metadata ?? {};
+  const counts = trace?.summary?.tool_call_counts ?? {};
+  const runTokens = trace?.summary?.tokens;
+  const generationTokens = steps
+    .filter((step) => step.type === "generation")
+    .map((step) => step.stats?.tokens);
+  const processedTokens =
+    runTokens?.processed ??
+    generationTokens.reduce(
+      (sum, tokens) => sum + (tokens?.processed ?? tokens?.total ?? 0),
+      0,
+    );
+  const processedInputTokens =
+    runTokens?.processed_input ??
+    generationTokens.reduce(
+      (sum, tokens) => sum + (tokens?.processed_input ?? tokens?.input ?? 0),
+      0,
+    );
+  const generatedOutputTokens =
+    runTokens?.output ??
+    generationTokens.reduce((sum, tokens) => sum + (tokens?.output ?? 0), 0);
+  const latestBudgetStats = [...steps]
+    .reverse()
+    .find((step) => step.stats?.context_tokens != null)?.stats;
   const answerSummary =
     data.output.answer?.[0]?.text ?? data.output.metadata?.narrative ?? "";
 
@@ -115,35 +164,64 @@ export default function SessionView({
 
       {/* header stats — always visible */}
       <Stack direction="row" spacing={0.75} flexWrap="wrap" useFlexGap alignItems="center" sx={{ mb: 1 }}>
-        {trajectory?.status ? (
+        {trace?.status ? (
           <Chip
             size="small"
-            label={`status: ${trajectory.status}`}
-            color={trajectory.status === "completed" ? "success" : "warning"}
+            label={`status: ${trace.status}`}
+            color={trace.status === "completed" ? "success" : "warning"}
             variant="outlined"
           />
         ) : null}
         {typeof meta.model === "string" ? (
           <Chip size="small" variant="outlined" label={`model: ${meta.model}`} />
         ) : null}
-        {Object.entries(counts).map(([tool, n]) => (
-          <Chip key={tool} size="small" variant="outlined" label={`${tool}: ${n}`} />
-        ))}
-        {trajectory ? (
+        {trace?.duration_ms != null ? (
+          <Chip size="small" variant="outlined" label={`latency: ${fmtDuration(trace.duration_ms)}`} />
+        ) : null}
+        {processedTokens > 0 ? (
           <Chip
             size="small"
             variant="outlined"
-            label={`retrieved docids: ${trajectory.retrieved_docids?.length ?? 0}`}
+            label={`processed: ${processedTokens.toLocaleString()} tok`}
+            title={`Processed input ${processedInputTokens.toLocaleString()} + generated output ${generatedOutputTokens.toLocaleString()}`}
+          />
+        ) : null}
+        {latestBudgetStats?.context_tokens != null &&
+        latestBudgetStats.context_budget_tokens != null ? (
+          <Chip
+            size="small"
+            color="secondary"
+            variant="outlined"
+            label={`context: ${latestBudgetStats.context_tokens.toLocaleString()} / ${latestBudgetStats.context_budget_tokens.toLocaleString()}`}
+          />
+        ) : null}
+        {latestBudgetStats?.peak_context_tokens != null &&
+        latestBudgetStats.peak_context_tokens !== latestBudgetStats.context_tokens ? (
+          <Chip
+            size="small"
+            color="secondary"
+            variant="outlined"
+            label={`peak context: ${latestBudgetStats.peak_context_tokens.toLocaleString()}`}
+          />
+        ) : null}
+        {Object.entries(counts).map(([tool, n]) => (
+          <Chip key={tool} size="small" variant="outlined" label={`${tool}: ${n}`} />
+        ))}
+        {trace ? (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`retrieved docids: ${trace.summary?.retrieved_docids?.length ?? 0}`}
           />
         ) : (
-          <Chip size="small" variant="outlined" color="warning" label="no trajectory" />
+          <Chip size="small" variant="outlined" color="warning" label="no output trace" />
         )}
         <Chip size="small" variant="outlined" label={`steps: ${steps.length}`} />
       </Stack>
 
       {/* timeline — always visible, never behind a tab */}
       <Box sx={{ mb: 1.5 }}>
-        <Timeline steps={steps} trajectory={trajectory} selected={selection} onSelect={select} />
+        <Timeline steps={steps} trace={trace} selected={selection} onSelect={select} />
       </Box>
 
       {/* master-detail (+ doc sidebar) */}
@@ -162,6 +240,7 @@ export default function SessionView({
       >
         <StepTree
           steps={steps}
+          traceInput={trace?.input}
           answerSummary={answerSummary}
           selected={selection}
           onSelect={select}
@@ -171,6 +250,7 @@ export default function SessionView({
           dtab={dtab}
           onDtabChange={setDtab}
           steps={steps}
+          trace={trace}
           output={data.output}
           system={system}
           sessionId={sessionId}

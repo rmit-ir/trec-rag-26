@@ -53,9 +53,11 @@ export const VIZ_DARK: VizColors = {
 
 /** Trajectory step-type identity colors (categorical, fixed assignment). */
 export const STEP_COLORS: Record<string, { light: string; dark: string }> = {
+  generation: { light: "#24b86f", dark: "#2bc77b" }, // green
   reasoning: { light: "#4a3aa7", dark: "#9085e9" }, // violet (slot 7)
   search: { light: "#2a78d6", dark: "#3987e5" }, // blue (slot 1)
   get_document: { light: "#1baf7a", dark: "#199e70" }, // aqua (slot 5)
+  commit_context: { light: "#c04ea1", dark: "#dc72bf" }, // magenta
   output_text: { light: "#eb6834", dark: "#d95926" }, // orange (slot 6)
   other: { light: "#898781", dark: "#898781" },
 };

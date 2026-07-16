@@ -16,9 +16,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="en" suppressHydrationWarning>
       <body>
-        <InitColorSchemeScript attribute="class" />
+        <InitColorSchemeScript attribute="class" defaultMode="system" />
         <AppRouterCacheProvider options={{ enableCssLayer: true }}>
-          <ThemeProvider theme={theme} defaultMode="light">
+          <ThemeProvider theme={theme} defaultMode="system">
             <CssBaseline />
             <IdentityProvider>
               <AppShell>{children}</AppShell>

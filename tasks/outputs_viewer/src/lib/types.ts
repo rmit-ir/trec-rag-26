@@ -11,7 +11,7 @@ export interface SessionHeader {
   status?: string;
   runId?: string;
   model?: string;
-  hasTrajectory: boolean;
+  hasTrace: boolean;
 }
 
 export interface OutputsIndex {
@@ -36,17 +36,58 @@ export interface OutputFile {
   };
   references: string[];
   answer: AnswerSentence[];
+  trace?: TraceFile;
 }
 
-export interface TrajectoryStep {
+export interface TokenStats {
+  input?: number;
+  input_uncached?: number;
+  output?: number;
+  cache_read?: number;
+  cache_write?: number;
+  total?: number;
+  processed_input?: number;
+  processed?: number;
+  context_tokens?: number;
+  peak_context_tokens?: number;
+  context_budget_tokens?: number;
+  budget?: number;
+}
+
+export interface StepStats {
+  duration_ms?: number;
+  tokens?: TokenStats;
+  cumulative_tokens?: TokenStats;
+  cost_usd?: number;
+  returned_documents?: number;
+  context_tokens?: number;
+  peak_context_tokens?: number;
+  context_budget_tokens?: number;
+  elapsed_ms?: number;
+  [k: string]: unknown;
+}
+
+export interface StepContext {
+  staged?: string[];
+  committed?: string[];
+  rejected?: { docid: string; reason?: string }[];
+}
+
+export interface TraceStep {
+  id?: string;
+  parent_id?: string | null;
   type: "reasoning" | "tool_call" | "output_text" | string;
   tool_name?: string | null;
+  input?: unknown;
   arguments?: unknown;
-  output?: string | null;
+  output?: unknown;
+  tool_call_id?: string;
   failed?: boolean;
   returned?: { docid: string; score?: number }[];
   returned_docids?: string[];
-  /** optional timing contract (src/ragrun/trajectory.py): ISO 8601 UTC, ms precision */
+  context?: StepContext;
+  stats?: StepStats;
+  /** ISO 8601 with UTC offset and millisecond precision. */
   t_start?: string;
   t_end?: string;
   /** 0-based model-turn index; same-turn items with overlapping times ran in parallel */
@@ -54,24 +95,31 @@ export interface TrajectoryStep {
   [k: string]: unknown;
 }
 
-export interface TrajectoryFile {
+export interface TraceFile {
+  schema_version?: string;
   metadata: Record<string, unknown>;
   query_id?: string;
-  tool_call_counts?: Record<string, number>;
-  tool_call_counts_all?: Record<string, number>;
   status?: string;
-  retrieved_docids?: string[];
-  result?: TrajectoryStep[];
-  /** optional run-level timing bounds (ISO 8601 UTC) */
+  input?: unknown;
+  output?: unknown;
+  summary?: {
+    tool_call_counts?: Record<string, number>;
+    tool_call_counts_all?: Record<string, number>;
+    retrieved_docids?: string[];
+    tokens?: TokenStats;
+    usage?: unknown;
+  };
+  steps?: TraceStep[];
   started_at?: string;
   ended_at?: string;
+  duration_ms?: number;
 }
 
 export interface SessionDetail {
   header: SessionHeader;
   output: OutputFile;
-  /** trajectory with raw_messages stripped (can be huge) */
-  trajectory: TrajectoryFile | null;
+  /** Loaded exclusively from output.json.trace. */
+  trace: TraceFile | null;
 }
 
 export interface DocResult {

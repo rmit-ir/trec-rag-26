@@ -137,8 +137,8 @@ def steps_to_trajectory(result, metadata: dict[str, Any]) -> dict[str, Any]:
     """Map an ``AgentResult`` onto a ``TrajectoryBuilder`` trajectory dict.
 
     Per-step wall-clock ``t_start``/``t_end`` and the 0-based LLM-round
-    ``turn`` index recorded by the ReAct loop are carried onto the items;
-    ``finalize`` gets the run-level bounds.
+    ``turn`` index recorded by the ReAct loop are carried into the rich
+    ``output.json.trace`` projection; trajectory items remain strict.
     """
     tb = TrajectoryBuilder(result.query_id, result.query, metadata=metadata)
     for step in result.steps:

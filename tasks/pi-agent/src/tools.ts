@@ -5,6 +5,7 @@
 import { Type } from "@mariozechner/pi-ai";
 import type { AgentTool } from "@mariozechner/pi-agent-core";
 import { classifyId, fetchDoc, search, type SearchHit } from "./search.js";
+import type { TraceDocument } from "./trajectory.js";
 
 /** Per-hit summary recorded in the trajectory (parent docids). */
 export interface ReturnedHit {
@@ -16,6 +17,7 @@ export interface ReturnedHit {
 export interface ToolDetails {
   returned?: ReturnedHit[];
   returnedDocids?: string[];
+  documents?: TraceDocument[];
 }
 
 const SNIPPET_CHARS = 900;
@@ -60,9 +62,18 @@ export function createSearchTool(defaultK: number): AgentTool<any, ToolDetails> 
       const k = pk ?? defaultK;
       const hits = await search(query, k);
       const returned: ReturnedHit[] = hits.map((h) => ({ docid: h.docid, score: h.score }));
+      const documents: TraceDocument[] = hits.map((h) => ({
+        id: h.id,
+        docid: h.docid,
+        kind: h.kind,
+        rank: h.rank,
+        score: h.score,
+        text: h.text,
+        metadata: h.meta,
+      }));
       return {
         content: [{ type: "text", text: formatHits(hits) }],
-        details: { returned, returnedDocids: returned.map((r) => r.docid) },
+        details: { returned, returnedDocids: returned.map((r) => r.docid), documents },
       };
     },
   };
@@ -90,7 +101,15 @@ export function createGetDocumentTool(): AgentTool<any, ToolDetails> {
       }
       return {
         content: [{ type: "text", text: `docid=${doc.docid}\n${text}` }],
-        details: { returnedDocids: [doc.docid] },
+        details: {
+          returnedDocids: [doc.docid],
+          documents: [{
+            id: doc.docid,
+            docid: doc.docid,
+            kind: "document",
+            text,
+          }],
+        },
       };
     },
   };

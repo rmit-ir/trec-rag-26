@@ -15,6 +15,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Container from "@mui/material/Container";
 import DarkModeIcon from "@mui/icons-material/DarkModeOutlined";
 import LightModeIcon from "@mui/icons-material/LightModeOutlined";
+import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightnessOutlined";
 import PersonIcon from "@mui/icons-material/PersonOutline";
 import TravelExploreIcon from "@mui/icons-material/TravelExplore";
 import { useColorScheme } from "@mui/material/styles";
@@ -29,14 +30,41 @@ const NAV = [
 ];
 
 function ThemeToggle() {
-  const { mode, setMode } = useColorScheme();
-  const next = mode === "dark" ? "light" : "dark";
+  const { mode, systemMode, setMode } = useColorScheme();
+  const [anchor, setAnchor] = React.useState<null | HTMLElement>(null);
+  const resolved = mode === "system" ? systemMode : mode;
+  const icon =
+    mode === "system"
+      ? <SettingsBrightnessIcon fontSize="small" />
+      : resolved === "dark"
+        ? <DarkModeIcon fontSize="small" />
+        : <LightModeIcon fontSize="small" />;
   return (
-    <Tooltip title={`Switch to ${next} mode`}>
-      <IconButton size="small" onClick={() => setMode(next)} color="inherit">
-        {mode === "dark" ? <LightModeIcon fontSize="small" /> : <DarkModeIcon fontSize="small" />}
-      </IconButton>
-    </Tooltip>
+    <>
+      <Tooltip title={`Theme: ${mode ?? "system"}${mode === "system" && resolved ? ` (${resolved})` : ""}`}>
+        <IconButton
+          size="small"
+          onClick={(event) => setAnchor(event.currentTarget)}
+          color="inherit"
+        >
+          {icon}
+        </IconButton>
+      </Tooltip>
+      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
+        {(["system", "light", "dark"] as const).map((value) => (
+          <MenuItem
+            key={value}
+            selected={mode === value}
+            onClick={() => {
+              setMode(value);
+              setAnchor(null);
+            }}
+          >
+            {value === "system" ? "System" : value === "light" ? "Light" : "Dark"}
+          </MenuItem>
+        ))}
+      </Menu>
+    </>
   );
 }
 

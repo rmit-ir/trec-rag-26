@@ -52,7 +52,7 @@ function SessionRow({ s }: { s: SessionHeader }) {
             {fmtTs(s.ts)}
             {s.model ? ` · ${s.model}` : ""}
             {s.runId ? ` · ${s.runId}` : ""}
-            {!s.hasTrajectory ? " · no trajectory" : ""}
+            {!s.hasTrace ? " · no trace" : ""}
           </Typography>
         }
       />

@@ -105,10 +105,30 @@ export default function FeedbackWidget({ system, sessionId, target, compact, lab
   const hasContent = mine && (mine.rating || mine.comment || mine.tags.length > 0);
 
   return (
-    <Box sx={{ display: "inline-flex", flexDirection: "column", minWidth: 0 }}>
-      <Box sx={{ display: "inline-flex", alignItems: "center", gap: 0.25 }}>
+    <Box
+      sx={{
+        display: "inline-flex",
+        flexDirection: "column",
+        alignItems: "flex-end",
+        minWidth: 0,
+        flexShrink: 0,
+      }}
+    >
+      <Box
+        sx={{
+          display: "inline-flex",
+          alignItems: "center",
+          flexWrap: "nowrap",
+          whiteSpace: "nowrap",
+          gap: 0.25,
+        }}
+      >
         {label ? (
-          <Typography variant="caption" color="text.secondary" sx={{ mr: 0.5 }}>
+          <Typography
+            variant="caption"
+            color="text.secondary"
+            sx={{ mr: 0.5, whiteSpace: "nowrap" }}
+          >
             {label}
           </Typography>
         ) : null}

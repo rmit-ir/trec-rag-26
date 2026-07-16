@@ -27,7 +27,15 @@ import { DEFAULT_K, DEFAULT_MAX_ROUNDS, TEAM_ID } from "./config.js";
 import { resolveBedrockModel } from "./model.js";
 import { classifyId } from "./search.js";
 import { createGetDocumentTool, createSearchTool, type ToolDetails } from "./tools.js";
-import { nowIso, TrajectoryBuilder, type ItemTiming, type RunStatus, type Trajectory } from "./trajectory.js";
+import {
+  nowIso,
+  TrajectoryBuilder,
+  type ItemTiming,
+  type RunStatus,
+  type StepStats,
+  type TokenUsage,
+  type Trajectory,
+} from "./trajectory.js";
 import {
   buildRagOutput,
   saveRun,
@@ -127,6 +135,43 @@ function parseSentences(obj: any): RawSentence[] {
 
 const countWords = (s: string): number => s.split(/\s+/).filter(Boolean).length;
 
+function statsFromUsage(usage: any): StepStats | undefined {
+  if (!usage || typeof usage !== "object") return undefined;
+  const tokens: TokenUsage = {
+    input: Number(usage.input ?? 0),
+    output: Number(usage.output ?? 0),
+    cache_read: Number(usage.cacheRead ?? 0),
+    cache_write: Number(usage.cacheWrite ?? 0),
+    total: Number(
+      usage.totalTokens ??
+        Number(usage.input ?? 0) +
+          Number(usage.output ?? 0) +
+          Number(usage.cacheRead ?? 0) +
+          Number(usage.cacheWrite ?? 0),
+    ),
+  };
+  return { tokens, cost_usd: Number(usage.cost?.total ?? 0) };
+}
+
+function addStepStats(a: StepStats | undefined, b: StepStats | undefined): StepStats | undefined {
+  if (!a) return b;
+  if (!b) return a;
+  const at = a.tokens ?? {};
+  const bt = b.tokens ?? {};
+  return {
+    ...a,
+    ...b,
+    tokens: {
+      input: Number(at.input ?? 0) + Number(bt.input ?? 0),
+      output: Number(at.output ?? 0) + Number(bt.output ?? 0),
+      cache_read: Number(at.cache_read ?? 0) + Number(bt.cache_read ?? 0),
+      cache_write: Number(at.cache_write ?? 0) + Number(bt.cache_write ?? 0),
+      total: Number(at.total ?? 0) + Number(bt.total ?? 0),
+    },
+    cost_usd: Number(a.cost_usd ?? 0) + Number(b.cost_usd ?? 0),
+  };
+}
+
 /** docid strings → reference indices; drops never-retrieved docids, maps
  *  chunk ids to parents, caps 3 citations/sentence, enforces the 1024-word
  *  budget, and keeps only cited references. */
@@ -202,6 +247,7 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
   let turnIndex = -1; // 0-based model-turn index, bumped on each turn_start
   let turnT0 = startedAt; // start of the current model turn (LLM request)
   let lastAssistantTiming: ItemTiming | undefined; // fallback bounds for output_text
+  let lastAssistantStats: StepStats | undefined;
   const pendingCalls = new Map<string, { args: unknown; tStart: string }>();
 
   const config: AgentLoopConfig = {
@@ -209,7 +255,7 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
     reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
     convertToLlm: (messages) => messages as Message[],
     // Same-turn tool calls execute concurrently (Promise.all inside
-    // pi-agent-core's executeToolCallsParallel), so their trajectory items
+    // pi-agent-core's executeToolCallsParallel), so their output trace steps
     // share a `turn` with genuinely overlapping [t_start, t_end].
     toolExecution: "parallel",
     shouldStopAfterTurn: () => {
@@ -234,24 +280,32 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
         if (msg.role !== "assistant") break;
         // Model-turn bounds: turn_start (request sent) → assistant stream end.
         const timing: ItemTiming = { t_start: turnT0, t_end: nowIso(), turn: turnIndex };
+        const stats = statsFromUsage(msg.usage);
         lastAssistantTiming = timing;
+        lastAssistantStats = stats;
         if (msg.stopReason === "error" || msg.errorMessage) {
           sawError = msg.errorMessage ?? "assistant turn failed";
           log(`[agent] model error: ${sawError}`);
         }
         const hasToolCalls = msg.content.some((b) => b.type === "toolCall");
+        let statsAttached = false;
         for (const block of msg.content) {
           if (block.type === "thinking" && block.thinking) {
-            tb.addReasoning(block.thinking, timing);
+            tb.addReasoning(block.thinking, timing, statsAttached ? {} : { stats });
+            statsAttached = true;
             log(`[agent] thinking: ${block.thinking.replace(/\s+/g, " ").slice(0, 120)}...`);
           } else if (block.type === "text" && block.text.trim()) {
             if (hasToolCalls) {
               // Interleaved commentary between tool calls — keep as reasoning.
-              tb.addReasoning(block.text, timing);
+              tb.addReasoning(block.text, timing, statsAttached ? {} : { stats });
+              statsAttached = true;
             } else {
               finalAnswerText = finalAnswerText ? `${finalAnswerText}\n${block.text}` : block.text;
             }
           }
+        }
+        if (hasToolCalls && !statsAttached) {
+          tb.addModelStep("", timing, { stats });
         }
         break;
       }
@@ -270,6 +324,11 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
           returnedDocids: details.returnedDocids,
           failed: event.isError,
           timing: { t_start: pending?.tStart, t_end: nowIso(), turn: turnIndex },
+          documents: details.documents,
+          context: details.returnedDocids?.length
+            ? { staged: [...details.returnedDocids] }
+            : undefined,
+          stats: { returned_documents: details.returnedDocids?.length ?? 0 },
           extras: event.toolName === "search" ? { k: (args as any).k ?? k } : undefined,
         });
         const n = details.returnedDocids?.length ?? 0;
@@ -299,6 +358,7 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
   let sentences: RawSentence[] = [];
   // The finalize turn is one extra model turn after the loop's last turn.
   let finalizeTiming: ItemTiming | undefined;
+  let finalizeStats: StepStats | undefined;
   if (tb.retrievedDocids.size > 0 && status !== "failed") {
     // Bedrock requires toolConfig whenever the replayed transcript contains
     // toolUse/toolResult blocks, so the finalize context keeps the tools
@@ -318,6 +378,7 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
         reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
       });
       finalizeTiming.t_end = nowIso();
+      finalizeStats = addStepStats(finalizeStats, statsFromUsage(reply.usage));
       rawMessages.push(finalizeContext.messages[finalizeContext.messages.length - 1], reply);
       if (reply.stopReason === "error" || reply.errorMessage) {
         throw new Error(reply.errorMessage ?? "finalize turn failed");
@@ -344,6 +405,7 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
           reasoning: thinkingLevel === "off" ? undefined : thinkingLevel,
         });
         finalizeTiming.t_end = nowIso();
+        finalizeStats = addStepStats(finalizeStats, statsFromUsage(reply.usage));
         rawMessages.push(retryContext.messages[retryContext.messages.length - 1], reply);
         sentences = parseSentences(extractJson(textOf(reply.content)));
       }
@@ -367,24 +429,31 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
     // Bounds of the final structured-answer turn; if it never ran (or died
     // before its first reply), fall back to the last assistant turn's bounds.
     const timing = finalizeTiming?.t_end !== undefined ? finalizeTiming : lastAssistantTiming;
-    tb.addOutputText(finalAnswerText, timing ?? {});
+    tb.addOutputText(finalAnswerText, timing ?? {}, {
+      stats: finalizeTiming?.t_end !== undefined ? finalizeStats : lastAssistantStats,
+    });
   }
 
   tb.metadata.rounds_used = rounds;
-  const usage = (loopMessages as Message[])
+  const usage = rawMessages
     .filter((m): m is AssistantMessage => (m as any).role === "assistant")
     .reduce(
       (acc, m) => {
         acc.input += m.usage?.input ?? 0;
         acc.output += m.usage?.output ?? 0;
+        acc.cache_read += m.usage?.cacheRead ?? 0;
+        acc.cache_write += m.usage?.cacheWrite ?? 0;
+        acc.total += m.usage?.totalTokens ?? 0;
         acc.cost += m.usage?.cost?.total ?? 0;
         return acc;
       },
-      { input: 0, output: 0, cost: 0 },
+      { input: 0, output: 0, cache_read: 0, cache_write: 0, total: 0, cost: 0 },
     );
   tb.metadata.usage = usage;
 
-  const trajectory = tb.finalize(status, rawMessages, { startedAt, endedAt: nowIso() });
+  const endedAt = nowIso();
+  const trajectory = tb.finalize(status, rawMessages);
+  const trace = tb.finalizeTrace(status, rawMessages, { startedAt, endedAt });
   const output = buildRagOutput({
     narrativeId: opts.queryId,
     narrative: opts.query,
@@ -395,7 +464,7 @@ export async function runResearchAgent(opts: RunAgentOptions): Promise<RunAgentR
   });
 
   // ---- 4. persist ------------------------------------------------------------
-  const paths = saveRun(opts.query, trajectory, output);
+  const paths = saveRun(opts.query, trajectory, output, { trace });
   const violations = validateRagOutput(output);
   return { trajectory, output, paths, violations };
 }

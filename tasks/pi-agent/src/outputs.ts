@@ -7,7 +7,9 @@ import fs from "node:fs";
 import path from "node:path";
 import { OUTPUT_DIR, TEAM_ID } from "./config.js";
 import { runTimestamp } from "./time.js";
-import type { Trajectory } from "./trajectory.js";
+import type { OutputTrace, Trajectory } from "./trajectory.js";
+
+export type { OutputTrace } from "./trajectory.js";
 
 export { runTimestamp } from "./time.js";
 
@@ -26,6 +28,9 @@ export interface RagOutput {
   };
   references: string[];
   answer: AnswerSentence[];
+  /** Internal execution artifact. Strip this field when creating the official
+   * TREC submission JSONL. */
+  trace?: OutputTrace;
 }
 
 /** First `nWords` of the query, sanitised: `write_a_blog_post_contrasting`. */
@@ -53,6 +58,19 @@ export function buildRagOutput(opts: {
     },
     references: [...opts.references],
     answer: opts.answer,
+  };
+}
+
+/** Exact organizer-facing projection. Internal fields such as trace must never
+ * be copied into rag_output_trec_rag_2026.jsonl. */
+export function toSubmissionOutput(output: RagOutput): Omit<RagOutput, "trace"> {
+  return {
+    metadata: { ...output.metadata },
+    references: [...output.references],
+    answer: output.answer.map((sentence) => ({
+      text: sentence.text,
+      citations: [...sentence.citations],
+    })),
   };
 }
 
@@ -124,7 +142,12 @@ export function saveRun(
   query: string,
   trajectory: Trajectory,
   output: RagOutput,
-  opts: { timestamp?: string; validate?: boolean; outDir?: string } = {},
+  opts: {
+    timestamp?: string;
+    validate?: boolean;
+    outDir?: string;
+    trace?: OutputTrace;
+  } = {},
 ): SavedPaths {
   const ts = opts.timestamp ?? runTimestamp();
   const slug = querySlug(query);
@@ -135,6 +158,7 @@ export function saveRun(
     trajectory: path.join(outDir, `${ts}.${slug}.trajectory.json`),
     output: path.join(outDir, `${ts}.${slug}.output.json`),
   };
+  if (opts.trace !== undefined) output.trace = opts.trace;
   fs.writeFileSync(paths.trajectory, JSON.stringify(trajectory, null, 2));
   fs.writeFileSync(paths.output, JSON.stringify(output, null, 2));
 

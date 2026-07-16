@@ -6,7 +6,7 @@ import Tooltip from "@mui/material/Tooltip";
 import Typography from "@mui/material/Typography";
 import CheckCircleOutlineIcon from "@mui/icons-material/CheckCircleOutline";
 import { STEP_COLORS } from "@/lib/palette";
-import type { TrajectoryFile, TrajectoryStep } from "@/lib/types";
+import type { TraceFile, TraceStep } from "@/lib/types";
 import { computeGanttLayout, fmtDuration, type GanttLayout } from "@/lib/gantt";
 import {
   STEP_LEGEND,
@@ -18,34 +18,21 @@ import {
   type NodeSelection,
 } from "./stepMeta";
 
-/**
- * Session timeline. Two renderings, detected per session:
- *
- * - Timed (new artifacts, src/ragrun/trajectory.py contract): a PostHog-style
- *   Gantt — time axis with nice ticks, total duration in the header, one row
- *   of turn-group spans, and step spans positioned/sized by [t_start, t_end];
- *   same-turn overlapping steps stack into parallel lanes. Times arrive as
- *   ISO 8601 with offset (Melbourne local); layout math is epoch-ms relative
- *   so only durations/offsets matter here.
- * - Untimed (all older artifacts): the original sequence-marker strip,
- *   unchanged.
- *
- * Clicking a span/marker SELECTS the step; the ring control selects Answer.
- */
+/** PostHog-style timed Gantt for output.json.trace v2. */
 export default function Timeline({
   steps,
-  trajectory,
+  trace,
   selected,
   onSelect,
 }: {
-  steps: TrajectoryStep[];
-  trajectory?: TrajectoryFile | null;
+  steps: TraceStep[];
+  trace?: TraceFile | null;
   selected: NodeSelection;
   onSelect: (sel: NodeSelection) => void;
 }) {
   const layout = React.useMemo(
-    () => computeGanttLayout(steps, trajectory ?? undefined),
-    [steps, trajectory],
+    () => computeGanttLayout(steps, trace ?? undefined),
+    [steps, trace],
   );
   return (
     <Box
@@ -61,7 +48,9 @@ export default function Timeline({
       {layout ? (
         <GanttTrack steps={steps} layout={layout} selected={selected} onSelect={onSelect} />
       ) : (
-        <SequenceTrack steps={steps} selected={selected} onSelect={onSelect} />
+        <Typography variant="body2" color="error.main">
+          Invalid trace: every generation and tool step must include t_start and t_end.
+        </Typography>
       )}
       <Legend />
     </Box>
@@ -74,8 +63,8 @@ export default function Timeline({
 
 const AXIS_H = 18;
 const TURN_H = 20;
-const LANE_H = 22;
-const BAR_H = 16;
+const LANE_H = 26;
+const BAR_H = 20;
 
 function GanttTrack({
   steps,
@@ -83,7 +72,7 @@ function GanttTrack({
   selected,
   onSelect,
 }: {
-  steps: TrajectoryStep[];
+  steps: TraceStep[];
   layout: GanttLayout;
   selected: NodeSelection;
   onSelect: (sel: NodeSelection) => void;
@@ -206,7 +195,7 @@ function GanttTrack({
                   left: `${pct(sp.start)}%`,
                   width: `${pct(dur)}%`,
                   // very short spans stay clickable
-                  minWidth: 10,
+                  minWidth: 20,
                   height: BAR_H,
                   bgcolor: colorOf(step),
                   color: "#fff",
@@ -222,109 +211,37 @@ function GanttTrack({
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "flex-start",
-                  gap: 0.25,
-                  fontSize: 11,
+                  gap: 0.4,
+                  fontSize: 13,
+                  lineHeight: 1,
                   zIndex: 1,
+                  px: 0.55,
                   "&:hover": { filter: "brightness(1.15)" },
                 }}
               >
-                <StepIcon step={step} fontSize="inherit" />
+                <Box
+                  component="span"
+                  sx={{ display: "inline-grid", placeItems: "center", flexShrink: 0, p: "1px" }}
+                >
+                  <StepIcon step={step} fontSize="inherit" />
+                </Box>
+                <Box
+                  component="span"
+                  sx={{
+                    overflow: "hidden",
+                    textOverflow: "ellipsis",
+                    whiteSpace: "nowrap",
+                    fontSize: "0.63rem",
+                    fontWeight: 600,
+                  }}
+                >
+                  {stepKind(step)} · {fmtDuration(dur)}
+                </Box>
               </Box>
             </Tooltip>
           );
         })}
       </Box>
-    </Box>
-  );
-}
-
-// ---------------------------------------------------------------------------
-// Sequence rendering (untimed sessions) — the original marker strip
-// ---------------------------------------------------------------------------
-
-function SequenceTrack({
-  steps,
-  selected,
-  onSelect,
-}: {
-  steps: TrajectoryStep[];
-  selected: NodeSelection;
-  onSelect: (sel: NodeSelection) => void;
-}) {
-  const colorOf = useStepColor();
-
-  const marker = (opts: {
-    key: React.Key;
-    title: string;
-    color: string;
-    isSelected: boolean;
-    failed?: boolean;
-    onClick: () => void;
-    children: React.ReactNode;
-  }) => (
-    <Tooltip key={opts.key} title={opts.title}>
-      <Box
-        component="button"
-        aria-label={opts.title}
-        onClick={opts.onClick}
-        sx={{
-          width: 24,
-          height: 24,
-          borderRadius: "50%",
-          display: "grid",
-          placeItems: "center",
-          color: "#fff",
-          bgcolor: opts.color,
-          border: "2px solid",
-          borderColor: opts.failed ? "error.main" : "transparent",
-          outline: opts.isSelected ? "2px solid" : "none",
-          outlineColor: "primary.main",
-          outlineOffset: "2px",
-          cursor: "pointer",
-          flexShrink: 0,
-          p: 0,
-          fontSize: 13,
-          transform: opts.isSelected ? "scale(1.15)" : "none",
-          transition: "transform 120ms",
-          "&:hover": { transform: "scale(1.25)" },
-        }}
-      >
-        {opts.children}
-      </Box>
-    </Tooltip>
-  );
-
-  const connector = <Box sx={{ width: 14, height: 2, bgcolor: "divider", flexShrink: 0 }} />;
-
-  return (
-    <Box sx={{ display: "flex", alignItems: "center", overflowX: "auto", pb: 0.5, pt: 0.5 }}>
-      {steps.map((step, i) => (
-        <React.Fragment key={i}>
-          {i > 0 ? connector : null}
-          {marker({
-            key: i,
-            title: `${i + 1}. ${stepKind(step)}${step.failed ? " (failed)" : ""}`,
-            color: colorOf(step),
-            isSelected: selected === i,
-            failed: Boolean(step.failed),
-            onClick: () => onSelect(i),
-            children: <StepIcon step={step} fontSize="inherit" />,
-          })}
-        </React.Fragment>
-      ))}
-      {steps.length > 0 ? connector : null}
-      {marker({
-        key: "answer",
-        title: "Final answer",
-        color: "transparent",
-        isSelected: selected === "answer",
-        onClick: () => onSelect("answer"),
-        children: (
-          <CheckCircleOutlineIcon
-            sx={{ fontSize: 22, color: selected === "answer" ? "primary.main" : "text.secondary" }}
-          />
-        ),
-      })}
     </Box>
   );
 }
@@ -337,13 +254,15 @@ function Legend() {
         <Stack key={l.key} direction="row" spacing={0.5} alignItems="center">
           <Box
             sx={{
-              width: 14,
-              height: 14,
+              width: 18,
+              height: 18,
               borderRadius: "50%",
               bgcolor: STEP_COLORS[l.key][dark ? "dark" : "light"],
               color: "#fff",
               display: "grid",
               placeItems: "center",
+              p: "2px",
+              boxSizing: "border-box",
             }}
           >
             {l.icon}
