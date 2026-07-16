@@ -16,6 +16,33 @@ arrives as ``reasoningContent`` content blocks, interleaved with ``toolUse``
 blocks in the same assistant message. CRITICAL: those blocks (text +
 signature) are passed back UNMODIFIED on subsequent turns — we append the
 whole ``output.message`` verbatim to the history and never rewrite it.
+
+Prompt caching: Claude on Bedrock has NO automatic caching (unlike Nova) —
+every cached prefix needs an explicit ``{"cachePoint": {"type": "default"}}``
+block. Bedrock chains the sections ``tools`` -> ``system`` -> ``messages`` and
+evaluates the per-checkpoint token minimum against their cumulative total, so
+stable content must precede volatile content. Two checkpoints (of the 4 Claude
+allows) are placed:
+
+1. a static one at the end of ``system`` — tools + system never change; and
+2. a rolling one at the end of the last *settled* user message.
+
+"Settled" is the key invariant: ``compact_tool_results`` only ever rewrites the
+single staged batch held in the ledger's ``pending`` list, and the commit that
+triggers it clears ``pending``, so each tool result is compacted exactly once.
+By the time compaction returns, every message then in history is final — hence
+``_settled_count = len(self._messages)`` right there. The freshly staged batch
+appended afterwards sits *after* the breakpoint: it is about to be rewritten,
+so caching it would buy an entry that the next turn invalidates anyway.
+
+Anthropic models on Bedrock support simplified cache management — one
+checkpoint at the end of the static content, and the service looks back ~20
+content blocks to find the longest matching prefix — so a single rolling
+checkpoint is enough; there is no need to keep a window of older breakpoints.
+
+Note: with caching on, ``usage.inputTokens`` counts only NON-cached input.
+The true context size is ``inputTokens + cacheReadInputTokens +
+cacheWriteInputTokens`` (see ``agent._usage_token_stats``).
 """
 from __future__ import annotations
 
@@ -38,13 +65,20 @@ DEFAULT_MODEL_ID = "au.anthropic.claude-sonnet-5"
 DEFAULT_REGION = "ap-southeast-2"
 
 
+def cache_point() -> dict[str, Any]:
+    """A fresh Bedrock cache checkpoint marker (default 5-minute TTL)."""
+    return {"cachePoint": {"type": "default"}}
+
+
 class BedrockProvider(Provider):
     def __init__(self, model_id: str | None = None, *, region: str | None = None,
-                 max_tokens: int = 16000, thinking: bool = True) -> None:
+                 max_tokens: int = 16000, thinking: bool = True,
+                 caching: bool = True) -> None:
         self.model_id = (model_id
                          or os.environ.get("BEDROCK_MODEL_ID", DEFAULT_MODEL_ID))
         self.max_tokens = max_tokens
         self.thinking = thinking
+        self.caching = caching
         self._client = boto3.client(
             "bedrock-runtime",
             region_name=region or os.environ.get("BEDROCK_REGION", DEFAULT_REGION),
@@ -54,11 +88,18 @@ class BedrockProvider(Provider):
         self._system: list[dict[str, Any]] = []
         self._tool_config: dict[str, Any] | None = None
         self._messages: list[dict[str, Any]] = []
+        # Count of leading messages that can never be rewritten again. Advanced
+        # only by compact_tool_results; see the module docstring.
+        self._settled_count = 0
 
     # -- Provider contract ---------------------------------------------------
 
     def start(self, system_prompt: str, tools: list[dict[str, Any]]) -> None:
         self._system = [{"text": system_prompt}]
+        if self.caching:
+            # Static checkpoint: Bedrock chains tools -> system -> messages, so
+            # this one entry covers every byte that never changes in this run.
+            self._system.append(cache_point())
         self._tool_config = {
             "tools": [
                 {"toolSpec": {"name": t["name"],
@@ -68,11 +109,38 @@ class BedrockProvider(Provider):
             ]
         } if tools else None
         self._messages = []
+        self._settled_count = 0
 
     def add_user_message(self, text: str) -> None:
         self._messages.append({"role": "user", "content": [{"text": text}]})
 
+    def _place_rolling_cache_point(self) -> None:
+        """Move the single rolling checkpoint to the settled boundary.
+
+        Anchored on the last settled *user* message: assistant messages carry
+        signed ``reasoningContent`` and are replayed byte-for-byte, so nothing
+        is ever appended to them. The cost is that the trailing assistant turn
+        stays uncached for one more round, which the next checkpoint absorbs.
+        """
+        if not self.caching:
+            return
+        for message in self._messages:
+            content = message.get("content")
+            if isinstance(content, list) and any(
+                    "cachePoint" in block for block in content):
+                message["content"] = [
+                    block for block in content if "cachePoint" not in block]
+        for index in range(self._settled_count - 1, -1, -1):
+            message = self._messages[index]
+            if message.get("role") != "user":
+                continue
+            content = message.get("content")
+            if isinstance(content, list):
+                message["content"] = [*content, cache_point()]
+            return
+
     def run_turn(self) -> ModelTurn:
+        self._place_rolling_cache_point()
         kwargs: dict[str, Any] = {
             "modelId": self.model_id,
             "system": self._system,
@@ -149,6 +217,10 @@ class BedrockProvider(Provider):
         if remaining:
             missing = ", ".join(sorted(remaining))
             raise KeyError(f"tool results not found for compaction: {missing}")
+        # Compaction only ever rewrites the one staged batch, and the commit
+        # that triggered it cleared the ledger's pending list — so every
+        # message now in history has reached its final bytes.
+        self._settled_count = len(self._messages)
 
     @property
     def raw_messages(self) -> list[Any]:

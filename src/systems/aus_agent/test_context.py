@@ -278,24 +278,34 @@ class ContextLedgerTest(unittest.TestCase):
 
 
 class ProviderCompactionTest(unittest.TestCase):
-    def test_bedrock_compaction_rewrites_only_tool_result_messages(self):
+    def _provider(self, *, caching: bool = True) -> BedrockProvider:
         provider = object.__new__(BedrockProvider)
-        signed_assistant = {
+        provider.caching = caching
+        provider._messages = []
+        provider._settled_count = 0
+        return provider
+
+    def _staged(self, call_id: str) -> dict:
+        return {
+            "role": "user",
+            "content": [{"toolResult": {
+                "toolUseId": call_id,
+                "content": [{"text": f"full staged payload {call_id}"}],
+                "status": "success",
+            }}],
+        }
+
+    def _signed_assistant(self) -> dict:
+        return {
             "role": "assistant",
             "content": [{"reasoningContent": {
                 "reasoningText": {"text": "", "signature": "signed"}}}],
         }
-        provider._messages = [
-            signed_assistant,
-            {
-                "role": "user",
-                "content": [{"toolResult": {
-                    "toolUseId": "s1",
-                    "content": [{"text": "full staged payload"}],
-                    "status": "success",
-                }}],
-            },
-        ]
+
+    def test_bedrock_compaction_rewrites_only_tool_result_messages(self):
+        provider = self._provider()
+        signed_assistant = self._signed_assistant()
+        provider._messages = [signed_assistant, self._staged("s1")]
         replacement = json.dumps({"decision": f"{REJECTION_PREFIX} a"})
 
         provider.compact_tool_results({"s1": replacement})
@@ -305,6 +315,85 @@ class ProviderCompactionTest(unittest.TestCase):
             provider._messages[1]["content"][0]["toolResult"]["content"],
             [{"text": replacement}],
         )
+
+    def test_compaction_settles_every_message_then_in_history(self):
+        provider = self._provider()
+        provider._messages = [
+            {"role": "user", "content": [{"text": "task"}]},
+            self._signed_assistant(),
+            self._staged("s1"),
+            self._signed_assistant(),
+        ]
+        self.assertEqual(provider._settled_count, 0)
+
+        provider.compact_tool_results({"s1": "compacted"})
+
+        self.assertEqual(provider._settled_count, 4)
+
+    def test_failed_compaction_does_not_settle_history(self):
+        provider = self._provider()
+        provider._messages = [self._staged("s1")]
+        with self.assertRaises(KeyError):
+            provider.compact_tool_results({"missing": "x"})
+        self.assertEqual(provider._settled_count, 0)
+
+    def test_rolling_cache_point_lands_on_last_settled_user_message(self):
+        provider = self._provider()
+        provider._messages = [
+            {"role": "user", "content": [{"text": "task"}]},
+            self._signed_assistant(),
+            self._staged("s1"),
+            self._signed_assistant(),
+        ]
+        provider.compact_tool_results({"s1": "compacted"})
+        provider._messages.append(self._staged("s2"))  # fresh, still volatile
+
+        provider._place_rolling_cache_point()
+
+        # Anchored on the settled tool-result message (index 2), not the
+        # signed assistant that follows it, and not the volatile new batch.
+        self.assertEqual(provider._messages[2]["content"][-1],
+                         {"cachePoint": {"type": "default"}})
+        for index in (0, 1, 3, 4):
+            content = provider._messages[index]["content"]
+            self.assertFalse(any("cachePoint" in b for b in content),
+                             f"unexpected cachePoint on message {index}")
+
+    def test_rolling_cache_point_moves_and_never_duplicates(self):
+        provider = self._provider()
+        provider._messages = [
+            {"role": "user", "content": [{"text": "task"}]},
+            self._signed_assistant(),
+            self._staged("s1"),
+            self._signed_assistant(),
+        ]
+        provider.compact_tool_results({"s1": "compacted"})
+        provider._place_rolling_cache_point()
+
+        provider._messages.append(self._staged("s2"))
+        provider._messages.append(self._signed_assistant())
+        provider.compact_tool_results({"s2": "compacted"})
+        provider._place_rolling_cache_point()
+
+        points = [
+            index for index, message in enumerate(provider._messages)
+            if any("cachePoint" in b for b in message["content"])
+        ]
+        self.assertEqual(points, [4])  # moved off msg 2, exactly one remains
+
+    def test_no_cache_point_before_first_compaction(self):
+        provider = self._provider()
+        provider._messages = [{"role": "user", "content": [{"text": "task"}]}]
+        provider._place_rolling_cache_point()
+        self.assertEqual(provider._messages[0]["content"], [{"text": "task"}])
+
+    def test_caching_disabled_places_no_cache_points(self):
+        provider = self._provider(caching=False)
+        provider._messages = [self._staged("s1")]
+        provider.compact_tool_results({"s1": "compacted"})
+        provider._place_rolling_cache_point()
+        content = provider._messages[0]["content"]
+        self.assertFalse(any("cachePoint" in b for b in content))
 
 
 class AgentFlowTest(unittest.TestCase):
@@ -317,11 +406,10 @@ class AgentFlowTest(unittest.TestCase):
         prompt = agent.load_system_prompt(4)
         self.assertNotIn(agent.MAX_COMMITTED_PLACEHOLDER, prompt)
         self.assertIn("Commit at most `4` documents", prompt)
-        self.assertIn(
-            '{"answer": [{"text": "<one sentence>", '
-            '"citations": ["<docid>", "..."]}]}',
-            prompt,
-        )
+        self.assertIn("exactly one sentence per line", prompt)
+        self.assertIn("square-bracket markers", prompt)
+        self.assertIn("never act as a word in the sentence", prompt)
+        self.assertNotIn('{"answer"', prompt)
         for section in (
             "## Scope interpretation",
             "## Internal success plan",
@@ -335,7 +423,7 @@ class AgentFlowTest(unittest.TestCase):
         self.assertIn("Concrete minimum requirements", prompt)
         self.assertIn("Target/excellence requirements", prompt)
         self.assertIn("multiple complementary queries in parallel", prompt)
-        self.assertIn("counterevidence, contradictions", prompt)
+        self.assertIn("counter-evidence, contradictions", prompt)
         self.assertIn("hard ceiling, not a spending target", prompt)
         self.assertIn("Do not call a tool solely to create another", prompt)
         self.assertIn("500,000 tokens", prompt)
@@ -363,23 +451,79 @@ class AgentFlowTest(unittest.TestCase):
         self.assertEqual(stats["processed"], 130)
         self.assertEqual(stats["total"], 180)
 
-    def test_strict_final_validation_rejects_prose_unknown_docs_and_overlimit(self):
-        sentences, errors = agent._validate_answer_json(
-            "Here is the answer.", {"a"})
-        self.assertIsNone(sentences)
-        self.assertIn("not a single valid JSON object", errors[0])
+    def test_final_prose_parser_extracts_sentences_and_citations(self):
+        sentences, errors = agent._parse_final_prose(
+            "Vaccination reduced hospitalizations by 40% [a], with the "
+            "largest effect in older adults. [b]\n"
+            "\n"
+            "Coverage remained uneven across regions. [a, c]\n"
+            "Remaining evidence gaps include cost effectiveness.",
+            {"a", "b", "c"},
+        )
+        self.assertEqual(errors, [])
+        self.assertEqual(sentences, [
+            {
+                "text": (
+                    "Vaccination reduced hospitalizations by 40%, with the "
+                    "largest effect in older adults."
+                ),
+                "citations": ["a", "b"],
+            },
+            {
+                "text": "Coverage remained uneven across regions.",
+                "citations": ["a", "c"],
+            },
+            {
+                "text": "Remaining evidence gaps include cost effectiveness.",
+                "citations": [],
+            },
+        ])
 
-        sentences, errors = agent._validate_answer_json(json.dumps({
-            "answer": [{"text": "Claim.", "citations": ["missing"]}]
-        }), {"a"})
+    def test_final_prose_parser_rejects_json_markdown_and_bad_citations(self):
+        sentences, errors = agent._parse_final_prose(
+            json.dumps({"answer": []}), {"a"})
+        self.assertIsNone(sentences)
+        self.assertIn("plain prose lines", errors[0])
+
+        sentences, errors = agent._parse_final_prose(
+            "## Findings\n- A bullet point. [a]", {"a"})
+        self.assertIsNone(sentences)
+        self.assertIn("Markdown syntax", errors[0])
+        self.assertIn("Markdown syntax", errors[1])
+        self.assertIn("contains no sentences", errors[2])
+
+        sentences, errors = agent._parse_final_prose(
+            "Claim. [missing]", {"a"})
         self.assertIsNone(sentences)
         self.assertIn("uncommitted docids: missing", errors[0])
 
-        sentences, errors = agent._validate_answer_json(json.dumps({
-            "answer": [{"text": " ".join(["word"] * 1025), "citations": []}]
-        }), set())
+        sentences, errors = agent._parse_final_prose(
+            "Overcited claim. [a] [b] [c] [d]", {"a", "b", "c", "d"})
+        self.assertIsNone(sentences)
+        self.assertIn("cites 4 docids; max 3", errors[0])
+
+        sentences, errors = agent._parse_final_prose(
+            "A report that never cites its committed evidence.", {"a"})
+        self.assertIsNone(sentences)
+        self.assertIn("no sentence carries a citation", errors[0])
+
+        sentences, errors = agent._parse_final_prose(
+            " ".join(["word"] * 1025), set())
         self.assertIsNone(sentences)
         self.assertIn("maximum is 1024", errors[0])
+
+    def test_final_prose_parser_allows_uncited_report_without_evidence(self):
+        sentences, errors = agent._parse_final_prose(
+            "No committed evidence supports the requested comparison.", set())
+        self.assertEqual(errors, [])
+        self.assertEqual(sentences[0]["citations"], [])
+
+    def test_final_prose_word_count_excludes_citation_markers(self):
+        text = " ".join(["word"] * 1024) + " [a]"
+        sentences, errors = agent._parse_final_prose(text, {"a"})
+        self.assertEqual(errors, [])
+        self.assertEqual(agent._word_count(sentences), 1024)
+        self.assertEqual(sentences[0]["citations"], ["a"])
 
     def _run(self, provider: FakeProvider, **kwargs: object):
         captured: dict[str, object] = {}
@@ -435,9 +579,7 @@ class AgentFlowTest(unittest.TestCase):
             ),
             _turn(text="Research is complete.", input_tokens=400),
             _turn(
-                text=json.dumps({"answer": [
-                    {"text": "Supported finding.", "citations": ["b", "g"]}
-                ]}),
+                text="Supported finding. [b] [g]",
                 input_tokens=500,
             ),
         ])
@@ -587,9 +729,7 @@ class AgentFlowTest(unittest.TestCase):
                 input_tokens=160,
             ),
             _turn(
-                text=json.dumps({"answer": [
-                    {"text": "Budgeted finding.", "citations": ["b"]}
-                ]}),
+                text="Budgeted finding. [b]",
                 input_tokens=100,
             ),
         ])
@@ -626,10 +766,7 @@ class AgentFlowTest(unittest.TestCase):
                 input_tokens=100,
             ),
             _turn(
-                text=json.dumps({"answer": [{
-                    "text": "No evidence was retained.",
-                    "citations": [],
-                }]}),
+                text="No evidence was retained.",
                 input_tokens=100,
             ),
         ])
@@ -664,10 +801,7 @@ class AgentFlowTest(unittest.TestCase):
                 input_tokens=100,
             ),
             _turn(
-                text=json.dumps({"answer": [{
-                    "text": "The invalid batch retained no evidence.",
-                    "citations": [],
-                }]}),
+                text="The invalid batch retained no evidence.",
                 input_tokens=100,
             ),
         ])
@@ -685,6 +819,50 @@ class AgentFlowTest(unittest.TestCase):
         self.assertTrue(commit_steps[0]["failed"])
         self.assertEqual(len(commit_steps[0]["context"]["staged"]), 3)
         self.assertEqual(len(commit_steps[0]["context"]["rejected"]), 3)
+
+    def test_valid_final_report_is_accepted_when_staged_batch_expires(self):
+        provider = FakeProvider([
+            _turn(
+                text="Retrieve evidence.",
+                calls=[_call("s1", "search", query="alpha")],
+                input_tokens=100,
+            ),
+            _turn(
+                text="No committed evidence supports the request.",
+                input_tokens=100,
+            ),
+        ])
+
+        summary, captured = self._run(provider)
+        self.assertEqual(summary["status"], "completed")
+        self.assertEqual(summary["committed_documents"], 0)
+        self.assertEqual(summary["rejected_documents"], 3)
+        self.assertIn(REJECTION_PREFIX, provider.tool_results["s1"])
+        # The expired batch does not cost an extra correction turn.
+        user_messages = [
+            message["text"] for message in provider.messages
+            if message["role"] == "user"
+        ]
+        self.assertEqual(len(user_messages), 1)
+        self.assertEqual(
+            captured["output"]["answer"][0]["text"],
+            "No committed evidence supports the request.",
+        )
+
+    def test_safety_backstop_stops_commit_without_staged_loop(self):
+        provider = FakeProvider([
+            _turn(
+                calls=[_call(f"c{i}", "commit_context", documents=[])],
+                input_tokens=100,
+            )
+            for i in range(5)
+        ])
+
+        summary, captured = self._run(provider, safety_max_rounds=3)
+        self.assertEqual(summary["status"], "failed")
+        self.assertIn(
+            "safety backstop", captured["output"]["answer"][0]["text"])
+
 
 if __name__ == "__main__":
     unittest.main()

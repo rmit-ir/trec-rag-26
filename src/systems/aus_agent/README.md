@@ -3,9 +3,10 @@
 Agentic RAG with pluggable LLM backends. One model and one continuously
 accumulating provider conversation handle the entire run: decomposing the
 request, full-text `search`, sparse `commit_context` decisions, coverage-gap
-follow-ups, and the final strict-JSON cited report. There is no separate
-researcher, finalizer, formatter, compressor, reconstructed context, or
-phase-changing prompt.
+follow-ups, and the final cited prose report (one sentence per line with
+inline `[docid]` markers, parsed by the harness into the organizer JSON).
+There is no separate researcher, finalizer, formatter, compressor,
+reconstructed context, or phase-changing prompt.
 
 Both run artifacts (`*.trajectory.json` + `*.output.json`) are written to
 `data/outputs/aus_agent/` via `ragrun.save_run`. Every citation must be a docid
@@ -39,12 +40,13 @@ selection evidence.
 
 - `prompts/system.md` — the complete system contract: scope interpretation,
   internal success requirements, research workflow, staged evidence protocol,
-  500K stopping policy, and final JSON schema. Runtime substitution uses the
-  single distinctive `__MAX_COMMITTED_DOCS__` placeholder.
+  500K stopping policy, and the final prose-report contract. Runtime
+  substitution uses the single distinctive `__MAX_COMMITTED_DOCS__`
+  placeholder.
 - `agent.py` — harness loop, staged-context state machine, parallel tool
-  execution, current-context token budget, same-loop strict JSON
-  validation/correction, docid→reference-index mapping, and trajectory/output
-  assembly.
+  execution, current-context token budget, same-loop final-report
+  parsing/validation/correction, docid→reference-index mapping, and
+  trajectory/output assembly.
 - `context.py` — context ledger, selection validation, and lossless-history
   compaction.
 - `tools/search.py` — AUS full-text adapter over the shared
@@ -117,12 +119,17 @@ the model emitted them.
 
 ## Single-agent finalization
 
-The final JSON schema is part of the original system prompt. When the model
-emits no tool calls, that same turn is validated as the attempted final answer.
-Invalid JSON, uncommitted citations, more than three citations per sentence,
-or a report over 1024 words receives concise feedback in the same conversation,
-and the same model corrects itself on its next turn. No separate final prompt
-or compressor call is introduced.
+The final-report contract is part of the original system prompt: plain prose,
+one sentence per line, citations as inline `[docid]` markers on the supporting
+sentence's line. The model writes at its natural register instead of
+serializing JSON; the harness parses the lines, strips the markers (they must
+never act as words in a sentence), and maps docids to reference indices for
+the organizer schema. When the model emits no tool calls, that same turn is
+parsed as the attempted final answer. Markdown/JSON formatting, uncommitted
+docids, more than three citations per sentence, a cited-evidence report with
+no citations at all, or a report over 1024 words receives concise feedback in
+the same conversation, and the same model corrects itself on its next turn.
+No separate final prompt or compressor call is introduced.
 
 Search is the normal evidence tool. AUS requests full backend hits and applies
 its own independent per-result staging budget before returning text to the

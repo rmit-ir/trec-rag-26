@@ -19,6 +19,7 @@ tools and explicitly retained by the agent.
 from __future__ import annotations
 
 import json
+import re
 from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 from time import perf_counter
@@ -95,63 +96,79 @@ def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
 
 # -- final answer parsing / mapping ------------------------------------------
 
-def _validate_answer_json(
+# A citation marker is one bracket group holding one or more docid tokens,
+# e.g. ``[shard_00459_61697]`` or ``[shard_a, shard_b]``.
+_CITATION_MARKER_RE = re.compile(r"\[([^\[\]]+)\]")
+_CITATION_TOKEN_SPLIT_RE = re.compile(r"[,;\s]+")
+# Markdown structure the final report must not contain: headings, bullet or
+# numbered list markers, blockquotes, and fences.
+_MARKDOWN_LINE_RE = re.compile(r"^(#{1,6}\s|[-*+]\s|>\s|\d{1,3}[.)]\s|```)")
+
+
+def _parse_final_prose(
     text: str | None,
     committed_docids: set[str],
 ) -> tuple[list[dict[str, Any]] | None, list[str]]:
-    """Strictly validate the continuous loop's attempted final response."""
+    """Parse and validate the attempted final report.
+
+    The contract is prose, one sentence per line, citing committed docids with
+    inline ``[docid]`` markers. Markers are stripped from the submitted
+    sentence text, so they must never act as grammatical parts of a sentence.
+    """
     errors: list[str] = []
-    if not text:
+    if not text or not text.strip():
         return None, ["response is empty"]
-    try:
-        obj = json.loads(text.strip())
-    except json.JSONDecodeError as e:
-        return None, [f"response is not a single valid JSON object: {e.msg}"]
-    if not isinstance(obj, dict):
-        return None, ["top-level JSON value must be an object"]
-    if set(obj) != {"answer"}:
-        errors.append("top-level object must contain only the 'answer' field")
-    answer = obj.get("answer")
-    if not isinstance(answer, list) or not answer:
-        return None, errors + ["'answer' must be a non-empty array"]
+    stripped = text.strip()
+    if stripped.startswith("{") or stripped.startswith("```"):
+        return None, [
+            "the final report must be plain prose lines with [docid] "
+            "citation markers, not JSON or a fenced block"
+        ]
 
     sentences: list[dict[str, Any]] = []
-    for index, item in enumerate(answer):
-        if not isinstance(item, dict):
-            errors.append(f"answer[{index}] must be an object")
+    any_citation = False
+    for number, raw_line in enumerate(stripped.splitlines(), 1):
+        line = raw_line.strip()
+        if not line:
             continue
-        if set(item) != {"text", "citations"}:
+        if _MARKDOWN_LINE_RE.match(line) or "**" in line:
             errors.append(
-                f"answer[{index}] must contain only 'text' and 'citations'")
-        sentence = item.get("text")
-        if not isinstance(sentence, str) or not sentence.strip():
-            errors.append(f"answer[{index}].text must be a non-empty string")
+                f"line {number} uses Markdown syntax; write plain prose "
+                "sentences without headings, list markers, bold, or fences")
             continue
-        citations = item.get("citations")
-        if not isinstance(citations, list):
-            errors.append(f"answer[{index}].citations must be an array")
+        citations: list[str] = []
+        for match in _CITATION_MARKER_RE.finditer(line):
+            for token in _CITATION_TOKEN_SPLIT_RE.split(match.group(1)):
+                if token and token not in citations:
+                    citations.append(token)
+        sentence = _CITATION_MARKER_RE.sub(" ", line)
+        sentence = re.sub(r"\s+", " ", sentence).strip()
+        sentence = re.sub(r"\s+([.,;:!?])", r"\1", sentence)
+        if not sentence:
+            errors.append(
+                f"line {number} contains citation markers but no sentence "
+                "text")
             continue
         if len(citations) > 3:
             errors.append(
-                f"answer[{index}].citations has {len(citations)} items; max 3")
-        if not all(isinstance(citation, str) for citation in citations):
-            errors.append(
-                f"answer[{index}].citations must contain only docid strings")
-            continue
+                f"line {number} cites {len(citations)} docids; max 3")
         unknown = [
-            citation for citation in citations
-            if citation not in committed_docids
-        ]
+            docid for docid in citations if docid not in committed_docids]
         if unknown:
             errors.append(
-                f"answer[{index}] cites uncommitted docids: "
-                + ", ".join(dict.fromkeys(unknown)))
-        sentences.append({
-            "text": sentence.strip(),
-            "citations": list(dict.fromkeys(citations)),
-        })
+                f"line {number} cites uncommitted docids: "
+                + ", ".join(unknown))
+        if citations:
+            any_citation = True
+        sentences.append({"text": sentence, "citations": citations})
 
-    if sentences and _word_count(sentences) > 1024:
+    if not sentences:
+        return None, errors + ["the report contains no sentences"]
+    if committed_docids and not any_citation:
+        errors.append(
+            "no sentence carries a citation; support factual sentences with "
+            "committed docids in [docid] markers")
+    if _word_count(sentences) > 1024:
         errors.append(
             f"report is {_word_count(sentences)} words; maximum is 1024")
     if errors:
@@ -362,7 +379,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     run_started_perf = perf_counter()
     turn_idx = -1  # 0-based model-turn index; bumped on every provider call
     # Wall-clock bounds + turn index of the last model turn; a successful
-    # no-tool JSON turn's bounds end up on the output_text item.
+    # no-tool final-report turn's bounds end up on the output_text item.
     last_turn: tuple[
         str | None, str | None, int | None, float, dict[str, Any]
     ] = (None, None, None, 0.0, {})
@@ -457,8 +474,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "ref": "trace.input",
         }
 
-        # One continuous agent loop: research actions and the eventual strict
-        # JSON answer are turns in the same provider conversation.
+        # One continuous agent loop: research actions and the eventual cited
+        # prose report are turns in the same provider conversation.
         rounds = 0
         finishing = False
         while True:
@@ -496,11 +513,24 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     ti,
                 )
                 if not calls:
+                    # The turn may itself be a valid final report. Staged
+                    # (uncommitted) evidence can never be cited, so accepting
+                    # it after the expiry loses nothing and saves a turn.
+                    candidate, _ = _parse_final_prose(
+                        turn.get("text"), set(ledger.committed_docids))
+                    if candidate is not None:
+                        sentences = candidate
+                        break
+                    if rounds >= safety_max_rounds:
+                        raise RuntimeError(
+                            "runaway-loop safety backstop reached after a "
+                            "staged batch expired without a valid final "
+                            "report")
                     feedback = (
                         "The staged batch expired and every unselected "
                         "occurrence was compacted. Continue in the same "
                         "workflow: search again if evidence is still needed, "
-                        "or emit the strict final JSON using only previously "
+                        "or write the final report using only previously "
                         "committed evidence.\n"
                         + _budget_status_line(
                             context_tokens,
@@ -513,6 +543,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         "text": feedback,
                     }
                     continue
+                if rounds >= safety_max_rounds:
+                    raise RuntimeError(
+                        "runaway-loop safety backstop reached while refusing "
+                        "actions after a staged batch expired")
                 msg, feedback_stats = action_feedback(json.dumps({
                     "error": "actions refused because the staged batch "
                              "expired before a valid first commit_context"
@@ -538,6 +572,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 continue
 
             if not ledger.has_staged and commit_calls:
+                if rounds >= safety_max_rounds:
+                    raise RuntimeError(
+                        "runaway-loop safety backstop reached while "
+                        "commit_context was called with no staged context")
                 msg, feedback_stats = action_feedback(json.dumps({
                     "error": "there is no staged context to commit"
                 }), 0)
@@ -584,7 +622,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     "context_budget_exhausted"] = budget_hit
 
             if not calls:
-                candidate, validation_errors = _validate_answer_json(
+                candidate, validation_errors = _parse_final_prose(
                     turn.get("text"), set(ledger.committed_docids))
                 if candidate is not None:
                     sentences = candidate
@@ -592,15 +630,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 if rounds >= safety_max_rounds:
                     raise RuntimeError(
                         "runaway-loop safety backstop reached while correcting "
-                        "the final JSON: " + "; ".join(validation_errors))
+                        "the final report: " + "; ".join(validation_errors))
                 feedback = (
-                    "Your attempted final response did not satisfy the single "
-                    "JSON contract already defined in the system instructions."
-                    "\nProblems:\n- "
+                    "Your attempted final response did not satisfy the final-"
+                    "report contract already defined in the system "
+                    "instructions.\nProblems:\n- "
                     + "\n- ".join(validation_errors)
                     + "\nCorrect it in the next turn in this same conversation. "
                       "Emit tool calls only if more evidence is genuinely "
-                      "needed; otherwise emit only the corrected JSON object."
+                      "needed; otherwise write only the corrected report: "
+                      "plain prose, one sentence per line, with [docid] "
+                      "citation markers."
                     + "\n"
                     + _budget_status_line(
                         context_tokens,
@@ -729,8 +769,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     "error": (
                         "tool call not executed because the preceding "
                         "generation input context reached the research budget; "
-                        "emit the final JSON now using the schema already "
-                        "defined in the system prompt"
+                        "write the final report now using the contract "
+                        "already defined in the system prompt"
                     ),
                     "context_tokens": context_tokens,
                     "peak_context_tokens": peak_context_tokens,
@@ -814,7 +854,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         run_desc=run_desc or (
             f"aus_agent research harness ({backend}/{provider.model_id}): "
             f"continuous single-agent full-text search with sparse committed "
-            f"context and strict-JSON cited sentence answers."),
+            f"context and line-per-sentence cited prose answers parsed into "
+            f"the organizer schema."),
         references=references,
         answer=answer,
     )

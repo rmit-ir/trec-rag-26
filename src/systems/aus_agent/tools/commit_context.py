@@ -34,7 +34,7 @@ COMMIT_CONTEXT_TOOL: dict[str, Any] = {
                             "type": "string",
                             "description": (
                                 "The distinct evidence, claim, perspective, "
-                                "date, name, counterevidence, or coverage area "
+                                "date, name, counter-evidence, or coverage area "
                                 "this document uniquely contributes."
                             ),
                         },
@@ -72,9 +72,9 @@ def apply_commit(
     }
     if finishing:
         payload["instruction"] = (
-            "Research budget is exhausted; emit the final JSON using the "
-            "schema already defined in the system prompt and only committed "
-            "evidence."
+            "Research budget is exhausted; write the final report now (plain "
+            "prose, one sentence per line, [docid] citation markers) using "
+            "only committed evidence."
         )
     return CommitHandlerResult(decision=decision, payload=payload)
 
