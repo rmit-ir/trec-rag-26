@@ -1,0 +1,262 @@
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a605492",
+    "narrative": "Compose a concise technical report sketching an experimental plan for deciding whether a modern vision-language model could stand in for human specialists when labeling medical images of skin lesions.",
+    "run_id": "aus-agent-dev",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): iterative hybrid dense+sparse ClimbMix search + document fetch, strict-JSON cited sentence answers."
+  },
+  "references": [
+    "shard_01190_60246",
+    "shard_02298_16703",
+    "shard_02656_70754",
+    "shard_04268_43560",
+    "shard_04240_52654",
+    "shard_01457_9399",
+    "shard_04977_62087",
+    "shard_03211_7585",
+    "shard_00745_26894",
+    "shard_00344_71380",
+    "shard_02491_1231",
+    "shard_01776_52955",
+    "shard_03749_81528",
+    "shard_04023_67345",
+    "shard_00752_25914",
+    "shard_03310_60457",
+    "shard_04003_71573",
+    "shard_02177_7863",
+    "shard_04602_56036",
+    "shard_01747_21741",
+    "shard_06019_28113",
+    "shard_02759_54588",
+    "shard_06153_22748",
+    "shard_03114_30985",
+    "shard_02413_73465",
+    "shard_00800_49821",
+    "shard_01150_58626",
+    "shard_00366_58923",
+    "shard_04409_23136",
+    "shard_00676_69719",
+    "shard_02209_60732",
+    "shard_01209_13575",
+    "shard_01878_76883",
+    "shard_00683_66664",
+    "shard_04188_11701",
+    "shard_05230_10095",
+    "shard_06239_15916",
+    "shard_01350_78183",
+    "shard_06467_6362",
+    "shard_02448_80609",
+    "shard_04397_34131",
+    "shard_01185_70051",
+    "shard_03525_22814",
+    "shard_05612_71859",
+    "shard_05159_6851",
+    "shard_03968_52634",
+    "shard_05878_4862",
+    "shard_04887_42002",
+    "shard_00995_66145",
+    "shard_04258_78924",
+    "shard_06138_5508",
+    "shard_02634_25092"
+  ],
+  "answer": [
+    {
+      "text": "This report sketches an experimental plan for testing whether a modern vision-language model (VLM) such as GPT-4V, LLaVA, or SkinGPT-4 can substitute for human specialists in labeling dermoscopic/clinical images of skin lesions.",
+      "citations": [
+        0,
+        1,
+        2
+      ]
+    },
+    {
+      "text": "Background: CNN-era work already showed deep learning matching dermatologists, e.g. the Stanford study (Esteva/Thrun) trained on ~129,450 images and matched 21 dermatologists on biopsy-confirmed images.",
+      "citations": [
+        3,
+        4,
+        5
+      ]
+    },
+    {
+      "text": "Newer multimodal LLMs extend this: GPT-4V and LLaVA can distinguish melanoma from benign nevi, and GPT-4V as a retriever identifies the correct condition from image+history ~85% of the time.",
+      "citations": [
+        0,
+        6
+      ]
+    },
+    {
+      "text": "Objective 1 — Task definition: fix a concrete labeling task (binary malignant/benign, multiclass diagnosis, or ABCDE-feature annotation), since VLM studies vary from full diagnosis retrieval to feature-conditioned reasoning.",
+      "citations": [
+        0,
+        6
+      ]
+    },
+    {
+      "text": "Objective 2 — Data/ground truth: use ISIC, HAM10000, PH2 plus prospective images with biopsy/histopathology as the accepted reference standard for pigmented lesions.",
+      "citations": [
+        7,
+        8,
+        9
+      ]
+    },
+    {
+      "text": "Stratify by diagnosis, difficulty, and Fitzpatrick skin type, since existing tools underperform on darker skin (17% accuracy in a Ugandan Fitzpatrick VI cohort) and datasets are tonally/geographically biased.",
+      "citations": [
+        10,
+        11,
+        12
+      ]
+    },
+    {
+      "text": "Objective 3 — Human baseline: recruit multiple blinded board-certified dermatologists plus novice/GP readers on the same images, mirroring the prospective Australian/Austrian AI-vs-specialist-vs-novice trial design.",
+      "citations": [
+        8,
+        13
+      ]
+    },
+    {
+      "text": "Objective 4 — VLM configuration: test zero-shot, few-shot, naive chain-of-thought, and guideline-grounded CoT prompting, since naive CoT sufficed for retrieval but guideline-grounded CoT and multi-agent conversation were needed for accurate diagnosis.",
+      "citations": [
+        6,
+        14
+      ]
+    },
+    {
+      "text": "Vary phrasing, background skin color, and feature-conditioning (holding one ABCDE feature fixed) to probe whether reasoning tracks clinically relevant cues.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Objective 5 — Metrics: report sensitivity, specificity, and AUC-ROC for VLM and human readers against the histopathologic reference standard per standard diagnostic-accuracy guidance.",
+      "citations": [
+        15,
+        16,
+        17
+      ]
+    },
+    {
+      "text": "Compute Cohen's kappa (Krippendorff's alpha for >2 raters/categories) for inter-rater and human-vs-model agreement beyond chance.",
+      "citations": [
+        18,
+        19,
+        20
+      ]
+    },
+    {
+      "text": "Use McNemar's test (exact/mid-p for small discordant counts) for paired VLM-vs-specialist/novice comparisons, pre-specifying a non-inferiority margin akin to the ±5–9 point margins used in the pigmented-lesion equivalence trial.",
+      "citations": [
+        21,
+        22,
+        8
+      ]
+    },
+    {
+      "text": "Objective 6 — Failure-mode analysis: test for spurious correlations, since models have keyed on irrelevant artifacts like surgical rulers in malignant-lesion photos rather than true morphology.",
+      "citations": [
+        23,
+        24,
+        25
+      ]
+    },
+    {
+      "text": "Quantify hallucination rate using frameworks like THRONE, which found ~20% of free-form VLM statements about images were hallucinated—critical for diagnostics.",
+      "citations": [
+        26,
+        27
+      ]
+    },
+    {
+      "text": "Check for human-like shape bias vs. texture bias, since CNN/VLM vision encoders are texture-biased relative to humans, risking poor generalization under covariate shift.",
+      "citations": [
+        28,
+        29,
+        30
+      ]
+    },
+    {
+      "text": "Report calibration (reliability diagrams, evidential/uncertainty methods) alongside accuracy, since overconfident-but-wrong predictions are a known safety risk.",
+      "citations": [
+        31,
+        32,
+        33
+      ]
+    },
+    {
+      "text": "Objective 7 — Ecological validity: include a prospective clinical arm, since an AI algorithm superior in retrospective studies became significantly inferior to specialists in a real clinical scenario.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "Consider a deferral/collaboration arm rather than pure substitution, per CoDoC, which showed learning when to defer between a locked AI and clinician can exceed either alone in breast-cancer and TB screening.",
+      "citations": [
+        34,
+        35,
+        36
+      ]
+    },
+    {
+      "text": "Measure how specialists' accuracy shifts when given correct vs. incorrect AI labels, since GP accuracy rose from 73.6% to 86.8% with correct AI advice but erroneous advice could mislead less-experienced clinicians.",
+      "citations": [
+        13
+      ]
+    },
+    {
+      "text": "Objective 8 — Explainability: pair accuracy with review of model rationales/saliency to check alignment with recognized dermoscopic criteria rather than spurious cues.",
+      "citations": [
+        37,
+        38,
+        39
+      ]
+    },
+    {
+      "text": "Objective 9 — Annotation-pipeline analogy: frame this within IR/NLP literature on LLMs replacing human annotators, which warns of model-family bias, misinformation gaps, and hallucination, favoring human-in-the-loop labeling.",
+      "citations": [
+        40,
+        41,
+        42
+      ]
+    },
+    {
+      "text": "Objective 10 — Regulatory framing: align with FDA Software-as-a-Medical-Device/CDS guidance, which generally treats diagnostic image AI as a device needing clinical validation and clearance.",
+      "citations": [
+        43,
+        44,
+        45
+      ]
+    },
+    {
+      "text": "Address liability explicitly (assistive vs. autonomous framing), since liability for AI-influenced errors currently tends to fall on the provider relying on assistive AI.",
+      "citations": [
+        46,
+        47,
+        48
+      ]
+    },
+    {
+      "text": "Given specialist scarcity and rising skin-disease prevalence, report throughput/cost metrics to assess feasibility for teledermatology triage.",
+      "citations": [
+        49,
+        50,
+        51
+      ]
+    },
+    {
+      "text": "Recommended design: a multi-arm blinded study (VLM-only, specialist-only, novice-only, VLM-assisted-human) with paired statistical tests, stratified by skin tone/lesion type, biopsy-confirmed ground truth, reporting accuracy, kappa, calibration, hallucination rate, and explainability as co-primary outcomes.",
+      "citations": [
+        8,
+        34,
+        26
+      ]
+    },
+    {
+      "text": "This design directly tests whether a VLM can 'stand in' for a specialist by requiring it to meet a pre-specified non-inferiority margin while passing bias, hallucination, and spurious-feature safety checks identified in the retrieved literature.",
+      "citations": [
+        8,
+        10,
+        25
+      ]
+    }
+  ]
+}

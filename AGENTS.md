@@ -14,6 +14,11 @@ TREC RAG 2026 Official Skills: https://github.com/TREC-RAG/trec-rag-skills.git
 - For command-line tools (`huggingface-cli`/`hf`, etc.), prefer `uvx <tool> …`
   — `uvx` runs each tool in its own ephemeral env, so it never pollutes either
   the system, the root env, or the task env.
+- **One-off Python scripts / probes:** run them in an ephemeral env with
+  `uv run --no-project --with <pkg1,pkg2> python - <<'EOF' … EOF` (e.g.
+  `uv run --no-project --with boto3 python …`). `--no-project` skips the root
+  project entirely, `--with` pulls just the deps needed — nothing is installed
+  into any env, so quick experiments never pollute root or task envs.
 - **Data artifacts live under `data/`, never under `tasks/`.** `tasks/<task>/`
   holds code, configs, and logs only. Built indexes go under
   `data/built-indexes/<RUN>/`; corpora and large intermediates go elsewhere

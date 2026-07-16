@@ -1,0 +1,222 @@
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a605493",
+    "narrative": "Write an introduction on Markov chains in the field of statistics/combinatorics and the reason behind their genesis. Then, write a literature review on Markov chains in contemporary research. Include one section devoted to their application and intuition in solving problems like \"what is the expected value of flips to get N heads in a row\".",
+    "run_id": "pi-agent-claude-sonnet-5",
+    "run_desc": "pi-agent (pi-agent-core/pi-ai on Amazon Bedrock): agentic ClimbMix-only RAG — iterative hybrid dense+sparse retrieval with RRF fusion plus full-document fetch, followed by a strict-JSON sentence/citation generation turn."
+  },
+  "references": [
+    "shard_01174_53636",
+    "shard_05095_70717",
+    "shard_03629_43609",
+    "shard_06011_74077",
+    "shard_05442_40030",
+    "shard_05322_54757",
+    "shard_00450_24001",
+    "shard_02354_53672",
+    "shard_02367_42987",
+    "shard_03014_8085",
+    "shard_01429_58427",
+    "shard_04405_56268",
+    "shard_02517_67039",
+    "shard_01984_17916",
+    "shard_06502_38321",
+    "shard_00924_66173",
+    "shard_03387_35821",
+    "shard_03032_61044",
+    "shard_05834_72210",
+    "shard_02424_33615",
+    "shard_04855_21234",
+    "shard_04547_31780",
+    "shard_04122_44554",
+    "shard_06398_43597",
+    "shard_02822_24503",
+    "shard_04005_73127",
+    "shard_00167_16042"
+  ],
+  "answer": [
+    {
+      "text": "A Markov chain is a stochastic process defined on a sequence of random variables X1, X2, …, Xn in which the probability of the next state depends solely on the current state and not on the sequence of states that preceded it — the so-called Markov property or 'memorylessness'.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "Formally, for all sets of states A, the conditional probability of Xt+1 given the entire history X0,…,Xt equals the conditional probability given Xt alone.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "Chains can be discrete or continuous in time and finite or countably infinite in state space, with the discrete-time, discrete-state case being the most commonly studied variant.",
+      "citations": [
+        3,
+        4
+      ]
+    },
+    {
+      "text": "The genesis of the concept is tied to a specific intellectual and statistical motivation.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Andrey Markov, a Russian mathematician, introduced these processes in a 1906 paper titled 'Extension of the law of large numbers to dependent quantities'.",
+      "citations": [
+        5,
+        6
+      ]
+    },
+    {
+      "text": "The motivation was explicitly combinatorial and statistical rather than physical: earlier laws of large numbers had been proved under the assumption of independent random variables, and Markov set out to show that similar limiting behavior held even when successive quantities were dependent, provided the dependence had a specific one-step structure.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "To demonstrate the practical relevance of 'dependent quantities,' Markov performed an early piece of applied combinatorics: in 1913 he hand-counted the first 20,000 letters of Pushkin's verse-novel Eugene Onegin, classifying each as a vowel or consonant.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "He showed that treating letter-type sequences as independent trials badly mispredicted the observed vowel–vowel and consonant–consonant pair counts, while a one-step dependency model matched the data far better — an empirical vindication of the chain concept and, in effect, one of the first statistical language models.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Notably, Andrey Kolmogorov speculated that Markov turned to a literary text rather than a physical system partly because of his relative isolation from Western European physics research at the time.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Related discrete-probability structures, such as random walks on the integers and the classical Gambler's Ruin problem, had in fact been studied for centuries before Markov, but it was Markov's 1906 formalization that gave these combinatorial recursions a unifying probabilistic and statistical framework.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Contemporary scholarship has extended Markov's original statistical concern in several directions.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "There has been a documented 'resurgence of interest' in Markov chains and discrete probability models because of their connections to statistical mechanics in physics and to combinatorics and randomized algorithms in theoretical computer science, with a central research theme being the rigorous analysis of 'mixing time,' the time a chain requires to approach its equilibrium distribution.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "This mixing-time theory underlies Markov Chain Monte Carlo (MCMC) methods, now a cornerstone of Bayesian statistics and machine learning, in which one constructs an artificial Markov chain whose stationary distribution is a target distribution too complex to sample from directly; the chain's accepted draws converge to that target as the number of steps grows.",
+      "citations": [
+        8,
+        9
+      ]
+    },
+    {
+      "text": "Variants such as Hamiltonian Monte Carlo have been developed to improve the efficiency of this sampling process for high-dimensional Bayesian inference and optimization problems.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "Markov chains underlie some of the most consequential applied algorithms of the internet era: Google's PageRank algorithm models a 'random surfer' traversing the web-link graph as a Markov chain whose transition probabilities depend on outbound links from each page, with a damping factor (typically ≈0.85) allowing random jumps, ranking pages according to the chain's stationary distribution computed via eigenvector or power-iteration methods.",
+      "citations": [
+        11,
+        12,
+        13
+      ]
+    },
+    {
+      "text": "This 1998 innovation by Page, Brin, Motwani, and Winograd is frequently cited as a paradigmatic real-world Markov chain application.",
+      "citations": [
+        13,
+        14
+      ]
+    },
+    {
+      "text": "Markov chains remain foundational in queueing theory, originating in Agner Krarup Erlang's early-twentieth-century work modeling call arrivals at the Copenhagen telephone exchange as Poisson processes, with many queueing theorems proved by reducing queues to continuous-time Markov chains such as the M/M/1 model, directly applied to telecommunications, traffic engineering, and computing infrastructure.",
+      "citations": [
+        15,
+        16
+      ]
+    },
+    {
+      "text": "Related to this is the extension to Hidden Markov Models (HMMs), where the underlying state sequence is unobserved and must be inferred from emissions; HMMs are central to speech recognition, bioinformatics, and error-correction in telephone networks via the Viterbi algorithm.",
+      "citations": [
+        16,
+        17
+      ]
+    },
+    {
+      "text": "Markov-chain text models have grown from Markov's Onegin experiment into modern natural-language generation, with higher-order Markov chains—where the next state depends on the previous two or more states—used to generate coherent bot-authored text from large corpora, such as social-media Markov bots trained on tweet data.",
+      "citations": [
+        18,
+        19
+      ]
+    },
+    {
+      "text": "A related, more exotic research application uses Markov-chain-derived entropy measures to test whether an unciphered symbol corpus—such as the Indus Valley script—exhibits sequential statistical regularities characteristic of language, comparing its entropy to known languages versus non-linguistic systems like DNA or Fortran code.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Finally, contemporary applications span finance, genetics, credit-scoring, sports analytics such as modeling baseball plate appearances as coin-flip-like Markov transitions, and weather prediction, all exploiting the same core insight that transition probabilities compactly encode a system's dynamics.",
+      "citations": [
+        20,
+        21,
+        22
+      ]
+    },
+    {
+      "text": "A canonical pedagogical use of Markov chains is computing the expected number of fair-coin flips needed to observe N consecutive heads.",
+      "citations": [
+        23
+      ]
+    },
+    {
+      "text": "The intuition is to define states 0, 1, …, N, where state k means 'k heads in a row have just occurred'; a heads flip advances the state by one, a tails flip resets the chain to state 0, and state N is absorbing.",
+      "citations": [
+        23,
+        24
+      ]
+    },
+    {
+      "text": "One elegant way to visualize this is as a simplified 'Snakes and Ladders' board with squares 0 through N, where landing on square N ends the game.",
+      "citations": [
+        24
+      ]
+    },
+    {
+      "text": "Letting mk denote the expected number of additional flips to reach the absorbing state from square k, one solves the linear system (I−Q)m = 1, where Q is the transition matrix restricted to the non-absorbing states.",
+      "citations": [
+        24
+      ]
+    },
+    {
+      "text": "For N=5, this yields m0=62, matching an independent first-step-analysis derivation via the recursive equation e = ½(e+1) + ¼(e+2) + …, which also gives e=62.",
+      "citations": [
+        25,
+        24
+      ]
+    },
+    {
+      "text": "A closed-form recursive result generalizes this: the expected number of flips for N heads in a row with a fair coin is 2^(N+1) − 2.",
+      "citations": [
+        26
+      ]
+    },
+    {
+      "text": "The counterintuitive part of this problem is that the expected time to close the 'last gap' (from N−1 heads to N heads) is not simply one extra flip; from square N−1, a tails flip sends the chain all the way back to square 0, so mN−1 is nearly as large as m0 itself.",
+      "citations": [
+        24
+      ]
+    }
+  ]
+}

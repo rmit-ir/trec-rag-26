@@ -1,0 +1,21 @@
+{
+  "name": "pi-agent",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "TREC RAG 2026 research agent on the pi framework (Bedrock backend, ClimbMix-only retrieval)",
+  "scripts": {
+    "agent": "tsx src/cli.ts",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@mariozechner/pi-agent-core": "0.73.1",
+    "@mariozechner/pi-ai": "^0.73.1",
+    "dotenv": "^16.4.5"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "^5.7.2"
+  }
+}

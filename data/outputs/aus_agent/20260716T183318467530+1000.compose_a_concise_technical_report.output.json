@@ -1,0 +1,289 @@
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a605492",
+    "narrative": "Compose a concise technical report sketching an experimental plan for deciding whether a modern vision-language model could stand in for human specialists when labeling medical images of skin lesions.",
+    "run_id": "aus-agent-dev",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): iterative hybrid dense+sparse ClimbMix search + document fetch, strict-JSON cited sentence answers."
+  },
+  "references": [
+    "shard_02207_20854",
+    "shard_04268_43560",
+    "shard_05647_53723",
+    "shard_04626_72563",
+    "shard_01873_6482",
+    "shard_05672_67974",
+    "shard_00856_26711",
+    "shard_03744_113",
+    "shard_00906_38448",
+    "shard_03965_21156",
+    "shard_00365_52325",
+    "shard_03211_7585",
+    "shard_01397_39779",
+    "shard_03078_64979",
+    "shard_00771_13117",
+    "shard_03018_77156",
+    "shard_02171_22051",
+    "shard_04097_52259",
+    "shard_04090_83162",
+    "shard_04548_73789",
+    "shard_05833_3401",
+    "shard_01649_61118",
+    "shard_04977_62087",
+    "shard_00752_25914",
+    "shard_02326_39487",
+    "shard_04720_21171",
+    "shard_03067_50992",
+    "shard_03749_81528",
+    "shard_01776_52955",
+    "shard_02038_72716",
+    "shard_05743_5075",
+    "shard_04912_55884",
+    "shard_04271_21424",
+    "shard_01350_78183",
+    "shard_04898_73974",
+    "shard_01516_15134",
+    "shard_01942_46851",
+    "shard_02147_45996"
+  ],
+  "answer": [
+    {
+      "text": "This report sketches an experimental plan to test whether a modern vision-language model (VLM) could substitute for human dermatology specialists in labeling skin lesion images, drawing on prior AI-vs-clinician dermatology studies.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "Background: dermatologist shortages motivate VLM systems like SkinGPT, SkinGPT-4 and MedDr, fine-tuned on dermatology image-text data to produce diagnoses.",
+      "citations": [
+        2,
+        3,
+        0
+      ]
+    },
+    {
+      "text": "Med-Flamingo shows multimodal few-shot prompting can yield clinician-preferred medical VQA answers, a template for prompting a VLM on lesion labeling.",
+      "citations": [
+        4,
+        5
+      ]
+    },
+    {
+      "text": "Stanford's Esteva et al. trained a CNN on ~129,450 images that matched 21 board-certified dermatologists on biopsy-confirmed classification, the classic comparison design to emulate.",
+      "citations": [
+        1,
+        6
+      ]
+    },
+    {
+      "text": "A Lancet Oncology study with 511 readers across 63 countries found deep learning outperforming human experts on dermatoscopic classification, showing the value of large multi-country reader panels.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "Google's differential-diagnosis AI (71–91% accuracy) exceeded general/nurse practitioners but underperformed on rare skin tones and melanoma due to data scarcity, motivating subgroup evaluation.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "Objective 1: test whether VLM labels agree with, and match the accuracy of, a defined reference standard (ideally histopathology-confirmed) and specialist consensus.",
+      "citations": [
+        9,
+        10
+      ]
+    },
+    {
+      "text": "Ground truth should follow the BMJ pathologist-reliability study's approach of a three-expert consensus panel, since even pathologist accuracy against consensus fell to 25–43% for intermediate-difficulty lesions versus 72–92% for clear cases.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "Real biopsy-confirmed images matter: the Youzhi AI system showed significantly lower real-world accuracy than lab-benchmark accuracy despite being comparable to average dermatologists.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "The plan should thus use two arms: (a) retrospective benchmarking on curated sets like the ISIC archive/HAM10000, and (b) a prospective real-world clinical arm.",
+      "citations": [
+        11,
+        12,
+        9
+      ]
+    },
+    {
+      "text": "Report full confusion-matrix metrics (sensitivity, specificity, PPV/NPV, F-measure), not just accuracy, per prior AI-vs-dermatologist comparisons.",
+      "citations": [
+        13
+      ]
+    },
+    {
+      "text": "Use paired statistical tests—McNemar's test and AUC equivalence/non-inferiority comparisons—since the goal is establishing the VLM is not unacceptably worse, not necessarily superior.",
+      "citations": [
+        14,
+        15,
+        16
+      ]
+    },
+    {
+      "text": "Pre-specify a clinically acceptable non-inferiority margin rather than a simple superiority test.",
+      "citations": [
+        16,
+        17
+      ]
+    },
+    {
+      "text": "FDA statistical guidance flags low disease prevalence, scarce truth data, calibration, and multi-class design as key challenges for evaluating AI devices, all relevant to multi-class lesion labeling.",
+      "citations": [
+        18
+      ]
+    },
+    {
+      "text": "Objective 2: test actual visual grounding, since adding images to ChatGPT-4V did not improve—and reduced top-1—diagnostic accuracy versus text-only across 363 case reports.",
+      "citations": [
+        19
+      ]
+    },
+    {
+      "text": "Use feature-conditioning probes (holding ABCDE features constant, altering pigmentation/annotations) as done for GPT-4V and LLaVA on melanoma-vs-nevus discrimination.",
+      "citations": [
+        20
+      ]
+    },
+    {
+      "text": "That study found GPT-4V reached 85% accuracy versus 45% for LLaVA, but both showed color bias and LLaVA failed on skin of color, motivating skin-tone-stratified test sets.",
+      "citations": [
+        20
+      ]
+    },
+    {
+      "text": "Adopt structured human-rater protocols (Likert ratings of interpretation correctness, advice correctness/danger, trainee-learning suitability) as used to evaluate GPT-4V dermatologic outputs.",
+      "citations": [
+        21
+      ]
+    },
+    {
+      "text": "Include retrieval- and chain-of-thought-augmented pipelines as an experimental arm, since such GPT-4V pipelines retrieved correct skin conditions 85% of the time from images plus brief history.",
+      "citations": [
+        22,
+        23
+      ]
+    },
+    {
+      "text": "Objective 3: assess human-AI teaming, since dermatologist confidence rose when an AI classifier agreed (even if wrong) and fell when it disagreed, with only nonsignificant accuracy gains after one practice session.",
+      "citations": [
+        24
+      ]
+    },
+    {
+      "text": "A South Korean RCT found real-time CNN assistance significantly helped non-dermatology trainees (30.7%→54.7%) but not residents, and caused a 12.2% accuracy drop when top-3 AI predictions were all wrong.",
+      "citations": [
+        25
+      ]
+    },
+    {
+      "text": "Stratify analysis by rater experience level and assisted-vs-unassisted condition, replicating this RCT design.",
+      "citations": [
+        25
+      ]
+    },
+    {
+      "text": "Objective 4 (fairness): test across Fitzpatrick types, since Black skin comprises only 5–10% of some dermatology databases, risking high aggregate but poor subgroup accuracy.",
+      "citations": [
+        26,
+        27
+      ]
+    },
+    {
+      "text": "Use a Statistical Parity Difference-based fairness score across skin-tone subgroups alongside accuracy and latency.",
+      "citations": [
+        26
+      ]
+    },
+    {
+      "text": "Audit datasets with multidimensional skin-color measures beyond Fitzpatrick, which misses hue variation (e.g., dark-yellow undertones).",
+      "citations": [
+        28,
+        29
+      ]
+    },
+    {
+      "text": "Objective 5 (safety): catalog hallucination risk, since multimodal LLMs can fabricate non-existent visual features, which could yield fabricated lesion characteristics.",
+      "citations": [
+        30,
+        31
+      ]
+    },
+    {
+      "text": "Follow FUTURE-AI guidance: justify need for explainability, validate explanations with end users, and require calibrated confidence outputs.",
+      "citations": [
+        32
+      ]
+    },
+    {
+      "text": "Use Grad-CAM-style attribution maps to compare VLM attention against dermatologists' documented eye-movement patterns during examination.",
+      "citations": [
+        33,
+        34
+      ]
+    },
+    {
+      "text": "Frame deployment scenarios against existing cleared devices like DermaSensor (cleared as a triage aid for already-flagged lesions, not standalone screening).",
+      "citations": [
+        35,
+        36
+      ]
+    },
+    {
+      "text": "Contrast with IDx-DR, the first FDA-authorized autonomous diagnostic AI (diabetic retinopathy, no specialist review required), as the regulatory bar for true replacement versus assistance.",
+      "citations": [
+        37,
+        36
+      ]
+    },
+    {
+      "text": "Proposed pipeline: (1) assemble a stratified, pathology-confirmed test set across ISIC/HAM10000 classes and skin-tone subgroups; (2) define reference diagnosis via expert consensus; (3) run the VLM under multiple prompting strategies versus individual specialists and consensus.",
+      "citations": [
+        10,
+        22,
+        11
+      ]
+    },
+    {
+      "text": "(4) Compute accuracy/sensitivity/specificity/AUC/calibration with paired non-inferiority tests; (5) run a teaming sub-study on confidence and switching behavior; (6) ablate image input to quantify visual reliance.",
+      "citations": [
+        24,
+        25,
+        19
+      ]
+    },
+    {
+      "text": "(7) Add a prospective real-world arm to capture lab-to-clinic performance gaps; (8) report fairness and explainability/uncertainty metrics alongside aggregate performance.",
+      "citations": [
+        9,
+        26,
+        32
+      ]
+    },
+    {
+      "text": "Limitations: small comparator panels limit generalizability, unmasked designs risk bias, and human inter-rater variability means VLMs must be judged against a distribution of expert opinion, not one 'true' standard.",
+      "citations": [
+        10,
+        25,
+        24
+      ]
+    },
+    {
+      "text": "Overall, evidence suggests VLMs can approach human accuracy on narrow melanoma/nevus tasks but show inconsistent visual grounding, bias susceptibility, and uneven benefit by user expertise, favoring a non-inferiority/augmentation framing over outright replacement.",
+      "citations": [
+        20,
+        19,
+        25
+      ]
+    }
+  ]
+}

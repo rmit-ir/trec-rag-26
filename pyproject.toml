@@ -17,9 +17,19 @@ build-backend = "hatchling.build"
 # editable, so imports resolve no matter where a script is run from.
 [tool.hatch.build.targets.wheel]
 sources = ["src"]
-packages = ["src/utils", "src/tools"]
+packages = ["src/utils", "src/tools", "src/ragrun"]
 
 [dependency-groups]
+# Per-system dep groups — default `uv sync` installs none of them.
+# aus_agent RAG harness (src/systems/aus_agent) — Bedrock backend today,
+# Azure OpenAI / OpenAI Responses backends later.
+aus-agent = [
+    "boto3>=1.40",
+]
+# Tongyi DeepResearch port (src/systems/ali_deepresearch)
+ali-deepresearch = [
+    "openai>=1.60",
+]
 notebook = [
     "pandas",
     "pyarrow",

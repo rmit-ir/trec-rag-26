@@ -1,0 +1,1061 @@
+{
+  "metadata": {
+    "model": "au.anthropic.claude-sonnet-5",
+    "provider": "amazon-bedrock",
+    "api": "bedrock-converse-stream",
+    "framework": "@mariozechner/pi-agent-core 0.73.1 + @mariozechner/pi-ai 0.73.1",
+    "thinking_level": "medium",
+    "k": 10,
+    "max_rounds": 12,
+    "query_source": "Write an introduction on Markov chains in the field of statistics/combinatorics and the reason behind their genesis. Then, write a literature review on Markov chains in contemporary research. Include one section devoted to their application and intuition in solving problems like \"what is the expected value of flips to get N heads in a row\".",
+    "team_id": "rmit-ir",
+    "run_id": "pi-agent-claude-sonnet-5",
+    "rounds_used": 4,
+    "usage": {
+      "input": 8,
+      "output": 3722,
+      "cost": 0
+    }
+  },
+  "query_id": "6847465956a0f6376a605493",
+  "tool_call_counts": {
+    "search": 4,
+    "get_document": 7
+  },
+  "tool_call_counts_all": {
+    "search": 4,
+    "get_document": 7
+  },
+  "status": "completed",
+  "retrieved_docids": [
+    "shard_00205_53201",
+    "shard_00269_33533",
+    "shard_00359_77533",
+    "shard_00709_30287",
+    "shard_01045_8943",
+    "shard_01057_40917",
+    "shard_01077_24697",
+    "shard_01256_23292",
+    "shard_01261_28060",
+    "shard_01542_31446",
+    "shard_01547_55905",
+    "shard_01587_59220",
+    "shard_01649_20233",
+    "shard_01718_11547",
+    "shard_01901_70670",
+    "shard_01952_10294",
+    "shard_01960_15880",
+    "shard_02315_46682",
+    "shard_02323_69924",
+    "shard_02367_42987",
+    "shard_02482_42341",
+    "shard_02737_29487",
+    "shard_02761_62829",
+    "shard_02822_24503",
+    "shard_03014_8085",
+    "shard_03263_47858",
+    "shard_03629_43609",
+    "shard_03646_78840",
+    "shard_03674_73516",
+    "shard_04045_72851",
+    "shard_04439_16596",
+    "shard_04619_74165",
+    "shard_04641_24791",
+    "shard_04855_21234",
+    "shard_05059_56682",
+    "shard_05095_70717",
+    "shard_06011_74077",
+    "shard_06102_65423",
+    "shard_06151_69290",
+    "shard_06398_43597"
+  ],
+  "result": [
+    {
+      "type": "reasoning",
+      "tool_name": null,
+      "arguments": null,
+      "output": "I should search through the corpus for materials on Markov chains."
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "search",
+      "arguments": "{\"query\":\"Markov chains history genesis statistics\"}",
+      "output": "1. docid=shard_02761_62829 (unit=shard_02761_62829) rrf_score=0.02698 sources={\"dense\":{\"rank\":3,\"score\":0.31518739461898804},\"sparse\":{\"rank\":30,\"score\":15.344307}}\n   I’ve been hearing about “Markov chain” for long enough – it was time I learned something. Wikipedia seemed like a good starting point. I have to warn you though, be careful with scrolling on that page, because you can easily end up looking at something like this: If you aren’t a rocket scientist or someone who solves integrals for fun, by all means, use the contents menu or jump directly to the Applications section.That’s where all the fun is. Here are some quotes for you to get interested and for me to remember. Markovian systems appear extensively in physics, particularly statistical mechanics, whenever probabilities are used to represent unknown or unmodelled details of the system, if it can be assumed that the dynamics are time-invariant, and that no relevant history need be considered which is not already included in the state description. Several theorists have proposed the idea of\n2. docid=shard_04641_24791 (unit=shard_04641_24791) rrf_score=0.02686 sources={\"dense\":{\"rank\":31,\"score\":0.30309954285621643},\"sparse\":{\"rank\":3,\"score\":16.148949}}\n   We use cookies on this website to ensure you get the best experience. privacy policy. Got it! August 11, 2023 What is a discrete time markov chain? A discrete time Markov chain is a sequence of random variables with the Markov property. In this type of Markov chain, the system under consideration is in a certain state at each step, where a step is a discrete point in time. But what does that mean? To understand this, we first need to grasp the basics of Markov chains. Understanding the Basics of Markov Chains Before we delve into the intricacies of a discrete time Markov chain, let's first unpack the concept of a Markov chain. The term 'chain' is emblematic of the fundamental nature of this concept, characterized by a sequence of occurrences that are linked or 'chained' together. But how are they 'chained' together? This is what takes us to the heart of the Markov property. Let's deliber\n3. docid=shard_05095_70717 (unit=shard_05095_70717) rrf_score=0.02633 sources={\"dense\":{\"rank\":23,\"score\":0.30571672320365906},\"sparse\":{\"rank\":10,\"score\":15.71733}}\n   Artificial Intelligence Markov Chains What is a Markov Chain? A Markov chain is a stochastic process where the probability of transitioning to a particular state depends solely on the state attained in the previous event. Due to this feature, Markov chains are sometimes called \"memory-less\" processes. . They are named after the Russian mathematician Andrey Markov. Figure 1: Markov chain with two states. Mathematically, a Markov chain can be defined as a sequence of random variables X1, X2, …, Xn where: The condition that states that the probability of event Xx+1 depends only on the previous event is called the Markov property. Markov chains can be discrete or continuous in time. Why are Markov Chains Important? Markov chains have a wide range of applications. They are used in statistics, information theory, game theory, economics, genetics, finance, programmed music generation, and many \n4. docid=shard_01960_15880 (unit=shard_01960_15880) rrf_score=0.02520 sources={\"dense\":{\"rank\":30,\"score\":0.30329251289367676},\"sparse\":{\"rank\":11,\"score\":15.70112}}\n   Artificial Intelligence Markov Chains What is a Markov Chain? A Markov chain is a stochastic process where the probability of transitioning to a particular state depends solely on the state attained in the previous event. Due to this feature, Markov chains are sometimes called \"memory-less\" processes. . They are named after the Russian mathematician Andrey Markov. Figure 1: Markov chain with two states. Mathematically, a Markov chain can be defined as a sequence of random variables X1, X2, …, Xn where: The condition that states that the probability of event Xx+1 depends only on the previous event is called the Markov property. Markov chains can be discrete or continuous in time. Why are Markov Chains Important? Markov chains have a wide range of applications. They are used in statistics, information theory, game theory, economics, genetics, finance, programmed music generation, and many \n5. docid=shard_01256_23292 (unit=shard_01256_23292) rrf_score=0.02425 sources={\"dense\":{\"rank\":24,\"score\":0.30450862646102905},\"sparse\":{\"rank\":21,\"score\":15.468068}}\n   A Markov chain is a stochastic process where the probability of transitioning to a particular state depends solely on the state attained in the previous event. Due to this feature, Markov chains are sometimes called “memory-less” processes. . They are named after the Russian mathematician Andrey Markov. Figure 1: Markov chain with two states. Mathematically, a Markov chain can be defined as a sequence of random variables X1, X2, …, Xn where: Pr(Xn+1 = x|X1 = x1, X2 = x2, … , Xn = xn) = Pr(Xn+1 = x|Xn = xn) and Pr(X1 = x1, X2 = x2, … , Xn = xn) > 0 The condition that states that the probability of event Xx+1 depends only on the previous event is called the Markov property. Markov chains can be discrete or continuous in time. Markov chains have a wide range of applications. They are used in statistics, information theory, game theory, economics, genetics, finance, programmed music generati\n6. docid=shard_00709_30287 (unit=shard_00709_30287) rrf_score=0.02364 sources={\"dense\":{\"rank\":15,\"score\":0.30877619981765747},\"sparse\":{\"rank\":37,\"score\":15.220368}}\n   Markov Chains: From Theory to Implementation and Experimentation begins with a general introduction to the history of probability theory in which the author uses quantifiable examples to illustrate how probability theory arrived at the concept of discrete-time and the Markov model from experiments involving independent variables. An introduction to simple stochastic matrices and transition probabilities is followed by a simulation of a two-state Markov chain. The notion of steady state is explored in connection with the long-run distribution behavior of the Markov chain. Predictions based on Markov chains with more than two states are examined, followed by a discussion of the notion of absorbing Markov chains. Also covered in detail are topics relating to the average time spent in a state, various chain configurations, and n-state Markov chain simulations used for verifying experiments i\n7. docid=shard_01952_10294 (unit=shard_01952_10294) rrf_score=0.02270 sources={\"dense\":{\"rank\":43,\"score\":0.2924211919307709},\"sparse\":{\"rank\":17,\"score\":15.539695}}\n   Lanț Markov – Wikipedia A Markov chain is a stochastic model describing a sequence of possible events in which the probability of each event depends only on the state attained in the previous event. In probability theory and related fields, a Markov processnamed after the Russian mathematician Andrey Markovis a stochastic process that satisfies the Markov property [1] [3] [4] sometimes characterized as \" memorylessness \". Roughly speaking, a process satisfies the Markov property if one can make predictions for the future of the process based solely on its present state just as well as one could knowing the process's full history, hence independently from such history; i. A Markov chain is a type of Markov process that has either a discrete state space or a discrete index set often representing timebut the lajturi definition of a Markov chain varies. Markov studied Markov processes in the\n8. docid=shard_02323_69924 (unit=shard_02323_69924) rrf_score=0.02130 sources={\"dense\":{\"rank\":27,\"score\":0.3038043975830078},\"sparse\":{\"rank\":42,\"score\":15.175434}}\n   Markov chain In probability theory and related fields, a Markov process (or Markoff process), named after the Russian mathematician Andrey Markov, is a stochastic process that satisfies the Markov property (sometimes characterized as \"memorylessness\"). Loosely speaking, a process satisfies the Markov property if one can make predictions for the future of the process based solely on its present state just as well as one could knowing the process's full history; i.e., conditional on the present state of the system, its future and past states are independent. A Markov chain is a type of Markov process that has either discrete state space or discrete index set (often representing time), but the precise definition of a Markov chain varies. For example, it is common to define a Markov chain as a Markov process in either discrete or continuous time with a countable state space (thus regardless \n9. docid=shard_03646_78840 (unit=shard_03646_78840) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.33362144231796265}}\n   Markov chains By victor powell with text by lewis lehe markov chains, named after andrey markov, are mathematical systems that hop from one state (a situation or set of values. A markov chain is a model of some random process that happens over time markov chains are called that because they follow a rule called the markov property. Last revised: 26 january 2009 1 markov chains a markov chain process is a simple type of stochastic process with many social sci-ence applications. The five greatest applications of markov chains philipp von hilgers∗ and amy n langville† abstract one hundred years removed from a a markov's development. 1 introduction markov chains are named after russian mathematician andrei markov and provide a way of dealing with a sequence of events based on the probabilities. Markov chains works with followers the software creates strings for each loto no and what numbers \n10. docid=shard_02737_29487 (unit=shard_02737_29487) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":16.990173}}\n   Examples I'll confess I removed the Project Guttenberg \"small print\" text from the above text samples, but technically I'm not redistributing the texts themselves. I hope they give me credit for promoting their excellent philanthropy. Documentation History This is another project in my experiments with Natural Language Processing (NLP). I've called it 'Mockingbird' because it attempts to imitate the writing style of another written work. The real name is Babbler, but I decided to use that as an umbrella for my NLP projects and research. I had heard some time ago, must've been 1993, about software written to help spoof someone else on USENET. \"Wow, great idea!\" thought my hacker self, but as usual I didn't have the malevolence to seek out this tool or to find a victim to target. I didn't think of it much until I came across an MS-DOS program (also called Babbler) that claimed to do the sa",
+      "failed": false,
+      "returned_docids": [
+        "shard_02761_62829",
+        "shard_04641_24791",
+        "shard_05095_70717",
+        "shard_01960_15880",
+        "shard_01256_23292",
+        "shard_00709_30287",
+        "shard_01952_10294",
+        "shard_02323_69924",
+        "shard_03646_78840",
+        "shard_02737_29487"
+      ],
+      "returned": [
+        {
+          "docid": "shard_02761_62829",
+          "score": 0.026984126984126985
+        },
+        {
+          "docid": "shard_04641_24791",
+          "score": 0.026862026862026864
+        },
+        {
+          "docid": "shard_05095_70717",
+          "score": 0.026333907056798625
+        },
+        {
+          "docid": "shard_01960_15880",
+          "score": 0.025195618153364633
+        },
+        {
+          "docid": "shard_01256_23292",
+          "score": 0.024250440917107582
+        },
+        {
+          "docid": "shard_00709_30287",
+          "score": 0.023642611683848798
+        },
+        {
+          "docid": "shard_01952_10294",
+          "score": 0.022695750851090657
+        },
+        {
+          "docid": "shard_02323_69924",
+          "score": 0.02129817444219067
+        },
+        {
+          "docid": "shard_03646_78840",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_02737_29487",
+          "score": 0.01639344262295082
+        }
+      ],
+      "k": 10
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "search",
+      "arguments": "{\"query\":\"Markov chain definition combinatorics\"}",
+      "output": "1. docid=shard_01542_31446 (unit=shard_01542_31446) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.32385721802711487}}\n   1.1 What are Markov Chains? Markov chains are mathematical models used to describe systems that transition between states according to certain probabilistic rules. Named after Russian mathematician Andrey Markov, these models have found widespread application in fields as diverse as finance, physics, engineering, computer science, and linguistics. At their core, Markov chains provide a way to model complex stochastic processes by breaking them down into simpler components. To understand what makes Markov chains so powerful, let us begin by examining their defining characteristic: the Markov property. This property states that the probability of transitioning from one state to another depends only on the current state and not on any previous states or external factors. Mathematically, we can express this as follows: P(X_{n+1} = x | X_1 = x_1, X_2 = x_2, ..., X_n = x_n) = P(X_{n+1} = x | X\n2. docid=shard_02482_42341 (unit=shard_02482_42341) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":18.103382}}\n   Hemanshu Kaul[PDF] version Introduction. Although combinatorial problems have arisen in all fields of mathematics throughout history, discrete mathematics has only come to prominence as a mathematical discipline over the past century. It has been beneficial to adapt techniques from more mature areas of mathematics to tackle various combinatorial problems. A fruitful area of collaboration has been with probability. `The probabilistic method' is now a well established part of the graduate curriculum in combinatorics. Over the past two decades additional techniques with a probabilistic flavor have been developed for applications to combinatorial problems, both algorithmic and existential. A traditional first course in probabilistic combinatorics gives only the briefest hint of these areas from probability and information theory, such as Concentration of Measure, Entropy, and Rapidly Mixing \n3. docid=shard_04439_16596 (unit=shard_04439_16596) rrf_score=0.01613 sources={\"dense\":{\"rank\":2,\"score\":0.3235584795475006}}\n   A Markov chain refers to a sequence (or \"chain\") of discrete events, generated according to a fixed set of probabilistic rules. The most important property of these rules is that they can only refer to the current state of the system, and cannot depend on the past states of the system. Markov chains have numerous applications in physics, mathematics, and computing. In statistical mechanics, for instance, Markov chains are used to describe the random sequence of micro-states visited by a system undergoing thermal fluctuations\n4. docid=shard_00269_33533 (unit=shard_00269_33533) rrf_score=0.01613 sources={\"sparse\":{\"rank\":2,\"score\":17.77931}}\n   Provides an introduction to basic structures of probability with a view towards applications in information technology A First Course in Probability and Markov Chains presents an introduction to the basic elements in probability and focuses on two main areas. The first part explores notions and structures in probability, including combinatorics, probability measures, probability distributions, conditional probability, inclusion-exclusion formulas, random variables, dispersion indexes, independent random variables as well as weak and strong laws of large numbers and central limit theorem. In the second part of the book, focus is given to Discrete Time Discrete Markov Chains which is addressed together with an introduction to Poisson processes and Continuous Time Discrete Markov Chains. This book also looks at making use of measure theory notations that unify all the presentation, in parti\n5. docid=shard_06102_65423 (unit=shard_06102_65423) rrf_score=0.01587 sources={\"dense\":{\"rank\":3,\"score\":0.322437584400177}}\n   Markov processes Topics A sequence , , ... of random variates is called Markov (or Markoff) if, for any ,i.e., if the conditional distribution of assuming , , ..., equals the conditional distribution of assuming only (Papoulis 1984, pp. 528-529). The transitional densities of a Markov sequence satisfy the Chapman-Kolmogorov equation. A Markov chain is collection of random variables (where the index runs through 0, 1, ...) having the property that, given the present, the future is conditionally independent of the past.In other words,If a Markov sequence of random variates take the discrete values , ..., , thenand the sequence is called a Markov chain (Papoulis 1984, p. 532).A simple random walk is an example of a Markovchain.The Season 1 episode \"Man Hunt\" (2005) of the television crime drama NUMB3RS features Markov chains\n6. docid=shard_06011_74077 (unit=shard_06011_74077) rrf_score=0.01587 sources={\"sparse\":{\"rank\":3,\"score\":17.718542}}\n   In probability theory and related fields, a Markov process, named after the Russian mathematician Andrey Markov, is a stochastic process that satisfies the Markov property. e. Conditional on the present state of the system, its future, a Markov chain is a type of Markov process that has either discrete state space or discrete index set, but the precise definition of a Markov chain varies. Andrey Markov studied Markov processes in the early 20th century, publishing his first paper on the topic in 1906, random walks on the integers and the Gamblers ruin problem are examples of Markov processes and were studied hundreds of years earlier. These two processes are Markov processes in time, while random walks on the integers and the Gamblers ruin problem are examples of Markov processes in discrete time. The algorithm known as PageRank, which was proposed for the internet search engine Google, \n7. docid=shard_03629_43609 (unit=shard_03629_43609) rrf_score=0.01563 sources={\"dense\":{\"rank\":4,\"score\":0.32120153307914734}}\n   Markov chains A Markov chain or Markov process is a stochastic process where the distribution of Xt+1 depends only on the value of Xt and not any previous history. (Formally, for all sets of states A, E[ [Xt+1∈A] | X0...Xt ] = E[ [Xt+1∈A] | Xt ]; contrast with the martingale property.) The state space of the chain is just the set of all values that each Xt can have. A Markov chain is finite or countable if it has a finite or countable state space, respectively. We'll mostly be interested in countable Markov chains. We'll also assume that our Markov chains are homogeneous, which means that Pr[Xt+1 = j | Xt = i] doesn't depend on t. For a countable Markov chain, we can describe its behavior completely by giving the state space and the one-step transition probabilities pij = Pr[Xt+1 = j | Xt = i]. Given pij, we can calculate two-step transition probabilities p(2)ij = Pr[Xt+2 = j | Xt = i] =\n8. docid=shard_02315_46682 (unit=shard_02315_46682) rrf_score=0.01563 sources={\"sparse\":{\"rank\":4,\"score\":17.626993}}\n   Maths Links Here are a few home pages of people working in combinatorics and related areas, together with reasons that one might like to visit them. Mathematical Home Pages Peter Borwein has one of the fanciest home pages I know. It is also full of good things. It is definitely the place to go if you want to find out about problems and results to do with polynomials, particularly the effect on their behaviour of restricting their coefficients in various natural ways. Bernard Chazelle has written a very interesting book on discrepancy. I particularly recommend Chapter 2 for a presentation of some of the ideas surrounding Wiles's proof of Fermat's last theorem (though the book needs them for a different problem). It is aimed at serious mathematicians, but gives plenty of motivation for concepts such as modular forms, Hecke operators etc. and does not assume very much background knowledge. \n9. docid=shard_00205_53201 (unit=shard_00205_53201) rrf_score=0.01538 sources={\"dense\":{\"rank\":5,\"score\":0.3207034766674042}}\n   Markov chain From Wikipedia, the free encyclopedia In mathematics, a Markov chain, named after Andrey Markov, is a stochastic process with the Markov property. Having the Markov property means that, given the present state, future states are independent of the past states. In other words, the description of the present state fully captures all the information that could influence the future evolution of the process. Future states will be reached through a probabilistic process instead of a deterministic one. At each step the system may change its state from the current state to another state, or remain in the same state, according to a certain probability distribution. The changes of state are called transitions, and the probabilities associated with various state-changes are called transition probabilities. An example of a Markov chain is a simple random walk where the state space is a \n10. docid=shard_01587_59220 (unit=shard_01587_59220) rrf_score=0.01538 sources={\"sparse\":{\"rank\":5,\"score\":17.353163}}\n   CS294 Markov Chain Monte Carlo: Foundations & Applications Disclaimer: These notes have not been subjected to the usual scrutiny reserved for formal publications. They may be distributed outside this class only with the permission of the Instructor. 1.1 The Markov Chain Monte Carlo Paradigm Assume that we have a very large but finite set Ω and a positive weight function w : Ω → + . Our goal is to sample x ∈ Ω with probability π(x) = w(x) , where the normalizing factor Z = x∈Ω w(x), often called Z the \"partition function\", is usually unknown. (Indeed, in many applications our ultimate goal will be to estimate Z.) Markov Chain Monte Carlo constructs a Markov Chain (Xt ) on Ω that converges to π, ie Pr[Xt = y|X0 = x] → π(y) as t → ∞, independent of x. Then we get a sampling algorithm by simulating the Markov chain, starting in an arbitrary state X0 , for sufficiently many steps and outputti",
+      "failed": false,
+      "returned_docids": [
+        "shard_01542_31446",
+        "shard_02482_42341",
+        "shard_04439_16596",
+        "shard_00269_33533",
+        "shard_06102_65423",
+        "shard_06011_74077",
+        "shard_03629_43609",
+        "shard_02315_46682",
+        "shard_00205_53201",
+        "shard_01587_59220"
+      ],
+      "returned": [
+        {
+          "docid": "shard_01542_31446",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_02482_42341",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_04439_16596",
+          "score": 0.016129032258064516
+        },
+        {
+          "docid": "shard_00269_33533",
+          "score": 0.016129032258064516
+        },
+        {
+          "docid": "shard_06102_65423",
+          "score": 0.015873015873015872
+        },
+        {
+          "docid": "shard_06011_74077",
+          "score": 0.015873015873015872
+        },
+        {
+          "docid": "shard_03629_43609",
+          "score": 0.015625
+        },
+        {
+          "docid": "shard_02315_46682",
+          "score": 0.015625
+        },
+        {
+          "docid": "shard_00205_53201",
+          "score": 0.015384615384615385
+        },
+        {
+          "docid": "shard_01587_59220",
+          "score": 0.015384615384615385
+        }
+      ],
+      "k": 10
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "search",
+      "arguments": "{\"query\":\"expected number of flips to get N heads in a row Markov chain\"}",
+      "output": "1. docid=shard_01901_70670 (unit=shard_01901_70670) rrf_score=0.03062 sources={\"dense\":{\"rank\":2,\"score\":0.29559484124183655},\"sparse\":{\"rank\":9,\"score\":24.426321}}\n   Flipping coin. How many coin flips does it take, on average, to get n consecutive heads? Let's assume that we have a coin with a probability p (=0.5 if fair coin) of coming up head. Let be the average number of flips before getting the first head. In this case, if the first flip is head, then the answer is 1. If, on the other hand, the first flip is tail, then we used 1 flip and we should do more flips before getting a head. In other words, we have: Which leads to : This seems right, since for a fair coin (p=0.5) the average number of flips to get a head is 2. Now let be the average number of flips before getting two heads in a row. Which means, if the first flip is a tail, we should expect flips before getting heads. In case we have a head in the first flip, there are two probabilities for what's next. If next is tail, then two flips are gone and we are back to the start point. But if n\n2. docid=shard_02822_24503 (unit=shard_02822_24503) rrf_score=0.02735 sources={\"dense\":{\"rank\":6,\"score\":0.28489893674850464},\"sparse\":{\"rank\":22,\"score\":22.769144}}\n   I just said what I said and it was wrong Or was taken wrong In the latest episode of Taskmaster, of which Channel 4 has posted a sneak peek, there's a subtask related to my last post on Markov chains. The contestants are required to flip a coin and get five consecutive heads before moving on to the next part of the task. As you might expect, there are a few double-headed coins available from earlier in the task, and that makes this subtask very easy for the contestants who notice them. But the subtask can also be done by brute force with a regular coin, which raises the question: how many flips would it take, on average, to accomplish this subtask with a fair coin? It might be easier to see how Markov chains can be used to answer this question if we build a little board game—an even easier version of Snakes and Ladders—that matches the logic of the coin flip subtask. Imagine a six-square\n3. docid=shard_06398_43597 (unit=shard_06398_43597) rrf_score=0.02375 sources={\"dense\":{\"rank\":36,\"score\":0.2670802175998688},\"sparse\":{\"rank\":15,\"score\":23.282513}}\n   Expected number of coin flips before N consecutive heads? Thread starterEclair_de_XII Start dateSep 29, 2018 In summary, the problem involves tossing a coin repeatedly and finding the expected number of tosses until n consecutive heads appear. The equation ##E(X|A)=\\sum_{x} x P([X=x]|A)## is not useful for this problem. The states can be defined as 0 for start or start over, and k for having just gotten the kth head in a row. The number of tosses to get n heads in a row starting in state j is denoted by Nj. The equation for E(X|Hj) is 1 + pE(X|Hj+1) + qE(X|H0), with E(X|Hn) = 0. This problem isWell, I would hazard a guess at \"geometric distribution\", if I let ##Pr\\{\\text{Heads n consecutive times}\\}=p^n##, and say that ##X \\space \\text{~} \\space Geo(Pr\\{\\text{Heads n consecutive times}\\})=Geo(p^n)##. Basically, I think ##X## is geometrically distributed in the respect that trials of ##n#\n4. docid=shard_03674_73516 (unit=shard_03674_73516) rrf_score=0.02325 sources={\"dense\":{\"rank\":20,\"score\":0.2742430865764618},\"sparse\":{\"rank\":33,\"score\":22.337208}}\n   Nick 2018-04-04 18:12 It's the negative binomial distribution (with parameters N and p). petrw1 2018-04-04 20:01 Pardon my ignorance but ... maybe I'm not understanding this right, but it looks like negative binomial distribution is used to determine, for instance, the expected number of tails before a pre-determined number of heads, but not necessarily in order Nick 2018-04-04 21:34 [QUOTE=petrw1;484296]maybe I'm not understanding this right[/QUOTE] I think I misunderstood you! In that case, you can work it out from first principles. Fix a positive integer \\(k\\geq N\\). How many ways are there of throwing \\(k-N\\) times without getting \\(N\\) heads in a row? What is the probability of each of those possibilities followed by \\(N\\) consecutive heads? wblipp 2018-04-04 22:07 [QUOTE=Nick;484307]How many ways are there of throwing \\(k-N\\) times without getting \\(N\\) heads in a row? What is the \n5. docid=shard_01547_55905 (unit=shard_01547_55905) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.300181120634079}}\n   As you can see, it steadily goes down, for very high number of flips it will get very close to 0.5, but still marginally above 0.5. The limit for this formula in sense of k -> Infinity is of course 0.5, but you can't flip infinitely many times. EDIT: I think that I have messed up, but I can't put my finger on it. If it's any excuse, I was never any good with probability. How does one differentiate consecutive case from consecutive and a next flip? This smells of Markov Chain to me, but that's just a hunch. Question: What does the author think this problem might be related to? Answer: Markov Chain\n6. docid=shard_01077_24697 (unit=shard_01077_24697) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":26.434752}}\n   2.3 Stationary Times Imagine you're flipping a coin. You keep track of how many heads you get before seeing two tails in a row. This sequence of flips might look something like this: HHTTHHHHHTTTT... where H represents a head and T represents a tail. In this scenario, when do you expect to see two tails in a row? It turns out that understanding this question requires us to delve into the world of stationary times. In this section, we will explore stationary times through the lens of Markov chains, which we introduced earlier in the chapter. Specifically, we will focus on discrete-time Markov chains, which are mathematical models used to describe systems that transition between states based on fixed probabilities. We will also assume that these Markov chains are finite, meaning they only have finitely many possible states. First, let's define some terms. A state space is the set of all po\n7. docid=shard_04855_21234 (unit=shard_04855_21234) rrf_score=0.01613 sources={\"sparse\":{\"rank\":2,\"score\":26.389519}}\n   Bernoulli Batters, Markov Coaches — Modeling Games by Plays by Alex Nelson, 5 July 2015 Abstract. We review probability distributions related to discrete \"success-or-fail\" trials (\"coin flips\"), and show how it applies to an individual batter's plate appearance. We briefly discuss how to improve approximating probabilities for a batter's success. Finally we introduce Markov models, which lets us model games and make predictions. Introduction We will model baseball as a series of interactions between batters and pitchers. The batter will either hit the ball or strike out, just as a flipping a coin results in either heads or tails. A game boils down to a series of coin flips. We will iteratively refine the model in question, starting with something comically simple. But we can get arbitrarily complex, taking into factors like the batter's age and abilities. Eventually, we will produce a mo\n8. docid=shard_01718_11547 (unit=shard_01718_11547) rrf_score=0.01587 sources={\"dense\":{\"rank\":3,\"score\":0.2936996817588806}}\n   coin flipped the probability of getting a head on flipping a biased coin is p. the coin is flipped n times producing a sequence containing m heads and (n-m) tails what is the probability of obtaining this sequence from n flips. i cant understand the wording Re: coin flipped hi markosheehan Normally you might expect the probability of flipping a head to be 1/2. If it is biased, that means the coin doesn't behave like this, but, rather, has a probability of a head that is not 1/2. eg it might be P(head) = 0.75 and P(tail) = 0.25. We are told to use 'p' for this probability. For each head the probability is p, so for m heads we need p^m and (1-p)^(n-m) for all the tails. In addition, there are many sequences that give these results. eg. If n = 5 and m = 2 then we could get HHTTT or HTHTT or HTTHT or HTTTH or THHTT or THTHT or THTTH or TTHHT or TTHTH or TTTHH. That's ten ways altogether. You\n9. docid=shard_04045_72851 (unit=shard_04045_72851) rrf_score=0.01587 sources={\"sparse\":{\"rank\":3,\"score\":25.945848}}\n   Markov Chains are mathematical models used to represent systems that change randomly between states. They are named after Russian mathematician Andrey Markov who introduced them in the early 20th century. In these systems, the probability of transitioning to any particular state depends solely on the current state and time elapsed, and not on the sequence of events that preceded it. This memoryless property makes Markov Chains particularly useful for modeling random processes where the future state is uncertain, but its probability distribution can be predicted based on the present state. To understand how Markov Chains work, let's consider a simple example. Suppose you are flipping a biased coin repeatedly, where the probability of getting heads is p, and tails is q = 1 - p. The outcome of each flip depends only on the coin's properties and not on previous flips. Therefore, this process\n10. docid=shard_05059_56682 (unit=shard_05059_56682) rrf_score=0.01563 sources={\"dense\":{\"rank\":4,\"score\":0.29031193256378174}}\n   The previous answer is incorrect. The correct answer is 6. This can be modeled by a simple markov chain: state 0: [1/2 1/2 0] state 1: [1/2 0 1/2] state 2: [0 0 1] where state 0 is having 0 heads in a row (i.e. back at square 1), state 1 is having 1 heads in a row, and state 2 is having 2 heads in a row a.k.a the final state Since we are solving for expected time to reach state 2, we have to solve the system of equations: t0=1+1/2*t0+1/2*t1 t1=1 + 1/2*t0 + 1/2*t2 t2=0 <--if you are already in state 2 i.e. you already have 2 consecutive heads, then you do not need to flip any additional coins because you are already done. Solving the system gets you t0=6. Alternatively, you could use the equation E(x)=(1-p^2)/(p^2*(1-p)), which also gives you 6 when you plug in p=.5 xi-i is a martingale with x0-0 = 0 so we have 2^2+2-E[i] = 0 which gives E[i] = 6 Show More Responses I have an alternative ",
+      "failed": false,
+      "returned_docids": [
+        "shard_01901_70670",
+        "shard_02822_24503",
+        "shard_06398_43597",
+        "shard_03674_73516",
+        "shard_01547_55905",
+        "shard_01077_24697",
+        "shard_04855_21234",
+        "shard_01718_11547",
+        "shard_04045_72851",
+        "shard_05059_56682"
+      ],
+      "returned": [
+        {
+          "docid": "shard_01901_70670",
+          "score": 0.030621785881252923
+        },
+        {
+          "docid": "shard_02822_24503",
+          "score": 0.027346637102734665
+        },
+        {
+          "docid": "shard_06398_43597",
+          "score": 0.02375
+        },
+        {
+          "docid": "shard_03674_73516",
+          "score": 0.023252688172043012
+        },
+        {
+          "docid": "shard_01547_55905",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_01077_24697",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_04855_21234",
+          "score": 0.016129032258064516
+        },
+        {
+          "docid": "shard_01718_11547",
+          "score": 0.015873015873015872
+        },
+        {
+          "docid": "shard_04045_72851",
+          "score": 0.015873015873015872
+        },
+        {
+          "docid": "shard_05059_56682",
+          "score": 0.015625
+        }
+      ],
+      "k": 10
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "search",
+      "arguments": "{\"query\":\"Markov chain Monte Carlo contemporary research applications\"}",
+      "output": "1. docid=shard_03014_8085 (unit=shard_03014_8085) rrf_score=0.02677 sources={\"dense\":{\"rank\":34,\"score\":0.2954220473766327},\"sparse\":{\"rank\":2,\"score\":26.927773}}\n   We use cookies on this website to ensure you get the best experience. privacy policy. Got it! July 6, 2023 What is a markov chain monte carlo? In the world of statistics and simulations, the Markov Chain Monte Carlo (MCMC) method has become a powerful tool. This article aims to provide a comprehensive overview of MCMC, from understanding the basics of Markov chains to exploring its practical applications and discussing its advantages and limitations. Understanding the Basics of Markov Chains Before diving into the realm of Monte Carlo methods, it is essential to grasp the fundamentals of Markov chains. A Markov chain is a stochastic process that undergoes transitions from one state to another in a probabilistic manner. This process is memoryless, meaning that the probability of transitioning to a particular state depends solely on the current state and not on the past. Markov chains find\n2. docid=shard_02367_42987 (unit=shard_02367_42987) rrf_score=0.02438 sources={\"dense\":{\"rank\":32,\"score\":0.2976478934288025},\"sparse\":{\"rank\":14,\"score\":24.916239}}\n   Markov Chain Monte Carlo A Practical Introduction R A tutorial on adaptive MCMC SpringerLink. Monte Carlo Methods, Markov Chains and Deep Learning. Let's say you're a horrific alien looking for the perfect planet to colonize. You have been instructed by a, Monte Carlo and Insomnia Enrico Fermi (1901{1954) took great delight in astonishing his colleagues with his remakably accurate predictions of experimental results. MCMC sampling for dummies. there exist a general class of algorithms that do this called Markov chain Monte Carlo (constructing a Markov chain to do Monte Carlo Markov chains are frequently seen represented by Markov Chain Monte Carlo: A tutorial introduction to Bayesian inference for stochastic epidemic models using A tutorial example - coding a Markov Chain Monte Carlo the Markov chain of accepted draws will converge to the staionary distribution, It's a Markov chain becau\n3. docid=shard_01045_8943 (unit=shard_01045_8943) rrf_score=0.02191 sources={\"dense\":{\"rank\":50,\"score\":0.28279992938041687},\"sparse\":{\"rank\":18,\"score\":24.596092}}\n   How To Use Markov Chain Monte Carlo Markov Chain Monte Carlo (MCMC) is a powerful tool used in statistics for sampling from a probability distribution. It is a Monte Carlo technique, meaning that it relies on random sampling to approximate a distribution. MCMC is particularly useful for sampling from complicated or difficult-to-sample distributions. There are a number of different types of Markov chains that can be used for MCMC. The most important factor in choosing a chain is whether the chain is reversible or not. A reversible chain will produce samples that are guaranteed to be from the original distribution. An example of a reversible chain is the Metropolis-Hastings algorithm. 2. Choose a starting point The starting point is the initial position of the Markov chain. This can be chosen randomly, or it can be based on some information about the distribution being sampled. 3. Generate\n4. docid=shard_06151_69290 (unit=shard_06151_69290) rrf_score=0.01942 sources={\"dense\":{\"rank\":44,\"score\":0.28998085856437683},\"sparse\":{\"rank\":42,\"score\":24.12305}}\n   Markov Processes and Applications: Algorithms, Networks, Genome and Finance Jean-François Le Gall, Professor at Université de Paris-Orsay, France. Markov processes is the class of stochastic processes whose past and future are conditionally independent, given their present state. They constitute important models in many applied fields. After an introduction to the Monte Carlo method, this book describes discrete time Markov chains, the Poisson process and continuous time Markov chains. It also presents numerous applications including Markov Chain Monte Carlo, Simulated Annealing, Hidden Markov Models, Annotation and Alignment of Genomic sequences, Control and Filtering, Phylogenetic tree reconstruction and Queuing networks. The last chapter is an introduction to stochastic calculus and mathematical finance. - The Monte Carlo method, discrete time Markov chains, the Poisson process and co\n5. docid=shard_01649_20233 (unit=shard_01649_20233) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.32204511761665344}}\n   Markov theory and algorithmic applications Markov chains, and more generally Markov processes, are random processes characterized by having a lack-of-memory property: the conditional distribution of what happens in the future given everything up to now, depends only on the present state (and not otherwise on the past). Markov chains and Markov processes are among the most fundamental objects of study in probability. An important subclass of Markov chains are random walks. Our theoretical investigations of Markov chains concern e.g. limit theorems and rates of convergence to equilibrium distributions. For finite state Markov chains we also analyze covering times (the time taken until all states are visited), whereas for infinite state Markov chains we are more interested in the recurrence/transience problem (is the chain guaranteed to eventually return to a given state?). These questions \n6. docid=shard_01057_40917 (unit=shard_01057_40917) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":27.40927}}\n   Examples from Evolutionary Biology. Examples of these algorithms have appeared in the evolutionary genetics literature. For example, inference problems in molecular Markov chains are frequently seen represented by A simple and often used example of a Markov chain is the board game \"Chutes Markov Chain Monte Carlo: This shows up when trying to read about Markov Chain Monte Carlo methods. Take, for example, Markov chain Monte Carlo useful with Markov chains is the 15/04/2014В В· Let's look at a problem called parameter estimation. As usual, we have a bunch of coin flips. What we've learned to do with Bayesian statistics is An introduction to Markov Chain Monte Carlo techniques G. J. A. Harker University of Colorado ASTR5550, 19th March 2012 A Markov chain is a stochastic model describing a sequence of possible events in which the probability of each event depends only on the state attained\n7. docid=shard_01261_28060 (unit=shard_01261_28060) rrf_score=0.01613 sources={\"dense\":{\"rank\":2,\"score\":0.32106131315231323}}\n   Markov chains represent one of the basic statistical models for sequences of random variables, which exhibit a certain dependence structure. There exist various applications, amongst others, in finance and insurance, but also in life sciences for example. However, it often arises the problem, that the mathematical model becomes so complex that explicit analytic fomulas do not exist. In this case, Markov-Chain-Monte-Carlo-Simulation is used as an auxiliary tool to obtain approximative solution s. Topics will include: Time-discrete Markov chains with finite state space. Stationarity and Ergodicity. Markov-Chain-Monte-Carlo (MCMC). Reversibility and Coupling. Printed version of lecture notes now available! Pick up your reserved copy at basic price of EUR 5,-.\n8. docid=shard_03263_47858 (unit=shard_03263_47858) rrf_score=0.01587 sources={\"dense\":{\"rank\":3,\"score\":0.31917333602905273}}\n   Financial Applications of Markov Chain Monte Carlo Methods... (More) (Less) @phdthesis{6fa41127-38cb-4eab-a6f5-0ce7f7f4d64a, abstract = {}, author = {Graflund, AndreasFinancial Applications of Markov Chain Monte Carlo Methods}, volume = {100}, year = {2002}, }\n9. docid=shard_00359_77533 (unit=shard_00359_77533) rrf_score=0.01587 sources={\"sparse\":{\"rank\":3,\"score\":26.148632}}\n   In a family study of breast cancer, epidemiologists in Southern California increase the power for detecting a gene-environment interaction. In Gambia, a study helps a vaccination program reduce the incidence of Hepatitis B carriage. Archaeologists in Austria place a Bronze Age site in its true temporal location on the calendar scale. And in France, researchers map a rare disease with relatively little variation. Each of these studies applied Markov chain Monte Carlo methods to produce more accurate and inclusive results. General state-space Markov chain theory has seen several developments that have made it both more accessible and more powerful to the general statistician. Markov Chain Monte Carlo in Practice introduces MCMC methods and their applications, providing some theoretical background as well. The authors are researchers who have made key contributions in the recent development\n10. docid=shard_04619_74165 (unit=shard_04619_74165) rrf_score=0.01563 sources={\"dense\":{\"rank\":4,\"score\":0.3159952759742737}}\n   ABSTRACT Markov chain Monte Carlo has revolutionized modern statistical computing, especially for complex Bayesian and latent variable models. For all of its success, it dawned on the broader scientific and statistics community slowly. Markov chain Monte Carlo is not inherently a Bayesian technique. It was used for years as a way of sampling from intractable, often high-dimensional, distributions, and has widespread applications in the integration, estimation, and optimization of functions. Markov chain Monte Carlo is fundamentally a local search algorithm, and starting the algorithm from several well-dispersed initial states can help to ensure that the parameter space is fully explored. It is fairly common practice to \"thin\" the Markov chain in some way, for example, to retain only every mthinth step of of the converged Markov chain. Thinning is useful for reducing autocorrelation, and ",
+      "failed": false,
+      "returned_docids": [
+        "shard_03014_8085",
+        "shard_02367_42987",
+        "shard_01045_8943",
+        "shard_06151_69290",
+        "shard_01649_20233",
+        "shard_01057_40917",
+        "shard_01261_28060",
+        "shard_03263_47858",
+        "shard_00359_77533",
+        "shard_04619_74165"
+      ],
+      "returned": [
+        {
+          "docid": "shard_03014_8085",
+          "score": 0.026767330130404943
+        },
+        {
+          "docid": "shard_02367_42987",
+          "score": 0.02438307873090482
+        },
+        {
+          "docid": "shard_01045_8943",
+          "score": 0.02191142191142191
+        },
+        {
+          "docid": "shard_06151_69290",
+          "score": 0.019419306184012067
+        },
+        {
+          "docid": "shard_01649_20233",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_01057_40917",
+          "score": 0.01639344262295082
+        },
+        {
+          "docid": "shard_01261_28060",
+          "score": 0.016129032258064516
+        },
+        {
+          "docid": "shard_03263_47858",
+          "score": 0.015873015873015872
+        },
+        {
+          "docid": "shard_00359_77533",
+          "score": 0.015873015873015872
+        },
+        {
+          "docid": "shard_04619_74165",
+          "score": 0.015625
+        }
+      ],
+      "k": 10
+    },
+    {
+      "type": "reasoning",
+      "tool_name": null,
+      "arguments": null,
+      "output": "I'm pulling up several documents to cross-reference the details—looking at materials on Markov chains, coin flip problems, gambler's ruin, MCMC methods and their history, and probabilistic combinatorics to verify the information I need."
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_02822_24503\"}",
+      "output": "docid=shard_02822_24503\nI just said what I said and it was wrong\nOr was taken wrong\nIn the latest episode of Taskmaster, of which Channel 4 has posted a sneak peek, there's a subtask related to my last post on Markov chains. The contestants are required to flip a coin and get five consecutive heads before moving on to the next part of the task. As you might expect, there are a few double-headed coins available from earlier in the task, and that makes this subtask very easy for the contestants who notice them. But the subtask can also be done by brute force with a regular coin, which raises the question: how many flips would it take, on average, to accomplish this subtask with a fair coin?\nIt might be easier to see how Markov chains can be used to answer this question if we build a little board game—an even easier version of Snakes and Ladders—that matches the logic of the coin flip subtask. Imagine a six-square board with the squares labeled from 0 through 5.\nYou start with your marker on the Square 0 and start flipping a coin. If it comes up heads, you move your marker forward; if it comes up tails, you go back to zero. You finish the game when your marker reaches the Square 5, which is the same as flipping 5 heads in a row.\nAs we did in the earlier post, we'll take the end square to be an absorbing state and build a transition matrix that reflects the probabilities of moving from a given square to the others. The rows represent the current square and the columns represent the square after the next flip.\nAs you can see, the chance of moving forward one square is always ½, as is the chance of moving back to Square 0. The only square to which this doesn't apply is Square 5 because that's where the game ends.\nWe've worked out all the math on this before. We define another transition matrix, Q, as the same as P but with the row and column associated with the absorbing state removed:\nWe now define m0, as the expected number of flips to get from Square 0 to the absorbing state at Square 5. Similar definitions apply to m1, m2, m3, and m4. Then\n(I−Q)m=1\nwhere m is the column vector of the m terms and 1 is a five-element column vector of ones.1 Solving this yields\nm=[6260564832]\nso the expected number of flips to get five consecutive heads is 62. Certainly doable but also frustrating—a common Taskmaster state of affairs.\nYou might be looking at the 32 at the end of m and thinking it's too high to be the expected number of flips needed to get from four consecutive heads to the fifth consecutive head. While it's true that you could get from Square 4 to Square 5 in one flip, the problem is that it's equally likely that that flip will take you back to Square 0. So the expected number of flips to get from Square 4 to Square 5 is\n\nQuestion: In the imaginary board game, how many squares are there? Answer: 6\n\nQuestion: What is the main challenge in the latest episode of Taskmaster? Answer: Flipping a coin to get five consecutive heads\n\nQuestion: What is the expected number of flips to get from Square 4 to Square 5? Answer: 32\n\nQuestion: What is the expected number of coin flips needed to accomplish the subtask with a fair coin? Answer: 62",
+      "failed": false,
+      "returned_docids": [
+        "shard_02822_24503"
+      ]
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_06011_74077\"}",
+      "output": "docid=shard_06011_74077\nIn probability theory and related fields, a Markov process, named after the Russian mathematician Andrey Markov, is a stochastic process that satisfies the Markov property. e. Conditional on the present state of the system, its future, a Markov chain is a type of Markov process that has either discrete state space or discrete index set, but the precise definition of a Markov chain varies. Andrey Markov studied Markov processes in the early 20th century, publishing his first paper on the topic in 1906, random walks on the integers and the Gamblers ruin problem are examples of Markov processes and were studied hundreds of years earlier. These two processes are Markov processes in time, while random walks on the integers and the Gamblers ruin problem are examples of Markov processes in discrete time. The algorithm known as PageRank, which was proposed for the internet search engine Google, is based on a Markov process. The adjective Markovian is used to something that is related to a Markov process. A Markov chain is a process with the Markov property. The term Markov chain refers to the sequence of variables such a process moves through. It can thus be used for describing systems that follow a chain of linked events, the systems state space and time parameter index need to be specified. In addition, there are extensions of Markov processes that are referred to as such. Moreover, the index need not necessarily be real-valued, like with the state space. Notice that the state space continuous-time Markov chain is general to such a degree that it has no designated term. While the time parameter is usually discrete, the space of a Markov chain does not have any generally agreed-on restrictions. However, many applications of Markov chains employ finite or countably infinite state spaces, besides time-index and state-space parameters, there are many other variations, extensions and generalizations. For simplicity, most of this article concentrates on the discrete-time, discrete state-space case, the changes of state of the system are called transitions. The probabilities associated with state changes are called transition probabilities. The process is characterized by a space, a transition matrix describing the probabilities of particular transitions. By convention, we assume all possible states and transitions have been included in the definition of the process, so there is always a next state, and the process does not terminate\n27.\nAxel Thue\n–\nAxel Thue, was a Norwegian mathematician, known for highly original work in diophantine approximation, and combinatorics. He stated in 1914 the so-called word problem for semigroups or Thue problem and his only known PhD student was Thoralf Skolem. The esoteric programming language Thue is named after him, Axel Thue, MacTutor History of Mathematics archive, University of St Andrews. Axel Thue at the Mathematics Genealogy Project Axel Thue private archive exists at NTNU University Library Dorabiblioteket Audion was an electronic amplifying vacuum tube invented by American electrical engineer Lee de Forest in 1906. It …\n\"Triode\" Audion from 1908. (The 1906 Audion was a 2-element device with the signal applied to a wire wrapped around the glass envelope.)\n\nQuestion: What was the difference between the 1906 and 1908 Audion? Answer: The 1906 Audion was a 2-element device with the signal applied to a wire wrapped around the glass envelope, while the 1908 Audion was a triode with three elements.",
+      "failed": false,
+      "returned_docids": [
+        "shard_06011_74077"
+      ]
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_04619_74165\"}",
+      "output": "docid=shard_04619_74165\nABSTRACT\n\nMarkov chain Monte Carlo has revolutionized modern statistical computing, especially for complex Bayesian and latent variable models. For all of its success, it dawned on the broader scientific and statistics community slowly. Markov chain Monte Carlo is not inherently a Bayesian technique. It was used for years as a way of sampling from intractable, often high-dimensional, distributions, and has widespread applications in the integration, estimation, and optimization of functions. Markov chain Monte Carlo is fundamentally a local search algorithm, and starting the algorithm from several well-dispersed initial states can help to ensure that the parameter space is fully explored. It is fairly common practice to \"thin\" the Markov chain in some way, for example, to retain only every mthinth step of of the converged Markov chain. Thinning is useful for reducing autocorrelation, and for reducing the amount of Markov chain Monte Carlo data one has to store and calculate with.",
+      "failed": false,
+      "returned_docids": [
+        "shard_04619_74165"
+      ]
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_02482_42341\"}",
+      "output": "docid=shard_02482_42341\nHemanshu Kaul[PDF] version\nIntroduction. Although combinatorial problems have arisen in all fields of mathematics throughout history, discrete mathematics has only come to prominence as a mathematical discipline over the past century. It has been beneficial to adapt techniques from more mature areas of mathematics to tackle various combinatorial problems. A fruitful area of collaboration has been with probability. `The probabilistic method' is now a well established part of the graduate curriculum in combinatorics.\nOver the past two decades additional techniques with a probabilistic flavor have been developed for applications to combinatorial problems, both algorithmic and existential. A traditional first course in probabilistic combinatorics gives only the briefest hint of these areas from probability and information theory, such as Concentration of Measure, Entropy, and Rapidly Mixing Markov Chains. At UIUC, the courses on 'Methods in Combinatorics' and 'Applied Probability' do not teach these topics except for some large deviation inequalities. Moreover, the focus in Probability courses tends to be on the abstract development of the theory, which can obscure the applicability of these methods in discrete mathematics. This course will introduce graduate students to these methods and provide applications in graph theory, combinatorics, combinatorial optimization, and theoretical computer science. This course should be of interest to graduate students in Combinatorics, Probability, Operations Research, Theoretical Computer Science, and ECE. The topics are discussed in more detail below.\nConcentration of Measure. Inequalities for concentration of measure are vital tools in probabilistic combinatorics, probabilistic analysis of algorithms, randomized algorithms, and stochastic combinatorial optimization. They show that the probability of a random variable being far from its mean (or median) is exponentially small, and they give bounds on probabilities of rare events. The topics include the following: introduction to concentration of measure in metric spaces and its relation to isoperimetric inequalities, Chernoff--Hoeffding bounds for sums of random variables and their generalizations, McDiarmid's method of bounded differences for Lipschitz bounded functions and its variants (leading to the Azuma--Hoeffding Martingale Inequality), and isoperimetric inequalities under Hamming metric (leading to Talagrand's convex distance isoperimetric inequality and its variants). The focus is on developing the themes underlying the various methods and illustrating the final results through applications in graph theory, combinatorial optimization and theoretical computer science. The main references, in addition to the instructor's lecture notes, include :\nEntropy. Entropy of a random variable measures the amount of uncertainty in the random variable or the amount of information obtained when the random variable is revealed. In the last decade, entropy has been applied to provide short and elegant proofs for various counting and covering problems in graphs and set systems. After introducing the elementary properties of the entropy function and Shearer's Entropy Lemma, the focus will be on combinatorial applications giving bounds on various extremal problems. Examples include Bregman's bound on the permanent of a 0,1-matrix, bounds on the size of an intersecting family of graphs and on the number of copies of a fixed subgraph, Dedekind's problem on the number of monotone Boolean functions, and covering a complete r-uniform hypergraph with a small number of r-partite hypergraphs. We will also consider Friedgut's generalization of Shearer's Lemma, leading to a common generalization of classical inequalities such as those of Cauchy-Schwarz, Holder, etc. The main references, in addition to the instructor's lecture notes, include :\nRapidly Mixing Markov Chains. Over the past decade the Markov chain Monte Carlo (MCMC) method has emerged as a powerful methodology for approximate counting, computing multidimensional volumes and integrals, and combinatorial optimization. The MCMC method reduces these problems to sampling over an underlying set (of solutions or combinatorial structures) w.r.t. a given distribution. This sampling is done by a Markov Chain, on the underlying set, that converges to the required (stationary) distribution. The primary step in the rigorous analysis of such an MCMC algorithm is to show that the Markov chain is rapidly mixing, i.e., it has a high rate of convergence to its stationary distribution. This analysis tends to be an interesting mix of probability and combinatorics. The topics will include the equivalence of (approximate) counting and (almost) uniform sampling, the relation between Fully Polynomial Randomized Approximation Schemes (FPRAS) and rapid mixing of Markov Chains, and the study of various methods for bounding the mixing rates of combinatorially defined Markov Chains. These methods, including coupling, conductance, and canonical paths, will be used in applications of the MCMC method to the Knapsack problem, proper colorings of a graph, linear extensions of a poset, permanent of a 0,1-matrix, etc. The main references, in addition to the instructor's lecture notes, include :",
+      "failed": false,
+      "returned_docids": [
+        "shard_02482_42341"
+      ]
+    },
+    {
+      "type": "reasoning",
+      "tool_name": null,
+      "arguments": null,
+      "output": "I need to check several shards for different approaches to this problem—MCMC applications, genome and finance use cases, evolutionary biology examples, and an alternate solution. Let me start by fetching the key shards that have the full documentation and recursive approach details."
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_01901_70670\"}",
+      "output": "docid=shard_01901_70670\nFlipping coin.\nHow many coin flips does it take, on average, to get n consecutive heads?\nLet's assume that we have a coin with a probability p (=0.5 if fair coin) of coming up head.\nLet be the average number of flips before getting the first head. In this case, if the first flip is head, then the answer is 1. If, on the other hand, the first flip is tail, then we used 1 flip and we should do more flips before getting a head.\nIn other words, we have:\nWhich leads to :\nThis seems right, since for a fair coin (p=0.5) the average number of flips to get a head is 2.\nNow let be the average number of flips before getting two heads in a row. Which means, if the first flip is a tail, we should expect flips before getting heads. In case we have a head in the first flip, there are two probabilities for what's next. If next is tail, then two flips are gone and we are back to the start point. But if next is head, then we get what we want.\nIn other terms, we have:\nWhich leads to :\nFor the fair coin, the average number of flips to get two heads in a row is 6.\nIf we follow the same reasoning for the average number of flips to get 3 heads in a row.\nwhich leads to :\nAnd for the fair coin, you should expect 14 flips on average to get 3 heads in a row.\nIn general:\nFor the fair coin, we find that flips required to get n heads in a row.\nNow having said that, doesn't mean that we will have our heads!\nlet's go back to we said that we need on average 2 flips to get one head. The probability to get this head is : 3/4 = 0.75.\nBecause the list of possible outcomes are : {(0,0), (0,1), (1,0), (1,1)}\nSuppose now we want to calculate the probability for getting k heads in row with n flips. Sure we can use the Markov chain to calculate this probability, but it will get difficult when our experience grow.\nAnother solution is to simulate this process by doing a Monte Carlo.\nA programme that simulates this operation:\n1#generate the flips2flip=lambdan_times:''.join([str(random.getrandbits(1))foriinrange(n_times)])3#flip(10) would give 1011100000 for ex4#calculate the payoff5payoff=lambdan_times,k:1.0if'1'*kinflip(n_times)else0.06#payoff returns 1.0 if k heads is found in n_times flips7#monte carlo8monte_carlo=lambdan_times,k,j:sum([payoff(n_times,k)foriinxrange(j)])/j\n\nQuestion: What is the average number of flips required to get two heads in a row for a fair coin? Answer: 6\n\nQuestion: What is the probability of getting exactly one head in two flips? Answer: 0.75\n\nQuestion: What is the probability of getting a head on the first flip of a fair coin? Answer: 0.5",
+      "failed": false,
+      "returned_docids": [
+        "shard_01901_70670"
+      ]
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_00359_77533\"}",
+      "output": "docid=shard_00359_77533\nIn a family study of breast cancer, epidemiologists in Southern California increase the power for detecting a gene-environment interaction. In Gambia, a study helps a vaccination program reduce the incidence of Hepatitis B carriage. Archaeologists in Austria place a Bronze Age site in its true temporal location on the calendar scale. And in France, researchers map a rare disease with relatively little variation. Each of these studies applied Markov chain Monte Carlo methods to produce more accurate and inclusive results. General state-space Markov chain theory has seen several developments that have made it both more accessible and more powerful to the general statistician. Markov Chain Monte Carlo in Practice introduces MCMC methods and their applications, providing some theoretical background as well. The authors are researchers who have made key contributions in the recent development of MCMC methodology and its application. Considering the broad audience, the editors emphasize practice rather than theory, keeping the technical content to a minimum. The examples range from the simplest application, Gibbs sampling, to more complex applications. The first chapter contains enough information to allow the reader to start applying MCMC in a basic way. The following chapters cover main issues, important concepts and results, techniques for implementing MCMC, improving its performance, assessing model adequacy, choosing between models, and applications and their domains. Markov Chain Monte Carlo in Practice is a thorough, clear introduction to the methodology and applications of this simple idea with enormous potential. It shows the importance of MCMC in real applications, such as archaeology, astronomy, biostatistics, genetics, epidemiology, and image analysis, and provides an excellent base for MCMC to be applied to other fields as well.\nSince their popularization in the 1990s, Markov chain Monte Carlo (MCMC) methods have revolutionized statistical computing and have had an especially profound impact on the practice of Bayesian statistics. Furthermore, MCMC methods have enabled the development and use of intricate models in an astonishing array of disciplines as diverse as fisheries science and economics. The wide-ranging practical importance of MCMC has sparked an expansive and deep investigation into fundamental Markov chain theory. The Handbook of Markov Chain Monte Carlo provides a reference for the broad audience of developers and users of MCMC methodology interested in keeping up with cutting-edge theory and applications. The first half of the book covers MCMC foundations, methodology, and algorithms. The second half considers the use of MCMC in a variety of practical applications including in educational research, astrophysics, brain imaging, ecology, and sociology. The in-depth introductory section of the book allows graduate students and practicing scientists new to MCMC to become thoroughly acquainted with the basic theory, algorithms, and applications. The book supplies detailed examples and case studies of realistic scientific problems presenting the diversity of methods used by the wide-ranging MCMC community. Those familiar with MCMC methods will find this book a useful refresher of current theory and recent developments.\nWhile there have been few theoretical contributions on the Markov Chain Monte Carlo (MCMC) methods in the past decade, current understanding and application of MCMC to the solution of inference problems has increased by leaps and bounds. Incorporating changes in theory and highlighting new applications, Markov Chain Monte Carlo: Stochastic Simulation for Bayesian Inference, Second Edition presents a concise, accessible, and comprehensive introduction to the methods of this valuable simulation technique. The second edition includes access to an internet site that provides the code, written in R and WinBUGS, used in many of the previously existing and new examples and exercises. More importantly, the self-explanatory nature of the codes will enable modification of the inputs to the codes and variation on many directions will be available for further exploration. Major changes from the previous edition: · More examples with discussion of computational details in chapters on Gibbs sampling and Metropolis-Hastings algorithms · Recent developments in MCMC, including reversible jump, slice sampling, bridge sampling, path sampling, multiple-try, and delayed rejection · Discussion of computation using both R and WinBUGS · Additional exercises and selected solutions within the text, with all data sets and software available for download from the Web · Sections on spatial models and model adequacy The self-contained text units make MCMC accessible to scientists in other disciplines as well as statisticians. The book will appeal to everyone working with MCMC techniques, especially research and graduate statisticians and biostatisticians, and scientists handling data and formulating models. The book has been substantially reinforced as a first reading of material on MCMC and, consequently, as a textbook for modern Bayesian computation and Bayesian inference courses.\nAuthor: Bernd A. Berg\nPublisher: World Scientific\nRelease Date: 2004\nThis book teaches modern Markov chain Monte Carlo (MC) simulation techniques step by step. The material should be accessible to advanced undergraduate students and is suitable for a course. It ranges from elementary statistics concepts (the theory behind MC simulations), through conventional Metropolis and heat bath algorithms, autocorrelations and the analysis of the performance of MC algorithms, to advanced topics including the multicanonical approach, cluster algorithms and parallel computing. Therefore, it is also of interest to researchers in the field. The book relates the theory directly to Web-based computer code. This allows readers to get quickly started with their own simulations and to verify many numerical examples easily. The present code is in Fortran 77, for which compilers are freely available. The principles taught are important for users of other programming languages, like C or C++.\nAuthor: Faming Liang\nPublisher: John Wiley & Sons\nRelease Date: 2010-06-24\nMarkov Chain Monte Carlo (MCMC) methods are now an indispensable tool in scientific computing. This book discusses recent developments of MCMC methods with an emphasis on those making use of past sample information during simulations. The application examples are drawn from diverse fields such as bioinformatics, machine learning, social science, combinatorial optimization, and computational physics. Key Features: Expanded coverage of the stochastic approximation Monte Carlo and dynamic weighting algorithms that are essentially immune to local trap problems. A detailed discussion of the Monte Carlo Metropolis-Hastings algorithm that can be used for sampling from distributions with intractable normalizing constants. Up-to-date accounts of recent developments of the Gibbs sampler. Comprehensive overviews of the population-based MCMC algorithms and the MCMC algorithms with adaptive proposals. This book can be used as a textbook or a reference book for a one-semester graduate course in statistics, computational biology, engineering, and computer sciences. Applied or theoretical researchers will also find this book beneficial.\nAuthor: Hidemaro Suwa\nPublisher: Springer Science & Business Media\nRelease Date: 2013-11-05\nIn this thesis, novel Monte Carlo methods for precisely calculating the critical phenomena of the effectively frustrated quantum spin system are developed and applied to the critical phenomena of the spin-Peierls systems. Three significant methods are introduced for the first time: a new optimization algorithm of the Markov chain transition kernel based on the geometric weight-allocation approach, the extension of the worm (directed-loop) algorithm to nonconserved particles, and the combination with the level spectroscopy. Utilizing these methods, the phase diagram of the one-dimensional XXZ spin-Peierls system is elucidated. Furthermore, the multi-chain and two-dimensional spin-Peierls systems with interchain lattice interaction are investigated. The unbiased simulation shows that the interesting quantum phase transition between the 1D-like liquid phase and the macroscopically-degenerated dimer phase occurs on the fully-frustrated parameter line that separates the doubly-degenerated dimer phases in the two-dimensional phase diagram. The spin-phonon interaction in the spin-Peierls system introduces the spin frustration, which usually hinders the quantum Monte Carlo analysis, owing to the notorious negative sign problem. In this thesis, the author has succeeded in precisely calculating the critical phenomena of the effectively frustrated quantum spin system by means of the quantum Monte Carlo method without the negative sign.\nAuthor: J. S. Dagpunar\nPublisher: John Wiley & Sons\nRelease Date: 2007-04-04\nSimulation and Monte Carlo is aimed at students studying for degrees in Mathematics, Statistics, Financial Mathematics, Operational Research, Computer Science, and allied subjects, who wish an up-to-date account of the theory and practice of Simulation. Its distinguishing features are in-depth accounts of the theory of Simulation, including the important topic of variance reduction techniques, together with illustrative applications in Financial Mathematics, Markov chain Monte Carlo, and Discrete Event Simulation. Each chapter contains a good selection of exercises and solutions with an accompanying appendix comprising a Maple worksheet containing simulation procedures. The worksheets can also be downloaded from the web site supporting the book. This encourages readers to adopt a hands-on approach in the effective design of simulation experiments. Arising from a course taught at Edinburgh University over several years, the book will also appeal to practitioners working in the finance industry, statistics and operations research.",
+      "failed": false,
+      "returned_docids": [
+        "shard_00359_77533"
+      ]
+    },
+    {
+      "type": "tool_call",
+      "tool_name": "get_document",
+      "arguments": "{\"docid\":\"shard_06151_69290\"}",
+      "output": "docid=shard_06151_69290\nMarkov Processes and Applications: Algorithms, Networks, Genome and Finance\nJean-François Le Gall, Professor at Université de Paris-Orsay, France.\nMarkov processes is the class of stochastic processes whose past and future are conditionally independent, given their present state. They constitute important models in many applied fields.\nAfter an introduction to the Monte Carlo method, this book describes discrete time Markov chains, the Poisson process and continuous time Markov chains. It also presents numerous applications including Markov Chain Monte Carlo, Simulated Annealing, Hidden Markov Models, Annotation and Alignment of Genomic sequences, Control and Filtering, Phylogenetic tree reconstruction and Queuing networks. The last chapter is an introduction to stochastic calculus and mathematical finance.\n- The Monte Carlo method, discrete time Markov chains, the Poisson process and continuous time jump Markov processes.\n- An introduction to diffusion processes, mathematical finance and stochastic calculus.\n- Applications of Markov processes to various fields, ranging from mathematical biology, to financial engineering and computer science.\n- Numerous exercises and problems with solutions to most of them\n1. Simulations and the Monte Carlo method.\n1.1 Description of the method.\n1.2 Convergence theorems.\n1.3 Simulation of random variables.\n1.4 Variance reduction techniques.\n2. Markov chains.\n2.1 Definitions and elementary properties.\n2.3 Strong Markov property.\n2.4 Recurrent and transient states.\n2.5 The irreducible and recurrent case.\n2.6 The aperiodic case.\n2.7 Reversible Markov chain.\n2.8 Rate of convergence to equilibrium.\n2.9 Statistics of Markov chains.\n3. Stochastic algorithms.\n3.1 Markov chain Monte Carlo.\n3.2 Simulation of the invariant probability.\n3.3 Rate of convergence towards the invariant probability.\n3.4 Simulated annealing.\n4. Markov chains and the genome.\n4.1 Reading DNA.\n4.2 The i.i.d. model.\n4.3 The Markov model.\n4.4 Hidden Markov models.\n4.5 Hidden semi-Markov model.\n4.6 Alignment of two sequences.\n4.7 A multiple alignment algorithm.\n5. Control and filtering of Markov chains.\n5.1 Deterministic optimal control.\n5.2 Control of Markov chains.\n5.3 Linear quadratic optimal control.\n5.4 Filtering of Markov chains.\n5.5 The Kalman-Bucy filter.\n5.6 Linear-quadratic control with partial observation.\n6. The Poisson process.\n6.1 Point processes and counting processes.\n6.2 The Poisson process.\n6.3 The Markov property.\n6.4 Large time behaviour.\n7. Jump Markov processes.\n7.1 General facts.\n7.2 Infinitesimal generator.\n7.3 The strong Markov property.\n7.4 Embedded Markov chain.\n7.5 Recurrent and transient states.\n7.6 The irreducible recurrent case.\n7.8 Markov models of evolution and phylogeny.\n7.9 Application to discretized partial differential equations.\n7.10 Simulated annealing.\n8. Queues and networks.\n8.1 M/M/1 queue.\n8.2 M/M/1/K queue.\n8.3 M/M/s queue.\n8.4 M/M/s/s queue.\n8.5 Repair shop.\n8.6 Queues in series.\n8.7 M/G/∞ queue.\n8.8 M/G/1 queue.\n8.9 Open Jackson network.\n8.10 Closed Jackson network.\n8.11 Telephone network.\n8.12 Kelly networks.\n9. Introduction to mathematical finance.\n9.1 Fundamental concepts.\n9.2 European options in the discrete model.\n9.3 The Black-Scholes model and formula.\n9.4 American options in the discrete model.\n9.5 American options in the Black-Scholes model.\n9.6 Interest rate and bonds.\n10. Solutions to selected exercises.\n10.1 Chapter 1.\n10.2 Chapter 2.\n10.3 Chapter 3.\n10.4 Chapter 4.\n10.5 Chapter 5.\n10.6 Chapter 6.\n10.7 Chapter 7.\n10.8 Chapter 8.\n10.9 Chapter 9.\nBuy Both and Save 25%!\nMarkov Processes and Applications: Algorithms, Networks, Genome and Finance (US $99.00)\nTotal List Price: US $164.95\nDiscounted Price: US $123.71 (Save: US $41.24)",
+      "failed": false,
+      "returned_docids": [
+        "shard_06151_69290"
+      ]
+    },
+    {
+      "type": "output_text",
+      "tool_name": null,
+      "arguments": null,
+      "output": "Now I have enough evidence to write the report.\n\n## Introduction: Origins of Markov Chains in Statistics and Combinatorics\n\nA Markov chain is a stochastic process describing a sequence of events in which the probability of each future event depends solely on the current state of the system, not on the sequence of states that preceded it — a property known as \"memorylessness\" (shard_02323_69924; shard_00205_53201; shard_05095_70717). Formally, for a sequence of random variables X₁, X₂, …, Xₙ, the process satisfies Pr(Xₙ₊₁ = x | X₁=x₁,…,Xₙ=xₙ) = Pr(Xₙ₊₁ = x | Xₙ = xₙ) (shard_01256_23292; shard_04641_24791). Markov chains can be discrete or continuous in time and finite or countably infinite in their state space, though the discrete-time, discrete-state case is the most commonly studied variant (shard_06011_74077).\n\nThe concept is named after the Russian mathematician Andrey Markov, who began publishing on such processes in 1906 (shard_06011_74077). Markov's original motivation was not applied but foundational: he wanted to demonstrate, contrary to the prevailing view that the Law of Large Numbers required independence between random variables, that dependent sequences could still obey limit laws — his famous example being the statistical analysis of vowel-consonant sequences in Pushkin's poem *Eugene Onegin* (shard_02761_62829). This was fundamentally a combinatorial and probabilistic exercise in showing that \"chained,\" dependent events could nonetheless be tractable mathematically. Importantly, though Markov formalized the theory, related structures — random walks on the integers and the Gambler's Ruin problem — had already been studied hundreds of years earlier, meaning Markovian reasoning implicitly predates Markov's formal apparatus (shard_06011_74077). The genesis of the theory thus lies at the intersection of a desire to generalize probabilistic limit theorems beyond independence and a need for tractable combinatorial tools to count and reason about sequences of dependent trials — precisely the kind of \"chained events\" that arise naturally in combinatorics when enumerating paths, states, or configurations that evolve step by step (shard_03646_78840; shard_02482_42341).\n\n## Literature Review: Markov Chains in Contemporary Research\n\nContemporary scholarship treats Markov chains less as a standalone curiosity and more as a computational and analytical toolkit that cuts across statistics, combinatorics, and computer science. A central strand is Markov Chain Monte Carlo (MCMC), a paradigm that constructs a Markov chain on a large state space Ω whose stationary distribution equals a target distribution π, then draws samples by simulating the chain forward (shard_01587_59220; shard_03014_8085). MCMC \"dawned on the broader scientific and statistics community slowly\" despite not being inherently a Bayesian technique — it long served as a general method for sampling from intractable, high-dimensional distributions and for integration, estimation, and optimization (shard_04619_74165). Since its popularization in the 1990s, MCMC has \"revolutionized statistical computing\" and profoundly shaped Bayesian practice, with applications spanning biostatistics, genetics, epidemiology, archaeology, astronomy, image analysis, ecology, sociology, and economics (shard_00359_77533). Reference works such as *Markov Chain Monte Carlo in Practice* and the *Handbook of Markov Chain Monte Carlo* document this expansion, covering foundational algorithms (Gibbs sampling, Metropolis-Hastings) alongside practical case studies (shard_00359_77533).\n\nA second major thread concerns *rapidly mixing Markov chains* in probabilistic combinatorics and theoretical computer science. Here MCMC is used for approximate counting, computing multidimensional volumes, and combinatorial optimization, reducing such problems to sampling from an underlying combinatorial structure via a chain that converges to a required stationary distribution (shard_02482_42341). Analysis centers on proving rapid mixing — a high convergence rate — often via coupling, conductance, or canonical-path arguments, with applications to the knapsack problem, graph coloring, linear extensions of posets, and permanent computation of 0-1 matrices (shard_02482_42341). This area exemplifies how Markov chain theory now sits alongside concentration-of-measure inequalities and entropy methods as core machinery of probabilistic combinatorics (shard_02482_42341).\n\nBeyond these two poles, Markov processes underpin domain-specific models: Hidden Markov Models and sequence alignment in genomics, phylogenetic reconstruction, queuing networks, and control/filtering problems including the Kalman-Bucy filter (shard_06151_69290). Financial applications include option pricing frameworks built on discrete-time Markov models (shard_06151_69290; shard_03263_47858). Search-engine ranking, notably Google's PageRank algorithm, is itself grounded in a Markov process over the web graph (shard_06011_74077). Sports analytics researchers have also modeled games — for instance baseball at-bats — as sequences of Markov transitions built from simpler Bernoulli trials (shard_04855_21234). Collectively, this literature reflects a maturing field in which Markov chains function simultaneously as (a) a rigorous probabilistic object studied for its own convergence and mixing properties, and (b) a flexible computational engine enabling inference and simulation across the sciences.\n\n## Application and Intuition: Expected Flips to Get N Heads in a Row\n\nThe \"N heads in a row\" problem offers an intuitive gateway into Markov chain reasoning. One models the process as a chain with states 0, 1, …, N, where state *k* represents \"currently on a streak of *k* consecutive heads.\" A heads flip advances the state by one; a tails flip resets the state to 0; state N is absorbing (shard_02822_24503; shard_05059_56682). This can be visualized as a simplified board game: a marker starts at square 0, moves forward on heads, and returns to 0 on tails, finishing when it reaches square N (shard_02822_24503).\n\nLetting mₖ denote the expected number of additional flips needed from state k, one sets up a linear system such as, for a fair coin seeking two heads in a row: t₀ = 1 + ½t₀ + ½t₁, t₁ = 1 + ½t₀ + ½t₂, t₂ = 0, which solves to t₀ = 6 (shard_05059_56682). This matches the direct recursive derivation: for a fair coin, the expected number of flips to reach n heads in a row follows the pattern 2, 6, 14, … i.e., 2^(n+1) − 2 (shard_01901_70670). For example, two heads in a row require 6 expected flips, three heads in a row require 14 (shard_01901_70670).\n\nFor larger N, the recursive equations become a full transition-matrix problem: define matrix P over states 0..N with N absorbing, remove the absorbing row/column to get sub-matrix Q, and solve (I − Q)m = 1, where 1 is a vector of ones (shard_02822_24503). Applied to N = 5, this yields expected flip counts of [62, 60, 56, 48, 32] from states 0 through 4, so 62 flips are needed on average starting from scratch (shard_02822_24503). Notably, the expected additional flips from state 4 (one heads-streak away from success) is still 32, not 2, because a single tails flip erases the entire streak and forces a restart — illustrating the intuitive but often underestimated cost of \"near misses\" in Markov-based expectation calculations (shard_02822_24503).\n\nAn alternative combinatorial framing recognizes this waiting time as related to the negative binomial distribution, counting the number of trials needed to observe N consecutive successes rather than N successes overall, with the count of sequences of length k that avoid N-in-a-row providing a purely combinatorial cross-check on the Markov-derived recursion (shard_03674_73516; shard_06398_43597). This dual view — recursive/matrix Markov-chain solution versus combinatorial enumeration — highlights why the problem is a favorite pedagogical bridge between discrete probability and Markov chain theory."
+    }
+  ],
+  "raw_messages": [
+    {
+      "role": "user",
+      "content": "Write an introduction on Markov chains in the field of statistics/combinatorics and the reason behind their genesis. Then, write a literature review on Markov chains in contemporary research. Include one section devoted to their application and intuition in solving problems like \"what is the expected value of flips to get N heads in a row\".",
+      "timestamp": 1784185643739
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "I should search through the corpus for materials on Markov chains.",
+          "thinkingSignature": "EoUCCnIIDxABGAIqQAyksaH1eOdjaUeNqNFFYMXv/u8wger4tCbFY/6YwICmcMShzbUGwDOc6hzM8ikpt67eAAtt+qkUm1Z1cetVLlkyDmNsYXVkZS1zYWZmcm9uOABCCHRoaW5raW5nWgw1MDczNjM2MTUzNDESDEmtuj7muZRYgCyGbhoMrsH0fR2/oMpmXz8eIjDVM35Mx2w2sd0cgl79uypmmtNGbkyLA1BtnHDG4Lm6N+tDWPvaY4r/vSTIqzSUSHsqQS0u7tLkqCvfIhWbxQCdHKshVpXxvVwwMJrZeK9eUylMkLaYgBi6jWi9AVkUTPLQyRrf4f7nivhOXpudXZ1hav6YGAE="
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_e48tSLnyHateff1JpTQuYM",
+          "name": "search",
+          "arguments": {
+            "query": "Markov chains history genesis statistics"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_lS3UZGEdOQDzBv1T7enQQ0",
+          "name": "search",
+          "arguments": {
+            "query": "Markov chain definition combinatorics"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_TdTgOCcO4rGsofTBragcmM",
+          "name": "search",
+          "arguments": {
+            "query": "expected number of flips to get N heads in a row Markov chain"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_OzwIaWzvuKpCAw9cPxnSAX",
+          "name": "search",
+          "arguments": {
+            "query": "Markov chain Monte Carlo contemporary research applications"
+          }
+        }
+      ],
+      "api": "bedrock-converse-stream",
+      "provider": "amazon-bedrock",
+      "model": "au.anthropic.claude-sonnet-5",
+      "usage": {
+        "input": 2,
+        "output": 248,
+        "cacheRead": 0,
+        "cacheWrite": 1341,
+        "totalTokens": 1591,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "toolUse",
+      "timestamp": 1784185643815
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_e48tSLnyHateff1JpTQuYM",
+      "toolName": "search",
+      "content": [
+        {
+          "type": "text",
+          "text": "1. docid=shard_02761_62829 (unit=shard_02761_62829) rrf_score=0.02698 sources={\"dense\":{\"rank\":3,\"score\":0.31518739461898804},\"sparse\":{\"rank\":30,\"score\":15.344307}}\n   I’ve been hearing about “Markov chain” for long enough – it was time I learned something. Wikipedia seemed like a good starting point. I have to warn you though, be careful with scrolling on that page, because you can easily end up looking at something like this: If you aren’t a rocket scientist or someone who solves integrals for fun, by all means, use the contents menu or jump directly to the Applications section.That’s where all the fun is. Here are some quotes for you to get interested and for me to remember. Markovian systems appear extensively in physics, particularly statistical mechanics, whenever probabilities are used to represent unknown or unmodelled details of the system, if it can be assumed that the dynamics are time-invariant, and that no relevant history need be considered which is not already included in the state description. Several theorists have proposed the idea of\n2. docid=shard_04641_24791 (unit=shard_04641_24791) rrf_score=0.02686 sources={\"dense\":{\"rank\":31,\"score\":0.30309954285621643},\"sparse\":{\"rank\":3,\"score\":16.148949}}\n   We use cookies on this website to ensure you get the best experience. privacy policy. Got it! August 11, 2023 What is a discrete time markov chain? A discrete time Markov chain is a sequence of random variables with the Markov property. In this type of Markov chain, the system under consideration is in a certain state at each step, where a step is a discrete point in time. But what does that mean? To understand this, we first need to grasp the basics of Markov chains. Understanding the Basics of Markov Chains Before we delve into the intricacies of a discrete time Markov chain, let's first unpack the concept of a Markov chain. The term 'chain' is emblematic of the fundamental nature of this concept, characterized by a sequence of occurrences that are linked or 'chained' together. But how are they 'chained' together? This is what takes us to the heart of the Markov property. Let's deliber\n3. docid=shard_05095_70717 (unit=shard_05095_70717) rrf_score=0.02633 sources={\"dense\":{\"rank\":23,\"score\":0.30571672320365906},\"sparse\":{\"rank\":10,\"score\":15.71733}}\n   Artificial Intelligence Markov Chains What is a Markov Chain? A Markov chain is a stochastic process where the probability of transitioning to a particular state depends solely on the state attained in the previous event. Due to this feature, Markov chains are sometimes called \"memory-less\" processes. . They are named after the Russian mathematician Andrey Markov. Figure 1: Markov chain with two states. Mathematically, a Markov chain can be defined as a sequence of random variables X1, X2, …, Xn where: The condition that states that the probability of event Xx+1 depends only on the previous event is called the Markov property. Markov chains can be discrete or continuous in time. Why are Markov Chains Important? Markov chains have a wide range of applications. They are used in statistics, information theory, game theory, economics, genetics, finance, programmed music generation, and many \n4. docid=shard_01960_15880 (unit=shard_01960_15880) rrf_score=0.02520 sources={\"dense\":{\"rank\":30,\"score\":0.30329251289367676},\"sparse\":{\"rank\":11,\"score\":15.70112}}\n   Artificial Intelligence Markov Chains What is a Markov Chain? A Markov chain is a stochastic process where the probability of transitioning to a particular state depends solely on the state attained in the previous event. Due to this feature, Markov chains are sometimes called \"memory-less\" processes. . They are named after the Russian mathematician Andrey Markov. Figure 1: Markov chain with two states. Mathematically, a Markov chain can be defined as a sequence of random variables X1, X2, …, Xn where: The condition that states that the probability of event Xx+1 depends only on the previous event is called the Markov property. Markov chains can be discrete or continuous in time. Why are Markov Chains Important? Markov chains have a wide range of applications. They are used in statistics, information theory, game theory, economics, genetics, finance, programmed music generation, and many \n5. docid=shard_01256_23292 (unit=shard_01256_23292) rrf_score=0.02425 sources={\"dense\":{\"rank\":24,\"score\":0.30450862646102905},\"sparse\":{\"rank\":21,\"score\":15.468068}}\n   A Markov chain is a stochastic process where the probability of transitioning to a particular state depends solely on the state attained in the previous event. Due to this feature, Markov chains are sometimes called “memory-less” processes. . They are named after the Russian mathematician Andrey Markov. Figure 1: Markov chain with two states. Mathematically, a Markov chain can be defined as a sequence of random variables X1, X2, …, Xn where: Pr(Xn+1 = x|X1 = x1, X2 = x2, … , Xn = xn) = Pr(Xn+1 = x|Xn = xn) and Pr(X1 = x1, X2 = x2, … , Xn = xn) > 0 The condition that states that the probability of event Xx+1 depends only on the previous event is called the Markov property. Markov chains can be discrete or continuous in time. Markov chains have a wide range of applications. They are used in statistics, information theory, game theory, economics, genetics, finance, programmed music generati\n6. docid=shard_00709_30287 (unit=shard_00709_30287) rrf_score=0.02364 sources={\"dense\":{\"rank\":15,\"score\":0.30877619981765747},\"sparse\":{\"rank\":37,\"score\":15.220368}}\n   Markov Chains: From Theory to Implementation and Experimentation begins with a general introduction to the history of probability theory in which the author uses quantifiable examples to illustrate how probability theory arrived at the concept of discrete-time and the Markov model from experiments involving independent variables. An introduction to simple stochastic matrices and transition probabilities is followed by a simulation of a two-state Markov chain. The notion of steady state is explored in connection with the long-run distribution behavior of the Markov chain. Predictions based on Markov chains with more than two states are examined, followed by a discussion of the notion of absorbing Markov chains. Also covered in detail are topics relating to the average time spent in a state, various chain configurations, and n-state Markov chain simulations used for verifying experiments i\n7. docid=shard_01952_10294 (unit=shard_01952_10294) rrf_score=0.02270 sources={\"dense\":{\"rank\":43,\"score\":0.2924211919307709},\"sparse\":{\"rank\":17,\"score\":15.539695}}\n   Lanț Markov – Wikipedia A Markov chain is a stochastic model describing a sequence of possible events in which the probability of each event depends only on the state attained in the previous event. In probability theory and related fields, a Markov processnamed after the Russian mathematician Andrey Markovis a stochastic process that satisfies the Markov property [1] [3] [4] sometimes characterized as \" memorylessness \". Roughly speaking, a process satisfies the Markov property if one can make predictions for the future of the process based solely on its present state just as well as one could knowing the process's full history, hence independently from such history; i. A Markov chain is a type of Markov process that has either a discrete state space or a discrete index set often representing timebut the lajturi definition of a Markov chain varies. Markov studied Markov processes in the\n8. docid=shard_02323_69924 (unit=shard_02323_69924) rrf_score=0.02130 sources={\"dense\":{\"rank\":27,\"score\":0.3038043975830078},\"sparse\":{\"rank\":42,\"score\":15.175434}}\n   Markov chain In probability theory and related fields, a Markov process (or Markoff process), named after the Russian mathematician Andrey Markov, is a stochastic process that satisfies the Markov property (sometimes characterized as \"memorylessness\"). Loosely speaking, a process satisfies the Markov property if one can make predictions for the future of the process based solely on its present state just as well as one could knowing the process's full history; i.e., conditional on the present state of the system, its future and past states are independent. A Markov chain is a type of Markov process that has either discrete state space or discrete index set (often representing time), but the precise definition of a Markov chain varies. For example, it is common to define a Markov chain as a Markov process in either discrete or continuous time with a countable state space (thus regardless \n9. docid=shard_03646_78840 (unit=shard_03646_78840) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.33362144231796265}}\n   Markov chains By victor powell with text by lewis lehe markov chains, named after andrey markov, are mathematical systems that hop from one state (a situation or set of values. A markov chain is a model of some random process that happens over time markov chains are called that because they follow a rule called the markov property. Last revised: 26 january 2009 1 markov chains a markov chain process is a simple type of stochastic process with many social sci-ence applications. The five greatest applications of markov chains philipp von hilgers∗ and amy n langville† abstract one hundred years removed from a a markov's development. 1 introduction markov chains are named after russian mathematician andrei markov and provide a way of dealing with a sequence of events based on the probabilities. Markov chains works with followers the software creates strings for each loto no and what numbers \n10. docid=shard_02737_29487 (unit=shard_02737_29487) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":16.990173}}\n   Examples I'll confess I removed the Project Guttenberg \"small print\" text from the above text samples, but technically I'm not redistributing the texts themselves. I hope they give me credit for promoting their excellent philanthropy. Documentation History This is another project in my experiments with Natural Language Processing (NLP). I've called it 'Mockingbird' because it attempts to imitate the writing style of another written work. The real name is Babbler, but I decided to use that as an umbrella for my NLP projects and research. I had heard some time ago, must've been 1993, about software written to help spoof someone else on USENET. \"Wow, great idea!\" thought my hacker self, but as usual I didn't have the malevolence to seek out this tool or to find a victim to target. I didn't think of it much until I came across an MS-DOS program (also called Babbler) that claimed to do the sa"
+        }
+      ],
+      "details": {
+        "returned": [
+          {
+            "docid": "shard_02761_62829",
+            "score": 0.026984126984126985
+          },
+          {
+            "docid": "shard_04641_24791",
+            "score": 0.026862026862026864
+          },
+          {
+            "docid": "shard_05095_70717",
+            "score": 0.026333907056798625
+          },
+          {
+            "docid": "shard_01960_15880",
+            "score": 0.025195618153364633
+          },
+          {
+            "docid": "shard_01256_23292",
+            "score": 0.024250440917107582
+          },
+          {
+            "docid": "shard_00709_30287",
+            "score": 0.023642611683848798
+          },
+          {
+            "docid": "shard_01952_10294",
+            "score": 0.022695750851090657
+          },
+          {
+            "docid": "shard_02323_69924",
+            "score": 0.02129817444219067
+          },
+          {
+            "docid": "shard_03646_78840",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_02737_29487",
+            "score": 0.01639344262295082
+          }
+        ],
+        "returnedDocids": [
+          "shard_02761_62829",
+          "shard_04641_24791",
+          "shard_05095_70717",
+          "shard_01960_15880",
+          "shard_01256_23292",
+          "shard_00709_30287",
+          "shard_01952_10294",
+          "shard_02323_69924",
+          "shard_03646_78840",
+          "shard_02737_29487"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185647198
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_lS3UZGEdOQDzBv1T7enQQ0",
+      "toolName": "search",
+      "content": [
+        {
+          "type": "text",
+          "text": "1. docid=shard_01542_31446 (unit=shard_01542_31446) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.32385721802711487}}\n   1.1 What are Markov Chains? Markov chains are mathematical models used to describe systems that transition between states according to certain probabilistic rules. Named after Russian mathematician Andrey Markov, these models have found widespread application in fields as diverse as finance, physics, engineering, computer science, and linguistics. At their core, Markov chains provide a way to model complex stochastic processes by breaking them down into simpler components. To understand what makes Markov chains so powerful, let us begin by examining their defining characteristic: the Markov property. This property states that the probability of transitioning from one state to another depends only on the current state and not on any previous states or external factors. Mathematically, we can express this as follows: P(X_{n+1} = x | X_1 = x_1, X_2 = x_2, ..., X_n = x_n) = P(X_{n+1} = x | X\n2. docid=shard_02482_42341 (unit=shard_02482_42341) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":18.103382}}\n   Hemanshu Kaul[PDF] version Introduction. Although combinatorial problems have arisen in all fields of mathematics throughout history, discrete mathematics has only come to prominence as a mathematical discipline over the past century. It has been beneficial to adapt techniques from more mature areas of mathematics to tackle various combinatorial problems. A fruitful area of collaboration has been with probability. `The probabilistic method' is now a well established part of the graduate curriculum in combinatorics. Over the past two decades additional techniques with a probabilistic flavor have been developed for applications to combinatorial problems, both algorithmic and existential. A traditional first course in probabilistic combinatorics gives only the briefest hint of these areas from probability and information theory, such as Concentration of Measure, Entropy, and Rapidly Mixing \n3. docid=shard_04439_16596 (unit=shard_04439_16596) rrf_score=0.01613 sources={\"dense\":{\"rank\":2,\"score\":0.3235584795475006}}\n   A Markov chain refers to a sequence (or \"chain\") of discrete events, generated according to a fixed set of probabilistic rules. The most important property of these rules is that they can only refer to the current state of the system, and cannot depend on the past states of the system. Markov chains have numerous applications in physics, mathematics, and computing. In statistical mechanics, for instance, Markov chains are used to describe the random sequence of micro-states visited by a system undergoing thermal fluctuations\n4. docid=shard_00269_33533 (unit=shard_00269_33533) rrf_score=0.01613 sources={\"sparse\":{\"rank\":2,\"score\":17.77931}}\n   Provides an introduction to basic structures of probability with a view towards applications in information technology A First Course in Probability and Markov Chains presents an introduction to the basic elements in probability and focuses on two main areas. The first part explores notions and structures in probability, including combinatorics, probability measures, probability distributions, conditional probability, inclusion-exclusion formulas, random variables, dispersion indexes, independent random variables as well as weak and strong laws of large numbers and central limit theorem. In the second part of the book, focus is given to Discrete Time Discrete Markov Chains which is addressed together with an introduction to Poisson processes and Continuous Time Discrete Markov Chains. This book also looks at making use of measure theory notations that unify all the presentation, in parti\n5. docid=shard_06102_65423 (unit=shard_06102_65423) rrf_score=0.01587 sources={\"dense\":{\"rank\":3,\"score\":0.322437584400177}}\n   Markov processes Topics A sequence , , ... of random variates is called Markov (or Markoff) if, for any ,i.e., if the conditional distribution of assuming , , ..., equals the conditional distribution of assuming only (Papoulis 1984, pp. 528-529). The transitional densities of a Markov sequence satisfy the Chapman-Kolmogorov equation. A Markov chain is collection of random variables (where the index runs through 0, 1, ...) having the property that, given the present, the future is conditionally independent of the past.In other words,If a Markov sequence of random variates take the discrete values , ..., , thenand the sequence is called a Markov chain (Papoulis 1984, p. 532).A simple random walk is an example of a Markovchain.The Season 1 episode \"Man Hunt\" (2005) of the television crime drama NUMB3RS features Markov chains\n6. docid=shard_06011_74077 (unit=shard_06011_74077) rrf_score=0.01587 sources={\"sparse\":{\"rank\":3,\"score\":17.718542}}\n   In probability theory and related fields, a Markov process, named after the Russian mathematician Andrey Markov, is a stochastic process that satisfies the Markov property. e. Conditional on the present state of the system, its future, a Markov chain is a type of Markov process that has either discrete state space or discrete index set, but the precise definition of a Markov chain varies. Andrey Markov studied Markov processes in the early 20th century, publishing his first paper on the topic in 1906, random walks on the integers and the Gamblers ruin problem are examples of Markov processes and were studied hundreds of years earlier. These two processes are Markov processes in time, while random walks on the integers and the Gamblers ruin problem are examples of Markov processes in discrete time. The algorithm known as PageRank, which was proposed for the internet search engine Google, \n7. docid=shard_03629_43609 (unit=shard_03629_43609) rrf_score=0.01563 sources={\"dense\":{\"rank\":4,\"score\":0.32120153307914734}}\n   Markov chains A Markov chain or Markov process is a stochastic process where the distribution of Xt+1 depends only on the value of Xt and not any previous history. (Formally, for all sets of states A, E[ [Xt+1∈A] | X0...Xt ] = E[ [Xt+1∈A] | Xt ]; contrast with the martingale property.) The state space of the chain is just the set of all values that each Xt can have. A Markov chain is finite or countable if it has a finite or countable state space, respectively. We'll mostly be interested in countable Markov chains. We'll also assume that our Markov chains are homogeneous, which means that Pr[Xt+1 = j | Xt = i] doesn't depend on t. For a countable Markov chain, we can describe its behavior completely by giving the state space and the one-step transition probabilities pij = Pr[Xt+1 = j | Xt = i]. Given pij, we can calculate two-step transition probabilities p(2)ij = Pr[Xt+2 = j | Xt = i] =\n8. docid=shard_02315_46682 (unit=shard_02315_46682) rrf_score=0.01563 sources={\"sparse\":{\"rank\":4,\"score\":17.626993}}\n   Maths Links Here are a few home pages of people working in combinatorics and related areas, together with reasons that one might like to visit them. Mathematical Home Pages Peter Borwein has one of the fanciest home pages I know. It is also full of good things. It is definitely the place to go if you want to find out about problems and results to do with polynomials, particularly the effect on their behaviour of restricting their coefficients in various natural ways. Bernard Chazelle has written a very interesting book on discrepancy. I particularly recommend Chapter 2 for a presentation of some of the ideas surrounding Wiles's proof of Fermat's last theorem (though the book needs them for a different problem). It is aimed at serious mathematicians, but gives plenty of motivation for concepts such as modular forms, Hecke operators etc. and does not assume very much background knowledge. \n9. docid=shard_00205_53201 (unit=shard_00205_53201) rrf_score=0.01538 sources={\"dense\":{\"rank\":5,\"score\":0.3207034766674042}}\n   Markov chain From Wikipedia, the free encyclopedia In mathematics, a Markov chain, named after Andrey Markov, is a stochastic process with the Markov property. Having the Markov property means that, given the present state, future states are independent of the past states. In other words, the description of the present state fully captures all the information that could influence the future evolution of the process. Future states will be reached through a probabilistic process instead of a deterministic one. At each step the system may change its state from the current state to another state, or remain in the same state, according to a certain probability distribution. The changes of state are called transitions, and the probabilities associated with various state-changes are called transition probabilities. An example of a Markov chain is a simple random walk where the state space is a \n10. docid=shard_01587_59220 (unit=shard_01587_59220) rrf_score=0.01538 sources={\"sparse\":{\"rank\":5,\"score\":17.353163}}\n   CS294 Markov Chain Monte Carlo: Foundations & Applications Disclaimer: These notes have not been subjected to the usual scrutiny reserved for formal publications. They may be distributed outside this class only with the permission of the Instructor. 1.1 The Markov Chain Monte Carlo Paradigm Assume that we have a very large but finite set Ω and a positive weight function w : Ω → + . Our goal is to sample x ∈ Ω with probability π(x) = w(x) , where the normalizing factor Z = x∈Ω w(x), often called Z the \"partition function\", is usually unknown. (Indeed, in many applications our ultimate goal will be to estimate Z.) Markov Chain Monte Carlo constructs a Markov Chain (Xt ) on Ω that converges to π, ie Pr[Xt = y|X0 = x] → π(y) as t → ∞, independent of x. Then we get a sampling algorithm by simulating the Markov chain, starting in an arbitrary state X0 , for sufficiently many steps and outputti"
+        }
+      ],
+      "details": {
+        "returned": [
+          {
+            "docid": "shard_01542_31446",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_02482_42341",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_04439_16596",
+            "score": 0.016129032258064516
+          },
+          {
+            "docid": "shard_00269_33533",
+            "score": 0.016129032258064516
+          },
+          {
+            "docid": "shard_06102_65423",
+            "score": 0.015873015873015872
+          },
+          {
+            "docid": "shard_06011_74077",
+            "score": 0.015873015873015872
+          },
+          {
+            "docid": "shard_03629_43609",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02315_46682",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_00205_53201",
+            "score": 0.015384615384615385
+          },
+          {
+            "docid": "shard_01587_59220",
+            "score": 0.015384615384615385
+          }
+        ],
+        "returnedDocids": [
+          "shard_01542_31446",
+          "shard_02482_42341",
+          "shard_04439_16596",
+          "shard_00269_33533",
+          "shard_06102_65423",
+          "shard_06011_74077",
+          "shard_03629_43609",
+          "shard_02315_46682",
+          "shard_00205_53201",
+          "shard_01587_59220"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185647531
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_TdTgOCcO4rGsofTBragcmM",
+      "toolName": "search",
+      "content": [
+        {
+          "type": "text",
+          "text": "1. docid=shard_01901_70670 (unit=shard_01901_70670) rrf_score=0.03062 sources={\"dense\":{\"rank\":2,\"score\":0.29559484124183655},\"sparse\":{\"rank\":9,\"score\":24.426321}}\n   Flipping coin. How many coin flips does it take, on average, to get n consecutive heads? Let's assume that we have a coin with a probability p (=0.5 if fair coin) of coming up head. Let be the average number of flips before getting the first head. In this case, if the first flip is head, then the answer is 1. If, on the other hand, the first flip is tail, then we used 1 flip and we should do more flips before getting a head. In other words, we have: Which leads to : This seems right, since for a fair coin (p=0.5) the average number of flips to get a head is 2. Now let be the average number of flips before getting two heads in a row. Which means, if the first flip is a tail, we should expect flips before getting heads. In case we have a head in the first flip, there are two probabilities for what's next. If next is tail, then two flips are gone and we are back to the start point. But if n\n2. docid=shard_02822_24503 (unit=shard_02822_24503) rrf_score=0.02735 sources={\"dense\":{\"rank\":6,\"score\":0.28489893674850464},\"sparse\":{\"rank\":22,\"score\":22.769144}}\n   I just said what I said and it was wrong Or was taken wrong In the latest episode of Taskmaster, of which Channel 4 has posted a sneak peek, there's a subtask related to my last post on Markov chains. The contestants are required to flip a coin and get five consecutive heads before moving on to the next part of the task. As you might expect, there are a few double-headed coins available from earlier in the task, and that makes this subtask very easy for the contestants who notice them. But the subtask can also be done by brute force with a regular coin, which raises the question: how many flips would it take, on average, to accomplish this subtask with a fair coin? It might be easier to see how Markov chains can be used to answer this question if we build a little board game—an even easier version of Snakes and Ladders—that matches the logic of the coin flip subtask. Imagine a six-square\n3. docid=shard_06398_43597 (unit=shard_06398_43597) rrf_score=0.02375 sources={\"dense\":{\"rank\":36,\"score\":0.2670802175998688},\"sparse\":{\"rank\":15,\"score\":23.282513}}\n   Expected number of coin flips before N consecutive heads? Thread starterEclair_de_XII Start dateSep 29, 2018 In summary, the problem involves tossing a coin repeatedly and finding the expected number of tosses until n consecutive heads appear. The equation ##E(X|A)=\\sum_{x} x P([X=x]|A)## is not useful for this problem. The states can be defined as 0 for start or start over, and k for having just gotten the kth head in a row. The number of tosses to get n heads in a row starting in state j is denoted by Nj. The equation for E(X|Hj) is 1 + pE(X|Hj+1) + qE(X|H0), with E(X|Hn) = 0. This problem isWell, I would hazard a guess at \"geometric distribution\", if I let ##Pr\\{\\text{Heads n consecutive times}\\}=p^n##, and say that ##X \\space \\text{~} \\space Geo(Pr\\{\\text{Heads n consecutive times}\\})=Geo(p^n)##. Basically, I think ##X## is geometrically distributed in the respect that trials of ##n#\n4. docid=shard_03674_73516 (unit=shard_03674_73516) rrf_score=0.02325 sources={\"dense\":{\"rank\":20,\"score\":0.2742430865764618},\"sparse\":{\"rank\":33,\"score\":22.337208}}\n   Nick 2018-04-04 18:12 It's the negative binomial distribution (with parameters N and p). petrw1 2018-04-04 20:01 Pardon my ignorance but ... maybe I'm not understanding this right, but it looks like negative binomial distribution is used to determine, for instance, the expected number of tails before a pre-determined number of heads, but not necessarily in order Nick 2018-04-04 21:34 [QUOTE=petrw1;484296]maybe I'm not understanding this right[/QUOTE] I think I misunderstood you! In that case, you can work it out from first principles. Fix a positive integer \\(k\\geq N\\). How many ways are there of throwing \\(k-N\\) times without getting \\(N\\) heads in a row? What is the probability of each of those possibilities followed by \\(N\\) consecutive heads? wblipp 2018-04-04 22:07 [QUOTE=Nick;484307]How many ways are there of throwing \\(k-N\\) times without getting \\(N\\) heads in a row? What is the \n5. docid=shard_01547_55905 (unit=shard_01547_55905) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.300181120634079}}\n   As you can see, it steadily goes down, for very high number of flips it will get very close to 0.5, but still marginally above 0.5. The limit for this formula in sense of k -> Infinity is of course 0.5, but you can't flip infinitely many times. EDIT: I think that I have messed up, but I can't put my finger on it. If it's any excuse, I was never any good with probability. How does one differentiate consecutive case from consecutive and a next flip? This smells of Markov Chain to me, but that's just a hunch. Question: What does the author think this problem might be related to? Answer: Markov Chain\n6. docid=shard_01077_24697 (unit=shard_01077_24697) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":26.434752}}\n   2.3 Stationary Times Imagine you're flipping a coin. You keep track of how many heads you get before seeing two tails in a row. This sequence of flips might look something like this: HHTTHHHHHTTTT... where H represents a head and T represents a tail. In this scenario, when do you expect to see two tails in a row? It turns out that understanding this question requires us to delve into the world of stationary times. In this section, we will explore stationary times through the lens of Markov chains, which we introduced earlier in the chapter. Specifically, we will focus on discrete-time Markov chains, which are mathematical models used to describe systems that transition between states based on fixed probabilities. We will also assume that these Markov chains are finite, meaning they only have finitely many possible states. First, let's define some terms. A state space is the set of all po\n7. docid=shard_04855_21234 (unit=shard_04855_21234) rrf_score=0.01613 sources={\"sparse\":{\"rank\":2,\"score\":26.389519}}\n   Bernoulli Batters, Markov Coaches — Modeling Games by Plays by Alex Nelson, 5 July 2015 Abstract. We review probability distributions related to discrete \"success-or-fail\" trials (\"coin flips\"), and show how it applies to an individual batter's plate appearance. We briefly discuss how to improve approximating probabilities for a batter's success. Finally we introduce Markov models, which lets us model games and make predictions. Introduction We will model baseball as a series of interactions between batters and pitchers. The batter will either hit the ball or strike out, just as a flipping a coin results in either heads or tails. A game boils down to a series of coin flips. We will iteratively refine the model in question, starting with something comically simple. But we can get arbitrarily complex, taking into factors like the batter's age and abilities. Eventually, we will produce a mo\n8. docid=shard_01718_11547 (unit=shard_01718_11547) rrf_score=0.01587 sources={\"dense\":{\"rank\":3,\"score\":0.2936996817588806}}\n   coin flipped the probability of getting a head on flipping a biased coin is p. the coin is flipped n times producing a sequence containing m heads and (n-m) tails what is the probability of obtaining this sequence from n flips. i cant understand the wording Re: coin flipped hi markosheehan Normally you might expect the probability of flipping a head to be 1/2. If it is biased, that means the coin doesn't behave like this, but, rather, has a probability of a head that is not 1/2. eg it might be P(head) = 0.75 and P(tail) = 0.25. We are told to use 'p' for this probability. For each head the probability is p, so for m heads we need p^m and (1-p)^(n-m) for all the tails. In addition, there are many sequences that give these results. eg. If n = 5 and m = 2 then we could get HHTTT or HTHTT or HTTHT or HTTTH or THHTT or THTHT or THTTH or TTHHT or TTHTH or TTTHH. That's ten ways altogether. You\n9. docid=shard_04045_72851 (unit=shard_04045_72851) rrf_score=0.01587 sources={\"sparse\":{\"rank\":3,\"score\":25.945848}}\n   Markov Chains are mathematical models used to represent systems that change randomly between states. They are named after Russian mathematician Andrey Markov who introduced them in the early 20th century. In these systems, the probability of transitioning to any particular state depends solely on the current state and time elapsed, and not on the sequence of events that preceded it. This memoryless property makes Markov Chains particularly useful for modeling random processes where the future state is uncertain, but its probability distribution can be predicted based on the present state. To understand how Markov Chains work, let's consider a simple example. Suppose you are flipping a biased coin repeatedly, where the probability of getting heads is p, and tails is q = 1 - p. The outcome of each flip depends only on the coin's properties and not on previous flips. Therefore, this process\n10. docid=shard_05059_56682 (unit=shard_05059_56682) rrf_score=0.01563 sources={\"dense\":{\"rank\":4,\"score\":0.29031193256378174}}\n   The previous answer is incorrect. The correct answer is 6. This can be modeled by a simple markov chain: state 0: [1/2 1/2 0] state 1: [1/2 0 1/2] state 2: [0 0 1] where state 0 is having 0 heads in a row (i.e. back at square 1), state 1 is having 1 heads in a row, and state 2 is having 2 heads in a row a.k.a the final state Since we are solving for expected time to reach state 2, we have to solve the system of equations: t0=1+1/2*t0+1/2*t1 t1=1 + 1/2*t0 + 1/2*t2 t2=0 <--if you are already in state 2 i.e. you already have 2 consecutive heads, then you do not need to flip any additional coins because you are already done. Solving the system gets you t0=6. Alternatively, you could use the equation E(x)=(1-p^2)/(p^2*(1-p)), which also gives you 6 when you plug in p=.5 xi-i is a martingale with x0-0 = 0 so we have 2^2+2-E[i] = 0 which gives E[i] = 6 Show More Responses I have an alternative "
+        }
+      ],
+      "details": {
+        "returned": [
+          {
+            "docid": "shard_01901_70670",
+            "score": 0.030621785881252923
+          },
+          {
+            "docid": "shard_02822_24503",
+            "score": 0.027346637102734665
+          },
+          {
+            "docid": "shard_06398_43597",
+            "score": 0.02375
+          },
+          {
+            "docid": "shard_03674_73516",
+            "score": 0.023252688172043012
+          },
+          {
+            "docid": "shard_01547_55905",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_01077_24697",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_04855_21234",
+            "score": 0.016129032258064516
+          },
+          {
+            "docid": "shard_01718_11547",
+            "score": 0.015873015873015872
+          },
+          {
+            "docid": "shard_04045_72851",
+            "score": 0.015873015873015872
+          },
+          {
+            "docid": "shard_05059_56682",
+            "score": 0.015625
+          }
+        ],
+        "returnedDocids": [
+          "shard_01901_70670",
+          "shard_02822_24503",
+          "shard_06398_43597",
+          "shard_03674_73516",
+          "shard_01547_55905",
+          "shard_01077_24697",
+          "shard_04855_21234",
+          "shard_01718_11547",
+          "shard_04045_72851",
+          "shard_05059_56682"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185648085
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_OzwIaWzvuKpCAw9cPxnSAX",
+      "toolName": "search",
+      "content": [
+        {
+          "type": "text",
+          "text": "1. docid=shard_03014_8085 (unit=shard_03014_8085) rrf_score=0.02677 sources={\"dense\":{\"rank\":34,\"score\":0.2954220473766327},\"sparse\":{\"rank\":2,\"score\":26.927773}}\n   We use cookies on this website to ensure you get the best experience. privacy policy. Got it! July 6, 2023 What is a markov chain monte carlo? In the world of statistics and simulations, the Markov Chain Monte Carlo (MCMC) method has become a powerful tool. This article aims to provide a comprehensive overview of MCMC, from understanding the basics of Markov chains to exploring its practical applications and discussing its advantages and limitations. Understanding the Basics of Markov Chains Before diving into the realm of Monte Carlo methods, it is essential to grasp the fundamentals of Markov chains. A Markov chain is a stochastic process that undergoes transitions from one state to another in a probabilistic manner. This process is memoryless, meaning that the probability of transitioning to a particular state depends solely on the current state and not on the past. Markov chains find\n2. docid=shard_02367_42987 (unit=shard_02367_42987) rrf_score=0.02438 sources={\"dense\":{\"rank\":32,\"score\":0.2976478934288025},\"sparse\":{\"rank\":14,\"score\":24.916239}}\n   Markov Chain Monte Carlo A Practical Introduction R A tutorial on adaptive MCMC SpringerLink. Monte Carlo Methods, Markov Chains and Deep Learning. Let's say you're a horrific alien looking for the perfect planet to colonize. You have been instructed by a, Monte Carlo and Insomnia Enrico Fermi (1901{1954) took great delight in astonishing his colleagues with his remakably accurate predictions of experimental results. MCMC sampling for dummies. there exist a general class of algorithms that do this called Markov chain Monte Carlo (constructing a Markov chain to do Monte Carlo Markov chains are frequently seen represented by Markov Chain Monte Carlo: A tutorial introduction to Bayesian inference for stochastic epidemic models using A tutorial example - coding a Markov Chain Monte Carlo the Markov chain of accepted draws will converge to the staionary distribution, It's a Markov chain becau\n3. docid=shard_01045_8943 (unit=shard_01045_8943) rrf_score=0.02191 sources={\"dense\":{\"rank\":50,\"score\":0.28279992938041687},\"sparse\":{\"rank\":18,\"score\":24.596092}}\n   How To Use Markov Chain Monte Carlo Markov Chain Monte Carlo (MCMC) is a powerful tool used in statistics for sampling from a probability distribution. It is a Monte Carlo technique, meaning that it relies on random sampling to approximate a distribution. MCMC is particularly useful for sampling from complicated or difficult-to-sample distributions. There are a number of different types of Markov chains that can be used for MCMC. The most important factor in choosing a chain is whether the chain is reversible or not. A reversible chain will produce samples that are guaranteed to be from the original distribution. An example of a reversible chain is the Metropolis-Hastings algorithm. 2. Choose a starting point The starting point is the initial position of the Markov chain. This can be chosen randomly, or it can be based on some information about the distribution being sampled. 3. Generate\n4. docid=shard_06151_69290 (unit=shard_06151_69290) rrf_score=0.01942 sources={\"dense\":{\"rank\":44,\"score\":0.28998085856437683},\"sparse\":{\"rank\":42,\"score\":24.12305}}\n   Markov Processes and Applications: Algorithms, Networks, Genome and Finance Jean-François Le Gall, Professor at Université de Paris-Orsay, France. Markov processes is the class of stochastic processes whose past and future are conditionally independent, given their present state. They constitute important models in many applied fields. After an introduction to the Monte Carlo method, this book describes discrete time Markov chains, the Poisson process and continuous time Markov chains. It also presents numerous applications including Markov Chain Monte Carlo, Simulated Annealing, Hidden Markov Models, Annotation and Alignment of Genomic sequences, Control and Filtering, Phylogenetic tree reconstruction and Queuing networks. The last chapter is an introduction to stochastic calculus and mathematical finance. - The Monte Carlo method, discrete time Markov chains, the Poisson process and co\n5. docid=shard_01649_20233 (unit=shard_01649_20233) rrf_score=0.01639 sources={\"dense\":{\"rank\":1,\"score\":0.32204511761665344}}\n   Markov theory and algorithmic applications Markov chains, and more generally Markov processes, are random processes characterized by having a lack-of-memory property: the conditional distribution of what happens in the future given everything up to now, depends only on the present state (and not otherwise on the past). Markov chains and Markov processes are among the most fundamental objects of study in probability. An important subclass of Markov chains are random walks. Our theoretical investigations of Markov chains concern e.g. limit theorems and rates of convergence to equilibrium distributions. For finite state Markov chains we also analyze covering times (the time taken until all states are visited), whereas for infinite state Markov chains we are more interested in the recurrence/transience problem (is the chain guaranteed to eventually return to a given state?). These questions \n6. docid=shard_01057_40917 (unit=shard_01057_40917) rrf_score=0.01639 sources={\"sparse\":{\"rank\":1,\"score\":27.40927}}\n   Examples from Evolutionary Biology. Examples of these algorithms have appeared in the evolutionary genetics literature. For example, inference problems in molecular Markov chains are frequently seen represented by A simple and often used example of a Markov chain is the board game \"Chutes Markov Chain Monte Carlo: This shows up when trying to read about Markov Chain Monte Carlo methods. Take, for example, Markov chain Monte Carlo useful with Markov chains is the 15/04/2014В В· Let's look at a problem called parameter estimation. As usual, we have a bunch of coin flips. What we've learned to do with Bayesian statistics is An introduction to Markov Chain Monte Carlo techniques G. J. A. Harker University of Colorado ASTR5550, 19th March 2012 A Markov chain is a stochastic model describing a sequence of possible events in which the probability of each event depends only on the state attained\n7. docid=shard_01261_28060 (unit=shard_01261_28060) rrf_score=0.01613 sources={\"dense\":{\"rank\":2,\"score\":0.32106131315231323}}\n   Markov chains represent one of the basic statistical models for sequences of random variables, which exhibit a certain dependence structure. There exist various applications, amongst others, in finance and insurance, but also in life sciences for example. However, it often arises the problem, that the mathematical model becomes so complex that explicit analytic fomulas do not exist. In this case, Markov-Chain-Monte-Carlo-Simulation is used as an auxiliary tool to obtain approximative solution s. Topics will include: Time-discrete Markov chains with finite state space. Stationarity and Ergodicity. Markov-Chain-Monte-Carlo (MCMC). Reversibility and Coupling. Printed version of lecture notes now available! Pick up your reserved copy at basic price of EUR 5,-.\n8. docid=shard_03263_47858 (unit=shard_03263_47858) rrf_score=0.01587 sources={\"dense\":{\"rank\":3,\"score\":0.31917333602905273}}\n   Financial Applications of Markov Chain Monte Carlo Methods... (More) (Less) @phdthesis{6fa41127-38cb-4eab-a6f5-0ce7f7f4d64a, abstract = {}, author = {Graflund, AndreasFinancial Applications of Markov Chain Monte Carlo Methods}, volume = {100}, year = {2002}, }\n9. docid=shard_00359_77533 (unit=shard_00359_77533) rrf_score=0.01587 sources={\"sparse\":{\"rank\":3,\"score\":26.148632}}\n   In a family study of breast cancer, epidemiologists in Southern California increase the power for detecting a gene-environment interaction. In Gambia, a study helps a vaccination program reduce the incidence of Hepatitis B carriage. Archaeologists in Austria place a Bronze Age site in its true temporal location on the calendar scale. And in France, researchers map a rare disease with relatively little variation. Each of these studies applied Markov chain Monte Carlo methods to produce more accurate and inclusive results. General state-space Markov chain theory has seen several developments that have made it both more accessible and more powerful to the general statistician. Markov Chain Monte Carlo in Practice introduces MCMC methods and their applications, providing some theoretical background as well. The authors are researchers who have made key contributions in the recent development\n10. docid=shard_04619_74165 (unit=shard_04619_74165) rrf_score=0.01563 sources={\"dense\":{\"rank\":4,\"score\":0.3159952759742737}}\n   ABSTRACT Markov chain Monte Carlo has revolutionized modern statistical computing, especially for complex Bayesian and latent variable models. For all of its success, it dawned on the broader scientific and statistics community slowly. Markov chain Monte Carlo is not inherently a Bayesian technique. It was used for years as a way of sampling from intractable, often high-dimensional, distributions, and has widespread applications in the integration, estimation, and optimization of functions. Markov chain Monte Carlo is fundamentally a local search algorithm, and starting the algorithm from several well-dispersed initial states can help to ensure that the parameter space is fully explored. It is fairly common practice to \"thin\" the Markov chain in some way, for example, to retain only every mthinth step of of the converged Markov chain. Thinning is useful for reducing autocorrelation, and "
+        }
+      ],
+      "details": {
+        "returned": [
+          {
+            "docid": "shard_03014_8085",
+            "score": 0.026767330130404943
+          },
+          {
+            "docid": "shard_02367_42987",
+            "score": 0.02438307873090482
+          },
+          {
+            "docid": "shard_01045_8943",
+            "score": 0.02191142191142191
+          },
+          {
+            "docid": "shard_06151_69290",
+            "score": 0.019419306184012067
+          },
+          {
+            "docid": "shard_01649_20233",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_01057_40917",
+            "score": 0.01639344262295082
+          },
+          {
+            "docid": "shard_01261_28060",
+            "score": 0.016129032258064516
+          },
+          {
+            "docid": "shard_03263_47858",
+            "score": 0.015873015873015872
+          },
+          {
+            "docid": "shard_00359_77533",
+            "score": 0.015873015873015872
+          },
+          {
+            "docid": "shard_04619_74165",
+            "score": 0.015625
+          }
+        ],
+        "returnedDocids": [
+          "shard_03014_8085",
+          "shard_02367_42987",
+          "shard_01045_8943",
+          "shard_06151_69290",
+          "shard_01649_20233",
+          "shard_01057_40917",
+          "shard_01261_28060",
+          "shard_03263_47858",
+          "shard_00359_77533",
+          "shard_04619_74165"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185648373
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "I'm pulling up several documents to cross-reference the details—looking at materials on Markov chains, coin flip problems, gambler's ruin, MCMC methods and their history, and probabilistic combinatorics to verify the information I need.",
+          "thinkingSignature": "EtkECnIIDxABGAIqQPo8ByXXlzd8KOlGb5/V4Y0S0LSYThrSOF2tp5xL1c6QMnml6Hd+cS/kK6JCDhEYQWGGTcbilXyX4UEVsi7JtesyDmNsYXVkZS1zYWZmcm9uOABCCHRoaW5raW5nWgw1MDczNjM2MTUzNDESDIrP6GIZdmzQAodHzRoMc2zf81hg8//NxR7eIjAYzlR2kkS6LxzVlTWnbv5Rp2W8WluyKbMkkiUrNUyPoqAMjtNDPSdMoKpggfmimw4qlAM6OpQYETERzip1fO5hP86wd434vwxA9towax0Vp2Y0x5UG/0BQnemX7EW3hwiu1dgNU78WgDHUWCb73EspWwf96bWorjGEwIzwK0FOaVF5yZ/29Tt5EFPDG9HpqAM+nJ5Le/TxvaYCzDI+Pr63robb+TqFcCZNaf5xdv+pUuNOXQ9Ncdf63wzqttiB+K/XKqdSv8fzY9DllbzHoC4hWpCtzuvWhKtCHOgcaDWt+tc1bmiY7kp74NNtilljn6nRsSjlIPqfSX5DvjnZ2oo4OYAsQDaLv3F/ugREcVAWgEMsARzxD0zlV+MvWMO+fdC6Cs5vX1qqeE83MFuHUIwLz3+ytARIcR8+Wyg6M94pWZFlmzPKxa1GUvOHAd8quknZRQvTSPjxb3ci8ty56dwRaKDSwvNReQrmpRlQLYNHWDHnLjwGiJtPDpO+W5EwCGQQiLZD77HOZosUVh0FfRu67scEpbw51vLFdHGdSc9xB86LntLrDmqXRbVt8tbfSa38fdhurI/Ne9/z/dIUUjcYcD6azL1y2RgB"
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_Al8T5rderguaRZWETBHT0P",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_02822_24503"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_8f631Mv0349QSiiHboyXc3",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_06011_74077"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_6p9gwkCV5skgS7T3yNHeBp",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_04619_74165"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_D5TAjbdlqCvkHAlSCFGpFd",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_02482_42341"
+          }
+        }
+      ],
+      "api": "bedrock-converse-stream",
+      "provider": "amazon-bedrock",
+      "model": "au.anthropic.claude-sonnet-5",
+      "usage": {
+        "input": 2,
+        "output": 376,
+        "cacheRead": 1341,
+        "cacheWrite": 14499,
+        "totalTokens": 16218,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "toolUse",
+      "timestamp": 1784185648373
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_Al8T5rderguaRZWETBHT0P",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_02822_24503\nI just said what I said and it was wrong\nOr was taken wrong\nIn the latest episode of Taskmaster, of which Channel 4 has posted a sneak peek, there's a subtask related to my last post on Markov chains. The contestants are required to flip a coin and get five consecutive heads before moving on to the next part of the task. As you might expect, there are a few double-headed coins available from earlier in the task, and that makes this subtask very easy for the contestants who notice them. But the subtask can also be done by brute force with a regular coin, which raises the question: how many flips would it take, on average, to accomplish this subtask with a fair coin?\nIt might be easier to see how Markov chains can be used to answer this question if we build a little board game—an even easier version of Snakes and Ladders—that matches the logic of the coin flip subtask. Imagine a six-square board with the squares labeled from 0 through 5.\nYou start with your marker on the Square 0 and start flipping a coin. If it comes up heads, you move your marker forward; if it comes up tails, you go back to zero. You finish the game when your marker reaches the Square 5, which is the same as flipping 5 heads in a row.\nAs we did in the earlier post, we'll take the end square to be an absorbing state and build a transition matrix that reflects the probabilities of moving from a given square to the others. The rows represent the current square and the columns represent the square after the next flip.\nAs you can see, the chance of moving forward one square is always ½, as is the chance of moving back to Square 0. The only square to which this doesn't apply is Square 5 because that's where the game ends.\nWe've worked out all the math on this before. We define another transition matrix, Q, as the same as P but with the row and column associated with the absorbing state removed:\nWe now define m0, as the expected number of flips to get from Square 0 to the absorbing state at Square 5. Similar definitions apply to m1, m2, m3, and m4. Then\n(I−Q)m=1\nwhere m is the column vector of the m terms and 1 is a five-element column vector of ones.1 Solving this yields\nm=[6260564832]\nso the expected number of flips to get five consecutive heads is 62. Certainly doable but also frustrating—a common Taskmaster state of affairs.\nYou might be looking at the 32 at the end of m and thinking it's too high to be the expected number of flips needed to get from four consecutive heads to the fifth consecutive head. While it's true that you could get from Square 4 to Square 5 in one flip, the problem is that it's equally likely that that flip will take you back to Square 0. So the expected number of flips to get from Square 4 to Square 5 is\n\nQuestion: In the imaginary board game, how many squares are there? Answer: 6\n\nQuestion: What is the main challenge in the latest episode of Taskmaster? Answer: Flipping a coin to get five consecutive heads\n\nQuestion: What is the expected number of flips to get from Square 4 to Square 5? Answer: 32\n\nQuestion: What is the expected number of coin flips needed to accomplish the subtask with a fair coin? Answer: 62"
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_02822_24503"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185653888
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_8f631Mv0349QSiiHboyXc3",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_06011_74077\nIn probability theory and related fields, a Markov process, named after the Russian mathematician Andrey Markov, is a stochastic process that satisfies the Markov property. e. Conditional on the present state of the system, its future, a Markov chain is a type of Markov process that has either discrete state space or discrete index set, but the precise definition of a Markov chain varies. Andrey Markov studied Markov processes in the early 20th century, publishing his first paper on the topic in 1906, random walks on the integers and the Gamblers ruin problem are examples of Markov processes and were studied hundreds of years earlier. These two processes are Markov processes in time, while random walks on the integers and the Gamblers ruin problem are examples of Markov processes in discrete time. The algorithm known as PageRank, which was proposed for the internet search engine Google, is based on a Markov process. The adjective Markovian is used to something that is related to a Markov process. A Markov chain is a process with the Markov property. The term Markov chain refers to the sequence of variables such a process moves through. It can thus be used for describing systems that follow a chain of linked events, the systems state space and time parameter index need to be specified. In addition, there are extensions of Markov processes that are referred to as such. Moreover, the index need not necessarily be real-valued, like with the state space. Notice that the state space continuous-time Markov chain is general to such a degree that it has no designated term. While the time parameter is usually discrete, the space of a Markov chain does not have any generally agreed-on restrictions. However, many applications of Markov chains employ finite or countably infinite state spaces, besides time-index and state-space parameters, there are many other variations, extensions and generalizations. For simplicity, most of this article concentrates on the discrete-time, discrete state-space case, the changes of state of the system are called transitions. The probabilities associated with state changes are called transition probabilities. The process is characterized by a space, a transition matrix describing the probabilities of particular transitions. By convention, we assume all possible states and transitions have been included in the definition of the process, so there is always a next state, and the process does not terminate\n27.\nAxel Thue\n–\nAxel Thue, was a Norwegian mathematician, known for highly original work in diophantine approximation, and combinatorics. He stated in 1914 the so-called word problem for semigroups or Thue problem and his only known PhD student was Thoralf Skolem. The esoteric programming language Thue is named after him, Axel Thue, MacTutor History of Mathematics archive, University of St Andrews. Axel Thue at the Mathematics Genealogy Project Axel Thue private archive exists at NTNU University Library Dorabiblioteket Audion was an electronic amplifying vacuum tube invented by American electrical engineer Lee de Forest in 1906. It …\n\"Triode\" Audion from 1908. (The 1906 Audion was a 2-element device with the signal applied to a wire wrapped around the glass envelope.)\n\nQuestion: What was the difference between the 1906 and 1908 Audion? Answer: The 1906 Audion was a 2-element device with the signal applied to a wire wrapped around the glass envelope, while the 1908 Audion was a triode with three elements."
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_06011_74077"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185654346
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_6p9gwkCV5skgS7T3yNHeBp",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_04619_74165\nABSTRACT\n\nMarkov chain Monte Carlo has revolutionized modern statistical computing, especially for complex Bayesian and latent variable models. For all of its success, it dawned on the broader scientific and statistics community slowly. Markov chain Monte Carlo is not inherently a Bayesian technique. It was used for years as a way of sampling from intractable, often high-dimensional, distributions, and has widespread applications in the integration, estimation, and optimization of functions. Markov chain Monte Carlo is fundamentally a local search algorithm, and starting the algorithm from several well-dispersed initial states can help to ensure that the parameter space is fully explored. It is fairly common practice to \"thin\" the Markov chain in some way, for example, to retain only every mthinth step of of the converged Markov chain. Thinning is useful for reducing autocorrelation, and for reducing the amount of Markov chain Monte Carlo data one has to store and calculate with."
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_04619_74165"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185654649
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_D5TAjbdlqCvkHAlSCFGpFd",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_02482_42341\nHemanshu Kaul[PDF] version\nIntroduction. Although combinatorial problems have arisen in all fields of mathematics throughout history, discrete mathematics has only come to prominence as a mathematical discipline over the past century. It has been beneficial to adapt techniques from more mature areas of mathematics to tackle various combinatorial problems. A fruitful area of collaboration has been with probability. `The probabilistic method' is now a well established part of the graduate curriculum in combinatorics.\nOver the past two decades additional techniques with a probabilistic flavor have been developed for applications to combinatorial problems, both algorithmic and existential. A traditional first course in probabilistic combinatorics gives only the briefest hint of these areas from probability and information theory, such as Concentration of Measure, Entropy, and Rapidly Mixing Markov Chains. At UIUC, the courses on 'Methods in Combinatorics' and 'Applied Probability' do not teach these topics except for some large deviation inequalities. Moreover, the focus in Probability courses tends to be on the abstract development of the theory, which can obscure the applicability of these methods in discrete mathematics. This course will introduce graduate students to these methods and provide applications in graph theory, combinatorics, combinatorial optimization, and theoretical computer science. This course should be of interest to graduate students in Combinatorics, Probability, Operations Research, Theoretical Computer Science, and ECE. The topics are discussed in more detail below.\nConcentration of Measure. Inequalities for concentration of measure are vital tools in probabilistic combinatorics, probabilistic analysis of algorithms, randomized algorithms, and stochastic combinatorial optimization. They show that the probability of a random variable being far from its mean (or median) is exponentially small, and they give bounds on probabilities of rare events. The topics include the following: introduction to concentration of measure in metric spaces and its relation to isoperimetric inequalities, Chernoff--Hoeffding bounds for sums of random variables and their generalizations, McDiarmid's method of bounded differences for Lipschitz bounded functions and its variants (leading to the Azuma--Hoeffding Martingale Inequality), and isoperimetric inequalities under Hamming metric (leading to Talagrand's convex distance isoperimetric inequality and its variants). The focus is on developing the themes underlying the various methods and illustrating the final results through applications in graph theory, combinatorial optimization and theoretical computer science. The main references, in addition to the instructor's lecture notes, include :\nEntropy. Entropy of a random variable measures the amount of uncertainty in the random variable or the amount of information obtained when the random variable is revealed. In the last decade, entropy has been applied to provide short and elegant proofs for various counting and covering problems in graphs and set systems. After introducing the elementary properties of the entropy function and Shearer's Entropy Lemma, the focus will be on combinatorial applications giving bounds on various extremal problems. Examples include Bregman's bound on the permanent of a 0,1-matrix, bounds on the size of an intersecting family of graphs and on the number of copies of a fixed subgraph, Dedekind's problem on the number of monotone Boolean functions, and covering a complete r-uniform hypergraph with a small number of r-partite hypergraphs. We will also consider Friedgut's generalization of Shearer's Lemma, leading to a common generalization of classical inequalities such as those of Cauchy-Schwarz, Holder, etc. The main references, in addition to the instructor's lecture notes, include :\nRapidly Mixing Markov Chains. Over the past decade the Markov chain Monte Carlo (MCMC) method has emerged as a powerful methodology for approximate counting, computing multidimensional volumes and integrals, and combinatorial optimization. The MCMC method reduces these problems to sampling over an underlying set (of solutions or combinatorial structures) w.r.t. a given distribution. This sampling is done by a Markov Chain, on the underlying set, that converges to the required (stationary) distribution. The primary step in the rigorous analysis of such an MCMC algorithm is to show that the Markov chain is rapidly mixing, i.e., it has a high rate of convergence to its stationary distribution. This analysis tends to be an interesting mix of probability and combinatorics. The topics will include the equivalence of (approximate) counting and (almost) uniform sampling, the relation between Fully Polynomial Randomized Approximation Schemes (FPRAS) and rapid mixing of Markov Chains, and the study of various methods for bounding the mixing rates of combinatorially defined Markov Chains. These methods, including coupling, conductance, and canonical paths, will be used in applications of the MCMC method to the Knapsack problem, proper colorings of a graph, linear extensions of a poset, permanent of a 0,1-matrix, etc. The main references, in addition to the instructor's lecture notes, include :"
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_02482_42341"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185654874
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "thinking",
+          "thinking": "I need to check several shards for different approaches to this problem—MCMC applications, genome and finance use cases, evolutionary biology examples, and an alternate solution. Let me start by fetching the key shards that have the full documentation and recursive approach details.",
+          "thinkingSignature": "Er4ECnIIDxABGAIqQFgaMUqvjUVQdtkENBBdzEU7QVzFybIrEDhhtEYVq3oKmBlcaRkhNz1yf58lB0jVzhcwcNj/8ASHC++c5KrVwngyDmNsYXVkZS1zYWZmcm9uOABCCHRoaW5raW5nWgw1MDczNjM2MTUzNDESDEGDXapbHM4EavUDWBoM1wL94I5KFgygQyNsIjD3sdDEBFQyv+ShbE88Z01bcJUFmj8OMYHQnGXSYfrQioVAJJNcCxbgCXLL1iET3r0q+QLW51JkwAIA8mZgqBU7hT6tNpchL1y/t6EUMiHq7xqNZRpNg3z1Vw7aLXq9L615H/ROh+Rb2/bbOX6qAZvIKBkJLrrRF/tw/qtPJnBMAcRAeuBWdi1146K6NRT5T2Q9GXWyP3ooYdPpy343ZD8VxdPXLE/coiDwXs/c59FSTYwP8NL6tm2b33affFbEVST6by1IARySLWHgSVhXC32Y6XmM0w8tvuPKQF/J6SHOJguGiFFZDA+C13O/uh1l8k1Hi8GUsEYMKyCJSRiG98PBweK3L3Xv8BoP/8CBB7vbS4UM9T0d/CQzKrP+CvuzzxCURyqkxTWB95cDvzVyGdHPjbaDVnch6CFugZJsKTehAorxFOLqv/+MR7giBX03PE8ZSjP+WlxXqDa/yy/C9C31FODdrU4av9QXq2r4sm0YH7t7WdNMdRa9VEq3226DYclOBHVi6pP33mI6R0DFKgsSEGtebHXK5HXhczd0hXb226EEi/qhR4z8pwoTDBgB"
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_OpS9Pihj4VeTQ3vTCb1121",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_01901_70670"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_FxpuOHEZv6xKVO3YwsujaL",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_00359_77533"
+          }
+        },
+        {
+          "type": "toolCall",
+          "id": "tooluse_mhSofOtSxYMsCpC7wi4aNu",
+          "name": "get_document",
+          "arguments": {
+            "docid": "shard_06151_69290"
+          }
+        }
+      ],
+      "api": "bedrock-converse-stream",
+      "provider": "amazon-bedrock",
+      "model": "au.anthropic.claude-sonnet-5",
+      "usage": {
+        "input": 2,
+        "output": 302,
+        "cacheRead": 15840,
+        "cacheWrite": 4581,
+        "totalTokens": 20725,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "toolUse",
+      "timestamp": 1784185654874
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_OpS9Pihj4VeTQ3vTCb1121",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_01901_70670\nFlipping coin.\nHow many coin flips does it take, on average, to get n consecutive heads?\nLet's assume that we have a coin with a probability p (=0.5 if fair coin) of coming up head.\nLet be the average number of flips before getting the first head. In this case, if the first flip is head, then the answer is 1. If, on the other hand, the first flip is tail, then we used 1 flip and we should do more flips before getting a head.\nIn other words, we have:\nWhich leads to :\nThis seems right, since for a fair coin (p=0.5) the average number of flips to get a head is 2.\nNow let be the average number of flips before getting two heads in a row. Which means, if the first flip is a tail, we should expect flips before getting heads. In case we have a head in the first flip, there are two probabilities for what's next. If next is tail, then two flips are gone and we are back to the start point. But if next is head, then we get what we want.\nIn other terms, we have:\nWhich leads to :\nFor the fair coin, the average number of flips to get two heads in a row is 6.\nIf we follow the same reasoning for the average number of flips to get 3 heads in a row.\nwhich leads to :\nAnd for the fair coin, you should expect 14 flips on average to get 3 heads in a row.\nIn general:\nFor the fair coin, we find that flips required to get n heads in a row.\nNow having said that, doesn't mean that we will have our heads!\nlet's go back to we said that we need on average 2 flips to get one head. The probability to get this head is : 3/4 = 0.75.\nBecause the list of possible outcomes are : {(0,0), (0,1), (1,0), (1,1)}\nSuppose now we want to calculate the probability for getting k heads in row with n flips. Sure we can use the Markov chain to calculate this probability, but it will get difficult when our experience grow.\nAnother solution is to simulate this process by doing a Monte Carlo.\nA programme that simulates this operation:\n1#generate the flips2flip=lambdan_times:''.join([str(random.getrandbits(1))foriinrange(n_times)])3#flip(10) would give 1011100000 for ex4#calculate the payoff5payoff=lambdan_times,k:1.0if'1'*kinflip(n_times)else0.06#payoff returns 1.0 if k heads is found in n_times flips7#monte carlo8monte_carlo=lambdan_times,k,j:sum([payoff(n_times,k)foriinxrange(j)])/j\n\nQuestion: What is the average number of flips required to get two heads in a row for a fair coin? Answer: 6\n\nQuestion: What is the probability of getting exactly one head in two flips? Answer: 0.75\n\nQuestion: What is the probability of getting a head on the first flip of a fair coin? Answer: 0.5"
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_01901_70670"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185660106
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_FxpuOHEZv6xKVO3YwsujaL",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_00359_77533\nIn a family study of breast cancer, epidemiologists in Southern California increase the power for detecting a gene-environment interaction. In Gambia, a study helps a vaccination program reduce the incidence of Hepatitis B carriage. Archaeologists in Austria place a Bronze Age site in its true temporal location on the calendar scale. And in France, researchers map a rare disease with relatively little variation. Each of these studies applied Markov chain Monte Carlo methods to produce more accurate and inclusive results. General state-space Markov chain theory has seen several developments that have made it both more accessible and more powerful to the general statistician. Markov Chain Monte Carlo in Practice introduces MCMC methods and their applications, providing some theoretical background as well. The authors are researchers who have made key contributions in the recent development of MCMC methodology and its application. Considering the broad audience, the editors emphasize practice rather than theory, keeping the technical content to a minimum. The examples range from the simplest application, Gibbs sampling, to more complex applications. The first chapter contains enough information to allow the reader to start applying MCMC in a basic way. The following chapters cover main issues, important concepts and results, techniques for implementing MCMC, improving its performance, assessing model adequacy, choosing between models, and applications and their domains. Markov Chain Monte Carlo in Practice is a thorough, clear introduction to the methodology and applications of this simple idea with enormous potential. It shows the importance of MCMC in real applications, such as archaeology, astronomy, biostatistics, genetics, epidemiology, and image analysis, and provides an excellent base for MCMC to be applied to other fields as well.\nSince their popularization in the 1990s, Markov chain Monte Carlo (MCMC) methods have revolutionized statistical computing and have had an especially profound impact on the practice of Bayesian statistics. Furthermore, MCMC methods have enabled the development and use of intricate models in an astonishing array of disciplines as diverse as fisheries science and economics. The wide-ranging practical importance of MCMC has sparked an expansive and deep investigation into fundamental Markov chain theory. The Handbook of Markov Chain Monte Carlo provides a reference for the broad audience of developers and users of MCMC methodology interested in keeping up with cutting-edge theory and applications. The first half of the book covers MCMC foundations, methodology, and algorithms. The second half considers the use of MCMC in a variety of practical applications including in educational research, astrophysics, brain imaging, ecology, and sociology. The in-depth introductory section of the book allows graduate students and practicing scientists new to MCMC to become thoroughly acquainted with the basic theory, algorithms, and applications. The book supplies detailed examples and case studies of realistic scientific problems presenting the diversity of methods used by the wide-ranging MCMC community. Those familiar with MCMC methods will find this book a useful refresher of current theory and recent developments.\nWhile there have been few theoretical contributions on the Markov Chain Monte Carlo (MCMC) methods in the past decade, current understanding and application of MCMC to the solution of inference problems has increased by leaps and bounds. Incorporating changes in theory and highlighting new applications, Markov Chain Monte Carlo: Stochastic Simulation for Bayesian Inference, Second Edition presents a concise, accessible, and comprehensive introduction to the methods of this valuable simulation technique. The second edition includes access to an internet site that provides the code, written in R and WinBUGS, used in many of the previously existing and new examples and exercises. More importantly, the self-explanatory nature of the codes will enable modification of the inputs to the codes and variation on many directions will be available for further exploration. Major changes from the previous edition: · More examples with discussion of computational details in chapters on Gibbs sampling and Metropolis-Hastings algorithms · Recent developments in MCMC, including reversible jump, slice sampling, bridge sampling, path sampling, multiple-try, and delayed rejection · Discussion of computation using both R and WinBUGS · Additional exercises and selected solutions within the text, with all data sets and software available for download from the Web · Sections on spatial models and model adequacy The self-contained text units make MCMC accessible to scientists in other disciplines as well as statisticians. The book will appeal to everyone working with MCMC techniques, especially research and graduate statisticians and biostatisticians, and scientists handling data and formulating models. The book has been substantially reinforced as a first reading of material on MCMC and, consequently, as a textbook for modern Bayesian computation and Bayesian inference courses.\nAuthor: Bernd A. Berg\nPublisher: World Scientific\nRelease Date: 2004\nThis book teaches modern Markov chain Monte Carlo (MC) simulation techniques step by step. The material should be accessible to advanced undergraduate students and is suitable for a course. It ranges from elementary statistics concepts (the theory behind MC simulations), through conventional Metropolis and heat bath algorithms, autocorrelations and the analysis of the performance of MC algorithms, to advanced topics including the multicanonical approach, cluster algorithms and parallel computing. Therefore, it is also of interest to researchers in the field. The book relates the theory directly to Web-based computer code. This allows readers to get quickly started with their own simulations and to verify many numerical examples easily. The present code is in Fortran 77, for which compilers are freely available. The principles taught are important for users of other programming languages, like C or C++.\nAuthor: Faming Liang\nPublisher: John Wiley & Sons\nRelease Date: 2010-06-24\nMarkov Chain Monte Carlo (MCMC) methods are now an indispensable tool in scientific computing. This book discusses recent developments of MCMC methods with an emphasis on those making use of past sample information during simulations. The application examples are drawn from diverse fields such as bioinformatics, machine learning, social science, combinatorial optimization, and computational physics. Key Features: Expanded coverage of the stochastic approximation Monte Carlo and dynamic weighting algorithms that are essentially immune to local trap problems. A detailed discussion of the Monte Carlo Metropolis-Hastings algorithm that can be used for sampling from distributions with intractable normalizing constants. Up-to-date accounts of recent developments of the Gibbs sampler. Comprehensive overviews of the population-based MCMC algorithms and the MCMC algorithms with adaptive proposals. This book can be used as a textbook or a reference book for a one-semester graduate course in statistics, computational biology, engineering, and computer sciences. Applied or theoretical researchers will also find this book beneficial.\nAuthor: Hidemaro Suwa\nPublisher: Springer Science & Business Media\nRelease Date: 2013-11-05\nIn this thesis, novel Monte Carlo methods for precisely calculating the critical phenomena of the effectively frustrated quantum spin system are developed and applied to the critical phenomena of the spin-Peierls systems. Three significant methods are introduced for the first time: a new optimization algorithm of the Markov chain transition kernel based on the geometric weight-allocation approach, the extension of the worm (directed-loop) algorithm to nonconserved particles, and the combination with the level spectroscopy. Utilizing these methods, the phase diagram of the one-dimensional XXZ spin-Peierls system is elucidated. Furthermore, the multi-chain and two-dimensional spin-Peierls systems with interchain lattice interaction are investigated. The unbiased simulation shows that the interesting quantum phase transition between the 1D-like liquid phase and the macroscopically-degenerated dimer phase occurs on the fully-frustrated parameter line that separates the doubly-degenerated dimer phases in the two-dimensional phase diagram. The spin-phonon interaction in the spin-Peierls system introduces the spin frustration, which usually hinders the quantum Monte Carlo analysis, owing to the notorious negative sign problem. In this thesis, the author has succeeded in precisely calculating the critical phenomena of the effectively frustrated quantum spin system by means of the quantum Monte Carlo method without the negative sign.\nAuthor: J. S. Dagpunar\nPublisher: John Wiley & Sons\nRelease Date: 2007-04-04\nSimulation and Monte Carlo is aimed at students studying for degrees in Mathematics, Statistics, Financial Mathematics, Operational Research, Computer Science, and allied subjects, who wish an up-to-date account of the theory and practice of Simulation. Its distinguishing features are in-depth accounts of the theory of Simulation, including the important topic of variance reduction techniques, together with illustrative applications in Financial Mathematics, Markov chain Monte Carlo, and Discrete Event Simulation. Each chapter contains a good selection of exercises and solutions with an accompanying appendix comprising a Maple worksheet containing simulation procedures. The worksheets can also be downloaded from the web site supporting the book. This encourages readers to adopt a hands-on approach in the effective design of simulation experiments. Arising from a course taught at Edinburgh University over several years, the book will also appeal to practitioners working in the finance industry, statistics and operations research."
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_00359_77533"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185660730
+    },
+    {
+      "role": "toolResult",
+      "toolCallId": "tooluse_mhSofOtSxYMsCpC7wi4aNu",
+      "toolName": "get_document",
+      "content": [
+        {
+          "type": "text",
+          "text": "docid=shard_06151_69290\nMarkov Processes and Applications: Algorithms, Networks, Genome and Finance\nJean-François Le Gall, Professor at Université de Paris-Orsay, France.\nMarkov processes is the class of stochastic processes whose past and future are conditionally independent, given their present state. They constitute important models in many applied fields.\nAfter an introduction to the Monte Carlo method, this book describes discrete time Markov chains, the Poisson process and continuous time Markov chains. It also presents numerous applications including Markov Chain Monte Carlo, Simulated Annealing, Hidden Markov Models, Annotation and Alignment of Genomic sequences, Control and Filtering, Phylogenetic tree reconstruction and Queuing networks. The last chapter is an introduction to stochastic calculus and mathematical finance.\n- The Monte Carlo method, discrete time Markov chains, the Poisson process and continuous time jump Markov processes.\n- An introduction to diffusion processes, mathematical finance and stochastic calculus.\n- Applications of Markov processes to various fields, ranging from mathematical biology, to financial engineering and computer science.\n- Numerous exercises and problems with solutions to most of them\n1. Simulations and the Monte Carlo method.\n1.1 Description of the method.\n1.2 Convergence theorems.\n1.3 Simulation of random variables.\n1.4 Variance reduction techniques.\n2. Markov chains.\n2.1 Definitions and elementary properties.\n2.3 Strong Markov property.\n2.4 Recurrent and transient states.\n2.5 The irreducible and recurrent case.\n2.6 The aperiodic case.\n2.7 Reversible Markov chain.\n2.8 Rate of convergence to equilibrium.\n2.9 Statistics of Markov chains.\n3. Stochastic algorithms.\n3.1 Markov chain Monte Carlo.\n3.2 Simulation of the invariant probability.\n3.3 Rate of convergence towards the invariant probability.\n3.4 Simulated annealing.\n4. Markov chains and the genome.\n4.1 Reading DNA.\n4.2 The i.i.d. model.\n4.3 The Markov model.\n4.4 Hidden Markov models.\n4.5 Hidden semi-Markov model.\n4.6 Alignment of two sequences.\n4.7 A multiple alignment algorithm.\n5. Control and filtering of Markov chains.\n5.1 Deterministic optimal control.\n5.2 Control of Markov chains.\n5.3 Linear quadratic optimal control.\n5.4 Filtering of Markov chains.\n5.5 The Kalman-Bucy filter.\n5.6 Linear-quadratic control with partial observation.\n6. The Poisson process.\n6.1 Point processes and counting processes.\n6.2 The Poisson process.\n6.3 The Markov property.\n6.4 Large time behaviour.\n7. Jump Markov processes.\n7.1 General facts.\n7.2 Infinitesimal generator.\n7.3 The strong Markov property.\n7.4 Embedded Markov chain.\n7.5 Recurrent and transient states.\n7.6 The irreducible recurrent case.\n7.8 Markov models of evolution and phylogeny.\n7.9 Application to discretized partial differential equations.\n7.10 Simulated annealing.\n8. Queues and networks.\n8.1 M/M/1 queue.\n8.2 M/M/1/K queue.\n8.3 M/M/s queue.\n8.4 M/M/s/s queue.\n8.5 Repair shop.\n8.6 Queues in series.\n8.7 M/G/∞ queue.\n8.8 M/G/1 queue.\n8.9 Open Jackson network.\n8.10 Closed Jackson network.\n8.11 Telephone network.\n8.12 Kelly networks.\n9. Introduction to mathematical finance.\n9.1 Fundamental concepts.\n9.2 European options in the discrete model.\n9.3 The Black-Scholes model and formula.\n9.4 American options in the discrete model.\n9.5 American options in the Black-Scholes model.\n9.6 Interest rate and bonds.\n10. Solutions to selected exercises.\n10.1 Chapter 1.\n10.2 Chapter 2.\n10.3 Chapter 3.\n10.4 Chapter 4.\n10.5 Chapter 5.\n10.6 Chapter 6.\n10.7 Chapter 7.\n10.8 Chapter 8.\n10.9 Chapter 9.\nBuy Both and Save 25%!\nMarkov Processes and Applications: Algorithms, Networks, Genome and Finance (US $99.00)\nTotal List Price: US $164.95\nDiscounted Price: US $123.71 (Save: US $41.24)"
+        }
+      ],
+      "details": {
+        "returnedDocids": [
+          "shard_06151_69290"
+        ]
+      },
+      "isError": false,
+      "timestamp": 1784185661037
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "Now I have enough evidence to write the report.\n\n## Introduction: Origins of Markov Chains in Statistics and Combinatorics\n\nA Markov chain is a stochastic process describing a sequence of events in which the probability of each future event depends solely on the current state of the system, not on the sequence of states that preceded it — a property known as \"memorylessness\" (shard_02323_69924; shard_00205_53201; shard_05095_70717). Formally, for a sequence of random variables X₁, X₂, …, Xₙ, the process satisfies Pr(Xₙ₊₁ = x | X₁=x₁,…,Xₙ=xₙ) = Pr(Xₙ₊₁ = x | Xₙ = xₙ) (shard_01256_23292; shard_04641_24791). Markov chains can be discrete or continuous in time and finite or countably infinite in their state space, though the discrete-time, discrete-state case is the most commonly studied variant (shard_06011_74077).\n\nThe concept is named after the Russian mathematician Andrey Markov, who began publishing on such processes in 1906 (shard_06011_74077). Markov's original motivation was not applied but foundational: he wanted to demonstrate, contrary to the prevailing view that the Law of Large Numbers required independence between random variables, that dependent sequences could still obey limit laws — his famous example being the statistical analysis of vowel-consonant sequences in Pushkin's poem *Eugene Onegin* (shard_02761_62829). This was fundamentally a combinatorial and probabilistic exercise in showing that \"chained,\" dependent events could nonetheless be tractable mathematically. Importantly, though Markov formalized the theory, related structures — random walks on the integers and the Gambler's Ruin problem — had already been studied hundreds of years earlier, meaning Markovian reasoning implicitly predates Markov's formal apparatus (shard_06011_74077). The genesis of the theory thus lies at the intersection of a desire to generalize probabilistic limit theorems beyond independence and a need for tractable combinatorial tools to count and reason about sequences of dependent trials — precisely the kind of \"chained events\" that arise naturally in combinatorics when enumerating paths, states, or configurations that evolve step by step (shard_03646_78840; shard_02482_42341).\n\n## Literature Review: Markov Chains in Contemporary Research\n\nContemporary scholarship treats Markov chains less as a standalone curiosity and more as a computational and analytical toolkit that cuts across statistics, combinatorics, and computer science. A central strand is Markov Chain Monte Carlo (MCMC), a paradigm that constructs a Markov chain on a large state space Ω whose stationary distribution equals a target distribution π, then draws samples by simulating the chain forward (shard_01587_59220; shard_03014_8085). MCMC \"dawned on the broader scientific and statistics community slowly\" despite not being inherently a Bayesian technique — it long served as a general method for sampling from intractable, high-dimensional distributions and for integration, estimation, and optimization (shard_04619_74165). Since its popularization in the 1990s, MCMC has \"revolutionized statistical computing\" and profoundly shaped Bayesian practice, with applications spanning biostatistics, genetics, epidemiology, archaeology, astronomy, image analysis, ecology, sociology, and economics (shard_00359_77533). Reference works such as *Markov Chain Monte Carlo in Practice* and the *Handbook of Markov Chain Monte Carlo* document this expansion, covering foundational algorithms (Gibbs sampling, Metropolis-Hastings) alongside practical case studies (shard_00359_77533).\n\nA second major thread concerns *rapidly mixing Markov chains* in probabilistic combinatorics and theoretical computer science. Here MCMC is used for approximate counting, computing multidimensional volumes, and combinatorial optimization, reducing such problems to sampling from an underlying combinatorial structure via a chain that converges to a required stationary distribution (shard_02482_42341). Analysis centers on proving rapid mixing — a high convergence rate — often via coupling, conductance, or canonical-path arguments, with applications to the knapsack problem, graph coloring, linear extensions of posets, and permanent computation of 0-1 matrices (shard_02482_42341). This area exemplifies how Markov chain theory now sits alongside concentration-of-measure inequalities and entropy methods as core machinery of probabilistic combinatorics (shard_02482_42341).\n\nBeyond these two poles, Markov processes underpin domain-specific models: Hidden Markov Models and sequence alignment in genomics, phylogenetic reconstruction, queuing networks, and control/filtering problems including the Kalman-Bucy filter (shard_06151_69290). Financial applications include option pricing frameworks built on discrete-time Markov models (shard_06151_69290; shard_03263_47858). Search-engine ranking, notably Google's PageRank algorithm, is itself grounded in a Markov process over the web graph (shard_06011_74077). Sports analytics researchers have also modeled games — for instance baseball at-bats — as sequences of Markov transitions built from simpler Bernoulli trials (shard_04855_21234). Collectively, this literature reflects a maturing field in which Markov chains function simultaneously as (a) a rigorous probabilistic object studied for its own convergence and mixing properties, and (b) a flexible computational engine enabling inference and simulation across the sciences.\n\n## Application and Intuition: Expected Flips to Get N Heads in a Row\n\nThe \"N heads in a row\" problem offers an intuitive gateway into Markov chain reasoning. One models the process as a chain with states 0, 1, …, N, where state *k* represents \"currently on a streak of *k* consecutive heads.\" A heads flip advances the state by one; a tails flip resets the state to 0; state N is absorbing (shard_02822_24503; shard_05059_56682). This can be visualized as a simplified board game: a marker starts at square 0, moves forward on heads, and returns to 0 on tails, finishing when it reaches square N (shard_02822_24503).\n\nLetting mₖ denote the expected number of additional flips needed from state k, one sets up a linear system such as, for a fair coin seeking two heads in a row: t₀ = 1 + ½t₀ + ½t₁, t₁ = 1 + ½t₀ + ½t₂, t₂ = 0, which solves to t₀ = 6 (shard_05059_56682). This matches the direct recursive derivation: for a fair coin, the expected number of flips to reach n heads in a row follows the pattern 2, 6, 14, … i.e., 2^(n+1) − 2 (shard_01901_70670). For example, two heads in a row require 6 expected flips, three heads in a row require 14 (shard_01901_70670).\n\nFor larger N, the recursive equations become a full transition-matrix problem: define matrix P over states 0..N with N absorbing, remove the absorbing row/column to get sub-matrix Q, and solve (I − Q)m = 1, where 1 is a vector of ones (shard_02822_24503). Applied to N = 5, this yields expected flip counts of [62, 60, 56, 48, 32] from states 0 through 4, so 62 flips are needed on average starting from scratch (shard_02822_24503). Notably, the expected additional flips from state 4 (one heads-streak away from success) is still 32, not 2, because a single tails flip erases the entire streak and forces a restart — illustrating the intuitive but often underestimated cost of \"near misses\" in Markov-based expectation calculations (shard_02822_24503).\n\nAn alternative combinatorial framing recognizes this waiting time as related to the negative binomial distribution, counting the number of trials needed to observe N consecutive successes rather than N successes overall, with the count of sequences of length k that avoid N-in-a-row providing a purely combinatorial cross-check on the Markov-derived recursion (shard_03674_73516; shard_06398_43597). This dual view — recursive/matrix Markov-chain solution versus combinatorial enumeration — highlights why the problem is a favorite pedagogical bridge between discrete probability and Markov chain theory."
+        }
+      ],
+      "api": "bedrock-converse-stream",
+      "provider": "amazon-bedrock",
+      "model": "au.anthropic.claude-sonnet-5",
+      "usage": {
+        "input": 2,
+        "output": 2796,
+        "cacheRead": 20421,
+        "cacheWrite": 6067,
+        "totalTokens": 29286,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "stop",
+      "timestamp": 1784185661037
+    },
+    {
+      "role": "user",
+      "content": "Now convert your final answer into strict JSON — output ONLY the JSON object, with no markdown fences and no commentary:\n\n{\"answer\": [{\"text\": \"<exactly one sentence>\", \"citations\": [\"<docid>\", ...]}, ...]}\n\nRules:\n- Split the answer into individual sentences, one per array element, preserving the report's content and order.\n- \"citations\" lists 0-3 ClimbMix docids (e.g. \"shard_00459_61697\") that directly support that sentence, strongest support first. Only cite docids returned by your searches in this conversation; never invent docids and never cite chunk ids (strip any _p<n> suffix).\n- Every factual sentence should carry at least one citation.\n- Keep the total across all sentences at or below 900 words.",
+      "timestamp": 1784185692623
+    },
+    {
+      "role": "assistant",
+      "content": [
+        {
+          "type": "text",
+          "text": "{\"answer\": [{\"text\": \"A Markov chain is a stochastic process describing a sequence of events in which the probability of each future event depends solely on the current state of the system, not on the sequence of states that preceded it — a property known as \\\"memorylessness\\\".\", \"citations\": [\"shard_02323_69924\", \"shard_00205_53201\", \"shard_05095_70717\"]}, {\"text\": \"Formally, for a sequence of random variables X₁, X₂, …, Xₙ, the process satisfies Pr(Xₙ₊₁ = x | X₁=x₁,…,Xₙ=xₙ) = Pr(Xₙ₊₁ = x | Xₙ = xₙ).\", \"citations\": [\"shard_01256_23292\", \"shard_04641_24791\"]}, {\"text\": \"Markov chains can be discrete or continuous in time and finite or countably infinite in their state space, though the discrete-time, discrete-state case is the most commonly studied variant.\", \"citations\": [\"shard_06011_74077\"]}, {\"text\": \"The concept is named after the Russian mathematician Andrey Markov, who began publishing on such processes in 1906.\", \"citations\": [\"shard_06011_74077\"]}, {\"text\": \"Markov's original motivation was not applied but foundational: he wanted to demonstrate, contrary to the prevailing view that the Law of Large Numbers required independence between random variables, that dependent sequences could still obey limit laws — his famous example being the statistical analysis of vowel-consonant sequences in Pushkin's poem Eugene Onegin.\", \"citations\": [\"shard_02761_62829\"]}, {\"text\": \"This was fundamentally a combinatorial and probabilistic exercise in showing that \\\"chained,\\\" dependent events could nonetheless be tractable mathematically.\", \"citations\": [\"shard_02761_62829\"]}, {\"text\": \"Importantly, though Markov formalized the theory, related structures — random walks on the integers and the Gambler's Ruin problem — had already been studied hundreds of years earlier, meaning Markovian reasoning implicitly predates Markov's formal apparatus.\", \"citations\": [\"shard_06011_74077\"]}, {\"text\": \"The genesis of the theory thus lies at the intersection of a desire to generalize probabilistic limit theorems beyond independence and a need for tractable combinatorial tools to count and reason about sequences of dependent trials — precisely the kind of \\\"chained events\\\" that arise naturally in combinatorics when enumerating paths, states, or configurations that evolve step by step.\", \"citations\": [\"shard_03646_78840\", \"shard_02482_42341\"]}, {\"text\": \"Contemporary scholarship treats Markov chains less as a standalone curiosity and more as a computational and analytical toolkit that cuts across statistics, combinatorics, and computer science.\", \"citations\": [\"shard_02482_42341\"]}, {\"text\": \"A central strand is Markov Chain Monte Carlo (MCMC), a paradigm that constructs a Markov chain on a large state space Ω whose stationary distribution equals a target distribution π, then draws samples by simulating the chain forward.\", \"citations\": [\"shard_01587_59220\", \"shard_03014_8085\"]}, {\"text\": \"MCMC \\\"dawned on the broader scientific and statistics community slowly\\\" despite not being inherently a Bayesian technique — it long served as a general method for sampling from intractable, high-dimensional distributions and for integration, estimation, and optimization.\", \"citations\": [\"shard_04619_74165\"]}, {\"text\": \"Since its popularization in the 1990s, MCMC has \\\"revolutionized statistical computing\\\" and profoundly shaped Bayesian practice, with applications spanning biostatistics, genetics, epidemiology, archaeology, astronomy, image analysis, ecology, sociology, and economics.\", \"citations\": [\"shard_00359_77533\"]}, {\"text\": \"Reference works such as Markov Chain Monte Carlo in Practice and the Handbook of Markov Chain Monte Carlo document this expansion, covering foundational algorithms (Gibbs sampling, Metropolis-Hastings) alongside practical case studies.\", \"citations\": [\"shard_00359_77533\"]}, {\"text\": \"A second major thread concerns rapidly mixing Markov chains in probabilistic combinatorics and theoretical computer science.\", \"citations\": [\"shard_02482_42341\"]}, {\"text\": \"Here MCMC is used for approximate counting, computing multidimensional volumes, and combinatorial optimization, reducing such problems to sampling from an underlying combinatorial structure via a chain that converges to a required stationary distribution.\", \"citations\": [\"shard_02482_42341\"]}, {\"text\": \"Analysis centers on proving rapid mixing — a high convergence rate — often via coupling, conductance, or canonical-path arguments, with applications to the knapsack problem, graph coloring, linear extensions of posets, and permanent computation of 0-1 matrices.\", \"citations\": [\"shard_02482_42341\"]}, {\"text\": \"This area exemplifies how Markov chain theory now sits alongside concentration-of-measure inequalities and entropy methods as core machinery of probabilistic combinatorics.\", \"citations\": [\"shard_02482_42341\"]}, {\"text\": \"Beyond these two poles, Markov processes underpin domain-specific models: Hidden Markov Models and sequence alignment in genomics, phylogenetic reconstruction, queuing networks, and control/filtering problems including the Kalman-Bucy filter.\", \"citations\": [\"shard_06151_69290\"]}, {\"text\": \"Financial applications include option pricing frameworks built on discrete-time Markov models.\", \"citations\": [\"shard_06151_69290\", \"shard_03263_47858\"]}, {\"text\": \"Search-engine ranking, notably Google's PageRank algorithm, is itself grounded in a Markov process over the web graph.\", \"citations\": [\"shard_06011_74077\"]}, {\"text\": \"Sports analytics researchers have also modeled games — for instance baseball at-bats — as sequences of Markov transitions built from simpler Bernoulli trials.\", \"citations\": [\"shard_04855_21234\"]}, {\"text\": \"Collectively, this literature reflects a maturing field in which Markov chains function simultaneously as a rigorous probabilistic object studied for its own convergence and mixing properties, and as a flexible computational engine enabling inference and simulation across the sciences.\", \"citations\": [\"shard_00359_77533\", \"shard_02482_42341\"]}, {\"text\": \"The \\\"N heads in a row\\\" problem offers an intuitive gateway into Markov chain reasoning.\", \"citations\": [\"shard_02822_24503\"]}, {\"text\": \"One models the process as a chain with states 0, 1, …, N, where state k represents \\\"currently on a streak of k consecutive heads,\\\" a heads flip advances the state by one, a tails flip resets the state to 0, and state N is absorbing.\", \"citations\": [\"shard_02822_24503\", \"shard_05059_56682\"]}, {\"text\": \"This can be visualized as a simplified board game: a marker starts at square 0, moves forward on heads, and returns to 0 on tails, finishing when it reaches square N.\", \"citations\": [\"shard_02822_24503\"]}, {\"text\": \"Letting mₖ denote the expected number of additional flips needed from state k, one sets up a linear system such as, for a fair coin seeking two heads in a row: t₀ = 1 + ½t₀ + ½t₁, t₁ = 1 + ½t₀ + ½t₂, t₂ = 0, which solves to t₀ = 6.\", \"citations\": [\"shard_05059_56682\"]}, {\"text\": \"This matches the direct recursive derivation: for a fair coin, the expected number of flips to reach n heads in a row follows the pattern 2, 6, 14, …, i.e., 2^(n+1) − 2.\", \"citations\": [\"shard_01901_70670\"]}, {\"text\": \"For example, two heads in a row require 6 expected flips, and three heads in a row require 14.\", \"citations\": [\"shard_01901_70670\"]}, {\"text\": \"For larger N, the recursive equations become a full transition-matrix problem: define matrix P over states 0..N with N absorbing, remove the absorbing row/column to get sub-matrix Q, and solve (I − Q)m = 1, where 1 is a vector of ones.\", \"citations\": [\"shard_02822_24503\"]}, {\"text\": \"Applied to N = 5, this yields expected flip counts of [62, 60, 56, 48, 32] from states 0 through 4, so 62 flips are needed on average starting from scratch.\", \"citations\": [\"shard_02822_24503\"]}, {\"text\": \"Notably, the expected additional flips from state 4 (one heads-streak away from success) is still 32, not 2, because a single tails flip erases the entire streak and forces a restart — illustrating the intuitive but often underestimated cost of \\\"near misses\\\" in Markov-based expectation calculations.\", \"citations\": [\"shard_02822_24503\"]}, {\"text\": \"An alternative combinatorial framing recognizes this waiting time as related to the negative binomial distribution, counting the number of trials needed to observe N consecutive successes rather than N successes overall, with the count of sequences of length k that avoid N-in-a-row providing a purely combinatorial cross-check on the Markov-derived recursion.\", \"citations\": [\"shard_03674_73516\", \"shard_06398_43597\"]}, {\"text\": \"This dual view — recursive/matrix Markov-chain solution versus combinatorial enumeration — highlights why the problem is a favorite pedagogical bridge between discrete probability and Markov chain theory.\", \"citations\": [\"shard_02822_24503\", \"shard_01901_70670\"]}]}"
+        }
+      ],
+      "api": "bedrock-converse-stream",
+      "provider": "amazon-bedrock",
+      "model": "au.anthropic.claude-sonnet-5",
+      "usage": {
+        "input": 2,
+        "output": 3277,
+        "cacheRead": 26488,
+        "cacheWrite": 3047,
+        "totalTokens": 32814,
+        "cost": {
+          "input": 0,
+          "output": 0,
+          "cacheRead": 0,
+          "cacheWrite": 0,
+          "total": 0
+        }
+      },
+      "stopReason": "stop",
+      "timestamp": 1784185692624
+    }
+  ]
+}
