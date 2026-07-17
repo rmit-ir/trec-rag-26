@@ -63,6 +63,10 @@ from .base import ModelTurn, Provider
 
 DEFAULT_MODEL_ID = "au.anthropic.claude-sonnet-5"
 DEFAULT_REGION = "ap-southeast-2"
+# How many times to re-ask when Converse returns a contentless assistant
+# message. Observed once in ten dev topics, and it kills the run on the turn
+# after it lands, so it is worth retrying rather than propagating.
+EMPTY_RESPONSE_RETRIES = 3
 
 
 def cache_point() -> dict[str, Any]:
@@ -153,8 +157,24 @@ class BedrockProvider(Provider):
             kwargs["additionalModelRequestFields"] = {
                 "thinking": {"type": "adaptive"}}
 
-        resp = self._client.converse(**kwargs)
-        msg = resp["output"]["message"]
+        # Converse occasionally answers with an assistant message carrying no
+        # content blocks at all. Appending one poisons the history: the message
+        # is legal to receive but illegal to send back, so the NEXT request
+        # dies with "The content field in the Message object at messages.N is
+        # empty" and the run fails a turn after the turn that caused it. It is
+        # also unusable — no text, no tool calls, nothing to act on. Ask again
+        # rather than keep it; the retry is free of side effects because
+        # nothing has been appended yet.
+        for attempt in range(EMPTY_RESPONSE_RETRIES):
+            resp = self._client.converse(**kwargs)
+            msg = resp["output"]["message"]
+            if msg.get("content"):
+                break
+        else:
+            raise RuntimeError(
+                f"Bedrock returned an assistant message with no content "
+                f"{EMPTY_RESPONSE_RETRIES} times in a row "
+                f"(stopReason={resp.get('stopReason')!r})")
         # Append VERBATIM — reasoningContent blocks (incl. signatures) must be
         # replayed unmodified for thinking + tool use to work across turns.
         self._messages.append(msg)

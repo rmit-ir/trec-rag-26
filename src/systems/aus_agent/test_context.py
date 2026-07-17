@@ -321,6 +321,58 @@ class ProviderCompactionTest(unittest.TestCase):
             [{"text": replacement}],
         )
 
+    def test_contentless_response_is_retried_not_appended(self):
+        # A contentless assistant message is legal to receive but illegal to
+        # send back, so appending it kills the NEXT request with
+        # "The content field in the Message object at messages.N is empty" —
+        # the run dies a turn after the turn that caused it.
+        provider = self._provider()
+        provider.model_id = "m"
+        provider.max_tokens = 16
+        provider.thinking = False
+        provider._system = []
+        provider._tool_config = None
+        replies = [
+            {"output": {"message": {"role": "assistant", "content": []}}},
+            {"output": {"message": {"role": "assistant",
+                                    "content": [{"text": "hello"}]}},
+             "stopReason": "end_turn", "usage": {}},
+        ]
+        calls = []
+
+        class FakeClient:
+            def converse(self, **kw):
+                calls.append(kw)
+                return replies[len(calls) - 1]
+
+        provider._client = FakeClient()
+        turn = provider.run_turn()
+
+        self.assertEqual(len(calls), 2, "should have re-asked once")
+        self.assertEqual(turn["text"], "hello")
+        # The empty message must never enter the history.
+        self.assertEqual(len(provider._messages), 1)
+        self.assertEqual(provider._messages[0]["content"], [{"text": "hello"}])
+
+    def test_persistently_contentless_response_raises(self):
+        provider = self._provider()
+        provider.model_id = "m"
+        provider.max_tokens = 16
+        provider.thinking = False
+        provider._system = []
+        provider._tool_config = None
+
+        class FakeClient:
+            def converse(self, **kw):
+                return {"output": {"message": {"role": "assistant",
+                                               "content": []}},
+                        "stopReason": "end_turn"}
+
+        provider._client = FakeClient()
+        with self.assertRaisesRegex(RuntimeError, "no content"):
+            provider.run_turn()
+        self.assertEqual(provider._messages, [])
+
     def test_compaction_settles_every_message_then_in_history(self):
         provider = self._provider()
         provider._messages = [
