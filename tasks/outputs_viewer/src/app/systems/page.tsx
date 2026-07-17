@@ -40,7 +40,7 @@ const PAGE_SIZE = 30;
 
 /** Style objects are hoisted so a bailed-out row never rebuilds them. */
 const rowSx = { alignItems: "flex-start", borderBottom: 1, borderColor: "divider" } as const;
-const chipSx = { height: 18 } as const;
+const chipSx = { height: 18, flexShrink: 0 } as const;
 
 function SessionRowImpl({ s }: { s: SessionHeader }) {
   return (
@@ -51,8 +51,10 @@ function SessionRowImpl({ s }: { s: SessionHeader }) {
     >
       <ListItemText
         primary={
-          <Stack direction="row" spacing={1} alignItems="center" flexWrap="wrap" useFlexGap>
-            <Typography variant="subtitle2">{s.narrativeSnippet ?? s.slug}</Typography>
+          <Stack direction="row" spacing={1} alignItems="center" useFlexGap sx={{ minWidth: 0 }}>
+            <Typography variant="subtitle2" noWrap sx={{ minWidth: 0 }}>
+              {s.narrativeSnippet ?? s.slug}
+            </Typography>
             {s.status ? (
               <Chip size="small" label={s.status} color={statusColor(s.status)} variant="outlined" sx={chipSx} />
             ) : null}
@@ -194,7 +196,9 @@ function SystemsBrowser() {
           </List>
         )}
       </Paper>
-      <Paper variant="outlined">
+      {/* Grid items default to min-width:auto, so nowrap session titles would
+          widen this column past the viewport instead of ellipsizing. */}
+      <Paper variant="outlined" sx={{ minWidth: 0 }}>
         <Stack
           direction="row"
           alignItems="center"

@@ -7,7 +7,7 @@ import Typography from "@mui/material/Typography";
 import Stack from "@mui/material/Stack";
 import Divider from "@mui/material/Divider";
 import { groupIntoParagraphs } from "@/lib/paragraphs";
-import type { OutputFile } from "@/lib/types";
+import { ANSWER_WORD_LIMIT, countAnswerWords, type OutputFile } from "@/lib/types";
 import FeedbackWidget from "@/components/FeedbackWidget";
 import CitationChip from "./CitationChip";
 
@@ -35,6 +35,11 @@ export default function AnswerView({
   );
   const refs = output.references ?? [];
 
+  const wordCount = React.useMemo(
+    () => countAnswerWords(output.answer ?? []),
+    [output.answer],
+  );
+
   return (
     <Stack spacing={1.5}>
       <Card>
@@ -50,7 +55,20 @@ export default function AnswerView({
         <Card key={p.index}>
           <CardContent sx={{ py: 1.5, "&:last-child": { pb: 1.5 } }}>
             {p.index === 0 ? (
-              <Box sx={{ display: "flex", justifyContent: "flex-end", mb: 0.5 }}>
+              <Box
+                sx={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "center",
+                  mb: 0.5,
+                }}
+              >
+                <Typography
+                  variant="caption"
+                  color={wordCount > ANSWER_WORD_LIMIT ? "error" : "text.secondary"}
+                >
+                  {wordCount} / {ANSWER_WORD_LIMIT} words
+                </Typography>
                 <FeedbackWidget
                   system={system}
                   sessionId={sessionId}

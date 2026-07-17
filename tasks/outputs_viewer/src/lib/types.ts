@@ -25,6 +25,22 @@ export interface AnswerSentence {
   citations: number[];
 }
 
+/** Track cap on total answer words (rag-task.md; enforced by both validators). */
+export const ANSWER_WORD_LIMIT = 1024;
+
+/**
+ * Total answer words, counted exactly as the track validators do
+ * (`src/ragrun/outputs.py` / `tasks/pi-agent/src/outputs.ts`): whitespace-split
+ * words over each sentence's text. Traces do not carry this number — it is
+ * always derived from the answer itself.
+ */
+export function countAnswerWords(answer: AnswerSentence[]): number {
+  return answer.reduce(
+    (n, s) => n + s.text.split(/\s+/).filter(Boolean).length,
+    0,
+  );
+}
+
 export interface OutputFile {
   metadata: {
     team_id?: string;
@@ -131,6 +147,29 @@ export interface DocResult {
   /** true when a chunk id fell back to fetching its parent document */
   parentFallback: boolean;
   text: string;
+}
+
+/** Lifecycle of a viewer-spawned agent run. */
+export type RunStatus = "running" | "completed" | "failed" | "timeout";
+
+export interface RunRecord {
+  /** Viewer-side handle (uuid), distinct from the harness `--run-id`. */
+  id: string;
+  /** The `--run-id` passed to run.py; groups the artifacts it writes. */
+  runId: string;
+  system: string;
+  query: string;
+  status: RunStatus;
+  startedAt: number; // ms epoch
+  endedAt?: number;
+  pid?: number | null;
+  exitCode?: number | null;
+  signal?: string | null;
+  /** Set once the wall-clock cap fires, before the process actually exits. */
+  timedOut?: boolean;
+  error?: string;
+  /** Bounded tail of the child's stdout+stderr. */
+  logTail: string[];
 }
 
 export type FeedbackTargetType = "answer" | "sentence" | "citation";
