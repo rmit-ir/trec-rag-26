@@ -57,17 +57,7 @@ data/*
 # Run artifacts + human feedback are deliberately tracked
 !data/outputs/
 !data/output_feedbacks/
-runs/
-results/
-output/
 tmp/
-# ...but these are bare patterns, so they match a directory of those names at
-# ANY depth — including source. The viewer's Next.js route lives at
-# src/app/api/runs/, which `runs/` silently swallowed: `git add` refused it, so
-# the feature would have worked locally and 404'd on deploy with nothing in
-# `git status` to explain it. Re-include the source tree (the parent dirs are
-# not themselves ignored, so this negation takes effect).
-!tasks/outputs_viewer/src/app/api/runs/
 
 # Git worktrees
 /worktrees/
