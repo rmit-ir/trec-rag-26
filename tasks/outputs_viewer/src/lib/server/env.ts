@@ -12,7 +12,7 @@ import dotenv from "dotenv";
 export const REPO_ROOT = path.resolve(process.cwd(), "..", "..");
 export const OUTPUTS_DIR = path.join(REPO_ROOT, "data", "outputs");
 export const FEEDBACK_DIR = path.join(REPO_ROOT, "data", "output_feedbacks");
-export const TAGS_FILE = path.join(FEEDBACK_DIR, "tags.json");
+export const TAGS_FILE = path.join(FEEDBACK_DIR, "tags.csv");
 
 let loaded = false;
 function loadEnv() {

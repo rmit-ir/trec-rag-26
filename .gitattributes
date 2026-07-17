@@ -1,1 +1,7 @@
 data/outputs/**/*.json filter=lfs diff=lfs merge=lfs -text
+
+# Append-only review data: everyone shares these files, so concurrent additions
+# would otherwise collide at end-of-file. union keeps both sides' lines; reads
+# de-duplicate. Never sort or rewrite these in place -- that defeats the merge.
+data/output_feedbacks/**/*.feedback.jsonl merge=union
+data/output_feedbacks/tags.csv merge=union

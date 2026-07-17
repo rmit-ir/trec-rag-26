@@ -117,37 +117,60 @@ export function readFeedback(filter: FeedbackFilter = {}): FeedbackRecord[] {
 
 // ---- tags -----------------------------------------------------------------
 
+/**
+ * Tag vocabulary: a single-column CSV at data/output_feedbacks/tags.csv, one
+ * tag per line.
+ *
+ * Append-only on purpose. Everyone shares this one file, so a whole-file
+ * rewrite (the previous tags.json) made every concurrent tag addition a merge
+ * conflict, and resolving one by picking a side silently dropped the other
+ * person's tag. Appending keeps each addition on its own line, which lets the
+ * `merge=union` driver in .gitattributes take both sides automatically.
+ *
+ * The corollary: never sort or rewrite the file. Ordering and de-duplication
+ * happen on read, because union merges interleave the sides and can repeat a
+ * tag both people added.
+ */
+
+function csvEncode(value: string): string {
+  return /[",]/.test(value) ? `"${value.replace(/"/g, '""')}"` : value;
+}
+
+function csvDecode(line: string): string {
+  const s = line.trim();
+  if (!s.startsWith('"')) return s;
+  return s.slice(1).replace(/"$/, "").replace(/""/g, '"');
+}
+
 export function readTags(): string[] {
+  let text: string;
   try {
-    const data = JSON.parse(fs.readFileSync(TAGS_FILE, "utf8"));
-    if (Array.isArray(data?.tags)) return data.tags.filter((t: unknown) => typeof t === "string");
+    text = fs.readFileSync(TAGS_FILE, "utf8");
   } catch {
-    // fall through: create the file
+    return []; // not created until the first tag is added
   }
-  ensureDir(FEEDBACK_DIR);
-  atomicWriteJson(TAGS_FILE, { tags: [] });
-  return [];
+  const set = new Set<string>();
+  for (const line of text.split("\n")) {
+    const tag = csvDecode(line);
+    if (tag) set.add(tag);
+  }
+  return [...set].sort((a, b) => a.localeCompare(b));
 }
 
 export function addTags(tags: string[]): string[] {
-  const current = readTags();
-  const set = new Set(current);
-  let changed = false;
+  const known = new Set(readTags());
+  const fresh: string[] = [];
   for (const raw of tags) {
-    const t = raw.trim();
-    if (t && !set.has(t)) {
-      set.add(t);
-      changed = true;
-    }
+    // A newline would split one tag across two rows; collapse rather than
+    // reject so a stray paste still yields a usable tag.
+    const tag = raw.replace(/[\r\n]+/g, " ").trim();
+    if (tag && !known.has(tag) && !fresh.includes(tag)) fresh.push(tag);
   }
-  const next = [...set].sort((a, b) => a.localeCompare(b));
-  if (changed) atomicWriteJson(TAGS_FILE, { tags: next });
-  return next;
-}
-
-function atomicWriteJson(file: string, data: unknown) {
-  ensureDir(path.dirname(file));
-  const tmp = `${file}.${process.pid}.${Date.now()}.tmp`;
-  fs.writeFileSync(tmp, JSON.stringify(data, null, 2) + "\n");
-  fs.renameSync(tmp, file);
+  if (fresh.length) {
+    ensureDir(path.dirname(TAGS_FILE));
+    // O_APPEND single write: atomic against concurrent server writes, and one
+    // line per tag keeps the file union-mergeable.
+    fs.appendFileSync(TAGS_FILE, fresh.map(csvEncode).join("\n") + "\n");
+  }
+  return readTags();
 }
