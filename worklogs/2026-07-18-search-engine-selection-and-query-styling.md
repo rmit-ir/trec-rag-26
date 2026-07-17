@@ -159,3 +159,44 @@ Net: keep the binary setup. Remaining watch item: whether keyword gets
 used for named-entity chasing on entity-rich topics (UBI-style) — if not,
 one line in the keyword description naming "program names, statutes,
 account types" as candidates may be worth testing.
+
+## Binary-engine behaviour at scale (5 more dev topics, same run-id)
+
+| topic | srch (kw/sem) | commits | refs | words | tokens | prior best |
+|---|---|---|---|---|---|---|
+| CS:GO (new) | 7 (2/5) | 2 | 11 | 885 | **71K** | — |
+| social media | 12 (3/9) | 2 | 11 | 953 | 144K | dev3 216K, 15 refs |
+| Taj Mahal | 12 (3/9) | 2 | 12 | 891 | 145K | dev1 120K, 10 refs |
+| Markov | 8 (2/6) | 2 | 11 | 951 | 107K | dev1 103K, 9 refs |
+| UBI | 16 (5/11) | 4 | 13 | 564 | 248K | dev3 177K, 13 refs |
+
+55 queries total: **15 keyword / 40 semantic — the watch item is resolved,
+and keyword is used for exactly the right query types** without any
+guidance change:
+
+- Author-year citation chasing: "De Paz-Báñez 2020 … systematic review",
+  "Daruich Fernandez 2024 … general equilibrium" (UBI round 4).
+- Program + figure: "Finland basic income Kela 560 employment … 2019".
+- Dates/versions: "CS:GO 2012 launch free-to-play 2018 update".
+- Specific studies spotted in results: "social media workplace
+  productivity 17 industries study", "randomized trial FOMO".
+- Rare technical terms: "nonreversible Markov chains interacting particle
+  systems", "Markov 1906 states transition probabilities".
+
+Round-1 pairing (semantic phrase + keyword term-set on the lead facet)
+appeared in CS:GO, Taj Mahal, UBI, and Markov; later rounds assign engines
+per query type rather than blindly pairing. Answers remain fully cited;
+Markov and Taj Mahal each took one word-cap bounce.
+
+**One genuine failure mode surfaced**: UBI's round-4 author-year keyword
+queries were scholarly-corpus reflexes aimed at a *web* corpus — the round
+committed just 1 of ~15 staged docs and pushed the run to 248K tokens
+(+40% over dev3) for the same 13 refs. ClimbMix rewards program/product
+names, not academic citations. Candidate one-line fix if it recurs:
+keyword description note "chase named programs, products, and terms — not
+author-year citations; this is a web corpus." Deferred: one occurrence in
+five runs, and the loop recovered (the UBI answer is concise but covers
+all three pilots with figures).
+
+Cost picture across the five: median ~144K/topic; CS:GO at 71K is the
+cheapest broad-topic run recorded. The binary setup holds up at scale.
