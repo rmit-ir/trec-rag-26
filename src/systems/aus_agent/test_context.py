@@ -435,6 +435,12 @@ class AgentFlowTest(unittest.TestCase):
         self.assertIn("Size the search to the question", prompt)
         self.assertIn("Length follows the question, not the limit", prompt)
         self.assertNotIn("Aim for about 950 words", prompt)
+        # Effort is about the kind of answer as well as its size: several dev
+        # topics are creative briefs ("write a blog post contrasting...",
+        # "propose a biologically plausible model"), which a flat digest of
+        # sources fails just as badly as an essay fails a lookup.
+        self.assertIn("The request sets the kind of answer too", prompt)
+        self.assertIn("do the creative work", prompt)
         # The report is written by a searcher, not by this harness. The model
         # echoed our own vocabulary back at the reader:
         # "the committed corpus does not contain a document that...".
