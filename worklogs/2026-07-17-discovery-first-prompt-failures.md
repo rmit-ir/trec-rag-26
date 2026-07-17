@@ -73,6 +73,36 @@ Escalations deliberately not taken:
   goes, so cache-neutral) is closer to the model's attention than the system
   prompt. Untested; parked.
 
+## Attempt 5: mechanical query-term provenance (`aus-agent-qterm-check`)
+
+Strongest formulation, different in kind from attitude instructions — a
+checkable constraint on the query strings themselves (user-designed):
+round-one queries built only from the question's own wording; every later
+content-bearing query term traceable to a document retrieved earlier; an
+escape valve (probe memory candidates one query each) when question-term
+queries genuinely fail. Shipped together with a workflow restructure into a
+3-step loop (Search → Commit → Decide) plus notes, and a full prompt audit
+that removed contradicting lines ("prior knowledge may help you choose
+searches", "narrower entities", creativity's claim to the answer's "shape").
+
+Graded by reading the trajectory (a term-overlap metric was written, then
+dropped — a stopword heuristic is a worse judge than reading a dozen runs):
+
+- Rule 1 violated: turn 1 searched LoRA and QLoRA, neither in the question.
+- Rule 2 mostly violated: PPO traceably appeared in turn-1 results before
+  being searched, but DPO, RLHF, GRPO, DeepSeek, and chain-of-thought each
+  first occur in the results of their own search — memory-seeded, staggered
+  across turns rather than eliminated.
+
+Five strategies, five failures: Sonnet 5 does not comply with query-provenance
+instructions on subjects it knows well, whatever their form or placement.
+
+The run was still Sonnet's best overall — 14 refs (vs 6 in every earlier
+Sonnet run), 24 sentences / 948 words, 4 equation sentences, interleaved
+commit+search each turn, clean protocol. The loop restructure appears to have
+improved commit discipline and breadth even though grounding was ignored;
+these changes are kept.
+
 ## Model A/B: Opus 4.8, same prompt, same topic (`aus-agent-opus-check`)
 
 Since prompt wording was exhausted, swapped only the model

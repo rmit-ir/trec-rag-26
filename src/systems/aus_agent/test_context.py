@@ -489,13 +489,29 @@ class AgentFlowTest(unittest.TestCase):
         # techniques the model already knew (LoRA, QLoRA, DPO, GRPO,
         # Mixtral) — right answers, but selected from memory rather than
         # discovered, so anything it had not heard of could not appear.
-        # "Distrust your memory" phrasings failed three runs in a row (the
-        # model trusts its memory), so the rule is now a fact it cannot
-        # overrule with confidence: it does not know what THIS CORPUS holds
-        # until it answers, so opening searches survey the request's subject
-        # in the request's own terms before targeted dives.
-        self.assertIn("You do not know what this corpus holds", prompt)
-        self.assertIn("in the request's own terms", prompt)
+        # Four attitude-style phrasings ("discover first", "distrust your
+        # memory", "you don't know this corpus") failed in four runs; the
+        # rule is now a mechanical constraint on the query strings
+        # themselves: round-one terms come from the question, later rounds
+        # expand only from retrieved text, with a release valve when
+        # question-term queries genuinely fail. Flattened so the assertions
+        # survive re-wrapping the markdown.
+        flat = " ".join(prompt.split())
+        self.assertIn("Round one's queries come from the question", flat)
+        self.assertIn("you do not know what this corpus holds until it "
+                      "answers", flat)
+        self.assertIn("question's own wording", flat)
+        self.assertIn("Do not seed a query with candidate answers", flat)
+        self.assertIn("traceable to a document retrieved in an earlier round",
+                      flat)
+        self.assertIn("a candidate the corpus has not yet surfaced", flat)
+        self.assertIn("probe candidates from prior knowledge", flat)
+        # The recon-check run wrote its report straight from the STAGED
+        # batch — no commit — and burned 2x tokens redoing the round after
+        # the batch lapsed. The contract now says commit first, report on
+        # the following turn.
+        self.assertIn("commit first, and write the report on the following "
+                      "turn", flat)
         # The same topic demanded "mathematical derivations where
         # applicable" and came back with zero "=" signs: the no-Markdown
         # rule reads as a ban on anything formula-shaped.
@@ -544,7 +560,7 @@ class AgentFlowTest(unittest.TestCase):
             self.assertNotIn(illustration, prompt)
         self.assertIn("counter-evidence, contradictions", prompt)
         self.assertIn("hard ceiling, not a spending target", prompt)
-        self.assertIn("Do not call a tool solely to create another", prompt)
+        self.assertIn("never call a tool solely to create another", prompt)
         self.assertIn("500,000 tokens", prompt)
         self.assertNotIn("ClimbMix", prompt)
         self.assertNotIn("get_document", prompt)
