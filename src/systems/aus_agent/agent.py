@@ -626,20 +626,29 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         )
 
     def expire_staged_context(reason: str, turn: int | None, *,
-                              failed: bool = True) -> str:
+                              failed: bool = True,
+                              docid_reason: str = "not retained") -> str:
         """Compact an unresolved batch rather than carrying it another turn.
 
         ``failed=False`` for the case where the model simply issued no
         commit_context: that is a legitimate "retain none of these" decision,
         not an error, and marking it failed would misreport it in the trace and
         in tool_call_counts.
+
+        ``reason`` explains the batch and is said once; ``docid_reason`` is
+        stamped on every rejected document, so it stays terse. They were the
+        same string until a 10-document batch turned one 60-word explanation
+        into 600 words of identical text — per expiry, in the model's context.
+        A per-document reason only earns its length when documents differ
+        (duplicate, over the per-step cap, simply unselected); here they never
+        do.
         """
         ct0 = now_iso()
         started = perf_counter()
         decision = expire_staged(
             ledger,
             max_documents=max_committed_per_step,
-            reason=reason,
+            reason=docid_reason,
         )
         provider.compact_tool_results(decision.replacements)
         payload = json.dumps({

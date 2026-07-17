@@ -449,11 +449,18 @@ class AgentFlowTest(unittest.TestCase):
         # came from ("my search corpus confirms that...") is describing the
         # machinery. And a limitation is one sentence, not a narrated attempt
         # plus a restatement of the same gap.
-        self.assertIn("announce that it is supported", prompt)
-        self.assertIn("say so once, plainly", prompt)
-        # "The available evidence extends only to..." is not announcing support,
-        # it makes the material the grammatical subject — a distinct leak.
-        self.assertIn("Write about the subject, not about your material", prompt)
+        self.assertIn("never announces that it is", prompt)
+        self.assertIn("Say it once, plainly", prompt)
+        # The report contract must not hand the model a noun for its own
+        # sources: "Write about the subject, not about your material"
+        # produced "The material on hand identifies..." in four of five
+        # sentences — the rule supplied the very word the report leaked.
+        # (The research sections may name sources; they instruct the search,
+        # not the writing.)
+        contract = prompt.split("## Final response contract", 1)[1]
+        for noun in ("your material", "your sources", "the corpus",
+                     "the evidence", "the documents"):
+            self.assertNotIn(noun, contract)
         # State the rule; do not illustrate it. A banned-phrase list teaches
         # the model to dodge those exact strings, and a sample sentence anchors
         # both the wording and the topic it was written about — the prompt has
@@ -894,6 +901,35 @@ class AgentFlowTest(unittest.TestCase):
         self.assertEqual(len(auto), 1)
         self.assertFalse(auto[0]["failed"])
         self.assertIn("treated as an explicit decision", auto[0]["output"])
+
+    def test_expiry_explains_itself_once_not_per_document(self):
+        # The explanation used to be stamped on every rejected docid, so a
+        # 10-document batch repeated one 60-word sentence ten times — in the
+        # model's context, on every expiry.
+        provider = FakeProvider([
+            _turn(calls=[_call("s1", "search", query="alpha")],
+                  input_tokens=100),
+            _turn(calls=[_call("s2", "search", query="beta")],
+                  input_tokens=100),   # no commit -> alpha expires
+            _turn(calls=[_call("c1", "commit_context", documents=[
+                {"docid": "d", "reason": "kept"}])], input_tokens=100),
+            _turn(text="Supported finding. [d]", input_tokens=100),
+        ])
+
+        summary, captured = self._run(provider)
+        auto = next(
+            step for step in captured["trajectory"].trace["steps"]
+            if step.get("arguments", {}).get("automatic"))
+        payload = json.loads(auto["output"].split("\n")[0])
+
+        # Said once, at the top.
+        self.assertIn("explicit decision", payload["note"])
+        # Never repeated onto the documents.
+        self.assertEqual(
+            [r["reason"] for r in payload["rejected"]],
+            ["not retained"] * len(payload["rejected"]))
+        for rejected in payload["rejected"]:
+            self.assertNotIn("explicit decision", rejected["reason"])
 
     def test_commit_position_within_the_turn_does_not_matter(self):
         # The harness applies commit_calls before retrieval_calls regardless of
