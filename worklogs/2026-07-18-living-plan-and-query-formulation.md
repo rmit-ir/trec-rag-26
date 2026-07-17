@@ -60,6 +60,37 @@ clean variants on the live engine:
 | D. targeted entity: "401k IRA Roth traditional tax differences" | 5/5 Roth-vs-traditional comparison docs |
 | E/F. genre suffix ("academic study journalist report") on/off | mixed — suffix not clearly harmful; both sets usable, small overlap |
 
+Raw top-5 docids per variant (fusion engine, k=5; snippets summarized —
+titles/first words in parentheses where informative):
+
+- **A**: shard_04024_31277 ("5 Types of Investments That You Should Know
+  About"), shard_05354_35351 (17-char stub: "invest for retirement"),
+  shard_02585_83054 ("Retirement Planning"), shard_00295_19369 ("What Are
+  the Different Ways to Invest Your Money?"), shard_01568_79038 (junk:
+  "Category Archives: Children"). rrf_scores: 0.0235 then 0.0164/0.0164/
+  0.0161/… — only rank 1 appeared in both engines' lists.
+- **B**: shard_05822_49232 ("Investment Accounts for Beginners: A
+  Comprehensive Guide"), shard_06085_2021 ("Best Types of Investments For
+  Beginners"), shard_05019_40706 ("What is the simplest way to invest?"),
+  shard_03587_63458 (brokerage-account behaviour), shard_01217_79356
+  ("What Every Beginning Investor Should Know").
+- **C**: shard_03948_45301 (401K/403B/IRA signup guide), shard_04890_49357
+  ("How to invest in index funds to build long-term wealth"),
+  shard_02102_77885 ("2024 Best 401k allocation" / Bogleheads),
+  shard_01412_64618 (index fund definition), shard_05931_13631 ("The two
+  most common types of retirement accounts are 401(k)s and IRAs").
+- **D**: shard_06173_48577 ("Roth 401k vs 401k"), shard_00837_11837 ("Roth
+  IRA and Traditional 401(k) Differences"), shard_01918_47608 ("Roth IRA
+  Contribution Limits"), shard_01972_6997 (Roth-vs-traditional-IRA tax
+  timing), shard_04686_11016 ("Roth ira vs 401k").
+- **E** (with suffix): shard_02187_2956, shard_01188_73594,
+  shard_05261_37134 (Surgeon-General advisory doc — the one the run
+  actually cited), shard_04765_27070 (off-topic religious take on
+  loneliness), shard_05904_13955.
+- **F** (without): shard_03463_33968, shard_02187_2956, shard_05527_38085
+  (quitting-Facebook anecdote), shard_03210_63874, shard_04828_28325.
+  Overlap E∩F = shard_02187_2956 only.
+
 Findings:
 
 1. **Copying request meta-language into queries hurts both retrievers.**

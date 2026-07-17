@@ -50,6 +50,28 @@ Proactively clean up: kill background tasks and throwaway resources once
 they're no longer needed. Exception: something handed to the user for testing
 (e.g. a dev server) stays running until they say they're done.
 
+## Worklogs
+
+Take a worklog (`worklogs/YYYY-MM-DD-<topic>.md`) for every substantive work
+session, and commit it with the work it describes.
+
+**Experiment worklogs must be self-contained down to the raw inputs.** Unlike
+code worklogs — where the diff and git history preserve the details — an
+experiment's intermediate artifacts (ad-hoc probe scripts, sub-agent
+transcripts, scratchpad sweep logs, judgment passes) are session-local and
+vanish when the session ends. So the worklog itself must capture:
+
+- the **exact inputs**: every query/prompt string tested, verbatim — not a
+  paraphrase like "compact keyword variants";
+- the **full result matrix**, not just aggregates or highlights;
+- how outcomes were judged (metric, or graded-by-reading and on what);
+- run-ids / artifact paths for anything that *does* persist under
+  `data/outputs/`.
+
+When a raw sweep log or probe script exists, copy it into
+`worklogs/assets/<date>-<name>.<ext>` and reference it — that file is the
+only surviving evidence behind the worklog's judgment calls.
+
 ## Notebooks
 
 Exploratory Jupyter notebooks live in `tmp/` and are the one deliberate

@@ -35,6 +35,71 @@ Sub-agent derived 10 search tasks (8 query types) from 6 dev topics, ran
 keyword 3.89**; by style: natural-question → fusion 4.8/semantic 4.7;
 compact keywords → fusion 4.7/semantic 4.6; entity-anchored → fusion 4.4.
 
+**Raw artifacts preserved** (intermediate outputs are otherwise
+session-local and vanish): `worklogs/assets/2026-07-18-query-style-sweep.sh`
+(the exact sweep — every query string, style, engine) and
+`…-query-style-sweep.log` (all 96 result sets: rank | score | 170-char
+snippet per hit — the evidence behind every relevant@5 judgment below).
+
+The exact queries (task · style → query):
+
+- **T1 broad survey (UBI)** · nlq "What are the arguments for and against
+  universal basic income?" · kw "universal basic income effects debate" ·
+  bad "income"
+- **T2 named program** · nlq "What were the results of Finland's basic
+  income experiment?" · kw "Finland basic income experiment results" ·
+  ent "Kela basic income trial Finland" · bad "peer-reviewed economic
+  studies policy analysis commentary UBI programs developed countries"
+- **T3 definitional** · nlq "What is predictive coding in neuroscience?" ·
+  kw "predictive coding brain perception theory" · ent "predictive coding
+  Karl Friston free energy principle"
+- **T4 comparative** · nlq "What is the difference between RISC and CISC
+  instruction set architectures?" · kw "RISC CISC comparison instruction
+  set" · ent "RISC vs CISC"
+- **T5 numeric evidence** · nlq "How much did employment change for
+  participants in Finland's basic income trial?" · kw "Finland basic
+  income trial employment days effect" · ent "Finland basic income 560
+  euros employment"
+- **T6 rare technical term** · nlq "Why do recurrent neural networks
+  suffer from the vanishing gradient problem?" · kw "vanishing gradient
+  problem RNN" · ent "vanishing gradient Hochreiter"
+- **T7 named person** · nlq "Who invented the LSTM neural network
+  architecture?" · kw "Hochreiter Schmidhuber LSTM 1997" · ent "Sepp
+  Hochreiter long short-term memory" · bad "comprehensive expository
+  analysis key AI architectures historical development"
+- **T8 common-word ambiguous** · nlq "How can teachers help a preschooler
+  who refuses to share and has tantrums?" · kw "preschool sharing tantrum
+  behavior strategies" · bad "sharing"
+- **T9 named product** · nlq "Why has Counter-Strike: Global Offensive
+  remained popular for so long?" · kw "CS:GO esports popularity player
+  count" · ent "Counter-Strike Global Offensive"
+- **T10 concept + comparison** · nlq "What are the limitations of
+  radiocarbon dating?" · kw "radiocarbon dating limitations accuracy
+  calibration" · ent "carbon-14 dating vs potassium-argon dating"
+
+Full relevant@5 matrix (semantic / keyword / fusion):
+
+| Task (type) | nlq | kw | ent | bad |
+|---|---|---|---|---|
+| T1 UBI (broad survey) | 5/5/4 | 5/3/5 | — | 0/0/0 |
+| T2 Finland UBI (named program) | 5/4/5 | 5/4/5 | 5/3/5 | 0/3/2 |
+| T3 predictive coding (definitional) | 4/3/5 | 4/4/5 | 4/4/4 | — |
+| T4 RISC vs CISC (comparative) | 5/5/5 | 5/5/5 | 5/5/5 | — |
+| T5 Finland employment (numeric) | 4/3/5 | 5/3/5 | 4/3/4 | — |
+| T6 vanishing gradient (rare technical) | 4/4/5 | 5/2/2 | 5/5/5 | — |
+| T7 LSTM inventors (named person) | 5/3/4 | 5/5/5 | **0**/4/2 | 0/0/0 |
+| T8 preschool sharing (common word) | 5/3/5 | 5/4/5 | — | 0/0/0 |
+| T9 CS:GO (named product) | 5/4/5 | **2**/4/5 | 5/2/5 | — |
+| T10 carbon dating (concept+compare) | 5/5/5 | 5/5/5 | 5/5/5 | — |
+
+Cells are semantic/keyword/fusion. The catastrophic single-engine cells:
+T7 ent semantic **0/5** ("Sepp Hochreiter long short-term memory" drifted
+to biological long-term memory); T9 kw semantic 2/5 (the generic "CS:GO
+esports popularity player count" term set); T9 ent keyword 2/5 (the bare
+product name matched incidental mentions — ad-cost and mute-guide pages);
+T6 kw keyword 2/5 (generic "RNN" pages). Fusion's two weak cells (T6 kw,
+T7 ent) are exactly where it inherited a collapsed engine's list.
+
 Findings (by confidence):
 
 1. **[strong] Meta-word soup fails everywhere, worst on semantic.** All
@@ -200,3 +265,9 @@ all three pilots with figures).
 
 Cost picture across the five: median ~144K/topic; CS:GO at 71K is the
 cheapest broad-topic run recorded. The binary setup holds up at scale.
+
+Complete per-query engine/k/budget lists for every run above persist in
+the trajectory artifacts:
+`data/outputs/aus_agent/20260718T00*.{output,trajectory}.json` (run-ids
+`aus-agent-luna-dev2/3/4`; each search call records `query`,
+`search_engine`, `k`, `budget_tokens_per_result` verbatim).
