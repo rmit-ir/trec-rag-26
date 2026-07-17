@@ -23,10 +23,12 @@ packages = ["src/utils", "src/tools", "src/ragrun"]
 # Per-system dep groups — default `uv sync` installs none of them.
 # Install one with `uv sync --group <name>` (e.g. `uv sync --group aus-agent`),
 # then run scripts with `uv run --group <name> python …`.
-# aus_agent RAG harness (src/systems/aus_agent) — Bedrock backend today,
-# Azure OpenAI / OpenAI Responses backends later.
+# aus_agent RAG harness (src/systems/aus_agent) — Bedrock + OpenAI Responses
+# backends. The openai floor is 2.x: providers/openai.py leans on Responses
+# API surface (store=False + encrypted reasoning include) absent in 1.x.
 aus-agent = [
     "boto3>=1.40",
+    "openai>=2.45",
 ]
 # Tongyi DeepResearch port (src/systems/ali_deepresearch)
 ali-deepresearch = [

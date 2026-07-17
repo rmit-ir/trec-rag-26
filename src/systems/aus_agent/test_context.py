@@ -615,6 +615,24 @@ class AgentFlowTest(unittest.TestCase):
             },
         ])
 
+    def test_bracketed_mathematics_is_not_a_citation_marker(self):
+        # gpt-5.6-terra wrote the DPO reward rearrangement with a bracketed
+        # ratio; the old any-content marker regex stripped it, corrupting the
+        # equation to "βlog + βlog Z(x)" in the submitted answer.
+        line = ("The optimum rearranges to r(x,y) = β log[π_r(y|x)/π_ref(y|x)]"
+                " + β log Z(x). [shard_02738_62757]")
+        self.assertEqual(agent._extract_citations(line),
+                         ["shard_02738_62757"])
+        self.assertEqual(
+            agent._strip_markers(line),
+            "The optimum rearranges to r(x,y) = β log[π_r(y|x)/π_ref(y|x)]"
+            " + β log Z(x).")
+        sentences, errors, repairs = agent._parse_final_prose(
+            line + "\n", {"shard_02738_62757"})
+        self.assertEqual(errors, [])
+        self.assertIn("[π_r(y|x)/π_ref(y|x)]", sentences[0]["text"])
+        self.assertEqual(sentences[0]["citations"], ["shard_02738_62757"])
+
     def test_citation_only_line_folds_into_preceding_sentence(self):
         # The format Sonnet 5 actually produces: markers on their own line.
         sentences, errors, repairs = agent._parse_final_prose(

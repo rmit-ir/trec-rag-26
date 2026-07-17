@@ -132,6 +132,35 @@ mostly absent in Opus 4.8, which broadens iteratively even without a survey
 query. Confirms "model-level"; model choice, not prompt wording, is the lever
 for topics where breadth matters.
 
+## Model A/B #2: gpt-5.6-terra, same prompt (`aus-agent-terra-check`)
+
+New `openai` backend (Responses API, stateless `store=False`, encrypted
+reasoning replayed verbatim — see `providers/openai.py`) built to try
+`gpt-5.6-terra`. First model in six runs to substantially follow the
+provenance rules:
+
+- **Round 1 was question-derived and year-decomposed**: four queries shaped
+  like "2023/2024/2025 large language model training fine-tuning advances
+  methodology technical report" — no named methods, the time-frame
+  decomposition the topic implies. (Two queries did include generic class
+  terms — "preference optimization", "low rank adaptation" — not in the
+  question: partial credit, not perfect.)
+- **Rule 2 mostly honoured**: DPO, QLoRA, NF4, and long-context all appear in
+  retrieved text *before* being queried — genuine expand-from-retrieved.
+  GRPO / DeepSeek / verifiable-rewards were still memory-seeded late.
+- Answer: 799 words / 32 sentences / 8 refs / 5 inline equations (incl. the
+  full DPO derivation: KL-regularized objective → Boltzmann optimum →
+  reward rearrangement), organized as "Post 1 …" series per the brief.
+  161K processed tokens. Breadth sits between Sonnet (fine-tuning canon) and
+  Opus (8 families).
+
+So the provenance rules are followable — Sonnet 5 specifically doesn't.
+
+**Harness bug found by this run (fixed)**: the citation-marker regex matched
+ANY bracketed content, so Terra's "β log[π_r(y|x)/π_ref(y|x)]" lost its ratio
+— the submitted equation read "βlog + βlog Z(x)". `_CITATION_MARKER_RE` now
+matches docid-shaped tokens only; regression test added.
+
 ## Incidental finding from run `aus-agent-recon-check` (worth fixing)
 
 On turn 2 the model wrote the entire final report **directly from the staged,

@@ -103,7 +103,11 @@ def make_provider(backend: str, model: str | None) -> Provider:
     if backend == "bedrock":
         from .providers.bedrock import BedrockProvider
         return BedrockProvider(model)
-    raise ValueError(f"unknown backend: {backend!r} (available: bedrock)")
+    if backend == "openai":
+        from .providers.openai import OpenAIProvider
+        return OpenAIProvider(model)
+    raise ValueError(
+        f"unknown backend: {backend!r} (available: bedrock, openai)")
 
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
@@ -135,7 +139,11 @@ def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
 
 # A citation marker is one bracket group holding one or more docid tokens,
 # e.g. ``[shard_00459_61697]`` or ``[shard_a, shard_b]``.
-_CITATION_MARKER_RE = re.compile(r"\[([^\[\]]+)\]")
+# A marker holds docid-shaped tokens only (word chars, dots, dashes). Bracketed
+# anything-else stays in the sentence: gpt-5.6-terra wrote the DPO derivation
+# as "β log[π_r(y|x)/π_ref(y|x)]" and the old any-content pattern stripped the
+# ratio out of the mathematics as if it were a citation.
+_CITATION_MARKER_RE = re.compile(r"\[([\w.-]+(?:[,;\s]+[\w.-]+)*)\]")
 _CITATION_TOKEN_SPLIT_RE = re.compile(r"[,;\s]+")
 # Markdown the model may reach for despite the contract. Headings and fences
 # carry no citable claim and are dropped; the rest is unwrapped in place.
