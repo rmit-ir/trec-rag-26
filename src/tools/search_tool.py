@@ -1,8 +1,10 @@
 """Agent tool wrapper around hybrid retrieval.
 
 Exposes a single ``search`` tool that an LLM agent can call to retrieve passages
-from the ClimbMix corpus. It runs dense + sparse retrieval and RRF-fuses them
-(see ``utils.search``), returning compact JSON the model can cite.
+from the ClimbMix corpus via dense (semantic) or sparse (BM25 keyword)
+retrieval, returning compact JSON the model can cite. There is deliberately no
+fused option: the caller is the fusion layer — cover an important facet by
+querying both engines with queries styled for each.
 
 Usage as a tool:
     from tools.search_tool import SEARCH_TOOL, run_search_tool
@@ -17,20 +19,19 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from utils.search import search
 from utils.search_dense import search_dense
 from utils.search_sparse import search_sparse
 
-SEARCH_ENGINES = ("semantic", "keyword", "fusion")
+SEARCH_ENGINES = ("semantic", "keyword")
 
 # Anthropic / OpenAI-compatible tool definition.
 SEARCH_TOOL: dict[str, Any] = {
     "name": "search",
     "description": (
         "Search the ClimbMix corpus for passages relevant to a query. "
-        "search_engine selects dense (semantic, default), sparse (BM25), or "
-        "reciprocal-rank fusion of both. Returns ranked passages with their "
-        "docid and text; cite results by docid."
+        "search_engine selects dense (semantic, default) or exact-keyword "
+        "BM25 (keyword) retrieval. Returns ranked passages with their docid "
+        "and text; cite results by docid."
     ),
     "input_schema": {
         "type": "object",
@@ -49,17 +50,17 @@ SEARCH_TOOL: dict[str, Any] = {
                 "enum": list(SEARCH_ENGINES),
                 "default": "semantic",
                 "description": (
-                    "Retrieval engine. semantic (default, dense embedding "
-                    "match): conceptual, definitional, or broad-topic "
-                    "queries, natural-question phrasing, and well-known "
-                    "product or concept names. keyword (exact BM25 match): "
-                    "rare proper names, surnames, IDs, codes, and verbatim "
-                    "technical strings, where semantic may drift to a "
-                    "similar-sounding topic. fusion (reciprocal-rank fusion "
-                    "of both): the safest choice when one clean query "
-                    "serves either — prefer it unless the query is clearly "
-                    "name-exact (keyword) or clearly conceptual with no "
-                    "rare token (semantic)."
+                    "Retrieval engine. semantic (dense embedding match): "
+                    "conceptual, definitional, or broad-topic queries, "
+                    "natural-question phrasing, and well-known product or "
+                    "concept names; style the query as a natural phrase or "
+                    "question. keyword (exact BM25 match): rare proper "
+                    "names, surnames, IDs, codes, and verbatim technical "
+                    "strings, where semantic may drift to a similar-"
+                    "sounding topic; style the query as bare distinctive "
+                    "terms without stopwords. The engines rank differently "
+                    "— cover an important facet with both, one styled query "
+                    "each; duplicate results are deduplicated downstream."
                 ),
             },
         },
@@ -73,14 +74,14 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
                     **kwargs: Any) -> str:
     """Execute the tool and return a JSON string of results (for a tool result).
 
-    ``search_engine`` picks the backend: ``semantic`` (default, dense only),
-    ``keyword`` (BM25 only), or ``fusion`` (dense+sparse RRF). Each result is ``{rank, id, docid, kind, rrf_score, text}``; the
-    ``rrf_score`` key name is kept stable for downstream consumers and holds
-    the RRF score for fusion, or the engine's native score (inner-product /
-    BM25) for a single engine. Text is truncated to ``max_chars``; pass
-    ``None`` to preserve the complete text returned by the search backend.
-    Errors are returned as ``{"error": "..."}`` rather than raised so the agent
-    can react instead of crashing.
+    ``search_engine`` picks the backend: ``semantic`` (default, dense only)
+    or ``keyword`` (BM25 only). Each result is ``{rank, id, docid, kind,
+    rrf_score, text}``; the ``rrf_score`` key name is kept stable for
+    downstream consumers and holds the engine's native score (inner-product /
+    BM25). Text is truncated to ``max_chars``; pass ``None`` to preserve the
+    complete text returned by the search backend. Errors are returned as
+    ``{"error": "..."}`` rather than raised so the agent can react instead of
+    crashing.
     """
     if search_engine not in SEARCH_ENGINES:
         return json.dumps({"error": (
@@ -89,10 +90,8 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
     try:
         if search_engine == "semantic":
             hits = search_dense(query, k, **kwargs)
-        elif search_engine == "keyword":
-            hits = search_sparse(query, k, **kwargs)
         else:
-            hits = search(query, k=k, **kwargs)
+            hits = search_sparse(query, k, **kwargs)
     except Exception as e:  # surface as tool output, not an exception
         return json.dumps({"error": f"{type(e).__name__}: {e}"})
 

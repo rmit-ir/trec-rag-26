@@ -111,3 +111,51 @@ Raw sweep log: scratchpad `sweep.log` (session-local).
   tuning the wording further.
 - Narrow probes also chose fusion, added disambiguators per guidance
   ("photovoltaic cells"), and stayed at 1 search / 1 commit.
+
+## Fusion removed — binary engine choice (`aus-agent-luna-dev4`)
+
+Follow-up to the always-fusion observation. User's call: since staged
+results are deduplicated at commit anyway, extra queries are nearly free —
+so drop the "safe" option and make the model the fusion layer, issuing
+per-engine styled queries instead of one compromise string RRF'd. Changes:
+
+- `SEARCH_ENGINES = ("semantic", "keyword")`; the fused branch is gone from
+  the tool (`utils/search.py` itself stays — search_serve and others still
+  use it). Unknown values (incl. "fusion") return the standard error row.
+- aus_agent schema now **requires** `search_engine` — every query is a
+  deliberate engine choice.
+- Engine/field descriptions teach per-engine styling (semantic = natural
+  phrase or question; keyword = bare distinctive terms, no stopwords) and
+  "cover an important facet with both engines, one styled query each;
+  duplicates are deduplicated downstream."
+- Legacy callers that omit the parameter still default to semantic.
+  45/45 tests pass.
+
+Test round (luna):
+
+| run | searches | refs | words | tokens | note |
+|---|---|---|---|---|---|
+| solar (narrow) | 2 | 2 | 77 | 17.7K | perfect pair: semantic natural phrase + keyword term set |
+| investing (broad) | 5 | 9 | 1013 | **87.8K** | cheapest investing run yet (dev2 115K / dev3 127K), 0 bounces |
+
+Observations:
+
+- **The pairing behaviour works when distinctive terms exist**: solar's two
+  queries are genuinely differently styled per engine.
+- **When a facet has no rare tokens, the "pair" degrades to a shuffle**:
+  investing round 1's keyword query is the semantic query reordered —
+  all common words, nothing for BM25 to anchor on. Not harmful (dedup),
+  just not additive.
+- **Round 2+ engine assignment is sensible**: three conceptual gap-filling
+  queries all went semantic, matching the guidance rather than blind
+  pairing. Keyword went unused after round 1 — the run again never chased
+  exact strings like "401(k)"/"Roth", which are ideal keyword queries; the
+  gap is target selection, not engine mechanics.
+- Cost DOWN ~25–30% on the broad topic at similar output quality —
+  single-engine calls are cheaper than fused and the model spent fewer,
+  more decisive rounds.
+
+Net: keep the binary setup. Remaining watch item: whether keyword gets
+used for named-entity chasing on entity-rich topics (UBI-style) — if not,
+one line in the keyword description naming "program names, statutes,
+account types" as candidates may be worth testing.

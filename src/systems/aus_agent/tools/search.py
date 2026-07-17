@@ -17,11 +17,15 @@ SEARCH_TOOL_DEF = {
         "IDs and document text; inspect that text directly and cite by docid. "
         "Each result is bounded independently before it is staged. Match "
         "query style to engine: exact names and rare strings favor keyword; "
-        "concepts and questions favor semantic; a compact distinctive-term "
-        "query works on all engines and makes fusion strongest."
+        "concepts and questions favor semantic. The engines rank differently, "
+        "and extra queries are cheap — cover an important facet with both "
+        "engines, one styled query each."
     ),
     "input_schema": {
         **SEARCH_TOOL["input_schema"],
+        # Engine choice is deliberately required here: without a fused
+        # fallback, every query must be styled for the engine it targets.
+        "required": ["query", "search_engine"],
         "properties": {
             **SEARCH_TOOL["input_schema"]["properties"],
             "query": {
