@@ -20,6 +20,7 @@ _src_root = str(_SRC_ROOT)
 sys.path[:] = [entry for entry in sys.path if entry != _src_root]
 sys.path.insert(0, _src_root)
 
+from ragrun.outputs import data_dir
 from systems.aus_agent.agent import run_agent
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -37,6 +38,29 @@ def load_topics(path: Path) -> list[tuple[str, str]]:
         qid, _, narrative = line.partition("\t")
         topics.append((qid, narrative.strip()))
     return topics
+
+
+def finished_topics(run_id: str) -> set[str]:
+    """Topic ids this ``run_id`` has already answered successfully.
+
+    A crashed run still writes a schema-valid artifact whose answer is a single
+    "Run failed: ..." sentence, so the run's own status — not the file's
+    existence — decides whether a topic is done. Scoping to ``run_id`` means a
+    fresh id re-runs everything, while reusing one resumes it.
+    """
+    out_dir = data_dir() / "outputs" / "aus_agent"
+    done: set[str] = set()
+    for path in out_dir.glob("*.output.json"):
+        try:
+            obj = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if obj.get("metadata", {}).get("run_id") != run_id:
+            continue
+        if obj.get("trace", {}).get("status") in ("completed",
+                                                  "budget_exhausted"):
+            done.add(str(obj["metadata"]["narrative_id"]))
+    return done
 
 
 def main() -> None:
@@ -66,6 +90,11 @@ def main() -> None:
         help="maximum documents commit_context may retain from one staged "
              "batch (default: 6)")
     ap.add_argument("--run-id", default="aus-agent-dev")
+    ap.add_argument(
+        "--skip-existing", action="store_true",
+        help="skip topics this --run-id has already answered successfully, so "
+             "an interrupted batch resumes instead of starting over (a failed "
+             "run does not count as answered)")
     args = ap.parse_args()
 
     if args.query:
@@ -77,6 +106,17 @@ def main() -> None:
         jobs = [(args.qid, topics[args.qid])]
     else:
         jobs = load_topics(args.topics)
+
+    if args.skip_existing:
+        done = finished_topics(args.run_id)
+        remaining = [job for job in jobs if job[0] not in done]
+        print(f"--skip-existing: {len(jobs) - len(remaining)} of {len(jobs)} "
+              f"topics already answered by run-id {args.run_id!r}; "
+              f"running {len(remaining)}", flush=True)
+        jobs = remaining
+        if not jobs:
+            print("nothing to do", flush=True)
+            return
 
     failures = 0
     for qid, query in jobs:
