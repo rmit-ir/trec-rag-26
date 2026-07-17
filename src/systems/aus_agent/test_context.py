@@ -428,6 +428,19 @@ class AgentFlowTest(unittest.TestCase):
         self.assertIn("Concrete minimum requirements", prompt)
         self.assertIn("Target/excellence requirements", prompt)
         self.assertIn("multiple complementary queries in parallel", prompt)
+        # Effort must track the request. A "aim for ~950 words" style target
+        # made every answer essay-length: "Who's the president?" came back as
+        # 625 words across 12 sentences.
+        self.assertIn("Match your effort to the question", prompt)
+        self.assertIn("Size the search to the question", prompt)
+        self.assertIn("Length follows the question, not the limit", prompt)
+        self.assertNotIn("Aim for about 950 words", prompt)
+        # The report is written by a searcher, not by this harness. The model
+        # echoed our own vocabulary back at the reader:
+        # "the committed corpus does not contain a document that...".
+        self.assertIn("Write in your own voice", prompt)
+        self.assertIn("I could not find any source", prompt)
+        self.assertIn("the committed corpus does not", prompt)  # as a banned example
         self.assertIn("counter-evidence, contradictions", prompt)
         self.assertIn("hard ceiling, not a spending target", prompt)
         self.assertIn("Do not call a tool solely to create another", prompt)
