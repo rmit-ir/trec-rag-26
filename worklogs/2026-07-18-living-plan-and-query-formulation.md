@@ -81,3 +81,37 @@ step and/or the tool's `query` field description — build queries from the
 question's *content* terms, one facet per query, dropping audience/format/
 instruction words; keep queries short, natural phrases around distinctive
 terms so dense and sparse reinforce each other.
+
+## Robustness test (sub-agent, 5 further runs under the new prompt)
+
+| run | searches/commits | refs | words | tokens | note |
+|---|---|---|---|---|---|
+| social media (rerun) | 10/3 | 12 | 913 | 225K | vs old-prompt 8/2, 11 refs, 823 w, 113K |
+| UBI pilots (new broad) | 12/3 | 13 | 738 | 256K | textbook plan revision |
+| "Who invented the WWW?" | 1/1 | 2 | 31 | 12K | no bloat |
+| term deposit vs savings | 1/1 | 2 | 83 | 11K | no bloat |
+| how solar panels work | 1/1 | 2 | 80 | 17K | no bloat |
+
+- **Breadth improved.** Social-media rerun exceeded its baseline on every
+  count and expanded round-over-round into facets round 1 surfaced
+  (misinformation/journalism, workplace, activism/disasters, cyberbullying/
+  hate speech, social capital); answer covers ~7 domains with case studies.
+  UBI showed the cleanest living-plan signature possible: broad probe →
+  named pilots surfaced (Finland Kela, Ontario, Stockton SEED, Alaska PFD)
+  → per-pilot deep dives + a new fiscal-cost axis → corroborating studies
+  (systematic review, NBER) → genuine cross-pilot synthesis. 85 rejected vs
+  14 committed docs — active filtering.
+- **Robust on simple questions.** All three narrow runs: exactly 1 search,
+  1 commit, 2–3 fully-cited sentences; every spot-checked headline claim
+  (Berners-Lee/CERN/1989/Cailliau; fixed-term/penalty/variable-rate; p-n
+  junction/DC/inverter) found verbatim in retrieved text. The coverage-area
+  exit does not inflate trivially satisfiable plans.
+- **Costs.** Broad-topic tokens roughly doubled (225K/256K vs 113K
+  baseline); the social-media rerun bounced the 1024-word cap twice
+  (1171 → 1039 → 913) before passing. Both are breadth-side costs; no
+  regression on narrow questions.
+- **Still unprobed axes**: regulation/policy and non-Western platforms —
+  the gains came from deepening surfaced facets, not from expert-volunteered
+  axes the corpus never mentioned. The parked "widening pass" (edit 2)
+  remains the candidate if those rubric axes matter; query formulation is
+  the bigger lever first.
