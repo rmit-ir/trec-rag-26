@@ -485,6 +485,17 @@ class AgentFlowTest(unittest.TestCase):
         # 625 words across 12 sentences.
         self.assertIn("Match your effort to the question", prompt)
         self.assertIn("Size the search to the question", prompt)
+        # rag2026-72 asked for LLM advances "in 2023-2025" and got five
+        # techniques the model already knew (LoRA, QLoRA, DPO, GRPO,
+        # Mixtral) — right answers, but selected from memory rather than
+        # discovered, so anything it had not heard of could not appear.
+        self.assertIn("discover the things before investigating them", prompt)
+        # The same topic demanded "mathematical derivations where
+        # applicable" and came back with zero "=" signs: the no-Markdown
+        # rule reads as a ban on anything formula-shaped.
+        self.assertIn("Notation is not layout", prompt)
+        # ...and its stated 2023-2025 scope has to bind the work.
+        self.assertIn("Every requirement the request states", prompt)
         self.assertIn("Length follows the question, not the limit", prompt)
         self.assertNotIn("Aim for about 950 words", prompt)
         # Effort is about the kind of answer as well as its size: several dev
