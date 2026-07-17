@@ -81,6 +81,33 @@ contaminates "carbon dating" queries on every engine.
   words; topic+entity (not the number) for numeric facts.
 - aus_agent tool description: one-line style↔engine matching rule.
 
-Raw sweep log: scratchpad `sweep.log` (session-local). Next candidate step:
-a probe run on a dev topic to see whether the model actually varies
-`search_engine` per query type under the new descriptions.
+Raw sweep log: scratchpad `sweep.log` (session-local).
+
+## Post-update rerun (`aus-agent-luna-dev3`, same six test queries)
+
+| run | dev2 (before) | dev3 (after) |
+|---|---|---|
+| investing | 6 srch / 11 refs / 1011 w / 115K | 7 / 10 / 918 / 127K, 1 bounce |
+| social media | 10 / 12 / 913 / 225K | 11 / **15** / 898 / 216K, 0 bounces |
+| UBI | 12 / 13 / 738 / 256K | 10 / 13 / 889 / **177K** (−31%) |
+| WWW / deposit / solar | 1 srch each | 1 srch each, 24–97 w — robust |
+
+- **Query styling clearly improved where it was worst.** The investing
+  round-1 soup ("…understandable applicable all adults prior experience…")
+  is gone — every query is now a compact distinctive-term set. UBI queries
+  are entity-anchored (Kela 2020, Ontario cancellation 2018, Stockton
+  SEED, Roosevelt Institute). Genre suffixes ("academic study case study")
+  persist on social media — the study measured those as roughly neutral.
+- **UBI got 31% cheaper at equal refs** — better queries found the same
+  evidence in fewer, more targeted rounds.
+- **Engine choice: the model picks `fusion` explicitly on all 27 queries**
+  (broad and narrow) and never omits the parameter, so the semantic
+  omit-default is effectively unused by aus_agent. It read "fusion = the
+  safest choice" and adopted always-fusion rather than varying per query
+  type. Acceptable per the study (fusion 4.64, never catastrophic), and
+  arguably the right degenerate policy — but the per-type variation the
+  guidance describes did not materialize; keyword may still go unused even
+  on rare-surname queries. Watch for a case where that costs recall before
+  tuning the wording further.
+- Narrow probes also chose fusion, added disambiguators per guidance
+  ("photovoltaic cells"), and stayed at 1 search / 1 commit.
