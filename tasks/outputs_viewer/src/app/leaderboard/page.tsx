@@ -199,7 +199,14 @@ function Leaderboard() {
   const sortParam = get("sort") ?? storedSort;
   const sortModel: GridSortModel = React.useMemo(() => {
     if (!sortParam) return [{ field: "answerPct", sort: "desc" }];
-    const [field, dir] = sortParam.split(":");
+    // Split from the RIGHT: the direction is always the last segment, but the
+    // field is not colon-free — tag columns are `tag:<name>`, so a left split
+    // turned "tag:redundancy:asc" into field "tag" (no such column) and
+    // direction "redundancy". The grid then sorted by nothing while the header
+    // still showed an arrow, so clicking a tag column appeared to do nothing.
+    const sep = sortParam.lastIndexOf(":");
+    const field = sep === -1 ? sortParam : sortParam.slice(0, sep);
+    const dir = sep === -1 ? "" : sortParam.slice(sep + 1);
     if (!field) return [];
     return [{ field, sort: dir === "asc" ? "asc" : "desc" }];
   }, [sortParam]);
@@ -268,12 +275,20 @@ function Leaderboard() {
           sx={{ bgcolor: "background.paper", minHeight: 200 }}
         />
       </Box>
-      <Typography variant="caption" color="text.secondary" sx={{ mt: 1, display: "block" }}>
-        Ratings are latest-per-judge-per-target. Tag columns count tag applications on each
-        system&apos;s feedback. Use the column button to show/hide and drag-reorder columns;
-        drag column edges to resize. The layout is part of the URL and is also remembered
-        locally for future visits.
-      </Typography>
+      {/* Two lines, not one paragraph: the first explains what the numbers
+          mean (not guessable), the second where the layout lives (surprising).
+          The how-to-drive-the-grid prose that used to live here — column
+          button, drag to reorder, drag edges to resize — is discoverable by
+          doing it, so it was noise between the reader and the part that
+          actually affects how the numbers are read. */}
+      <Stack sx={{ mt: 1 }}>
+        <Typography variant="caption" color="text.secondary">
+          Each judge&apos;s latest rating per target counts once. Tag columns count tag applications.
+        </Typography>
+        <Typography variant="caption" color="text.secondary">
+          Column layout is saved in the URL and remembered for next time.
+        </Typography>
+      </Stack>
     </Box>
   );
 }
