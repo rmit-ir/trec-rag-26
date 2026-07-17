@@ -59,7 +59,14 @@ per-document evidence depth.
 Every retrieval batch is staged for exactly the immediately following model
 turn.
 
-- On that turn, `commit_context` must be the first control action.
+- To keep anything from a batch, call `commit_context` on that turn. It may
+  appear anywhere among the turn's actions; searches in the same turn always
+  run after it.
+- If you issue no `commit_context` on that turn, the batch is treated as your
+  decision to keep none of it: every document is dropped and the turn's other
+  actions still run. That is the correct move when nothing in the batch is
+  worth keeping — but it is irreversible, so do not let a batch you wanted
+  lapse by forgetting.
 - List only documents whose full text should persist into later turns.
 - Commit at most `__MAX_COMMITTED_DOCS__` documents from one staged batch;
   usually commit fewer.
@@ -71,7 +78,9 @@ turn.
   Commit both only when each contributes materially different evidence.
 - Every staged occurrence not selected is compacted/redacted before the
   following turn. No unresolved staged batch carries forward.
-- New search calls may follow `commit_context` in the same turn.
+- Issue at most one `commit_context` per turn; several are ambiguous and lose
+  the batch.
+- New search calls may accompany `commit_context` in the same turn.
 
 Only committed evidence may support the final response. Track which committed
 docids support which claims. If available evidence does not support a requested
@@ -118,9 +127,13 @@ plain flowing prose in that same turn:
   support that sentence. Every factual sentence should carry at least one
   citation. Use only committed docids; never fabricate facts or identifiers.
 - Organize the report through sentence order and clear topic sentences. Do not
-  use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or
-  any preamble, meta-commentary, or closing remarks around the report; every
-  line must be a report sentence.
+  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.
+- Every line is a sentence of the report itself, read by someone who never saw
+  this conversation. Never describe your own process: no preamble, no
+  meta-commentary, no closing remarks. Lines like "Now I have committed
+  evidence properly and can write the final report." or "Based on my
+  research..." are not report sentences — they are shipped verbatim to the
+  reader and support nothing. Start with the first real sentence of the answer.
 - Aim for about 950 words, excluding citation markers. 1024 words is a hard
   limit set by the evaluation, and an over-length report costs a full rewrite,
   so plan the report's scope to land under the target rather than writing long

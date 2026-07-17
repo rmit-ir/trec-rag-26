@@ -13,6 +13,8 @@ import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Stack from "@mui/material/Stack";
 import CircularProgress from "@mui/material/CircularProgress";
+import TextField from "@mui/material/TextField";
+import MenuItem from "@mui/material/MenuItem";
 import StorageIcon from "@mui/icons-material/Storage";
 import NewSearchButton from "@/components/NewSearchButton";
 import { fetcher } from "@/lib/client/api";
@@ -102,21 +104,42 @@ function SystemsBrowser() {
   const { get, set } = useUrlState();
   const selected = get("system") ?? data?.systems[0]?.system ?? null;
 
+  const runId = get("runId");
+
   // Recomputed only when the payload or the system actually changes, so a
   // re-render for any other reason doesn't hand every row a new array.
-  const sessions = React.useMemo(
+  const systemSessions = React.useMemo(
     () => (data?.sessions ?? []).filter((s) => s.system === selected),
     [data?.sessions, selected],
+  );
+
+  // Offered in the dropdown newest-first, which is the order the list itself
+  // uses — the run you just kicked off is the one you want to filter to.
+  const runIds = React.useMemo(() => {
+    const seen = new Set<string>();
+    for (const s of systemSessions) if (s.runId) seen.add(s.runId);
+    return [...seen];
+  }, [systemSessions]);
+
+  const sessions = React.useMemo(
+    () => (runId ? systemSessions.filter((s) => s.runId === runId) : systemSessions),
+    [systemSessions, runId],
   );
 
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
   const sentinelRef = React.useRef<HTMLDivElement | null>(null);
   const hasMore = visibleCount < sessions.length;
 
-  // Switching systems shows a different list; start it from the top again.
+  // Either control shows a different list; start it from the top again.
   React.useEffect(() => {
     setVisibleCount(PAGE_SIZE);
-  }, [selected]);
+  }, [selected, runId]);
+
+  // A run-id from the URL that this system has no sessions for would filter
+  // everything away with no way back except editing the URL. Drop it.
+  React.useEffect(() => {
+    if (runId && runIds.length > 0 && !runIds.includes(runId)) set("runId", null);
+  }, [runId, runIds, set]);
 
   React.useEffect(() => {
     if (!hasMore) return;
@@ -178,10 +201,30 @@ function SystemsBrowser() {
           justifyContent="space-between"
           sx={{ px: 2, pt: 1.5, pb: 0.5, gap: 1 }}
         >
-          <Typography variant="overline" sx={{ color: "text.secondary" }}>
+          <Typography variant="overline" sx={{ color: "text.secondary", flexShrink: 0 }}>
             {selected ?? "Sessions"} — {hasMore ? `${visibleCount} of ${sessions.length}` : sessions.length} session
             {sessions.length === 1 ? "" : "s"}
+            {runId ? ` of ${systemSessions.length}` : ""}
           </Typography>
+          {runIds.length > 1 ? (
+            <TextField
+              select
+              size="small"
+              label="Run"
+              value={runId ?? ""}
+              onChange={(e) => set("runId", e.target.value || null)}
+              sx={{ minWidth: 200, ml: "auto" }}
+            >
+              <MenuItem value="">
+                <em>All runs</em>
+              </MenuItem>
+              {runIds.map((id) => (
+                <MenuItem key={id} value={id}>
+                  {id}
+                </MenuItem>
+              ))}
+            </TextField>
+          ) : null}
           <NewSearchButton onStarted={() => void mutate()} />
         </Stack>
         {isLoading ? (
