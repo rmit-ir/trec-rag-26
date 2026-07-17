@@ -54,6 +54,8 @@ tasks/search_serve/logs/
 data/*
 # Official datasets tracked as submodules
 !data/official/
+# ...except bulk downloads pulled from HuggingFace (re-downloadable)
+data/official/browsecomp-plus/
 # Run artifacts + human feedback are deliberately tracked
 !data/outputs/
 !data/output_feedbacks/
