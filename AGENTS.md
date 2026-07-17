@@ -53,9 +53,12 @@ they're no longer needed. Exception: something handed to the user for testing
 ## Notebooks
 
 Exploratory Jupyter notebooks live in `tmp/` and are the one deliberate
-exception to "each task gets its own env" — they use the **repo root** env's
-`notebook` dependency group (`pandas`, `pyarrow`, `matplotlib`, `ipykernel`,
-`jupyter`, `nbconvert`), not a `tasks/<task>/` env.
+exception to "each task gets its own env" — **all notebooks are always run
+with the root `notebook` dependency group** (`uv run --group notebook …`),
+never a `tasks/<task>/` env. The group lives in the repo-root
+`pyproject.toml` (`pandas`, `pyarrow`, `matplotlib`, `ipykernel`, `jupyter`,
+`nbconvert`); notebook deps are added there (`uv add --group notebook <pkg>`),
+nowhere else.
 
 ```bash
 # Install dependencies and run notebook in VS Code
