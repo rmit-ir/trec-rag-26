@@ -1,0 +1,38 @@
+# pnpm 11 refuses to run a dependency's install/build scripts unless it is
+# named here — arbitrary code execution at install time is opt-in, not default.
+# pnpm writes these entries itself with a "set this to true or false"
+# placeholder; leaving a placeholder fails the install (ERR_PNPM_IGNORED_BUILDS),
+# so both had to be decided explicitly.
+#
+# Both compile a native binding and both are transitive, not chosen by us:
+#   sharp         <- next (image optimisation)
+#   unrs-resolver <- eslint-config-next (import resolution)
+# Neither works without its build step, so both are allowed.
+allowBuilds:
+  sharp: true
+  unrs-resolver: true
+
+# Refuse dependency versions published less than a day ago (value in minutes).
+#
+# The deploy host already enforces this, so without it here the two disagree: a
+# local install resolves whatever shipped this morning, the lockfile is
+# committed, and the deploy then fails with
+# ERR_PNPM_MINIMUM_RELEASE_AGE_VIOLATION. That is exactly what
+# caniuse-lite@1.0.30001806 did — published 14:43, locked into the repo four
+# hours later, rejected on deploy the next morning at 21 hours old. It arrives
+# transitively via next -> browserslist and ships roughly daily, so the trap
+# re-arms on any uncontrolled install.
+#
+# Keeping the policy here means resolution is refused where the lockfile is
+# WRITTEN, not just where it is installed — a lockfile that would break the
+# deploy can no longer be produced locally.
+#
+# This must live in pnpm-workspace.yaml, not .npmrc: pnpm 11 ignores the
+# .npmrc `minimum-release-age` key entirely (verified — it reads back
+# undefined and installs the package anyway).
+minimumReleaseAge: 1440
+
+# Without this, pnpm silently appends a too-new package to
+# minimumReleaseAgeExclude and installs it, which quietly defeats the policy.
+# Fail instead: https://pnpm.io/settings#minimumreleaseagestrict
+minimumReleaseAgeStrict: true
