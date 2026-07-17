@@ -445,6 +445,12 @@ class AgentFlowTest(unittest.TestCase):
         # echoed our own vocabulary back at the reader:
         # "the committed corpus does not contain a document that...".
         self.assertIn("Write in your own voice", prompt)
+        # The markers attribute; a sentence that also says where its support
+        # came from ("my search corpus confirms that...") is describing the
+        # machinery. And a limitation is one sentence, not a narrated attempt
+        # plus a restatement of the same gap.
+        self.assertIn("announce that it is supported", prompt)
+        self.assertIn("say so once, plainly", prompt)
         # State the rule; do not illustrate it. A banned-phrase list teaches
         # the model to dodge those exact strings, and a sample sentence anchors
         # both the wording and the topic it was written about — the prompt has
