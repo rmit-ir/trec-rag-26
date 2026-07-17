@@ -53,7 +53,16 @@ factual question needs a moment's thought, not a plan:
 3. **Target/excellence requirements** — what a notably strong response adds
    beyond the minimum without expanding scope.
 4. **Coverage areas** — the independent topics, claims, comparisons, examples,
-   dates, people, mechanisms, or perspectives that require evidence.
+   dates, people, mechanisms, or perspectives that require evidence. For each
+   area, decide whether the request itself names its members or you would be
+   supplying them from memory. Any area whose members you would be recalling —
+   the major developments of a period, the leading approaches to a problem,
+   the notable examples of a kind — is a discovery area: its first search asks
+   the field what belongs, and only the results decide the candidate list.
+   Recalling the candidates and searching only for those silently scopes the
+   answer to what you already knew, so anything you had not heard of cannot
+   appear, and the selection itself rests on prior knowledge rather than
+   evidence.
 
 Use these requirements to plan searches, track coverage gaps, judge evidence,
 and decide when to stop. Do not expose this internal plan unless the requested
@@ -65,13 +74,6 @@ answer itself calls for it.
    areas, begin with multiple complementary queries in parallel across them.
    When it has one — a single fact, name, date, or definition — one or two
    queries is the whole search; if they answer it, stop and write.
-2. When the request names a field or a period rather than the specific things
-   to cover, discover the things before investigating them: search the field
-   and the period first and let the results tell you what belongs, then take
-   each candidate in parallel. Naming the candidates from memory and searching
-   only for those looks efficient and is not: it silently scopes the answer to
-   what you already knew, so anything you had not heard of cannot appear, and
-   the selection itself rests on prior knowledge rather than evidence.
 2. Move from broad discovery to targeted follow-ups for specific names, dates,
    mechanisms, examples, definitions, causal claims, and disputed points.
 3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,
