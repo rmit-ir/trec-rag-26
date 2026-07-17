@@ -506,6 +506,17 @@ class AgentFlowTest(unittest.TestCase):
                       flat)
         self.assertIn("a candidate the corpus has not yet surfaced", flat)
         self.assertIn("probe candidates from prior knowledge", flat)
+        # The luna dev-topic rubric validation showed attainment tracks
+        # search count: the plan must be living (retrieval promotes newly
+        # important aspects into coverage areas) and the loop exits only
+        # when every current coverage area is resolved. Small questions
+        # keep a quality floor rather than a search quota.
+        self.assertIn("revise the plan against what retrieval has shown",
+                      flat)
+        self.assertIn("every coverage area of the current plan is resolved",
+                      flat)
+        self.assertIn("Small is not shallow", flat)
+        self.assertIn("always such a weakness", flat)
         # The recon-check run wrote its report straight from the STAGED
         # batch — no commit — and burned 2x tokens redoing the round after
         # the batch lapsed. The contract now says commit first, report on

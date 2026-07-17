@@ -57,7 +57,8 @@ factual question needs a moment's thought, not a plan:
    dates, people, mechanisms, or perspectives that require evidence. Which of
    these the corpus can actually support is unknown until it answers; the
    opening searches exist to find that out before the answer's structure is
-   fixed.
+   fixed. This list is provisional: searching reveals what the request
+   actually needs, and the plan is revised as it does.
 
 Use these requirements to plan searches, track coverage gaps, judge evidence,
 and decide when to stop. Do not expose this internal plan unless the requested
@@ -80,10 +81,18 @@ success plan is satisfied:
 2. **Commit.** Read what came back and commit the documents whose distinct
    contributions the answer will need. Committing nothing is the right call
    for a batch with nothing worth keeping.
-3. **Decide.** Compare committed material against the plan. If a requirement
-   still lacks support, loop again with queries aimed at that gap. When no
-   meaningful gap remains, stop and write the report — only after committing
-   everything it will cite.
+3. **Decide.** Reflect before judging: searching teaches you what the
+   request actually needs, so first revise the plan against what retrieval
+   has shown. An aspect that retrieved material has revealed as important to
+   the request joins the coverage areas even though the opening plan missed
+   it; a planned area whose reformulated searches keep coming back empty is
+   recorded as unsupportable, not retried forever. Then compare committed
+   material against the revised plan. If a coverage area still lacks support
+   — or is supported only thinly where the request deserves depth — loop
+   again with queries aimed at that gap. The loop ends when every coverage
+   area of the current plan is resolved: committed material behind it, or
+   searches that failed to support it. Then write the report — only after
+   committing everything it will cite.
 
 Notes on the loop:
 
@@ -96,7 +105,9 @@ Notes on the loop:
   items, so that every part of it traces to a committed document.
 - Size the search to the question. Several independent coverage areas call
   for multiple complementary queries in parallel across them; a single fact,
-  name, date, or definition needs one or two queries, then the answer.
+  name, date, or definition needs one or two queries, then the answer. Small
+  is not shallow: even the shortest answer rests on the strongest support
+  the corpus offers.
 - Move from broad discovery to targeted follow-ups on what earlier rounds
   surfaced: specific names, dates, mechanisms, examples, definitions, causal
   claims, and disputed points.
@@ -157,9 +168,11 @@ sum input-token counts from multiple generations; that would count the same
 retained context repeatedly.
 
 The budget is a hard ceiling, not a spending target. Unused budget creates no
-obligation to continue researching. After satisfying the concrete minimum,
-improve toward the target/excellence requirements only when you can identify a
-specific weakness whose resolution would materially improve the answer.
+obligation to continue researching — but quality does: after satisfying the
+concrete minimum, keep improving toward the target/excellence requirements
+while you can name a specific weakness whose resolution would materially
+improve the answer. An unresolved or thinly supported coverage area in the
+current plan is always such a weakness.
 
 Stop researching when any of these is true:
 
