@@ -30,10 +30,10 @@ trajectories render unchanged). Minimal by design; `tsc --noEmit` clean.
 ## Query-style × engine study (96 result sets, judged by reading)
 
 Sub-agent derived 10 search tasks (8 query types) from 6 dev topics, ran
-3–4 query styles each against all three engines at k=5. Aggregates
-(relevant@5, good styles only): semantic 4.54 · keyword 3.96 · fusion 4.54;
-by style: natural-question → semantic 4.7 best; compact keywords → fusion
-4.8 best; entity-anchored → fusion 4.25 best.
+3–4 query styles each against all three engines at k=5. Final aggregates
+(relevant@5, real queries, n=28): **fusion 4.64 ≈ semantic 4.50 >
+keyword 3.89**; by style: natural-question → fusion 4.8/semantic 4.7;
+compact keywords → fusion 4.7/semantic 4.6; entity-anchored → fusion 4.4.
 
 Findings (by confidence):
 
@@ -53,8 +53,12 @@ Findings (by confidence):
    every engine and where fusion peaks** (RRF agreement stacks).
 5. **[moderate] Fusion is the most robust choice** — never 0 on a good
    style; degrades toward but rarely below the worse engine.
-6. **[moderate] Bare single-entity queries are noisy**; one qualifier
-   fixes them.
+6. **[moderate] The name split cuts both ways**: rare surnames/IDs →
+   keyword (semantic drifts); well-known product/concept names → semantic
+   (keyword matched incidental mentions: CS:GO 2/5 — ad-cost and
+   mute-guide pages). Fusion 5/5 on both, hence "fusion when unsure".
+   Bare single-entity queries are noisy; one qualifier fixes them, and a
+   single common word ("income", "sharing") is 0/5 on every engine.
 7. **[suggestive] Numeric/statistical intent**: no engine surfaces the
    specific number reliably; query topic+entity instead of the
    number-question.

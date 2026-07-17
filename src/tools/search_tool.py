@@ -50,14 +50,16 @@ SEARCH_TOOL: dict[str, Any] = {
                 "default": "semantic",
                 "description": (
                     "Retrieval engine. semantic (default, dense embedding "
-                    "match): concepts, definitions, paraphrase, ambiguous "
-                    "common words, natural-question phrasing. keyword "
-                    "(exact BM25 match): exact names, codes, and rare "
-                    "technical strings — supply the full distinctive term, "
-                    "never a bare ambiguous name. fusion (reciprocal-rank "
-                    "fusion of both): most robust choice, strongest on "
-                    "compact distinctive-term queries; prefer it when a "
-                    "query mixes a proper name with conceptual words."
+                    "match): conceptual, definitional, or broad-topic "
+                    "queries, natural-question phrasing, and well-known "
+                    "product or concept names. keyword (exact BM25 match): "
+                    "rare proper names, surnames, IDs, codes, and verbatim "
+                    "technical strings, where semantic may drift to a "
+                    "similar-sounding topic. fusion (reciprocal-rank fusion "
+                    "of both): the safest choice when one clean query "
+                    "serves either — prefer it unless the query is clearly "
+                    "name-exact (keyword) or clearly conceptual with no "
+                    "rare token (semantic)."
                 ),
             },
         },
