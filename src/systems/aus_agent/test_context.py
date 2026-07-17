@@ -413,7 +413,7 @@ class AgentFlowTest(unittest.TestCase):
         self.assertIn("Commit at most `4` documents", prompt)
         self.assertIn("exactly one sentence per line", prompt)
         self.assertIn("square-bracket markers", prompt)
-        self.assertIn("never act as a word in the sentence", prompt)
+        self.assertIn("outside its grammar", prompt)
         self.assertNotIn('{"answer"', prompt)
         for section in (
             "## Scope interpretation",
@@ -445,8 +445,18 @@ class AgentFlowTest(unittest.TestCase):
         # echoed our own vocabulary back at the reader:
         # "the committed corpus does not contain a document that...".
         self.assertIn("Write in your own voice", prompt)
-        self.assertIn("I could not find any source", prompt)
-        self.assertIn("the committed corpus does not", prompt)  # as a banned example
+        # State the rule; do not illustrate it. A banned-phrase list teaches
+        # the model to dodge those exact strings, and a sample sentence anchors
+        # both the wording and the topic it was written about — the prompt has
+        # to hold for every request, so it carries no worked examples of what
+        # to write or what to avoid.
+        for illustration in (
+            "I could not find any source",     # sample "good" phrasing
+            "the committed corpus does not",   # banned-phrase list
+            "Based on my research",            # sample narration
+            "Vaccination reduced",             # topical sample sentence
+        ):
+            self.assertNotIn(illustration, prompt)
         self.assertIn("counter-evidence, contradictions", prompt)
         self.assertIn("hard ceiling, not a spending target", prompt)
         self.assertIn("Do not call a tool solely to create another", prompt)
