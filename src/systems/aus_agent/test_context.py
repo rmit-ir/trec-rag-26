@@ -451,6 +451,9 @@ class AgentFlowTest(unittest.TestCase):
         # plus a restatement of the same gap.
         self.assertIn("announce that it is supported", prompt)
         self.assertIn("say so once, plainly", prompt)
+        # "The available evidence extends only to..." is not announcing support,
+        # it makes the material the grammatical subject — a distinct leak.
+        self.assertIn("Write about the subject, not about your material", prompt)
         # State the rule; do not illustrate it. A banned-phrase list teaches
         # the model to dodge those exact strings, and a sample sentence anchors
         # both the wording and the topic it was written about — the prompt has

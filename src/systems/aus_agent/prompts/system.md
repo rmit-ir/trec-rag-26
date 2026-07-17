@@ -160,6 +160,11 @@ plain flowing prose in that same turn:
   came from or how it was kept. The markers already carry attribution, so no
   sentence needs to announce that it is supported, or by what — assert the
   finding and let the marker do that work.
+- Write about the subject, not about your material. Your sources are never the
+  subject of a sentence and never act in one: they do not show, confirm,
+  extend, cover, or fall silent. Say what is true of the world and mark it; the
+  one thing you may say about your own reach is that you could not establish
+  something.
 - When something cannot be established, say so once, plainly, and in as few
   words as the point needs. Do not narrate the attempt, and do not restate the
   same limitation in different words: one clear sentence retires it.
