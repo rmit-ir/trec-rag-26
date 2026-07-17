@@ -15,7 +15,10 @@ SEARCH_TOOL_DEF = {
     "description": (
         "Search the available evidence corpus. Results contain ranked document "
         "IDs and document text; inspect that text directly and cite by docid. "
-        "Each result is bounded independently before it is staged."
+        "Each result is bounded independently before it is staged. Match "
+        "query style to engine: exact names and rare strings favor keyword; "
+        "concepts and questions favor semantic; a compact distinctive-term "
+        "query works on all engines and makes fusion strongest."
     ),
     "input_schema": {
         **SEARCH_TOOL["input_schema"],
@@ -25,8 +28,15 @@ SEARCH_TOOL_DEF = {
                 "type": "string",
                 "minLength": 1,
                 "description": (
-                    "A natural-language query for evidence relevant to the "
-                    "research request."
+                    "One information need as a short, specific phrase: a few "
+                    "distinctive content words (names, technical terms, the "
+                    "core concept) or a natural question phrased like a "
+                    "webpage title or FAQ. Attach one disambiguating "
+                    "qualifier to any proper name or common-word term. Omit "
+                    "audience, format, and task words from the request and "
+                    "query a single facet at a time. For numeric or "
+                    "statistical facts, query the topic and entity, not the "
+                    "number."
                 ),
             },
             "budget_tokens_per_result": {
@@ -116,10 +126,16 @@ def execute_full_text_search(
             True,
             [],
         )
+    # Forward search_engine only when the model supplied it, so the backend's
+    # default (semantic) stays the single source of truth.
+    engine_kwargs: dict[str, Any] = {}
+    if "search_engine" in arguments:
+        engine_kwargs["search_engine"] = str(arguments["search_engine"])
     output = run_search_tool(
         query=query,
         k=int(arguments.get("k", default_k)),
         max_chars=None,
+        **engine_kwargs,
     )
     data = json.loads(output)
     if "error" in data:

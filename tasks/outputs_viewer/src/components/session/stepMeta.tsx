@@ -100,7 +100,9 @@ export function stepSummary(step: TraceStep): string {
     if (args && typeof args === "object") {
       const a = args as Record<string, unknown>;
       const q = a.query ?? a.q;
-      if (typeof q === "string") return q;
+      const engine = a.search_engine;
+      if (typeof q === "string")
+        return typeof engine === "string" ? `[${engine}] ${q}` : q;
     }
     if (typeof args === "string") return args;
   }

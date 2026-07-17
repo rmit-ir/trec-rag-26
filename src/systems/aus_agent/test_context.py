@@ -281,6 +281,24 @@ class ContextLedgerTest(unittest.TestCase):
         self.assertEqual(payload["results"][0]["returned_chars"], 10)
         self.assertEqual(payload["budget_tokens_per_result"], 4)
 
+    def test_search_engine_argument_is_forwarded_only_when_supplied(self):
+        received: list[dict] = []
+
+        def engine_search(*, query, k, max_chars, **kwargs):
+            received.append(kwargs)
+            return json.dumps({"query": query, "k": k, "results": []})
+
+        with patch.object(
+                aus_search, "run_search_tool", side_effect=engine_search):
+            aus_search.execute_full_text_search(
+                {"query": "q", "search_engine": "keyword"},
+                default_k=10, seen_docids=set())
+            aus_search.execute_full_text_search(
+                {"query": "q"}, default_k=10, seen_docids=set())
+
+        self.assertEqual(received[0], {"search_engine": "keyword"})
+        self.assertEqual(received[1], {})
+
 
 class ProviderCompactionTest(unittest.TestCase):
     def _provider(self, *, caching: bool = True) -> BedrockProvider:
