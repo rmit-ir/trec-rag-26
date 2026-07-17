@@ -135,39 +135,104 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
     return errs
 
 
+def _umask() -> int:
+    """Read the process umask without disturbing it (no portable getter)."""
+    current = os.umask(0o022)
+    os.umask(current)
+    return current
+
+
+def atomic_write_text(path: Path, text: str) -> None:
+    """Write ``text`` to ``path`` so a concurrent reader sees old-or-new, never
+    a truncated file.
+
+    A run now rewrites its ``output.json`` repeatedly while it is still going
+    (see ``save_run``'s ``write_trajectory``/``validate`` partial mode), and the
+    outputs viewer polls those files. ``Path.write_text`` truncates in place,
+    so a poller landing mid-write reads half a JSON document. Writing to a temp
+    file in the *same directory* (so ``os.replace`` stays within one filesystem
+    and is therefore atomic) and renaming over the target removes that window
+    entirely; the temp file is removed on any failure, so no ``.tmp`` debris is
+    left behind.
+    """
+    fd, tmp_name = tempfile.mkstemp(
+        dir=str(path.parent), prefix=f".{path.name}.", suffix=".tmp")
+    try:
+        with os.fdopen(fd, "w", encoding="utf-8") as fh:
+            fh.write(text)
+        # mkstemp creates 0600 and os.replace keeps the temp file's mode, which
+        # would quietly make every artifact owner-only — Path.write_text left
+        # them at the umask default (0644), and other accounts (a viewer server
+        # running as its own user) need to read them.
+        os.chmod(tmp_name, 0o666 & ~_umask())
+        os.replace(tmp_name, path)
+    except BaseException:
+        try:
+            os.unlink(tmp_name)
+        except OSError:
+            pass
+        raise
+
+
+def run_artifact_paths(system_name: str, query: str,
+                       timestamp: str) -> dict[str, Path]:
+    """The artifact paths a run writes, derived only from its timestamp+query.
+
+    Callers allocate the timestamp once at the start of a run so every
+    incremental write targets the same files.
+    """
+    slug = query_slug(query)
+    out_dir = data_dir() / "outputs" / system_name
+    return {
+        "trajectory": out_dir / f"{timestamp}.{slug}.trajectory.json",
+        "output": out_dir / f"{timestamp}.{slug}.output.json",
+        "violations": out_dir / f"{timestamp}.{slug}.output.violations.json",
+    }
+
+
 def save_run(system_name: str, query: str, *, trajectory: dict[str, Any],
              output: dict[str, Any], timestamp: str | None = None,
-             validate: bool = True) -> dict[str, Path]:
-    """Persist the two run artifacts; returns their paths.
+             validate: bool = True,
+             write_trajectory: bool = True) -> dict[str, Path]:
+    """Persist the run artifacts; returns their paths.
 
     Writes ``data/outputs/<system_name>/<ts>.<slug>.trajectory.json`` and
     ``...output.json``. With ``validate=True`` (default) the output object is
     checked against the track rules and violations are stored alongside as
     ``...output.violations.json`` (the run is still saved — visibility over
     hard failure).
+
+    Both files are written atomically (temp file + ``os.replace``) because the
+    outputs viewer polls ``output.json`` while a run is still in flight.
+
+    ``timestamp`` pins the filenames; pass the run's own stamp to make repeated
+    incremental saves land on the same files. ``write_trajectory=False`` and
+    ``validate=False`` are the partial-write mode: the viewer only reads
+    ``output.json``, and validating an unfinished answer would only produce a
+    misleading violations file.
     """
     ts = timestamp or run_timestamp()
-    slug = query_slug(query)
-    out_dir = data_dir() / "outputs" / system_name
-    out_dir.mkdir(parents=True, exist_ok=True)
+    paths = run_artifact_paths(system_name, query, ts)
+    paths["output"].parent.mkdir(parents=True, exist_ok=True)
 
-    paths = {
-        "trajectory": out_dir / f"{ts}.{slug}.trajectory.json",
-        "output": out_dir / f"{ts}.{slug}.output.json",
-    }
     trace = getattr(trajectory, "trace", None)
     if trace is not None:
         output["trace"] = trace
 
-    paths["trajectory"].write_text(
-        json.dumps(dict(trajectory), ensure_ascii=False, indent=2))
-    paths["output"].write_text(
-        json.dumps(output, ensure_ascii=False, indent=2))
+    written: dict[str, Path] = {"output": paths["output"]}
+    if write_trajectory:
+        atomic_write_text(
+            paths["trajectory"],
+            json.dumps(dict(trajectory), ensure_ascii=False, indent=2))
+        written["trajectory"] = paths["trajectory"]
+    atomic_write_text(
+        paths["output"], json.dumps(output, ensure_ascii=False, indent=2))
 
     if validate:
         errs = validate_rag_output(output)
         if errs:
-            vpath = out_dir / f"{ts}.{slug}.output.violations.json"
-            vpath.write_text(json.dumps(errs, ensure_ascii=False, indent=2))
-            paths["violations"] = vpath
-    return paths
+            atomic_write_text(
+                paths["violations"],
+                json.dumps(errs, ensure_ascii=False, indent=2))
+            written["violations"] = paths["violations"]
+    return written

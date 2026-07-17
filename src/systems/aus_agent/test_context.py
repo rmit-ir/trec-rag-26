@@ -1,8 +1,13 @@
 from __future__ import annotations
 
 import json
+import os
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
+
+from ragrun import outputs as ragrun_outputs
 
 from systems.aus_agent import agent
 from systems.aus_agent.context import (
@@ -576,10 +581,16 @@ class AgentFlowTest(unittest.TestCase):
 
     def _run(self, provider: FakeProvider, **kwargs: object):
         captured: dict[str, object] = {}
+        saves: list[dict[str, object]] = []
 
-        def save_run(system: str, query: str, *, trajectory, output):
-            captured.update(
-                system=system, query=query, trajectory=trajectory, output=output)
+        def save_run(system: str, query: str, *, trajectory, output, **rest):
+            saves.append({"system": system, "query": query,
+                          "trajectory": trajectory, "output": output, **rest})
+            # Partial saves are progress-only; the assertions in this suite are
+            # about the run's final artifact.
+            if rest.get("validate", True):
+                captured.update(system=system, query=query,
+                                trajectory=trajectory, output=output, **rest)
             return {"trajectory": "trajectory.json", "output": "output.json"}
 
         with (
@@ -595,6 +606,7 @@ class AgentFlowTest(unittest.TestCase):
                 **kwargs,
             }
             summary = agent.run_agent("qid", "research query", **config)
+        captured["saves"] = saves
         return summary, captured
 
     def test_staged_commit_trace_and_strict_trajectory_projection(self):
@@ -802,7 +814,10 @@ class AgentFlowTest(unittest.TestCase):
             generations[1]["stats"]["context_budget_exhausted"])
         self.assertIn(REJECTION_PREFIX, provider.tool_results["s1"])
 
-    def test_unresolved_staged_batch_expires_after_exactly_one_turn(self):
+    def test_no_commit_expires_the_batch_but_the_turn_still_runs(self):
+        # Issuing no commit_context is a legitimate "retain none of these"
+        # decision, so the batch expires and the turn's searches STILL RUN.
+        # Refusing them used to cost a whole turn for no benefit.
         provider = FakeProvider([
             _turn(
                 text="Retrieve evidence.",
@@ -810,32 +825,59 @@ class AgentFlowTest(unittest.TestCase):
                 input_tokens=100,
             ),
             _turn(
-                text="I incorrectly search without committing first.",
+                text="None of those are useful; search something else.",
                 calls=[_call("s2", "search", query="beta")],
                 input_tokens=100,
             ),
-            # alpha's batch expired and beta was refused, so nothing is
-            # retained yet; retrieve again and commit properly.
-            _turn(calls=[_call("s3", "search", query="gamma")],
-                  input_tokens=100),
             _turn(calls=[_call("c1", "commit_context", documents=[
-                {"docid": "g", "reason": "the one retained fact"}])],
+                {"docid": "d", "reason": "the one retained fact"}])],
                 input_tokens=100),
-            _turn(text="Supported finding. [g]", input_tokens=100),
+            _turn(text="Supported finding. [d]", input_tokens=100),
         ])
 
         summary, captured = self._run(provider)
         trajectory = captured["trajectory"]
         self.assertEqual(summary["status"], "completed")
         self.assertEqual(summary["committed_documents"], 1)
-        # a, b, c expired unresolved; h, i were staged but not selected.
+        # a, b, c expired as reject-all; e, f staged by the beta search that
+        # now runs, then not selected.
         self.assertEqual(summary["rejected_documents"], 5)
+        # The beta search executed instead of being refused.
         self.assertEqual(trajectory["tool_call_counts"]["search"], 2)
-        self.assertEqual(trajectory["tool_call_counts_all"]["search"], 3)
-        self.assertEqual(
-            trajectory["tool_call_counts_all"]["commit_context"], 2)
+        self.assertEqual(trajectory["tool_call_counts_all"]["search"], 2)
         self.assertIn(REJECTION_PREFIX, provider.tool_results["s1"])
-        self.assertIn("actions refused", provider.tool_results["s2"])
+        self.assertNotIn("refused", provider.tool_results["s2"])
+        # The automatic expiry is recorded as a decision, not a failure.
+        auto = [
+            step for step in captured["trajectory"].trace["steps"]
+            if step.get("tool_name") == "commit_context"
+            and step.get("arguments", {}).get("automatic")
+        ]
+        self.assertEqual(len(auto), 1)
+        self.assertFalse(auto[0]["failed"])
+        self.assertIn("treated as an explicit decision", auto[0]["output"])
+
+    def test_commit_position_within_the_turn_does_not_matter(self):
+        # The harness applies commit_calls before retrieval_calls regardless of
+        # the order the model listed them, so requiring "first" only rejected
+        # turns that would have worked.
+        provider = FakeProvider([
+            _turn(calls=[_call("s1", "search", query="alpha")],
+                  input_tokens=100),
+            _turn(calls=[
+                _call("s2", "search", query="beta"),
+                _call("c1", "commit_context", documents=[
+                    {"docid": "b", "reason": "direct evidence"}]),
+            ], input_tokens=100),
+            _turn(calls=[_call("c2", "commit_context", documents=[
+                {"docid": "d", "reason": "second fact"}])], input_tokens=100),
+            _turn(text="Supported finding. [b] [d]", input_tokens=100),
+        ])
+
+        summary, captured = self._run(provider)
+        self.assertEqual(summary["status"], "completed")
+        self.assertEqual(summary["committed_documents"], 2)
+        self.assertEqual(captured["output"]["references"], ["b", "d"])
 
     def test_invalid_commit_expires_batch_instead_of_carrying_it_forward(self):
         provider = FakeProvider([
@@ -934,19 +976,226 @@ class AgentFlowTest(unittest.TestCase):
         self.assertEqual(len(feedback), 2)
         self.assertIn("no evidence has been committed", feedback[0])
 
-    def test_safety_backstop_stops_commit_without_staged_loop(self):
+    def test_commit_without_staged_context_is_a_noop_not_a_refusal(self):
+        # The model dutifully sends commit_context after its batch already
+        # expired. There is nothing to decide, so say so and let the turn's
+        # searches run — refusing the whole turn was the other half of a
+        # two-turn-per-mistake loop.
         provider = FakeProvider([
-            _turn(
-                calls=[_call(f"c{i}", "commit_context", documents=[])],
-                input_tokens=100,
-            )
-            for i in range(5)
+            _turn(calls=[
+                _call("c0", "commit_context", documents=[]),
+                _call("s1", "search", query="alpha"),
+            ], input_tokens=100),
+            _turn(calls=[_call("c1", "commit_context", documents=[
+                {"docid": "b", "reason": "direct evidence"}])],
+                input_tokens=100),
+            _turn(text="Supported finding. [b]", input_tokens=100),
+        ])
+
+        summary, captured = self._run(provider)
+        self.assertEqual(summary["status"], "completed")
+        self.assertEqual(summary["committed_documents"], 1)
+        # The search on the same turn as the no-op commit still executed.
+        self.assertEqual(
+            captured["trajectory"]["tool_call_counts"]["search"], 1)
+        self.assertIn("nothing to", provider.tool_results["c0"])
+        noop = next(
+            step for step in captured["trajectory"].trace["steps"]
+            if step.get("tool_call_id") == "c0")
+        self.assertFalse(noop["failed"])
+
+    def test_hard_round_cap_stops_a_turn_that_never_makes_progress(self):
+        # A turn of only no-op commits executes nothing, so it reaches none of
+        # the per-branch backstops. The cap at the top of the loop is the only
+        # thing standing between that and an infinite loop.
+        provider = FakeProvider([
+            _turn(calls=[_call(f"c{i}", "commit_context", documents=[])],
+                  input_tokens=100)
+            for i in range(40)
         ])
 
         summary, captured = self._run(provider, safety_max_rounds=3)
+
         self.assertEqual(summary["status"], "failed")
         self.assertIn(
             "safety backstop", captured["output"]["answer"][0]["text"])
+
+
+class IncrementalSaveTest(unittest.TestCase):
+    """Live-progress artifacts: the run rewrites output.json as it goes."""
+
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        patcher = patch.dict(
+            os.environ, {"RAGRUN_DATA_DIR": self.tmp.name})
+        patcher.start()
+        self.addCleanup(patcher.stop)
+        self.out_dir = Path(self.tmp.name) / "outputs" / "aus_agent"
+
+    def _turns(self) -> list[dict]:
+        return [
+            _turn(text="Searching.",
+                  calls=[_call("s1", "search", query="alpha")]),
+            _turn(calls=[_call("c1", "commit_context", documents=[
+                {"docid": "b", "reason": "direct alpha evidence"}])]),
+            _turn(text="Supported finding. [b]"),
+        ]
+
+    def _run(self, provider, **kwargs):
+        with (
+            patch.object(agent, "make_provider", return_value=provider),
+            patch.object(
+                aus_search, "run_search_tool", side_effect=_search_output),
+        ):
+            return agent.run_agent(
+                "qid", "research query", context_token_budget=10_000,
+                safety_max_rounds=20, max_committed_per_step=3, **kwargs)
+
+    def _outputs(self) -> list[Path]:
+        return sorted(self.out_dir.glob("*.output.json"))
+
+    def test_partial_artifact_is_running_and_shares_the_final_path(self):
+        seen: list[dict] = []
+        provider = FakeProvider(self._turns())
+        base_run_turn = provider.run_turn
+
+        def probe() -> dict:
+            # Every partial written so far is on disk and readable right now.
+            for path in self._outputs():
+                seen.append({
+                    "path": path,
+                    "data": json.loads(path.read_text(encoding="utf-8")),
+                    "siblings": sorted(p.name for p in self.out_dir.iterdir()),
+                })
+            return base_run_turn()
+
+        provider.run_turn = probe  # type: ignore[method-assign]
+        with patch.object(agent, "PARTIAL_SAVE_MIN_INTERVAL_S", 0.0):
+            summary = self._run(provider)
+
+        # A partial existed before the very first model turn.
+        self.assertTrue(seen)
+        for snapshot in seen:
+            self.assertEqual(snapshot["data"]["trace"]["status"], "running")
+            # Partial writes carry no answer and are never validated, so no
+            # violations file may appear next to a run still in flight...
+            self.assertEqual(
+                [n for n in snapshot["siblings"]
+                 if n.endswith(".violations.json")], [])
+            # ...and the trajectory is only written by the final save.
+            self.assertEqual(
+                [n for n in snapshot["siblings"]
+                 if n.endswith(".trajectory.json")], [])
+
+        # Exactly one artifact: every partial and the final save share a path.
+        outputs = self._outputs()
+        self.assertEqual(len(outputs), 1)
+        self.assertEqual({s["path"] for s in seen}, set(outputs))
+        self.assertEqual(summary["paths"]["output"], outputs[0])
+
+        final = json.loads(outputs[0].read_text(encoding="utf-8"))
+        self.assertEqual(summary["status"], "completed")
+        self.assertEqual(final["trace"]["status"], "completed")
+        self.assertEqual(final["references"], ["b"])
+        self.assertEqual(final["answer"][0]["citations"], [0])
+        # The final artifact is validated and clean.
+        self.assertEqual(ragrun_outputs.validate_rag_output(final), [])
+        self.assertNotIn("violations", summary["paths"])
+        self.assertTrue(summary["paths"]["trajectory"].exists())
+
+    def test_partial_saves_are_throttled_and_the_final_save_always_lands(self):
+        writes: list[float] = []
+        real_atomic = ragrun_outputs.atomic_write_text
+
+        def counting(path: Path, text: str) -> None:
+            if path.name.endswith(".output.json"):
+                writes.append(len(text))
+            real_atomic(path, text)
+
+        # A throttle window longer than the run leaves only the forced saves:
+        # the one before the first model turn, and the final one.
+        with (
+            patch.object(agent, "PARTIAL_SAVE_MIN_INTERVAL_S", 3600.0),
+            patch.object(ragrun_outputs, "atomic_write_text",
+                         side_effect=counting),
+        ):
+            summary = self._run(FakeProvider(self._turns()))
+        self.assertEqual(len(writes), 2)
+        self.assertEqual(summary["status"], "completed")
+
+        writes.clear()
+        with (
+            patch.object(agent, "PARTIAL_SAVE_MIN_INTERVAL_S", 0.0),
+            patch.object(ragrun_outputs, "atomic_write_text",
+                         side_effect=counting),
+        ):
+            self._run(FakeProvider(self._turns()))
+        self.assertGreater(len(writes), 2)
+
+    def test_a_failed_run_still_saves_once_with_status_failed(self):
+        provider = FakeProvider([])  # StopIteration on the first turn
+        summary = self._run(provider)
+        self.assertEqual(summary["status"], "failed")
+        outputs = self._outputs()
+        self.assertEqual(len(outputs), 1)
+        final = json.loads(outputs[0].read_text(encoding="utf-8"))
+        self.assertEqual(final["trace"]["status"], "failed")
+
+    def test_run_leaves_no_temp_files_behind(self):
+        self._run(FakeProvider(self._turns()))
+        leftovers = [p.name for p in self.out_dir.iterdir()
+                     if p.name.endswith(".tmp") or p.name.startswith(".")]
+        self.assertEqual(leftovers, [])
+
+
+class AtomicWriteTest(unittest.TestCase):
+    def setUp(self) -> None:
+        self.tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(self.tmp.cleanup)
+        self.path = Path(self.tmp.name) / "output.json"
+        self.path.write_text('{"old": true}', encoding="utf-8")
+
+    def test_atomic_write_keeps_the_umask_default_mode(self):
+        # mkstemp creates 0600 and os.replace keeps the temp file's mode, so a
+        # naive implementation silently makes every artifact owner-only. The
+        # old Path.write_text left them at the umask default, and a viewer
+        # server running as another user still has to read them.
+        reference = Path(self.tmp.name) / "reference.json"
+        reference.write_text("{}")
+        expected = reference.stat().st_mode & 0o777
+
+        # creating a brand-new artifact...
+        created = Path(self.tmp.name) / "created.json"
+        ragrun_outputs.atomic_write_text(created, "{}")
+        self.assertEqual(created.stat().st_mode & 0o777, expected)
+
+        # ...and an overwrite of an existing artifact must not narrow it either
+        ragrun_outputs.atomic_write_text(self.path, '{"second":true}')
+        self.assertEqual(self.path.stat().st_mode & 0o777, expected)
+
+    def test_target_is_never_truncated_before_the_rename(self):
+        observed: list[str] = []
+        real_replace = os.replace
+
+        def spy(src, dst):
+            # A poller reading at the last possible instant before the rename
+            # still sees the complete previous document.
+            observed.append(Path(dst).read_text(encoding="utf-8"))
+            return real_replace(src, dst)
+
+        with patch.object(os, "replace", side_effect=spy):
+            ragrun_outputs.atomic_write_text(self.path, '{"new": true}')
+        self.assertEqual(observed, ['{"old": true}'])
+        self.assertEqual(json.loads(self.path.read_text()), {"new": True})
+
+    def test_failed_write_leaves_the_old_file_and_no_temp_debris(self):
+        with patch.object(os, "replace", side_effect=OSError("boom")):
+            with self.assertRaises(OSError):
+                ragrun_outputs.atomic_write_text(self.path, '{"new": true}')
+        self.assertEqual(json.loads(self.path.read_text()), {"old": True})
+        self.assertEqual(
+            [p.name for p in self.path.parent.iterdir()], ["output.json"])
 
 
 if __name__ == "__main__":

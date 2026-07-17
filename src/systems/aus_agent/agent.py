@@ -21,11 +21,19 @@ from __future__ import annotations
 import json
 import re
 from concurrent.futures import ThreadPoolExecutor
+from datetime import datetime
 from pathlib import Path
 from time import perf_counter
 from typing import Any
 
-from ragrun import TrajectoryBuilder, build_rag_output, now_iso, save_run
+from ragrun import (
+    TrajectoryBuilder,
+    build_rag_output,
+    now_iso,
+    run_timestamp,
+    save_run,
+)
+from ragrun.trajectory import TZ
 
 from .context import ContextLedger
 from .providers.base import Provider
@@ -38,17 +46,46 @@ from .tools import (
 )
 
 DEFAULT_CONTEXT_TOKEN_BUDGET = 500_000
+# A run rewrites its output.json as it goes so the outputs viewer can follow it
+# live. The trace grows to ~1 MB, so an unthrottled rewrite on every step would
+# burn real I/O for no visible benefit — nobody reads a viewer faster than this.
+PARTIAL_SAVE_MIN_INTERVAL_S = 2.0
 DEFAULT_SAFETY_MAX_ROUNDS = 100
+# Rounds allowed after safety_max_rounds flips `finishing`. Reaching
+# safety_max_rounds is a graceful "wrap up now" — retrieval is refused and the
+# model still needs a few rounds to write the report and correct it. This grace
+# bounds that tail; past it the loop is not making progress and must stop.
+FINISHING_ROUNDS_GRACE = 10
 DEFAULT_MAX_COMMITTED_PER_STEP = 6
 SYSTEM_PROMPT_PATH = (
     Path(__file__).resolve().parent / "prompts" / "system.md")
 MAX_COMMITTED_PLACEHOLDER = "__MAX_COMMITTED_DOCS__"
 
+# The current time goes in the user message, NOT the system prompt. Bedrock
+# chains tools -> system -> messages, and the static cachePoint sits at the end
+# of system, so every topic in a batch shares those bytes: 29 of 30 topics in
+# the last dev batch read that prefix from cache instead of writing it. A
+# timestamp in system.md would make the prefix unique per run and turn every one
+# of those reads into a write. Here it is free — this message is already unique
+# per run and falls after the breakpoint.
 TASK_PROMPT = """\
+Current date and time: {now}
+
 Research request:
 
 {query}
 """
+
+
+def now_full(now: datetime | None = None) -> str:
+    """The wall clock, spelled out unambiguously for the model.
+
+    Weekday and month name so nothing hinges on reading a numeric date in the
+    right order, plus the UTC offset and the IANA zone so "today" and any
+    recency judgement the request needs are well defined.
+    """
+    now = now or datetime.now(TZ)
+    return f"{now:%A, %d %B %Y, %H:%M:%S %z} ({TZ.key})"
 
 
 def load_system_prompt(max_committed: int) -> str:
@@ -459,14 +496,95 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     context_tokens = 0
     peak_context_tokens = 0
 
+    # Allocate the run's stamp ONCE: every incremental write below and the
+    # final save must land on the same pair of files.
+    run_ts = run_timestamp()
     run_started = now_iso()
     run_started_perf = perf_counter()
+    last_partial_save = 0.0
     turn_idx = -1  # 0-based model-turn index; bumped on every provider call
     # Wall-clock bounds + turn index of the last model turn; a successful
     # no-tool final-report turn's bounds end up on the output_text item.
     last_turn: tuple[
         str | None, str | None, int | None, float, dict[str, Any]
     ] = (None, None, None, 0.0, {})
+
+    def build_output(references: list[str],
+                     answer: list[dict[str, Any]]) -> dict[str, Any]:
+        return build_rag_output(
+            narrative_id=query_id,
+            narrative=query,
+            run_id=run_id,
+            run_desc=run_desc or (
+                f"aus_agent research harness ({backend}/{provider.model_id}): "
+                f"continuous single-agent full-text search with sparse "
+                f"committed context and line-per-sentence cited prose answers "
+                f"parsed into the organizer schema."),
+            references=references,
+            answer=answer,
+        )
+
+    def build_trajectory(final_status: str) -> Any:
+        """Finalize the builder and decorate the trace with the run summary.
+
+        Shared by the partial and final saves so a live artifact carries the
+        same trace shape as the finished one — only ``status`` differs.
+        """
+        trajectory = tb.finalize(
+            status=final_status,
+            raw_messages=(
+                provider.raw_messages if final_status != "running" else None),
+            started_at=run_started, ended_at=now_iso())
+        trajectory.trace["summary"].setdefault("tokens", {}).update({
+            "context_tokens": context_tokens,
+            "peak_context_tokens": peak_context_tokens,
+            "context_budget_tokens": context_token_budget,
+            "budget": context_token_budget,
+        })
+        trajectory.trace["config"] = {
+            "context_token_budget": context_token_budget,
+            "safety_max_rounds": safety_max_rounds,
+            "max_committed_per_step": max_committed_per_step,
+        }
+        trajectory.trace["summary"]["context"] = {
+            "committed": sorted(ledger.committed_docids),
+            "rejected": sorted(ledger.rejected_docids),
+        }
+        # Repairs are applied silently to save a correction turn; record them so
+        # the leniency stays auditable rather than invisible.
+        trajectory.trace["summary"]["report_repairs"] = repairs
+        if stop_reason is not None:
+            trajectory.trace["summary"]["stop_reason"] = stop_reason
+        return trajectory
+
+    def save_partial(*, force: bool = False) -> None:
+        """Rewrite output.json mid-run with ``trace.status == "running"``.
+
+        Only ``output.json`` is written: the viewer never reads
+        trajectory.json, and the trajectory carries the full raw provider
+        message history (~1.2 MB and growing) — rewriting it every couple of
+        seconds would be pure cost. Validation is off because an unfinished run
+        has no answer yet, and validating it would leave a misleading
+        violations file next to a run that is still going.
+
+        A "running" artifact is invisible to everything downstream: both
+        ``run.finished_topics`` (--skip-existing) and the submission exporter
+        gate on ``trace.status in ("completed", "budget_exhausted")``.
+        """
+        nonlocal last_partial_save
+        now = perf_counter()
+        if not force and now - last_partial_save < PARTIAL_SAVE_MIN_INTERVAL_S:
+            return
+        last_partial_save = now
+        try:
+            save_run("aus_agent", query,
+                     trajectory=build_trajectory("running"),
+                     output=build_output([], []),
+                     timestamp=run_ts, validate=False,
+                     write_trajectory=False)
+        except Exception:
+            # Progress reporting must never take the run down with it.
+            pass
 
     def timed_turn() -> dict[str, Any]:
         """Run one model turn, tracking wall-clock bounds and turn index."""
@@ -507,8 +625,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             ),
         )
 
-    def expire_staged_context(reason: str, turn: int | None) -> str:
-        """Compact an unresolved batch rather than carrying it another turn."""
+    def expire_staged_context(reason: str, turn: int | None, *,
+                              failed: bool = True) -> str:
+        """Compact an unresolved batch rather than carrying it another turn.
+
+        ``failed=False`` for the case where the model simply issued no
+        commit_context: that is a legitimate "retain none of these" decision,
+        not an error, and marking it failed would misreport it in the trace and
+        in tool_call_counts.
+        """
         ct0 = now_iso()
         started = perf_counter()
         decision = expire_staged(
@@ -519,7 +644,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         provider.compact_tool_results(decision.replacements)
         payload = json.dumps({
             "automatic": True,
-            "error": reason,
+            ("error" if failed else "note"): reason,
             "committed": [],
             "rejected": decision.rejected,
         }, ensure_ascii=False)
@@ -529,7 +654,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "commit_context",
             {"documents": [], "automatic": True},
             output,
-            failed=True,
+            failed=failed,
             t_start=ct0,
             t_end=now_iso(),
             turn=turn,
@@ -545,7 +670,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             SEARCH_TOOL_DEF,
             COMMIT_CONTEXT_TOOL,
         ]
-        user_message = TASK_PROMPT.format(query=query)
+        user_message = TASK_PROMPT.format(now=now_full(), query=query)
         tb.set_trace_input({
             "system_prompt": system_prompt,
             "user_message": user_message,
@@ -557,12 +682,32 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "kind": "initial",
             "ref": "trace.input",
         }
+        # Publish the artifact before the first (multi-second) model turn so
+        # the run shows up in the viewer as soon as it starts.
+        save_partial(force=True)
 
         # One continuous agent loop: research actions and the eventual cited
         # prose report are turns in the same provider conversation.
         rounds = 0
         finishing = False
+        hard_round_cap = safety_max_rounds + FINISHING_ROUNDS_GRACE
         while True:
+            # The one backstop every path passes through. Individual branches
+            # check safety_max_rounds too, but a turn can now consist entirely
+            # of neutralised no-ops (a commit_context with nothing staged),
+            # which executes nothing and reaches none of those checks — so
+            # without this the loop could spin forever making no progress.
+            if rounds >= hard_round_cap:
+                raise RuntimeError(
+                    "runaway-loop safety backstop reached: "
+                    f"{rounds} rounds (safety_max_rounds={safety_max_rounds} "
+                    f"+ {FINISHING_ROUNDS_GRACE} to finish)")
+            # Two save points cover the whole loop body with no bookkeeping at
+            # each of its many `continue`s: this one flushes everything the
+            # previous iteration's actions produced, and the one below flushes
+            # the model turn itself (the tool calls then run against a fresh
+            # artifact).
+            save_partial()
             rounds += 1
             turn = timed_turn()
             t0, t1, ti, _, model_stats = last_turn
@@ -577,24 +722,39 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 stats=model_stats,
                 context=_context_snapshot(ledger),
             )
+            save_partial()
             calls = turn["tool_calls"]
             commit_calls = [
                 call for call in calls if call["name"] == "commit_context"]
 
-            # A staged batch exists for exactly this turn. Missing, repeated,
-            # or non-first commit_context means the batch expires now: compact
-            # all occurrences and do not execute the turn's other actions.
-            valid_commit_position = (
-                len(commit_calls) == 1
-                and calls
-                and calls[0]["name"] == "commit_context"
-            )
-            if ledger.has_staged and not valid_commit_position:
+            # A staged batch exists for exactly this turn, and exactly one
+            # commit_context resolves it. Position does not matter: commit_calls
+            # are applied below before retrieval_calls regardless of the order
+            # the model listed them in, so demanding "first" only rejected turns
+            # the harness would have handled correctly anyway.
+            valid_commit = len(commit_calls) == 1
+            if ledger.has_staged and not valid_commit:
+                # No commit_context at all means the model kept none of the
+                # staged documents — which is exactly what an empty selection
+                # says. Record that as a deliberate reject-all and let the rest
+                # of the turn run, rather than treating it as a protocol breach
+                # and refusing the turn's other actions: the model's intent
+                # (keep nothing, search again) is unambiguous and harmless, and
+                # refusing it cost a full turn each time. Multiple
+                # commit_context calls are genuinely ambiguous, so those still
+                # expire the batch and lose the turn.
                 expire_staged_context(
-                    "staged batch expired because commit_context was not "
-                    "exactly the first action on the immediately following "
-                    "model turn",
+                    "no commit_context was issued on the turn after this batch "
+                    "was staged, so it is treated as an explicit decision to "
+                    "retain none of these documents. The turn's other actions "
+                    "still ran. To keep a document, call commit_context on the "
+                    "turn immediately after the search that staged it."
+                    if not commit_calls else
+                    "staged batch expired because the turn issued "
+                    f"{len(commit_calls)} commit_context calls; exactly one "
+                    "resolves a staged batch",
                     ti,
+                    failed=bool(commit_calls),
                 )
                 if not calls:
                     # The turn may itself be a valid final report. Staged
@@ -631,68 +791,72 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         "text": feedback,
                     }
                     continue
-                if rounds >= safety_max_rounds:
-                    raise RuntimeError(
-                        "runaway-loop safety backstop reached while refusing "
-                        "actions after a staged batch expired")
-                msg, feedback_stats = action_feedback(json.dumps({
-                    "error": "actions refused because the staged batch "
-                             "expired before a valid first commit_context"
-                }), 0)
-                results = []
-                ts = now_iso()
-                for call in calls:
-                    tb.add_tool_call(
-                        call["name"], call["arguments"], msg, failed=True,
-                        t_start=ts, t_end=ts, turn=ti,
-                        stats=feedback_stats,
-                        context=_context_snapshot(ledger),
-                        documents=[],
-                        tool_call_id=call["id"],
-                    )
-                    results.append({
-                        "id": call["id"], "content": msg, "is_error": True})
-                provider.add_tool_results(results)
-                next_model_input = {
-                    "kind": "tool_results",
-                    "tool_call_ids": [call["id"] for call in calls],
-                }
-                continue
+                if commit_calls:
+                    # Ambiguous: several commit_context calls, so there is no
+                    # single selection to honour. The batch is already gone;
+                    # refuse the rest of the turn so the next one starts clean.
+                    if rounds >= safety_max_rounds:
+                        raise RuntimeError(
+                            "runaway-loop safety backstop reached while "
+                            "refusing actions after a staged batch expired")
+                    msg, feedback_stats = action_feedback(json.dumps({
+                        "error": "actions refused because the turn issued "
+                                 f"{len(commit_calls)} commit_context calls; "
+                                 "exactly one resolves a staged batch"
+                    }), 0)
+                    results = []
+                    ts = now_iso()
+                    for call in calls:
+                        tb.add_tool_call(
+                            call["name"], call["arguments"], msg, failed=True,
+                            t_start=ts, t_end=ts, turn=ti,
+                            stats=feedback_stats,
+                            context=_context_snapshot(ledger),
+                            documents=[],
+                            tool_call_id=call["id"],
+                        )
+                        results.append({
+                            "id": call["id"], "content": msg, "is_error": True})
+                    provider.add_tool_results(results)
+                    next_model_input = {
+                        "kind": "tool_results",
+                        "tool_call_ids": [call["id"] for call in calls],
+                    }
+                    continue
+                # No commit_context: the batch is now expired as a deliberate
+                # reject-all and the ledger is clear, so fall through and run
+                # this turn's searches — they stage a fresh batch normally.
 
+            # commit_context with nothing staged is a no-op, not a failure:
+            # there is simply nothing left to decide about. Answer that call and
+            # let the turn's searches run. Refusing the whole turn here was the
+            # other half of a wasteful loop — the model would search without
+            # committing (expiring the batch), dutifully send commit_context on
+            # the next turn to comply, find nothing staged, and lose that turn's
+            # searches too. Both turns were spent on bookkeeping while the
+            # model's actual intent was unambiguous.
+            noop_commit_ids: set[str] = set()
             if not ledger.has_staged and commit_calls:
-                if rounds >= safety_max_rounds:
-                    raise RuntimeError(
-                        "runaway-loop safety backstop reached while "
-                        "commit_context was called with no staged context")
-                msg, feedback_stats = action_feedback(json.dumps({
-                    "error": "there is no staged context to commit"
+                noop_msg, noop_stats = action_feedback(json.dumps({
+                    "note": "no staged batch is open, so there was nothing to "
+                            "commit and this call did nothing. A batch is only "
+                            "open on the turn immediately after the search that "
+                            "staged it.",
+                    "committed": [],
+                    "rejected": [],
                 }), 0)
-                results = []
                 ts = now_iso()
-                for call in calls:
-                    content = (
-                        msg if call["name"] == "commit_context"
-                        else action_feedback(json.dumps({
-                            "error": "retry without commit_context because "
-                                     "there is no staged context"
-                        }), 0)[0]
-                    )
+                for call in commit_calls:
+                    noop_commit_ids.add(call["id"])
                     tb.add_tool_call(
-                        call["name"], call["arguments"], content, failed=True,
+                        call["name"], call["arguments"], noop_msg, failed=False,
                         t_start=ts, t_end=ts, turn=ti,
-                        stats=feedback_stats,
+                        stats=noop_stats,
                         context=_context_snapshot(ledger),
                         documents=[],
                         tool_call_id=call["id"],
                     )
-                    results.append({
-                        "id": call["id"], "content": content, "is_error": True})
-                provider.add_tool_results(results)
-                next_model_input = {
-                    "kind": "tool_results",
-                    "tool_call_ids": [call["id"] for call in calls],
-                }
-                continue
+                commit_calls = []
 
             budget_hit = (
                 context_tokens >= context_token_budget)
@@ -749,6 +913,11 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 continue
 
             result_by_id: dict[str, dict[str, Any]] = {}
+            # Every tool_use must be answered, including the no-op commits
+            # neutralised above — an unanswered call is a provider error.
+            for call_id in noop_commit_ids:
+                result_by_id[call_id] = {
+                    "id": call_id, "content": noop_msg, "is_error": False}
 
             # Resolve the previous staged batch first, even when the budget was
             # reached on this turn. Compaction is bookkeeping, not retrieval,
@@ -941,41 +1110,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         turn=last_turn[2], stats=last_turn[4],
         context=_context_snapshot(ledger), record_trace=False)
 
-    output = build_rag_output(
-        narrative_id=query_id,
-        narrative=query,
-        run_id=run_id,
-        run_desc=run_desc or (
-            f"aus_agent research harness ({backend}/{provider.model_id}): "
-            f"continuous single-agent full-text search with sparse committed "
-            f"context and line-per-sentence cited prose answers parsed into "
-            f"the organizer schema."),
-        references=references,
-        answer=answer,
-    )
-    trajectory = tb.finalize(status=status, raw_messages=provider.raw_messages,
-                             started_at=run_started, ended_at=now_iso())
-    trajectory.trace["summary"].setdefault("tokens", {}).update({
-        "context_tokens": context_tokens,
-        "peak_context_tokens": peak_context_tokens,
-        "context_budget_tokens": context_token_budget,
-        "budget": context_token_budget,
-    })
-    trajectory.trace["config"] = {
-        "context_token_budget": context_token_budget,
-        "safety_max_rounds": safety_max_rounds,
-        "max_committed_per_step": max_committed_per_step,
-    }
-    trajectory.trace["summary"]["context"] = {
-        "committed": sorted(ledger.committed_docids),
-        "rejected": sorted(ledger.rejected_docids),
-    }
-    # Repairs are applied silently to save a correction turn; record them so
-    # the leniency stays auditable rather than invisible.
-    trajectory.trace["summary"]["report_repairs"] = repairs
-    if stop_reason is not None:
-        trajectory.trace["summary"]["stop_reason"] = stop_reason
-    paths = save_run("aus_agent", query, trajectory=trajectory, output=output)
+    output = build_output(references, answer)
+    trajectory = build_trajectory(status)
+    # The final save is the only one that writes the trajectory, validates, and
+    # carries a terminal status — it overwrites the last partial in place.
+    paths = save_run("aus_agent", query, trajectory=trajectory, output=output,
+                     timestamp=run_ts)
     return {"status": status, "paths": paths,
             "tool_call_counts": trajectory["tool_call_counts"],
             "n_references": len(references), "n_sentences": len(answer),
