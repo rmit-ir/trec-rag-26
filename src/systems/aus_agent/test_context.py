@@ -488,12 +488,14 @@ class AgentFlowTest(unittest.TestCase):
         # rag2026-72 asked for LLM advances "in 2023-2025" and got five
         # techniques the model already knew (LoRA, QLoRA, DPO, GRPO,
         # Mixtral) — right answers, but selected from memory rather than
-        # discovered, so anything it had not heard of could not appear. A
-        # workflow-list version of this rule was read and ignored; it now
-        # lives in the success plan, where each coverage area must be
-        # classified as request-named or discovery before searching starts.
-        self.assertIn("is a discovery area", prompt)
-        self.assertIn("only the results decide the candidate list", prompt)
+        # discovered, so anything it had not heard of could not appear.
+        # "Distrust your memory" phrasings failed three runs in a row (the
+        # model trusts its memory), so the rule is now a fact it cannot
+        # overrule with confidence: it does not know what THIS CORPUS holds
+        # until it answers, so opening searches survey the request's subject
+        # in the request's own terms before targeted dives.
+        self.assertIn("You do not know what this corpus holds", prompt)
+        self.assertIn("in the request's own terms", prompt)
         # The same topic demanded "mathematical derivations where
         # applicable" and came back with zero "=" signs: the no-Markdown
         # rule reads as a ban on anything formula-shaped.

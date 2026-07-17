@@ -1,0 +1,97 @@
+# 2026-07-17 — Discovery-first prompting: four failures, concluded model-level
+
+**System:** `src/systems/aus_agent/` (Bedrock `au.anthropic.claude-sonnet-5`)
+**Probe topic:** `rag2026-72` — "Write a series of technical blog posts on some
+of the advancements in LLM training and fine-tuning in 2023-2025…"
+**Conclusion:** on subjects inside the model's expertise, no system-prompt
+wording we tried makes Sonnet 5 *discover* the answer space from the corpus
+before diving into candidates it already knows. The behaviour is model-level
+(prior confidence overrides instruction), not a prompt-wording problem.
+
+---
+
+## The target behaviour
+
+The topic names a **field and a period** ("advancements … in 2023-2025") but
+not the specific techniques. The desired first move is a field-level survey
+search ("LLM training fine-tuning advances 2023 2025"-shaped) so the *corpus*
+nominates the candidate list, followed by per-candidate dives. Instead the
+model always jumps straight to techniques recalled from memory.
+
+Not a corpus limitation: probed directly, survey-style queries against
+ClimbMix return usable field-level documents (e.g. `shard_02466_36730`
+"Timeline of large language models", plus an "Era of Large Language Models: A
+Comprehensive Survey" doc). Discovery-first would have been rewarded.
+
+## Four prompt strategies, four identical outcomes
+
+Every run's turn 1 issued essentially the same four recall searches — LoRA,
+QLoRA, DPO, GRPO(/Mixtral) — never a field-level query. Runs are in
+`data/outputs/aus_agent/` under the run-ids below.
+
+| # | Strategy | Where it lived | Run | Turn-1 searches |
+|---|----------|----------------|-----|-----------------|
+| 1 | "discover the things before investigating them" rule | Research workflow item | `aus-agent-math-check` | recall (4) |
+| 2 | Same rule, moved into the plan the model must produce: classify each coverage area as request-named vs memory-supplied ("discovery area") | Internal success plan item 4 | `aus-agent-discovery-check` (first attempt died on expired AWS token after turn 1 — turn 1 already recall) | recall (2, run truncated) |
+| 3 | Same, full run after token refresh | Internal success plan item 4 | `aus-agent-discovery-check` | recall (4) |
+| 4 | Reframed away from memory-distrust to corpus-unknowability: "You do not know what this corpus holds on any subject until it answers, no matter how well you know the subject itself" — first searches in the request's own terms | Research workflow item 1 | `aus-agent-recon-check` | recall (4) |
+
+Strategy 4 was designed to dodge the suspected failure mode of 1–3: a rule
+premised on "your memory may be incomplete" loses to a model that trusts its
+memory, whereas "you cannot know what is in this external corpus" is a fact no
+prior can overrule. It made no difference — turn 1 was byte-for-byte the same
+four searches.
+
+## Why we stopped
+
+- Four distinct framings, two distinct prompt locations (workflow list vs the
+  success plan the model actually produces), zero behaviour change.
+- The answers themselves were *good* every time (the recalled candidates are
+  the canonical 2023-2025 advances; final runs: ~970 words, 6 refs, real
+  derivations inline, e.g. DPO's closed-form reward and LoRA's ΔW = BA with a
+  worked parameter count). The failure is only latent: on a field the model
+  knows poorly it could silently scope the answer to a stale or wrong
+  candidate list. Ironically, on such fields it is also more likely to search
+  broadly of its own accord.
+- Each probe run costs ~$1 and the marginal prompt idea was getting weaker.
+
+The corpus-recon rule (strategy 4) is **kept** in the prompt: it is principled,
+costs nothing on topics like this one (the searches were fine anyway), and may
+still help on obscure subjects where there is no strong prior to fight (e.g.
+the "Network Physicalization" test topic). We just don't expect it to change
+behaviour on canon subjects.
+
+Escalations deliberately not taken:
+
+- **Python-side enforcement** — rejected: "was that a discovery search?" is a
+  semantic judgment; a validator can't make it without another LLM call, and a
+  wrong heuristic would nag runs that don't need it. Harness enforces
+  protocol (commits, citations, word counts); search strategy stays in the
+  prompt.
+- **Per-topic task-prompt injection** — possible next step if this ever
+  matters: a line in the per-query user message (where the timestamp already
+  goes, so cache-neutral) is closer to the model's attention than the system
+  prompt. Untested; parked.
+
+## Incidental finding from run `aus-agent-recon-check` (worth fixing)
+
+On turn 2 the model wrote the entire final report **directly from the staged,
+uncommitted batch** — no `commit_context` at all. Protocol handled it as
+designed (batch expired, report bounced with feedback), and the model
+recovered by re-running the same four searches verbatim, committing 6 docs,
+and rewriting: same final answer at ~2× the tokens (228K processed vs 116K on
+the equivalent `aus-agent-discovery-check` run). The contract states only
+committed evidence may be cited, but nothing warns at the decisive moment that
+a report-writing turn (which by definition issues no tool calls) lets any
+staged batch lapse. Fix queued: one line in the final response contract —
+commit first, report on a later turn.
+
+## Also confirmed today
+
+- `20260717T133001…design_a_framework_for_regulating` failed with
+  `ValidationException: content field … is empty` — that run *predates* (by 5
+  minutes) the contentless-Converse-reply retry fix (`70b4426`,
+  `EMPTY_RESPONSE_RETRIES = 3` in `providers/bedrock.py`); its history shows
+  the classic empty assistant message at index 3. Not a live bug.
+- `ExpiredTokenException` mid-run produces a clean `status: "failed"` artifact
+  and the topic re-runs fine after refreshing `.env` tokens.
