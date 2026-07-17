@@ -73,6 +73,35 @@ Escalations deliberately not taken:
   goes, so cache-neutral) is closer to the model's attention than the system
   prompt. Untested; parked.
 
+## Model A/B: Opus 4.8, same prompt, same topic (`aus-agent-opus-check`)
+
+Since prompt wording was exhausted, swapped only the model
+(`--model au.anthropic.claude-opus-4-8`; harness needed zero other changes).
+Result — still no pure survey query, but the failure that matters is largely
+gone:
+
+- **Turn 1** queries are field-phrased with an anchor ("large language model
+  fine-tuning techniques parameter efficient LoRA", "reinforcement learning
+  from human feedback RLHF alignment training") rather than Sonnet's bare
+  technique names.
+- **Turn 2 is the real difference**: after committing 6 docs it launched a
+  second wave into *new* territory — mixture-of-experts, FlashAttention,
+  RoPE/long-context extension, instruction tuning + CoT. Sonnet 5 never once
+  expanded beyond its initial four recalled techniques in four runs.
+- Coverage: 11 refs / 12 committed docs / 30 sentences / 969 words vs
+  Sonnet's 6 refs / 6 docs; answer spans LoRA, QLoRA, DPO+RLHF derivation,
+  MoE, FlashAttention (S = QK^T memory argument), and RoPE frequency
+  reinterpolation, each with inline maths (6 equation sentences).
+- Protocol clean: committed on both turns, no staged-report lapse, no
+  duplicated searches.
+- Cost: 275K processed tokens at Opus pricing (~2-3× the Sonnet run).
+
+Refined conclusion: the risk behind discovery-first — silently scoping the
+answer to the initially recalled candidate list — is a Sonnet 5 behaviour,
+mostly absent in Opus 4.8, which broadens iteratively even without a survey
+query. Confirms "model-level"; model choice, not prompt wording, is the lever
+for topics where breadth matters.
+
 ## Incidental finding from run `aus-agent-recon-check` (worth fixing)
 
 On turn 2 the model wrote the entire final report **directly from the staged,
