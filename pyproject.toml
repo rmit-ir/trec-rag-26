@@ -21,6 +21,8 @@ packages = ["src/utils", "src/tools", "src/ragrun"]
 
 [dependency-groups]
 # Per-system dep groups — default `uv sync` installs none of them.
+# Install one with `uv sync --group <name>` (e.g. `uv sync --group aus-agent`),
+# then run scripts with `uv run --group <name> python …`.
 # aus_agent RAG harness (src/systems/aus_agent) — Bedrock backend today,
 # Azure OpenAI / OpenAI Responses backends later.
 aus-agent = [
