@@ -182,7 +182,6 @@ export default function StepTree({
       sx={{
         display: "flex",
         flexDirection: "column",
-        maxHeight: { md: "calc(100vh - 260px)" },
         minHeight: 200,
         overflow: "hidden",
       }}
@@ -205,7 +204,7 @@ export default function StepTree({
           }}
         />
       </Box>
-      <List dense disablePadding sx={{ overflowY: "auto", flexGrow: 1 }}>
+      <List dense disablePadding sx={{ flexGrow: 1 }}>
         {inputVisible ? (
           <ListItemButton
             selected={selected === "input"}
