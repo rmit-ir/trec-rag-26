@@ -161,6 +161,50 @@ ANY bracketed content, so Terra's "β log[π_r(y|x)/π_ref(y|x)]" lost its ratio
 — the submitted equation read "βlog + βlog Z(x)". `_CITATION_MARKER_RE` now
 matches docid-shaped tokens only; regression test added.
 
+## Model A/B #3: Azure gpt-5.6 terra vs luna vs sol (`aus-agent-azure-*`)
+
+Azure OpenAI needed **zero code changes**: the endpoint's `/openai/v1` surface
+speaks the exact OpenAI request shape, and the SDK natively honours
+`OPENAI_BASE_URL`, so runs are routed per-command with an env prefix
+(`OPENAI_BASE_URL=$AZURE_API_URL OPENAI_API_KEY=$AZURE_API_KEY …`);
+`load_dotenv()` never overrides shell vars, so `.env` stays untouched.
+
+Six runs — {terra, luna, sol} × {rag2026-72 technical, rag2026-22
+speculative-societal}, same prompt:
+
+| run | searches/commits | refs | sents | words | processed tokens |
+|---|---|---|---|---|---|
+| terra-72 | 10/3 | 9 | 20 | 642 | 141K |
+| luna-72 | 8/3 | **13** | 39 | 861 | 109K |
+| sol-72 | 14/4 | **16** | 30 | 815 | 281K |
+| terra-22 | 6/2 | 7 | 23 | 719 | 75K |
+| luna-22 | 4/2 | 8 | 31 | 927 | **60K** |
+| sol-22 | 10/2 | 12 | 25 | 864 | 207K |
+
+- **Provenance:** sol had the cleanest round 1 in any run to date — three
+  pure year-decomposed question-term queries, zero named methods — and
+  grounded QLoRA/NF4/synthetic-data/DeepSeek before querying them (only
+  DPO/GRPO memory-seeded). Terra similar but weaker. Luna's round 1 was a
+  single question-restated query, then the most memory-seeding in round 2
+  (LoRA, DPO, QLoRA, MoE, long-context, synthetic data).
+- **Breadth:** luna-72 covered the most families (LoRA/QLoRA, DPO, **MoE**,
+  GRPO, **long-context + synthetic data** — five posts), partially closing
+  the breadth gap flagged on Sonnet, ironically via memory-seeded queries.
+  Sol went deepest on four (DeepSeek-R1 specifics, NF4 quantile codebook,
+  sharp limitation sentences). Terra covered four incl. RAFT.
+  FlashAttention appeared in no run.
+- **rag2026-22:** all three produced the same two-scenario structure and the
+  same core thesis (ownership of automated capital is decisive) — the
+  question type doesn't differentiate the models.
+- **Cost:** sol ≈ 2.6–3.4× luna's tokens per topic *before* its higher
+  per-token price — better protocol depth and precision, but not
+  proportionally better answers. Luna was the best refs-per-token and
+  arguably the best -72 answer outright.
+
+Working conclusion: **luna is the value pick** (broadest coverage, cheapest,
+clean protocol); sol's premium buys round-1 purity and depth, not breadth;
+terra sits in between with no dimension where it wins.
+
 ## Incidental finding from run `aus-agent-recon-check` (worth fixing)
 
 On turn 2 the model wrote the entire final report **directly from the staged,
