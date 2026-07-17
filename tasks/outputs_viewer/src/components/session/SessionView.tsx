@@ -113,6 +113,7 @@ export default function SessionView({
   }
 
   const trace = data.trace;
+  const runId = trace?.metadata?.run_id ?? data.output.metadata?.run_id;
   const steps = withCumulativeTokenUsage(trace?.steps ?? []);
   const meta = trace?.metadata ?? {};
   const counts = trace?.summary?.tool_call_counts ?? {};
@@ -174,6 +175,16 @@ export default function SessionView({
         ) : null}
         {typeof meta.model === "string" ? (
           <Chip size="small" variant="outlined" label={`model: ${meta.model}`} />
+        ) : null}
+        {typeof runId === "string" && runId ? (
+          <Chip
+            size="small"
+            variant="outlined"
+            label={`run: ${runId}`}
+            component={Link}
+            href={`/systems?system=${encodeURIComponent(system)}&runId=${encodeURIComponent(runId)}`}
+            clickable
+          />
         ) : null}
         {trace?.duration_ms != null ? (
           <Chip size="small" variant="outlined" label={`latency: ${fmtDuration(trace.duration_ms)}`} />
