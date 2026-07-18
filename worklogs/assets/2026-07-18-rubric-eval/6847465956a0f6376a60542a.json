@@ -1,0 +1,225 @@
+{
+ "qid": "6847465956a0f6376a60542a",
+ "slug": "20260718T215153774985+1000.i_am_a_software_engineer.output.json",
+ "n_criteria": 27,
+ "judgments": [
+  {
+   "i": 0,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "Single web server/local MySQL and single-machine dependencies named; limitations discussion thin"
+  },
+  {
+   "i": 1,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Stateless tier, caches, queues, managed DB, CDN, modular extraction recommended"
+  },
+  {
+   "i": 2,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Explicit migration sequence: containerize, externalize media, LB, managed MySQL, cache, broker, extract"
+  },
+  {
+   "i": 3,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Trade-offs analyzed: replication lag, consistency models, sharding risks vs isolation/scalability benefits"
+  },
+  {
+   "i": 4,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Structured logs, metrics, traces, alerting, SLOs covered"
+  },
+  {
+   "i": 5,
+   "axis": "Explicit Criteria",
+   "weight": -4.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "All suggestions startup-feasible; penalty not triggered"
+  },
+  {
+   "i": 6,
+   "axis": "Communication Quality",
+   "weight": 3.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "No diagram but clear layered edge-to-datastore structured description"
+  },
+  {
+   "i": 7,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No budget or cost analysis"
+  },
+  {
+   "i": 8,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "API's central role not discussed"
+  },
+  {
+   "i": 9,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "HTTPS, authentication, authorization, encryption addressed"
+  },
+  {
+   "i": 10,
+   "axis": "Communication Quality",
+   "weight": 3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No QPS/storage/bandwidth calculations; only says to measure"
+  },
+  {
+   "i": 11,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No GDPR/CCPA or privacy-law compliance"
+  },
+  {
+   "i": 12,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No timeline, effort estimates, or team assignments"
+  },
+  {
+   "i": 13,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No technical-debt management plan"
+  },
+  {
+   "i": 14,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No named similar company (Twitter/Facebook) analysis"
+  },
+  {
+   "i": 15,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "SLOs and deployments touched; no CI/CD or error budgets"
+  },
+  {
+   "i": 16,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Burst headroom, horizontal scaling, rate limits, hot-user and spike testing"
+  },
+  {
+   "i": 17,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Recommends retaining managed MySQL with ACID/access-pattern justification"
+  },
+  {
+   "i": 18,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No team structure or size recommended"
+  },
+  {
+   "i": 19,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "SLOs defined by category and tied to decisions, but no specific numeric targets"
+  },
+  {
+   "i": 20,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Redis caching plan with hot data, disposability, timeline caches"
+  },
+  {
+   "i": 21,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Fan-out-on-write/read hybrid, durable broker; sharded relational store for follows/posts"
+  },
+  {
+   "i": 22,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "Backups, PITR, DR region, restore drills; RPO/RTO targets not defined"
+  },
+  {
+   "i": 23,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Load/soak/failover testing plus metrics and actionable alerts"
+  },
+  {
+   "i": 24,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No detailed data migration plan (no export/transform/dual-write/validation)"
+  },
+  {
+   "i": 25,
+   "axis": "Explicit Criteria",
+   "weight": -5.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "No irrelevant overly complex components; penalty not triggered"
+  },
+  {
+   "i": 26,
+   "axis": "Communication Quality",
+   "weight": -3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "Objective tone, no first-person; penalty not triggered"
+  }
+ ],
+ "weighted_pct": 68.2,
+ "weighted_pct_possible": 68.2
+}

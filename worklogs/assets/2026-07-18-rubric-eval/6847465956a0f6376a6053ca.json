@@ -1,0 +1,193 @@
+{
+ "qid": "6847465956a0f6376a6053ca",
+ "slug": "20260718T215023806084+1000.design_a_modified_u_net.output.json",
+ "n_criteria": 23,
+ "judgments": [
+  {
+   "i": 0,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "residual-attention U-Net specified"
+  },
+  {
+   "i": 1,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "attention suppresses background, boundary head splits instances"
+  },
+  {
+   "i": 2,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "soft Dice+focal+boundary+Smooth L1 described"
+  },
+  {
+   "i": 3,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "ResAttn + RAUNet classes provided"
+  },
+  {
+   "i": 4,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "dice_loss, focal_bce, loss_fn provided"
+  },
+  {
+   "i": 5,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "threshold/boundary-subtract/watershed described in text"
+  },
+  {
+   "i": 6,
+   "axis": "Implicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "preprocessing->inference->watershed pipeline covered"
+  },
+  {
+   "i": 7,
+   "axis": "Communication Quality",
+   "weight": 3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "topic-ordered but no labeled section headers"
+  },
+  {
+   "i": 8,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "noise, low contrast, touching, variability noted"
+  },
+  {
+   "i": 9,
+   "axis": "Synthesis of Information",
+   "weight": 3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "attention/watershed justified by fluorescence challenges"
+  },
+  {
+   "i": 10,
+   "axis": "Implicit Criteria",
+   "weight": -4.0,
+   "score": 0,
+   "impossible": false,
+   "note": "grayscale in_ch=1, flat-field, no color reliance"
+  },
+  {
+   "i": 11,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "code plausible but imports (torch/nn/F) not shown"
+  },
+  {
+   "i": 12,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 1,
+   "impossible": false,
+   "note": "Cellpose/StarDist/Mask R-CNN strengths+weaknesses"
+  },
+  {
+   "i": 13,
+   "axis": "Implicit Criteria",
+   "weight": -3.0,
+   "score": 0,
+   "impossible": false,
+   "note": "thoroughly addresses noise+instance separation"
+  },
+  {
+   "i": 14,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 1,
+   "impossible": false,
+   "note": "encoder/decoder/heads + code"
+  },
+  {
+   "i": 15,
+   "axis": "Communication Quality",
+   "weight": 3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "per-component reasoning given"
+  },
+  {
+   "i": 16,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "explains each loss contribution"
+  },
+  {
+   "i": 17,
+   "axis": "Implicit Criteria",
+   "weight": -3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "augmentation present but no train command/env/config"
+  },
+  {
+   "i": 18,
+   "axis": "Implicit Criteria",
+   "weight": -3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "no ablation study proposed (penalty)"
+  },
+  {
+   "i": 19,
+   "axis": "Implicit Criteria",
+   "weight": -3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "post-processing text-only, no code (penalty)"
+  },
+  {
+   "i": 20,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0,
+   "impossible": false,
+   "note": "no Dice/IoU/mAP targets defined"
+  },
+  {
+   "i": 21,
+   "axis": "Implicit Criteria",
+   "weight": 4.0,
+   "score": 1,
+   "impossible": false,
+   "note": "percentile norm, flat-field, denoising"
+  },
+  {
+   "i": 22,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0,
+   "impossible": false,
+   "note": "no GPU/VRAM/compute requirements"
+  }
+ ],
+ "weighted_pct": 98.2,
+ "weighted_pct_possible": 98.2
+}
