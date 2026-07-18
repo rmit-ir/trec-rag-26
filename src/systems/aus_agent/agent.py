@@ -56,7 +56,7 @@ DEFAULT_SAFETY_MAX_ROUNDS = 100
 # model still needs a few rounds to write the report and correct it. This grace
 # bounds that tail; past it the loop is not making progress and must stop.
 FINISHING_ROUNDS_GRACE = 10
-DEFAULT_MAX_COMMITTED_PER_STEP = 6
+DEFAULT_MAX_COMMITTED_PER_STEP = 10
 SYSTEM_PROMPT_PATH = (
     Path(__file__).resolve().parent / "prompts" / "system.md")
 MAX_COMMITTED_PLACEHOLDER = "__MAX_COMMITTED_DOCS__"
