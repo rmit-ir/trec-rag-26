@@ -62,8 +62,8 @@ class ClimbMixTools:
         found_before = sorted(self._seen)
         prev_queries = list(self._queries)
 
-        # Gather + fuse candidates across the batched queries (dedupe by docid,
-        # keep the best RRF score seen for each).
+        # Gather candidates across the batched queries (dedupe by docid,
+        # keep the best score seen for each).
         cand: dict[str, dict[str, Any]] = {}
         for q in queries:
             raw = json.loads(run_search_tool(q, k=k, max_chars=self.snippet_chars))
@@ -71,9 +71,9 @@ class ClimbMixTools:
                 return f"Search error: {raw['error']}", {"failed": True}
             for r in raw.get("results", []):
                 d = r["docid"]
-                if d not in cand or r["rrf_score"] > cand[d]["rrf_score"]:
+                if d not in cand or r["score"] > cand[d]["score"]:
                     cand[d] = r
-        ordered = sorted(cand.values(), key=lambda r: r["rrf_score"], reverse=True)
+        ordered = sorted(cand.values(), key=lambda r: r["score"], reverse=True)
 
         # Split into new vs. already-seen (cross-step de-duplication).
         new: list[dict[str, Any]] = []
@@ -90,7 +90,7 @@ class ClimbMixTools:
 
         text = self._format_search(primary, new, hidden)
         meta: dict[str, Any] = {
-            "returned": [{"docid": r["docid"], "score": r["rrf_score"]} for r in new],
+            "returned": [{"docid": r["docid"], "score": r["score"]} for r in new],
             "returned_docids": [r["docid"] for r in new],
             "hidden": hidden,
             "found_docids_before_search": found_before,

@@ -8,7 +8,14 @@ made mid-implementation), `keyword` (BM25), `fusion` (dense+sparse RRF, the
 old always-on behaviour). Unknown values return the standard `{"error": ...}`
 row. Output row shape unchanged (`{rank, id, docid, kind, rrf_score, text}`);
 `rrf_score` carries the engine's native score (inner-product / BM25) for
-single-engine runs — key name kept because four systems consume it. The
+single-engine runs — key name kept because four systems consume it.
+*(Superseded later the same day: with fusion gone the name was misleading —
+and dangerously so, since dense inner-product ~0.3–0.8 and BM25 ~10–30 live
+in the same field. Renamed to `score` across `search_tool.py`, the aus_agent
+adapter/compactor/tests, `ali_deepresearch`, and `claude-code-research`;
+the real RRF implementation in `utils/search.py` keeps its name. Old
+trajectory artifacts under `data/outputs/` retain `rrf_score` — the viewer
+reads neither key, so they stay valid.)* The
 aus_agent adapter forwards the argument only when the model supplies it, so
 the backend default is the single source of truth. 45/45 tests (one new
 pass-through test).

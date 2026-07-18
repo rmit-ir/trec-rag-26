@@ -82,7 +82,7 @@ def documents_from_search(data: dict[str, Any]) -> list[dict[str, Any]]:
         "docid": str(result["docid"]),
         "kind": result.get("kind", "document"),
         "rank": result.get("rank"),
-        "score": result.get("rrf_score"),
+        "score": result.get("score"),
         "text": result.get("text"),
         "metadata": {
             "query": data.get("query"),
@@ -162,7 +162,7 @@ def execute_full_text_search(
         "results": [{
             key: result[key]
             for key in (
-                "rank", "id", "docid", "kind", "rrf_score", "truncated",
+                "rank", "id", "docid", "kind", "score", "truncated",
                 "original_chars", "returned_chars",
             )
             if key in result
@@ -170,7 +170,7 @@ def execute_full_text_search(
     }
     returned = [{
         "docid": result["docid"],
-        "score": result["rrf_score"],
+        "score": result["score"],
     } for result in data["results"]]
     seen_docids.update(hit["docid"] for hit in returned)
     return SearchExecution(

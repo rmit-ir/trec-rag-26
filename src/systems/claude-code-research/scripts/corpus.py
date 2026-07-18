@@ -93,7 +93,7 @@ def cmd_search(args: argparse.Namespace) -> int:
         record["failed"] = True
         record["error"] = data["error"]
     else:
-        record["returned"] = [{"docid": r["docid"], "score": r["rrf_score"]}
+        record["returned"] = [{"docid": r["docid"], "score": r["score"]}
                               for r in data.get("results", [])]
     record["output_head"] = printed[:HEAD_CHARS]
     append_log(task_dir, record)
