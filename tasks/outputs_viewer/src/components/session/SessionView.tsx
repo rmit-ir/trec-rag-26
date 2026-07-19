@@ -19,6 +19,7 @@ import DetailPane from "./DetailPane";
 import DocSidebar from "./DocSidebar";
 import type { NodeSelection } from "./stepMeta";
 import { fmtDuration } from "@/lib/gantt";
+import { computeCost, fmtUsd } from "@/lib/pricing";
 
 function withCumulativeTokenUsage(steps: TraceStep[]): TraceStep[] {
   const keys: (keyof TokenStats)[] = [
@@ -139,6 +140,10 @@ export default function SessionView({
   const latestBudgetStats = [...steps]
     .reverse()
     .find((step) => step.stats?.context_tokens != null)?.stats;
+  const cost = computeCost(
+    typeof meta.model === "string" ? meta.model : null,
+    runTokens,
+  );
   const answerSummary =
     data.output.answer?.[0]?.text ?? data.output.metadata?.narrative ?? "";
 
@@ -157,7 +162,11 @@ export default function SessionView({
           >
             {system}
           </MuiLink>
-          <Typography color="text.primary" variant="body2" sx={{ fontFamily: "monospace" }}>
+          <Typography
+            color="text.primary"
+            variant="body2"
+            sx={{ fontFamily: "monospace", wordBreak: "break-all" }}
+          >
             {sessionId}
           </Typography>
         </Breadcrumbs>
@@ -195,6 +204,20 @@ export default function SessionView({
             variant="outlined"
             label={`processed: ${processedTokens.toLocaleString()} tok`}
             title={`Processed input ${processedInputTokens.toLocaleString()} + generated output ${generatedOutputTokens.toLocaleString()}`}
+          />
+        ) : null}
+        {cost ? (
+          <Chip
+            size="small"
+            color="success"
+            variant="outlined"
+            label={`cost: ${fmtUsd(cost.total)}`}
+            title={
+              `Full-price input ${fmtUsd(cost.fullInput)} + ` +
+              `cached input ${fmtUsd(cost.cachedInput)} + ` +
+              `output ${fmtUsd(cost.output)}  ·  ` +
+              `${typeof meta.model === "string" ? meta.model : "?"} list price`
+            }
           />
         ) : null}
         {latestBudgetStats?.context_tokens != null &&

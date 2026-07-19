@@ -114,6 +114,7 @@ function GanttTrack({
         </Tooltip>
       </Stack>
 
+      <Box sx={{ overflowX: "auto", overflowY: "hidden" }}>
       <Box sx={{ position: "relative", height: trackH, minWidth: 360 }}>
         {/* tick gridlines + labels */}
         {ticks.map((t) => (
@@ -241,6 +242,7 @@ function GanttTrack({
             </Tooltip>
           );
         })}
+      </Box>
       </Box>
     </Box>
   );
