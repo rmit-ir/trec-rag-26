@@ -125,10 +125,92 @@ bearing requirement for a *fair* corpus-grounded comparison. Perplexity
 `sonar-deep-research` and Grok DeepSearch are web-native and cannot be corpus-
 grounded → unfair baselines, excluded.
 
-Planned build: wrap our existing ClimbMix `search` + `get_document`
-(`tools.search_tool.run_search_tool`, `utils.fetch_doc.fetch_doc`) as an MCP
-server exposing the `search`/`fetch` interface the DR agent expects, point the
-DR agent at it with web off, run the dev topics, and rubric-eval alongside
-aus_agent. Blocked on: (a) confirming exact model IDs against provider docs
-(several mid-2026 specifics came from secondary aggregators), (b) API
-credentials, (c) which of OpenAI-DR / Gemini-DR to target first.
+Decision (user): target **OpenAI `o3-deep-research`** first, via a direct
+OpenAI key (to be provided). Viewer changes commit straight to `main` (user
+preference, supersedes branch-first for this).
+
+### Built: ClimbMix MCP server (`src/mcp/`)
+
+`src/mcp/climbmix_server.py` — FastMCP (official `mcp` SDK), stateless
+streamable-HTTP, exposing exactly the two-tool connector contract OpenAI DR
+requires:
+
+- `search(query)` → `{"results": [{id, title, text, url}]}` — hybrid
+  dense+sparse RRF (`utils.search.search`; DR can't pick engines per call, so
+  the engine-free hybrid is the single best default; `MCP_SEARCH_ENGINE` env
+  can force `semantic`/`keyword`). `id` = ClimbMix docid; snippet 500 chars
+  (`MCP_SNIPPET_CHARS`); k=10 (`MCP_SEARCH_K`).
+- `fetch(id)` → full doc text via `utils.fetch_doc.fetch_doc`, plus
+  `metadata.corpus = climbmix-400b`. `url` points at the Pyserini REST doc
+  endpoint so citations resolve; eval keys on `id` (docid).
+
+Optional bearer guard: set `CLIMBMIX_MCP_TOKEN` → all requests need
+`Authorization: Bearer …` (for when the server is tunnelled to a public URL so
+OpenAI's servers can reach it). New root dep group `mcp` (`mcp>=1.10`,
+`uvicorn>=0.30`); run `uv run --group mcp python src/mcp/climbmix_server.py`
+(default `0.0.0.0:8720/mcp`).
+
+`src/mcp/test_smoke.py` — boots the server as a subprocess (token ON) and
+drives it with the official MCP client. Result 2026-07-19, real backends:
+
+```
+[ok] unauthenticated request rejected
+[ok] tools/list -> ['fetch', 'search']
+[ok] search('index fund investing strategies') -> 10 results;
+     top: shard_05995_80420  «Why Index Funds Should Be the Cornerstone of Your Investment»
+[ok] fetch('shard_05995_80420') -> 3464 chars, metadata={'corpus': 'climbmix-400b'}
+SMOKE OK
+```
+
+### Runner + end-to-end probe (same day, continued)
+
+User provided `OPENAI_DEEP_RESEARCH_API_KEY` (direct platform key; verified
+access to `o3-deep-research`, `o4-mini-deep-research`, `gpt-5.6-luna`).
+Restructure per user: no standalone `mcp` uv group — deps live in the
+`o3-deep-research` system group; MCP code stays in `src/mcp/`.
+
+Built `src/systems/o3_deep_research/run.py`: Responses-API runner (background
+mode), MCP tool attached (`server_url` = tunnel, bearer header), **no web
+search**, `reasoning.summary=auto`; maps Responses output items → ragrun
+trajectory (mcp_call → tool_call with docids, reasoning summaries → reasoning
+steps); `format_answer` reuse (formatter `gpt-5.6-luna`); `--resume
+<response_id>`; `save_run` artifacts. Sanity: base_url pinned to
+api.openai.com (repo `.env` has Azure `OPENAI_BASE_URL` the SDK would grab).
+
+**Tunnel debugging (half a day of it):**
+
+- `421 Misdirected Request` on every tunnelled POST, both cloudflared quick
+  tunnels AND ngrok, while curl GETs passed → NOT the tunnels: the MCP python
+  SDK's own **DNS-rebinding protection** rejects non-localhost `Host` headers
+  (`transport_security.py:120`). Fix: `TransportSecuritySettings(
+  enable_dns_rebinding_protection=False)` (bearer token still guards).
+- RMIT network was ALSO blocking cloudflared (user switched to phone hotspot);
+  explains ngrok heartbeat timeouts and DNS flakiness mid-debug.
+- After both fixes: full MCP handshake + search + fetch over the public
+  tunnel verified with the SDK client.
+
+**OpenAI-side read-back bug (open):** with `o4-mini-deep-research` +
+remote-MCP + background mode, the run itself works — our server logged
+OpenAI's `CallToolRequest`s (23.102.141.x / 4.151.71.x, 31 POSTs) and the
+agent did on-topic searches/fetches (probe query: benefits/risks of index
+fund investing; `max_tool_calls=8`). But **reading the response back fails**:
+
+- `responses.retrieve` → persistent 500 (req ids `req_c63457ef31a7424a…`,
+  `req_5caeffb37c5049d2…`, `req_8e33eaa91bb44cab…`), across two separate
+  response ids, while a plain non-DR background response retrieves fine.
+- streaming (`background=True, stream=True`) delivered 16 items live
+  (list_tools, 3 searches, 3 fetches, reasoning) then died at seq ~834 right
+  after an `mcp_call_arguments.done`; stream-replay from ≤834 re-dies at the
+  same spot (poisoned event, wf id `wfr_019f782a241a73cf…`); replay from
+  ≥840 connects clean and idles (so skip-past-poison works as a fallback).
+
+Runner hardening from this: `_retrieve` retry w/ backoff, stream reconnect
+cap (12, exponential, visible error text), `--resume` for paid-run recovery.
+Probe response `resp_028a37c30f2aa9e9006a5c33be9ae08190aa981c8ef27de7db`
+still in_progress ~30 min in (final-generation phase or zombied — watcher
+armed; will cancel if it never terminates).
+
+Remaining: probe reaches terminal → `--resume` into artifacts → validate →
+real `o3-deep-research` run on investing (`683a58c9a7e7fe4e76958498`) →
+rubric-eval vs aus_agent `sat-go`. If background mode stays broken, try
+synchronous `stream=True` (non-background) as the next workaround.

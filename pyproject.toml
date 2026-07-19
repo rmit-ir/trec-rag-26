@@ -34,6 +34,13 @@ aus-agent = [
 ali-deepresearch = [
     "openai>=1.60",
 ]
+# OpenAI o3-deep-research baseline (src/systems/o3_deep_research) — Responses
+# API runner + the ClimbMix MCP server (src/mcp) it grounds the agent on.
+o3-deep-research = [
+    "openai>=2.45",
+    "mcp>=1.10",
+    "uvicorn>=0.30",
+]
 notebook = [
     "pandas",
     "pyarrow",

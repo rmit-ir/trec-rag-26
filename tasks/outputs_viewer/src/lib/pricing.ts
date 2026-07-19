@@ -29,6 +29,9 @@ export const MODEL_PRICING: Record<string, ModelPrice> = {
   "gpt-5.6-luna": { input: 1.0, cacheRead: 0.1, output: 6.0 },
   "gpt-5.5": { input: 5.0, cacheRead: 0.5, output: 30.0 },
   "gpt-5.4": { input: 2.5, cacheRead: 0.25, output: 15.0 },
+  // Deep-research models (Responses API), standard tier — verified 2026-07-19.
+  "o3-deep-research": { input: 10.0, cacheRead: 2.5, output: 40.0 },
+  "o4-mini-deep-research": { input: 2.0, cacheRead: 0.5, output: 8.0 },
 };
 
 /** Look up a price, tolerating case and a leading provider prefix (e.g. "openai/"). */
