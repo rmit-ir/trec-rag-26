@@ -219,7 +219,7 @@ def _compact_output(tool_name: str, output: str, keep_full: set[str],
                 continue
             item = {
                 key: raw[key]
-                for key in ("rank", "id", "docid", "kind", "rrf_score")
+                for key in ("rank", "id", "docid", "kind", "score")
                 if key in raw
             }
             reason = (rejected_reasons or {}).get(docid)

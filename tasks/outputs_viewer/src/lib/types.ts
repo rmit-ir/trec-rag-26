@@ -114,6 +114,8 @@ export interface TraceStep {
 export interface TraceFile {
   schema_version?: string;
   metadata: Record<string, unknown>;
+  /** Harness settings the run was launched with (e.g. max_committed_per_step). */
+  config?: Record<string, unknown>;
   query_id?: string;
   status?: string;
   input?: unknown;

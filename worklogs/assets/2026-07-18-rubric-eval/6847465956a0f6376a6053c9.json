@@ -1,0 +1,241 @@
+{
+ "qid": "6847465956a0f6376a6053c9",
+ "slug": "20260718T214941748574+1000.i_am_planning_to_implement.output.json",
+ "n_criteria": 29,
+ "judgments": [
+  {
+   "i": 0,
+   "axis": "Explicit Criteria",
+   "weight": 3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "UART/I2C/SPI + memory listed, no wireless-module justification"
+  },
+  {
+   "i": 1,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "defines RISC/CISC + differences; OpenRISC example, no CISC example"
+  },
+  {
+   "i": 2,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 1,
+   "impossible": false,
+   "note": "power budget, cost, real-time control response"
+  },
+  {
+   "i": 3,
+   "axis": "Explicit Criteria",
+   "weight": 3.0,
+   "score": 1,
+   "impossible": false,
+   "note": "UART, I2C, SPI named"
+  },
+  {
+   "i": 4,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 1,
+   "impossible": false,
+   "note": "U-Boot, cross-compiler, device tree, drivers"
+  },
+  {
+   "i": 5,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1,
+   "impossible": false,
+   "note": "GCC, GNU/LLVM, Icarus, Verilator"
+  },
+  {
+   "i": 6,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "HAL/drivers/app described, no middleware layer"
+  },
+  {
+   "i": 7,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "U-Boot bootloader, no OTA/secure-boot updates"
+  },
+  {
+   "i": 8,
+   "axis": "Synthesis of Information",
+   "weight": 3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "RISC easier to verify, thermostat-constraint link light"
+  },
+  {
+   "i": 9,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "serial debug interface, no JTAG/SWD/GDB"
+  },
+  {
+   "i": 10,
+   "axis": "Communication Quality",
+   "weight": 2.0,
+   "score": 1,
+   "impossible": false,
+   "note": "prose breakdown of sensor/ADC/output stage"
+  },
+  {
+   "i": 11,
+   "axis": "Communication Quality",
+   "weight": 1.0,
+   "score": 1,
+   "impossible": false,
+   "note": "intro summarizes specs before details"
+  },
+  {
+   "i": 12,
+   "axis": "Explicit Criteria",
+   "weight": -5.0,
+   "score": 0,
+   "impossible": false,
+   "note": "stays on thermostat, no confusion"
+  },
+  {
+   "i": 13,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "says specify range, no numeric range"
+  },
+  {
+   "i": 14,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "cost noted, unit-cost factors thin"
+  },
+  {
+   "i": 15,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 1,
+   "impossible": false,
+   "note": "single-cycle/small-first simplicity emphasized"
+  },
+  {
+   "i": 16,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "invent-vs-existing-MCU, not IP-core granularity"
+  },
+  {
+   "i": 17,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0,
+   "impossible": false,
+   "note": "watchdog is safety not security"
+  },
+  {
+   "i": 18,
+   "axis": "Communication Quality",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "hysteresis example, no analogy"
+  },
+  {
+   "i": 19,
+   "axis": "Communication Quality",
+   "weight": 1.0,
+   "score": 1,
+   "impossible": false,
+   "note": "specs->ISA->impl->Linux->testing flow"
+  },
+  {
+   "i": 20,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "bare-metal vs Linux compared, no RTOS"
+  },
+  {
+   "i": 21,
+   "axis": "Explicit Criteria",
+   "weight": 4.0,
+   "score": 1,
+   "impossible": false,
+   "note": "unit + RTL + FPGA scenario testing"
+  },
+  {
+   "i": 22,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0,
+   "impossible": false,
+   "note": "no manufacturing/field/provisioning"
+  },
+  {
+   "i": 23,
+   "axis": "Explicit Criteria",
+   "weight": 3.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "invent-vs-off-shelf noted, no NRE/TTM economics"
+  },
+  {
+   "i": 24,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "cross-compile+C library, no Buildroot/Yocto/packages"
+  },
+  {
+   "i": 25,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "practical lifecycle path, no timeline"
+  },
+  {
+   "i": 26,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0,
+   "impossible": false,
+   "note": "caches/registers mentioned, no hierarchy impact"
+  },
+  {
+   "i": 27,
+   "axis": "Instruction Following",
+   "weight": -5.0,
+   "score": 0,
+   "impossible": false,
+   "note": "practical imperative tone, not academic"
+  },
+  {
+   "i": 28,
+   "axis": "Instruction Following",
+   "weight": -3.0,
+   "score": 0,
+   "impossible": false,
+   "note": "open-source throughout (OpenRISC/GCC/Linux)"
+  }
+ ],
+ "weighted_pct": 75.4,
+ "weighted_pct_possible": 75.4
+}

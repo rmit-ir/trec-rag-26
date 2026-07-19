@@ -76,9 +76,9 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
 
     ``search_engine`` picks the backend: ``semantic`` (default, dense only)
     or ``keyword`` (BM25 only). Each result is ``{rank, id, docid, kind,
-    rrf_score, text}``; the ``rrf_score`` key name is kept stable for
-    downstream consumers and holds the engine's native score (inner-product /
-    BM25). Text is truncated to ``max_chars``; pass ``None`` to preserve the
+    score, text}``; ``score`` is the engine's native score (inner-product /
+    BM25), so scores are not comparable across engines.
+    Text is truncated to ``max_chars``; pass ``None`` to preserve the
     complete text returned by the search backend. Errors are returned as
     ``{"error": "..."}`` rather than raised so the agent can react instead of
     crashing.
@@ -103,7 +103,7 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
             "id": h["id"],
             "docid": h["docid"],
             "kind": h["kind"],
-            "rrf_score": round(h["score"], 6),
+            "score": round(h["score"], 6),
             "text": text if max_chars is None else text[:max_chars],
         })
     return json.dumps({"query": query, "k": k, "results": results},

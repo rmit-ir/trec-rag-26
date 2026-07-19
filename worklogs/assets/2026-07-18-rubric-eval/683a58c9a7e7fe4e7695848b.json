@@ -1,0 +1,169 @@
+{
+ "qid": "683a58c9a7e7fe4e7695848b",
+ "slug": "20260718T214300569233+1000.i_m_currently_working_on.output.json",
+ "n_criteria": 20,
+ "judgments": [
+  {
+   "i": 0,
+   "axis": "Instruction Following",
+   "weight": -2.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "all six requested points present, none missing"
+  },
+  {
+   "i": 1,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "note snippet, medication/lab tables, diagnosis codes as EHR examples"
+  },
+  {
+   "i": 2,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "NER, ontology lookup, classification, regex/rules, transformers"
+  },
+  {
+   "i": 3,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "names Asian subgroups (Chinese/Filipino/Japanese) but not full 6/15/31 race list"
+  },
+  {
+   "i": 4,
+   "axis": "Synthesis of Information",
+   "weight": 1.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "crosswalk of EHR values to study/CDC categories before comparison"
+  },
+  {
+   "i": 5,
+   "axis": "Synthesis of Information",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "derives subgroups via NER on free text, structured race fields, documented crosswalk"
+  },
+  {
+   "i": 6,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "crude prevalence formula plus age/sex standardization; no logistic/meta-analysis"
+  },
+  {
+   "i": 7,
+   "axis": "Explicit Criteria",
+   "weight": 5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "Python/pandas/SQL, clinical NLP, epidemiology, privacy\u2014well over five"
+  },
+  {
+   "i": 8,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "mentions de-identification but not HIPAA Safe Harbor/Expert Determination mechanism"
+  },
+  {
+   "i": 9,
+   "axis": "Synthesis of Information",
+   "weight": 2.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "steps described but not one connected unstructured->subgroup->mapping->prevalence example"
+  },
+  {
+   "i": 10,
+   "axis": "Communication Quality",
+   "weight": 5.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "NLP, EHR, CDC WONDER, ICD, UMLS used without first-use expansion"
+  },
+  {
+   "i": 11,
+   "axis": "Synthesis of Information",
+   "weight": 3.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "contrasts structured fields with unstructured notes NLP must target"
+  },
+  {
+   "i": 12,
+   "axis": "Implicit Criteria",
+   "weight": -5.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "discusses privacy/de-identification generally but never names HIPAA"
+  },
+  {
+   "i": 13,
+   "axis": "Implicit Criteria",
+   "weight": 2.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "'transformer-based' mentioned but no named library (spaCy/nltk/scikit-learn)"
+  },
+  {
+   "i": 14,
+   "axis": "Instruction Following",
+   "weight": 1.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "'Your professor probably means...' directly clarifies for confused user"
+  },
+  {
+   "i": 15,
+   "axis": "Communication Quality",
+   "weight": -3.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "tasks in correct requested order"
+  },
+  {
+   "i": 16,
+   "axis": "References & Citation Quality",
+   "weight": 5.0,
+   "score": 0.5,
+   "impossible": false,
+   "note": "CDC WONDER, UMLS/SNOMED/ICD resources but no research publications/institutions"
+  },
+  {
+   "i": 17,
+   "axis": "Implicit Criteria",
+   "weight": 3.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "code-only inadequacy, undercounting, autoantibody not diagnostic"
+  },
+  {
+   "i": 18,
+   "axis": "Synthesis of Information",
+   "weight": -5.0,
+   "score": 1.0,
+   "impossible": false,
+   "note": "no reference to prior autoimmune prevalence studies in Asian subgroups"
+  },
+  {
+   "i": 19,
+   "axis": "Synthesis of Information",
+   "weight": 2.0,
+   "score": 0.0,
+   "impossible": false,
+   "note": "only RA and lupus named; far fewer than eight autoimmune diseases"
+  }
+ ],
+ "weighted_pct": 69.0,
+ "weighted_pct_possible": 69.0
+}

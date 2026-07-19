@@ -21,7 +21,7 @@ sys.path[:] = [entry for entry in sys.path if entry != _src_root]
 sys.path.insert(0, _src_root)
 
 from ragrun.outputs import data_dir
-from systems.aus_agent.agent import run_agent
+from systems.aus_agent.agent import DEFAULT_MAX_COMMITTED_PER_STEP, run_agent
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_TOPICS = (_REPO_ROOT / "data/official/trec-rag-2026-data/trec-rag-2026"
@@ -86,9 +86,10 @@ def main() -> None:
         help="runaway-loop safety backstop, not the normal research budget "
              "(default: 100)")
     ap.add_argument(
-        "--max-committed-per-step", type=int, default=6,
+        "--max-committed-per-step", type=int,
+        default=DEFAULT_MAX_COMMITTED_PER_STEP,
         help="maximum documents commit_context may retain from one staged "
-             "batch (default: 6)")
+             f"batch (default: {DEFAULT_MAX_COMMITTED_PER_STEP})")
     ap.add_argument("--run-id", default="aus-agent-dev")
     ap.add_argument(
         "--skip-existing", action="store_true",

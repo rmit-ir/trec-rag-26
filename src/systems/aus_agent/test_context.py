@@ -102,7 +102,7 @@ def _search_output(query: str, k: int = 10, **_: object) -> str:
                 "id": docid,
                 "docid": docid,
                 "kind": "document",
-                "rrf_score": 1 / rank,
+                "score": 1 / rank,
                 "text": f"full staged text for {docid}",
             }
             for rank, docid in enumerate(docids, 1)
@@ -228,7 +228,7 @@ class ContextLedgerTest(unittest.TestCase):
                     "id": "long",
                     "docid": "long",
                     "kind": "document",
-                    "rrf_score": 1.0,
+                    "score": 1.0,
                     "text": long_text,
                 }],
             })
@@ -259,7 +259,7 @@ class ContextLedgerTest(unittest.TestCase):
                     "id": "long",
                     "docid": "long",
                     "kind": "document",
-                    "rrf_score": 1.0,
+                    "score": 1.0,
                     "text": text,
                 }],
             })

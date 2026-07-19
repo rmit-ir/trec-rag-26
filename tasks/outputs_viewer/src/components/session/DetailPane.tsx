@@ -30,7 +30,7 @@ import CitationChip from "./CitationChip";
 import { StepIcon, stepKind, TruncText, useStepColor, type NodeSelection } from "./stepMeta";
 
 const STEP_TABS = ["details", "raw"] as const;
-const ANSWER_TABS = ["answer", "sentences", "raw", "feedback"] as const;
+const ANSWER_TABS = ["answer", "sentences", "config", "raw", "feedback"] as const;
 
 export function normalizeDtab(selection: NodeSelection, dtab: string | null): string {
   if (selection === "answer") {
@@ -329,6 +329,55 @@ function StepDetails({
   );
 }
 
+/**
+ * "Config" tab — run settings not surfaced anywhere else: the harness config
+ * (trace.config), provider settings (trace.metadata), and submission
+ * identifiers. The header chips already show model/run/status, but not these.
+ */
+function ConfigView({ output, trace }: { output: OutputFile; trace: TraceFile | null }) {
+  const sections: [string, Record<string, unknown>][] = [
+    ["Harness config", trace?.config ?? {}],
+    ["Provider", trace?.metadata ?? {}],
+    [
+      "Submission",
+      {
+        team_id: output.metadata?.team_id,
+        narrative_id: output.metadata?.narrative_id,
+        run_desc: output.metadata?.run_desc,
+      },
+    ],
+  ];
+  const rows = sections.flatMap(([section, obj]) =>
+    Object.entries(obj)
+      .filter(([, v]) => v !== undefined && v !== null && typeof v !== "object")
+      .map(([k, v]) => ({ section, k, v: String(v) })),
+  );
+  if (rows.length === 0) {
+    return (
+      <Typography color="text.secondary" variant="body2" sx={{ p: 1 }}>
+        No config recorded for this run.
+      </Typography>
+    );
+  }
+  return (
+    <Table size="small">
+      <TableBody>
+        {rows.map((r, i) => (
+          <TableRow key={r.section + r.k} hover>
+            <TableCell sx={{ width: 130, color: "text.secondary", verticalAlign: "top" }}>
+              {i === 0 || rows[i - 1].section !== r.section ? r.section : ""}
+            </TableCell>
+            <TableCell sx={{ width: 210, fontFamily: "monospace", verticalAlign: "top" }}>
+              {r.k}
+            </TableCell>
+            <TableCell sx={{ wordBreak: "break-word" }}>{r.v}</TableCell>
+          </TableRow>
+        ))}
+      </TableBody>
+    </Table>
+  );
+}
+
 /** "Sentences" tab — the raw sentence/citation table. */
 function SentencesTable({
   output,
@@ -548,6 +597,8 @@ export default function DetailPane({
             />
           ) : tab === "sentences" ? (
             <SentencesTable output={output} activeDoc={activeDoc} onOpenDoc={onOpenDoc} />
+          ) : tab === "config" ? (
+            <ConfigView output={output} trace={trace} />
           ) : tab === "raw" ? (
             <TruncText
               mono
