@@ -210,7 +210,69 @@ Probe response `resp_028a37c30f2aa9e9006a5c33be9ae08190aa981c8ef27de7db`
 still in_progress ~30 min in (final-generation phase or zombied — watcher
 armed; will cancel if it never terminates).
 
-Remaining: probe reaches terminal → `--resume` into artifacts → validate →
-real `o3-deep-research` run on investing (`683a58c9a7e7fe4e76958498`) →
-rubric-eval vs aus_agent `sat-go`. If background mode stays broken, try
-synchronous `stream=True` (non-background) as the next workaround.
+**Root cause found (reproduced 3/3): `max_tool_calls` + MCP.** The
+poll-500s / poisoned-stream failures all struck immediately after the run's
+8th tool call — exactly the `max_tool_calls=8` probe cap. Sub-experiments:
+sync stream + summaries died after call 8 (seq 714); sync stream without
+`reasoning.summary` died after call 8 too (summaries exonerated); **uncapped**
+sync stream ran 35 tool calls to completion. Conclusion: OpenAI's DR
+orchestrator crashes when a remote-MCP run hits `max_tool_calls` instead of
+gracefully forcing the answer. Run UNCAPPED, `--no-background` sync
+streaming. ("Cannot cancel a failed response" on the first probe id confirmed
+the runs had failed server-side while both read paths hid it.)
+
+Validation probe (o4-mini, uncapped, sync): **completed** — 84 items,
+5 search + 30 fetch, 27 cited sentences, 5 refs, no violations, 39.6K/14.4K
+tok = **$0.19**. Artifacts:
+`data/outputs/o3_deep_research/20260719T133002946828+1000.what_are_the_main_benefits.*`.
+
+### The real run: o3-deep-research on investing + rubric eval
+
+Run `o3-dr-investing` (`o3-deep-research`, uncapped, sync stream, summaries
+on, ClimbMix MCP only): **completed, no violations** — 58 items, 8 search +
+18 fetch, 47 sentences / 679 words, 7 refs, 42.6K in / 29.6K out =
+**$1.61**, ~6.5 min.
+`data/outputs/o3_deep_research/20260719T133726753816+1000.write_a_series_of_blog.*`.
+
+Rubric eval, same protocol as the 2026-07-18 sat-go batch (strict
+1.0/0.5/0.0 per criterion, answer text only, attainment =
+Σ(w·s)/Σ(w⁺) with penalty semantics). Judgments:
+`worklogs/assets/2026-07-19-rubric-eval-o3dr/683a58c9a7e7fe4e76958498.json`
+(31/31 criteria). Σ(w·s)=28.5 (incl. −3.0 triggered jargon penalty),
+Σ(w⁺)=84.0 → **33.9%**.
+
+| investing topic (qid …98) | o3-deep-research | aus_agent (sat-go, luna) |
+|---|---|---|
+| rubric attainment | **33.9%** | **35.1%** |
+| refs / sentences / words | 7 / 47 / 679 | 6 / 39 / 874 |
+| tool calls | 26 (8 search, 18 fetch) | 4 (3 search, 1 commit) |
+| latency | ~6.5 min | 21 s |
+| cost (list price) | $1.61 | $0.06 |
+
+**Headline: on its worst topic, our 21-second/$0.06 aus_agent statistically
+ties the frontier DR agent (35.1 vs 33.9) at 1/27th the cost and ~1/18th
+the wall-clock.** Single topic — not generalizable without the batch.
+
+Why both bottom out — and the eval-fairness caveats:
+
+- Both lose the same structural criteria: the rubric wants an actual blog
+  series (i=0/i=1, w=4 each), comparison tables (i=4/i=18), named indices
+  (i=24: S&P 500/Dow/Nasdaq), ETFs, brokers, tickers.
+- **o3's RAW report was a genuine 3-post, 6,358-word blog series with
+  headings** — our `format_answer` stage compressed it ~10× into the track's
+  flat cited-sentence format, destroying the structural criteria. That's a
+  pipeline artifact, not an o3 failure (aus_agent natively writes in track
+  format, so it wasn't equivalently penalized).
+- But the **named-specifics gaps are real**: grep of the raw 6,358-word
+  report finds zero mentions of S&P/Nasdaq/ETF/Vanguard/Fidelity/tickers —
+  o3 never surfaced them from ClimbMix. Those misses (~12+ weight) stand
+  regardless of formatting.
+- Judge caveat: different judge instance than the sat-go batch (same
+  protocol/strictness, and the sat-go per-criterion file for this qid exists
+  for spot-comparison).
+
+Follow-ups worth considering: (a) preserve report structure through
+`format_answer` (or judge raw reports for both systems as a secondary
+number); (b) the full 30-topic o3 batch (~$48 at this rate) for a real
+distribution; (c) file the max_tool_calls+MCP crash with OpenAI (request ids
+in this log).
