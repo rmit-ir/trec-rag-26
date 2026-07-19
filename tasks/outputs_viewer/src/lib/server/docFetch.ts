@@ -4,6 +4,7 @@ import {
   denseBasicToken,
   pyseriniBaseUrl,
   pyseriniToken,
+  sparseDocUrl,
 } from "./env";
 import { isChunkId, parentDocid, type DocResult } from "@/lib/types";
 
@@ -35,6 +36,31 @@ async function fetchDense(docid: string): Promise<string | null> {
   return typeof data.text === "string" ? data.text : null;
 }
 
+/**
+ * Doc-by-id on the sparse (BM25) server. Tolerant to the response shapes the
+ * proxy might use ({text} | {doc} | {contents} | ES {_source:{contents}}).
+ * Returns null while the proxy lacks the route (404 today).
+ */
+async function fetchSparse(docid: string): Promise<string | null> {
+  const token = denseBasicToken(); // same SEARCH_API_KEY guards both dsync services
+  const headers: Record<string, string> = { "User-Agent": UA };
+  if (token) headers.Authorization = `Basic ${token}`;
+  const res = await fetch(`${sparseDocUrl()}/${encodeURIComponent(docid)}`, {
+    headers,
+    signal: AbortSignal.timeout(TIMEOUT_MS),
+    cache: "no-store",
+  });
+  if (!res.ok) return null;
+  const data = (await res.json()) as {
+    text?: string;
+    doc?: string;
+    contents?: string;
+    _source?: { contents?: string };
+  };
+  const text = data.text ?? data.doc ?? data.contents ?? data._source?.contents;
+  return typeof text === "string" ? text : null;
+}
+
 async function fetchPyserini(docid: string): Promise<string | null> {
   const token = pyseriniToken();
   const headers: Record<string, string> = { "User-Agent": UA };
@@ -58,8 +84,47 @@ async function fetchPyserini(docid: string): Promise<string | null> {
  * attempted as-is first, then fall back to the parent docid. Pyserini
  * (Bearer token) is the fallback when the dense endpoint is unavailable.
  */
-export async function fetchDoc(requestedId: string): Promise<DocResult | null> {
-  const hit = cache.get(requestedId);
+/**
+ * Fetch the FULL parent document. Only doc-level (sparse-side) indexes hold
+ * whole documents — the dense index is (becoming) page-only — so this tries
+ * our sparse BM25 server's doc-by-id first, then the official Pyserini REST
+ * API. Page ids (`_p<n>`) resolve to their parent docid first.
+ */
+export async function fetchFullDoc(requestedId: string): Promise<DocResult | null> {
+  const cacheKey = `full:${requestedId}`;
+  const hit = cache.get(cacheKey);
+  if (hit) return hit;
+
+  const parent = parentDocid(requestedId);
+  for (const source of ["sparse", "pyserini"] as const) {
+    try {
+      const text =
+        source === "sparse" ? await fetchSparse(parent) : await fetchPyserini(parent);
+      if (text != null) {
+        const result: DocResult = {
+          requestedId,
+          resolvedId: parent,
+          kind: "document",
+          source,
+          parentFallback: isChunkId(requestedId),
+          text,
+        };
+        cachePut(cacheKey, result);
+        return result;
+      }
+    } catch {
+      // unreachable backend — try the next source
+    }
+  }
+  return null;
+}
+
+export async function fetchDoc(
+  requestedId: string,
+  prefer?: "sparse" | "dense",
+): Promise<DocResult | null> {
+  const cacheKey = prefer ? `${prefer}:${requestedId}` : requestedId;
+  const hit = cache.get(cacheKey);
   if (hit) return hit;
 
   const chunk = isChunkId(requestedId);
@@ -73,11 +138,23 @@ export async function fetchDoc(requestedId: string): Promise<DocResult | null> {
       ]
     : [{ id: requestedId, parentFallback: false }];
 
-  for (const source of ["dense", "pyserini"] as const) {
+  // Lead with the engine that actually retrieved the unit: a keyword hit is
+  // served by the sparse side, a semantic hit by the dense endpoint. The
+  // Pyserini REST API is the always-available fallback.
+  const sources: ("sparse" | "dense" | "pyserini")[] =
+    prefer === "sparse"
+      ? ["sparse", "pyserini", "dense"]
+      : ["dense", "pyserini"];
+
+  for (const source of sources) {
     for (const c of candidates) {
       try {
         const text =
-          source === "dense" ? await fetchDense(c.id) : await fetchPyserini(c.id);
+          source === "dense"
+            ? await fetchDense(c.id)
+            : source === "sparse"
+              ? await fetchSparse(c.id)
+              : await fetchPyserini(c.id);
         if (text != null) {
           const result: DocResult = {
             requestedId,
@@ -87,7 +164,7 @@ export async function fetchDoc(requestedId: string): Promise<DocResult | null> {
             parentFallback: c.parentFallback,
             text,
           };
-          cachePut(requestedId, result);
+          cachePut(cacheKey, result);
           return result;
         }
       } catch {

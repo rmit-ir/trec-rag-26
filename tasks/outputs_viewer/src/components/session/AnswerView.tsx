@@ -20,12 +20,15 @@ export default function AnswerView({
   system,
   sessionId,
   output,
+  fullRefs,
   activeDoc,
   onOpenDoc,
 }: {
   system: string;
   sessionId: string;
   output: OutputFile;
+  /** Full retrieval-unit ids (with _p<n> page suffix) parallel to references. */
+  fullRefs?: string[];
   activeDoc: string | null;
   onOpenDoc: (docid: string) => void;
 }) {
@@ -34,6 +37,8 @@ export default function AnswerView({
     [output.answer],
   );
   const refs = output.references ?? [];
+  // Prefer the page-precise id for display/sidebar; docid is the fallback.
+  const refId = (i: number): string | undefined => fullRefs?.[i] ?? refs[i];
 
   const wordCount = React.useMemo(
     () => countAnswerWords(output.answer ?? []),
@@ -107,8 +112,8 @@ export default function AnswerView({
                       <CitationChip
                         key={`${s.sentenceIndex}-${c}`}
                         index={c}
-                        docid={refs[c]}
-                        active={activeDoc != null && refs[c] === activeDoc}
+                        docid={refId(c)}
+                        active={activeDoc != null && refId(c) === activeDoc}
                         onOpen={onOpenDoc}
                       />
                     ))}
@@ -136,8 +141,8 @@ export default function AnswerView({
           <CitationChip
             key={docid + i}
             index={i}
-            docid={docid}
-            active={activeDoc === docid}
+            docid={refId(i)}
+            active={activeDoc != null && refId(i) === activeDoc}
             onOpen={onOpenDoc}
           />
         ))}

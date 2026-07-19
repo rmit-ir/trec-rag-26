@@ -145,7 +145,7 @@ export interface DocResult {
   resolvedId: string;
   kind: "document" | "chunk";
   /** which backend actually served the text */
-  source: "dense" | "pyserini";
+  source: "dense" | "sparse" | "pyserini";
   /** true when a chunk id fell back to fetching its parent document */
   parentFallback: boolean;
   text: string;

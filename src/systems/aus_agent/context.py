@@ -59,6 +59,9 @@ class ContextLedger:
     pending: list[StagedResult] = field(default_factory=list)
     committed_docids: set[str] = field(default_factory=set)
     rejected_docids: set[str] = field(default_factory=set)
+    # docid -> full retrieval-unit id (e.g. shard_x_y -> shard_x_y_p2); the
+    # strict output cites doc-level ids, the trace keeps the precise unit.
+    committed_full_ids: dict[str, str] = field(default_factory=dict)
 
     def stage(self, call_id: str, tool_name: str, output: str,
               documents: list[dict[str, Any]]) -> None:
@@ -188,6 +191,7 @@ class ContextLedger:
                 metadata["commit_reason"] = reason
             document["metadata"] = metadata
             selected_documents.append(document)
+            self.committed_full_ids[docid] = str(document.get("id") or docid)
 
         return CommitDecision(
             staged=staged,

@@ -146,6 +146,33 @@ export default function SessionView({
   );
   const answerSummary =
     data.output.answer?.[0]?.text ?? data.output.metadata?.narrative ?? "";
+  // Which engine surfaced each doc: keyword searches → sparse, else dense.
+  // First retrieval wins; the doc sidebar fetches from that same source.
+  // (Plain computation — this sits below an early return, so no hooks.)
+  const docSources = new Map<string, "sparse" | "dense">();
+  for (const step of steps) {
+    if (step.type !== "tool_call" || step.tool_name !== "search") continue;
+    let args: unknown = step.arguments;
+    if (typeof args === "string") {
+      try {
+        args = JSON.parse(args);
+      } catch {
+        args = {};
+      }
+    }
+    const engine =
+      (args as { search_engine?: string } | null)?.search_engine === "keyword"
+        ? ("sparse" as const)
+        : ("dense" as const);
+    const ids = [
+      ...(step.returned_docids ?? []),
+      ...(((step.output as { results?: { id?: string }[] } | undefined)
+        ?.results ?? [])
+        .map((r) => r.id)
+        .filter((x): x is string => typeof x === "string")),
+    ];
+    for (const id of ids) if (!docSources.has(id)) docSources.set(id, engine);
+  }
 
   return (
     <Box>
@@ -295,7 +322,13 @@ export default function SessionView({
           onOpenDoc={openDoc}
         />
         {doc ? (
-          <DocSidebar docid={doc} system={system} sessionId={sessionId} onClose={closeDoc} />
+          <DocSidebar
+            docid={doc}
+            source={docSources.get(doc)}
+            system={system}
+            sessionId={sessionId}
+            onClose={closeDoc}
+          />
         ) : null}
       </Box>
     </Box>

@@ -90,6 +90,7 @@ class OpenAIProvider(Provider):
                 max_output_tokens=self.max_tokens,
                 store=False,
                 include=["reasoning.encrypted_content"],
+                reasoning={"summary": "auto"},
             )
             blocks: list[dict[str, Any]] = []
             reasoning_blocks: list[str] = []

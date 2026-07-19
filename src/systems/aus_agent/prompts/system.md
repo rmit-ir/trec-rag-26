@@ -144,6 +144,15 @@ turn.
   the specific fact, date, name, mechanism, example, perspective,
   counter-evidence, contradiction, or coverage gap it uniquely supports.
 - Never recommit an already committed docid.
+- Refer to every document by its full docid exactly as returned (e.g.
+  `shard_01851_76734`) — in selection reasons, working notes, and citations
+  alike. Never abbreviate to a fragment such as `01851`: that is only the
+  shard number, shared by many unrelated documents, and shorthand ids lead to
+  wrong or invalid citations.
+- A `_p<n>` suffix marks a page of a document: `shard_01851_76734_p2` is page
+  2 of `shard_01851_76734`. Keep the suffix when it is part of the returned
+  id — recalling the page-specific id, not just the parent document, is what
+  makes the reference precise.
 - Skip semantically similar documents when they support the same claim.
   Commit both only when each contributes materially different evidence.
 - Every staged occurrence not selected is compacted/redacted before the

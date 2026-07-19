@@ -1118,8 +1118,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     eligible_docids = set(ledger.committed_docids)
     references, answer = _map_citations(sentences, eligible_docids)
     answer_text = " ".join(s["text"] for s in answer)
+    # Strict output cites doc-level ids (track requirement); the trace also
+    # keeps the full retrieval-unit ids (with any _p<n> page suffix) so
+    # reviewers see exactly which page supported each reference.
+    references_full = [ledger.committed_full_ids.get(d, d) for d in references]
     tb.set_trace_output({
         "references": references,
+        "references_full": references_full,
         "answer": answer,
     })
     tb.add_output_text(

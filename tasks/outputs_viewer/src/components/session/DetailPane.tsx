@@ -27,6 +27,7 @@ import { fmtMelbourne } from "@/lib/time";
 import type { FeedbackRecord, OutputFile, TraceFile, TraceStep } from "@/lib/types";
 import AnswerView from "./AnswerView";
 import CitationChip from "./CitationChip";
+import Markdown from "./Markdown";
 import { StepIcon, stepKind, TruncText, useStepColor, type NodeSelection } from "./stepMeta";
 
 const STEP_TABS = ["details", "raw"] as const;
@@ -93,6 +94,15 @@ function StepDetails({
     step.output != null &&
     step.output !== "" &&
     !(typeof step.output === "object" && Object.keys(step.output as object).length === 0);
+  const reasoningTexts: string[] =
+    step.type === "generation" &&
+    step.output != null &&
+    typeof step.output === "object" &&
+    Array.isArray((step.output as { reasoning?: unknown }).reasoning)
+      ? ((step.output as { reasoning: unknown[] }).reasoning.filter(
+          (r): r is string => typeof r === "string" && r.trim() !== "",
+        ))
+      : [];
 
   return (
     <Stack spacing={1.5}>
@@ -280,6 +290,19 @@ function StepDetails({
         </Box>
       ) : null}
 
+      {reasoningTexts.length > 0 ? (
+        <Box>
+          <Typography variant="overline" color="text.secondary">
+            Generation reasoning
+          </Typography>
+          <Stack spacing={0.75}>
+            {reasoningTexts.map((t, i) => (
+              <Markdown key={i} text={t} />
+            ))}
+          </Stack>
+        </Box>
+      ) : null}
+
       {hasOutput ? (
         <Box>
           <Typography variant="overline" color="text.secondary">
@@ -291,15 +314,19 @@ function StepDetails({
                   ? "Generation output"
                   : "Tool output"}
           </Typography>
-          <TruncText
-            text={
-              typeof step.output === "string"
-                ? step.output
-                : JSON.stringify(step.output, null, 2)
-            }
-            mono={step.type === "tool_call" || typeof step.output === "object"}
-            limit={step.type === "tool_call" ? 500 : 1800}
-          />
+          {step.type === "reasoning" && typeof step.output === "string" ? (
+            <Markdown text={step.output} />
+          ) : (
+            <TruncText
+              text={
+                typeof step.output === "string"
+                  ? step.output
+                  : JSON.stringify(step.output, null, 2)
+              }
+              mono={step.type === "tool_call" || typeof step.output === "object"}
+              limit={step.type === "tool_call" ? 500 : 1800}
+            />
+          )}
         </Box>
       ) : null}
 
@@ -568,6 +595,9 @@ export default function DetailPane({
       <Tabs
         value={tab}
         onChange={(_e, v) => onDtabChange(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
         sx={{ px: 1, minHeight: 36, borderBottom: 1, borderColor: "divider" }}
       >
         {(selection === "answer" ? ANSWER_TABS : STEP_TABS).map((t) => (
@@ -592,6 +622,10 @@ export default function DetailPane({
               system={system}
               sessionId={sessionId}
               output={output}
+              fullRefs={
+                (trace?.output as { references_full?: string[] } | undefined)
+                  ?.references_full
+              }
               activeDoc={activeDoc}
               onOpenDoc={onOpenDoc}
             />
