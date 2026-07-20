@@ -39,7 +39,7 @@ except ImportError:  # pragma: no cover
 
 from .base import ModelTurn, Provider
 
-DEFAULT_MODEL_ID = "gpt-5.6-terra"
+DEFAULT_MODEL_ID = "gpt-5.6-luna"
 # Mirror of bedrock.py's guard: a turn with no text and no tool calls is
 # unusable (the loop would stall), so ask again rather than append it.
 EMPTY_RESPONSE_RETRIES = 3
@@ -90,6 +90,7 @@ class OpenAIProvider(Provider):
                 max_output_tokens=self.max_tokens,
                 store=False,
                 include=["reasoning.encrypted_content"],
+                reasoning={"summary": "auto"},
             )
             blocks: list[dict[str, Any]] = []
             reasoning_blocks: list[str] = []

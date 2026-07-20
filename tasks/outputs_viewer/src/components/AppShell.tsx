@@ -18,6 +18,7 @@ import LightModeIcon from "@mui/icons-material/LightModeOutlined";
 import SettingsBrightnessIcon from "@mui/icons-material/SettingsBrightnessOutlined";
 import PersonIcon from "@mui/icons-material/PersonOutline";
 import TravelExploreIcon from "@mui/icons-material/TravelExplore";
+import MenuIcon from "@mui/icons-material/Menu";
 import { useColorScheme } from "@mui/material/styles";
 import { useIdentity } from "@/lib/client/identity";
 import IdentityGate from "./IdentityGate";
@@ -96,27 +97,72 @@ function UserBadge() {
   );
 }
 
+function isNavActive(pathname: string, href: string): boolean {
+  return (
+    pathname === href ||
+    pathname.startsWith(href + "/") ||
+    (href === "/systems" && pathname.startsWith("/session/"))
+  );
+}
+
+/** Hamburger nav for narrow screens (hidden on md+). */
+function MobileNav({ pathname }: { pathname: string }) {
+  const [anchor, setAnchor] = React.useState<null | HTMLElement>(null);
+  return (
+    <Box sx={{ display: { xs: "flex", md: "none" }, alignItems: "center" }}>
+      <IconButton
+        size="small"
+        color="inherit"
+        aria-label="Open navigation menu"
+        onClick={(e) => setAnchor(e.currentTarget)}
+      >
+        <MenuIcon fontSize="small" />
+      </IconButton>
+      <Menu anchorEl={anchor} open={Boolean(anchor)} onClose={() => setAnchor(null)}>
+        {NAV.map((item) => (
+          <MenuItem
+            key={item.href}
+            component={Link}
+            href={item.href}
+            selected={isNavActive(pathname, item.href)}
+            onClick={() => setAnchor(null)}
+          >
+            {item.label}
+          </MenuItem>
+        ))}
+      </Menu>
+    </Box>
+  );
+}
+
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   return (
     <Box sx={{ display: "flex", flexDirection: "column", minHeight: "100vh" }}>
       <AppBar position="sticky" color="inherit">
-        <Toolbar variant="dense" sx={{ gap: 1 }}>
-          <TravelExploreIcon color="primary" sx={{ mr: 0.5 }} />
+        <Toolbar variant="dense" sx={{ gap: { xs: 0.5, md: 1 }, minWidth: 0 }}>
+          <MobileNav pathname={pathname} />
+          <TravelExploreIcon color="primary" sx={{ mr: 0.5, display: { xs: "none", sm: "block" } }} />
           <Typography
-            variant="h6"
             component={Link}
             href="/systems"
-            sx={{ color: "inherit", textDecoration: "none", mr: 2, whiteSpace: "nowrap" }}
+            sx={{
+              color: "inherit",
+              textDecoration: "none",
+              mr: { xs: 1, md: 2 },
+              whiteSpace: "nowrap",
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontSize: { xs: "1rem", md: "1.25rem" },
+              fontWeight: 500,
+              minWidth: 0,
+            }}
           >
-            RAG Outputs Viewer
+            RMIT-IR
           </Typography>
-          <Box sx={{ display: "flex", gap: 0.5, flexGrow: 1 }}>
+          <Box sx={{ display: { xs: "none", md: "flex" }, gap: 0.5, flexGrow: 1 }}>
             {NAV.map((item) => {
-              const active =
-                pathname === item.href ||
-                pathname.startsWith(item.href + "/") ||
-                (item.href === "/systems" && pathname.startsWith("/session/"));
+              const active = isNavActive(pathname, item.href);
               return (
                 <Button
                   key={item.href}
@@ -136,6 +182,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               );
             })}
           </Box>
+          <Box sx={{ flexGrow: 1, display: { xs: "block", md: "none" } }} />
           <UserBadge />
           <ThemeToggle />
         </Toolbar>

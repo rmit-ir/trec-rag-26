@@ -1,6 +1,9 @@
 import "server-only";
 import { spawn, type ChildProcess } from "node:child_process";
 import { randomUUID } from "node:crypto";
+import { createWriteStream, mkdirSync, type WriteStream } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { REPO_ROOT, getEnv } from "./env";
 import type { RunRecord, RunStatus } from "@/lib/types";
 
@@ -46,6 +49,27 @@ interface LiveRun {
   child: ChildProcess;
   timer: NodeJS.Timeout;
   killTimer?: NodeJS.Timeout;
+  logStream?: WriteStream;
+}
+
+/** Directory under the system tmp dir holding one full log file per run. */
+function logDir(): string {
+  return path.join(tmpdir(), "aus_agent_runs");
+}
+
+/**
+ * Open the per-run log file. Best-effort: a failure to open (odd tmp perms,
+ * disk full) must not block the run itself, so it degrades to tail-only.
+ */
+function openLogFile(runId: string): { stream: WriteStream; logPath: string } | null {
+  try {
+    const dir = logDir();
+    mkdirSync(dir, { recursive: true });
+    const logPath = path.join(dir, `${runId}.log`);
+    return { stream: createWriteStream(logPath, { flags: "a" }), logPath };
+  } catch {
+    return null;
+  }
 }
 
 interface Registry {
@@ -123,6 +147,17 @@ function finish(reg: Registry, id: string, status: RunStatus, patch: Partial<Run
     status,
     endedAt: Date.now(),
   };
+  if (run.logStream) {
+    run.logStream.end(
+      `# run ${record.runId} finished ${new Date().toISOString()} status=${status}` +
+        `${record.error ? ` error=${record.error}` : ""}\n`,
+    );
+  }
+  const summary =
+    `[aus_agent ${record.runId}] finished status=${status}` +
+    `${record.error ? ` error=${record.error}` : ""}` +
+    `${record.logPath ? ` log=${record.logPath}` : ""}`;
+  (status === "completed" ? console.log : console.error)(summary);
   reg.history.push(record);
   if (reg.history.length > HISTORY_LIMIT) reg.history.splice(0, reg.history.length - HISTORY_LIMIT);
 }
@@ -180,13 +215,24 @@ export function startRun(query: string): StartRunResult {
   try {
     child = spawn(bin, argv, {
       cwd: REPO_ROOT,
-      env: process.env, // inherit verbatim — boto3 resolves creds on its own
+      // Inherit verbatim — boto3 resolves creds on its own. PYTHONUNBUFFERED
+      // defeats python's block-buffering on piped stdout so logs stream live.
+      env: { ...process.env, PYTHONUNBUFFERED: "1" },
       stdio: ["ignore", "pipe", "pipe"],
       detached: true, // own process group, so we can kill the whole tree
     });
   } catch (e) {
     return { ok: false, error: `spawn failed: ${String(e)}`, status: 500 };
   }
+
+  const logFile = openLogFile(runId);
+  logFile?.stream.write(
+    `# aus_agent run ${runId} started ${new Date().toISOString()}\n# query: ${trimmed}\n`,
+  );
+  console.log(
+    `[aus_agent ${runId}] started pid=${child.pid}` +
+      `${logFile ? ` log=${logFile.logPath}` : ""}`,
+  );
 
   const record: RunRecord = {
     id,
@@ -197,6 +243,7 @@ export function startRun(query: string): StartRunResult {
     startedAt: Date.now(),
     pid: child.pid ?? null,
     logTail: [],
+    logPath: logFile?.logPath,
   };
 
   const timer = setTimeout(() => {
@@ -209,13 +256,21 @@ export function startRun(query: string): StartRunResult {
     run.killTimer = setTimeout(() => killGroup(run.child, "SIGKILL"), KILL_GRACE_MS);
   }, timeoutMs());
 
-  const live: LiveRun = { record, child, timer };
+  const live: LiveRun = { record, child, timer, logStream: logFile?.stream };
   reg.live.set(id, live);
 
+  const onChunk = (c: string) => {
+    appendLog(record, c);
+    logFile?.stream.write(c);
+    // Echo to the Next.js server console so failures are visible in `pnpm start`.
+    for (const line of c.split(/\r?\n/)) {
+      if (line) console.log(`[aus_agent ${runId}]`, line);
+    }
+  };
   child.stdout?.setEncoding("utf8");
-  child.stdout?.on("data", (c: string) => appendLog(record, c));
+  child.stdout?.on("data", onChunk);
   child.stderr?.setEncoding("utf8");
-  child.stderr?.on("data", (c: string) => appendLog(record, c));
+  child.stderr?.on("data", onChunk);
 
   child.on("error", (err) => {
     finish(reg, id, "failed", { error: String(err) });

@@ -19,6 +19,7 @@ import DetailPane from "./DetailPane";
 import DocSidebar from "./DocSidebar";
 import type { NodeSelection } from "./stepMeta";
 import { fmtDuration } from "@/lib/gantt";
+import { computeCost, fmtUsd } from "@/lib/pricing";
 
 function withCumulativeTokenUsage(steps: TraceStep[]): TraceStep[] {
   const keys: (keyof TokenStats)[] = [
@@ -139,8 +140,39 @@ export default function SessionView({
   const latestBudgetStats = [...steps]
     .reverse()
     .find((step) => step.stats?.context_tokens != null)?.stats;
+  const cost = computeCost(
+    typeof meta.model === "string" ? meta.model : null,
+    runTokens,
+  );
   const answerSummary =
     data.output.answer?.[0]?.text ?? data.output.metadata?.narrative ?? "";
+  // Which engine surfaced each doc: keyword searches → sparse, else dense.
+  // First retrieval wins; the doc sidebar fetches from that same source.
+  // (Plain computation — this sits below an early return, so no hooks.)
+  const docSources = new Map<string, "sparse" | "dense">();
+  for (const step of steps) {
+    if (step.type !== "tool_call" || step.tool_name !== "search") continue;
+    let args: unknown = step.arguments;
+    if (typeof args === "string") {
+      try {
+        args = JSON.parse(args);
+      } catch {
+        args = {};
+      }
+    }
+    const engine =
+      (args as { search_engine?: string } | null)?.search_engine === "keyword"
+        ? ("sparse" as const)
+        : ("dense" as const);
+    const ids = [
+      ...(step.returned_docids ?? []),
+      ...(((step.output as { results?: { id?: string }[] } | undefined)
+        ?.results ?? [])
+        .map((r) => r.id)
+        .filter((x): x is string => typeof x === "string")),
+    ];
+    for (const id of ids) if (!docSources.has(id)) docSources.set(id, engine);
+  }
 
   return (
     <Box>
@@ -157,7 +189,11 @@ export default function SessionView({
           >
             {system}
           </MuiLink>
-          <Typography color="text.primary" variant="body2" sx={{ fontFamily: "monospace" }}>
+          <Typography
+            color="text.primary"
+            variant="body2"
+            sx={{ fontFamily: "monospace", wordBreak: "break-all" }}
+          >
             {sessionId}
           </Typography>
         </Breadcrumbs>
@@ -195,6 +231,20 @@ export default function SessionView({
             variant="outlined"
             label={`processed: ${processedTokens.toLocaleString()} tok`}
             title={`Processed input ${processedInputTokens.toLocaleString()} + generated output ${generatedOutputTokens.toLocaleString()}`}
+          />
+        ) : null}
+        {cost ? (
+          <Chip
+            size="small"
+            color="success"
+            variant="outlined"
+            label={`cost: ${fmtUsd(cost.total)}`}
+            title={
+              `Full-price input ${fmtUsd(cost.fullInput)} + ` +
+              `cached input ${fmtUsd(cost.cachedInput)} + ` +
+              `output ${fmtUsd(cost.output)}  ·  ` +
+              `${typeof meta.model === "string" ? meta.model : "?"} list price`
+            }
           />
         ) : null}
         {latestBudgetStats?.context_tokens != null &&
@@ -272,7 +322,13 @@ export default function SessionView({
           onOpenDoc={openDoc}
         />
         {doc ? (
-          <DocSidebar docid={doc} system={system} sessionId={sessionId} onClose={closeDoc} />
+          <DocSidebar
+            docid={doc}
+            source={docSources.get(doc)}
+            system={system}
+            sessionId={sessionId}
+            onClose={closeDoc}
+          />
         ) : null}
       </Box>
     </Box>

@@ -200,12 +200,14 @@ function SystemsBrowser() {
           widen this column past the viewport instead of ellipsizing. */}
       <Paper variant="outlined" sx={{ minWidth: 0 }}>
         <Stack
-          direction="row"
-          alignItems="center"
+          direction={{ xs: "column", sm: "row" }}
+          alignItems={{ xs: "stretch", sm: "center" }}
           justifyContent="space-between"
+          flexWrap="wrap"
+          useFlexGap
           sx={{ px: 2, pt: 1.5, pb: 0.5, gap: 1 }}
         >
-          <Typography variant="overline" sx={{ color: "text.secondary", flexShrink: 0 }}>
+          <Typography variant="overline" sx={{ color: "text.secondary", minWidth: 0 }}>
             {selected ?? "Sessions"} — {hasMore ? `${visibleCount} of ${sessions.length}` : sessions.length} session
             {sessions.length === 1 ? "" : "s"}
             {runId ? ` of ${systemSessions.length}` : ""}
@@ -217,7 +219,7 @@ function SystemsBrowser() {
               label="Run"
               value={runId ?? ""}
               onChange={(e) => set("runId", e.target.value || null)}
-              sx={{ minWidth: 200, ml: "auto" }}
+              sx={{ minWidth: { xs: 0, sm: 200 }, width: { xs: "100%", sm: "auto" }, ml: { sm: "auto" } }}
             >
               <MenuItem value="">
                 <em>All runs</em>

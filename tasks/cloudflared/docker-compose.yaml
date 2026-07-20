@@ -1,0 +1,51 @@
+services:
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: always
+    command: tunnel --no-autoupdate run --token ${TUNNEL_TOKEN}
+    networks:
+      - public
+      - default
+  proxy:
+    image: ipepe/nginx-basic-auth:latest
+    restart: unless-stopped
+    environment:
+      BASIC_AUTH_USERNAME: rmitir
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD}
+      PROXY_PASS: http://172.17.0.1:28088
+      PORT: "80"
+      CLIENT_MAX_BODY_SIZE: 20m
+      PROXY_READ_TIMEOUT: 600s
+      WORKER_PROCESSES: auto
+    networks:
+      - public
+  proxy-sparse:
+    image: ipepe/nginx-basic-auth:latest
+    restart: unless-stopped
+    environment:
+      BASIC_AUTH_USERNAME: rmitir
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD}
+      PROXY_PASS: http://172.17.0.1:28085
+      PORT: "80"
+      CLIENT_MAX_BODY_SIZE: 20m
+      PROXY_READ_TIMEOUT: 600s
+      WORKER_PROCESSES: auto
+    networks:
+      - public
+  proxy-viewer:
+    image: ipepe/nginx-basic-auth:latest
+    restart: unless-stopped
+    environment:
+      BASIC_AUTH_USERNAME: rmitir
+      BASIC_AUTH_PASSWORD: ${BASIC_AUTH_PASSWORD}
+      PROXY_PASS: http://172.17.0.1:3618
+      PORT: "80"
+      CLIENT_MAX_BODY_SIZE: 20m
+      PROXY_READ_TIMEOUT: 600s
+      WORKER_PROCESSES: auto
+    networks:
+      - public
+networks:
+  # docker network create public
+  public:
+    external: true

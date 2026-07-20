@@ -45,6 +45,17 @@ export function pyseriniToken(): string | undefined {
   return getEnv("PYSERINI_API_TOKEN");
 }
 
+export const DEFAULT_SPARSE_DOC_URL =
+  "https://index-climbmix-bm25.dsync.net/api/search/doc";
+
+/**
+ * Doc-by-id endpoint on the sparse (BM25) server; {docid} is appended.
+ * Returns an ES-style hit ({_source:{contents}}). Override via SPARSE_DOC_URL.
+ */
+export function sparseDocUrl(): string {
+  return (getEnv("SPARSE_DOC_URL", DEFAULT_SPARSE_DOC_URL) as string).replace(/\/+$/, "");
+}
+
 /** HTTP Basic token from SEARCH_API_KEY ("user:pass" auto-encoded, else as-is). */
 export function denseBasicToken(): string | undefined {
   const key = getEnv("SEARCH_API_KEY");

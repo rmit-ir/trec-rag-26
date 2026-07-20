@@ -19,6 +19,7 @@ tools and explicitly retained by the agent.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
@@ -75,6 +76,9 @@ Research request:
 
 {query}
 """
+
+
+log = logging.getLogger(__name__)
 
 
 def now_full(now: datetime | None = None) -> str:
@@ -494,6 +498,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "temperature": None,  # sampling params not sent (removed on 4.6+)
         "run_id": run_id,
     })
+    log.info("[%s] starting: backend=%s model=%s k=%d run_id=%s budget=%d",
+             query_id, backend, provider.model_id, k, run_id,
+             context_token_budget)
     seen_docids: set[str] = set()
     ledger = ContextLedger()
     status = "completed"
@@ -741,6 +748,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             )
             save_partial()
             calls = turn["tool_calls"]
+            log.info("[%s] round %d: turn %s took %.1fs, context %s tok, "
+                     "%d tool call(s)", query_id, rounds, ti,
+                     last_turn[3] / 1000, f"{context_tokens:,}", len(calls))
             commit_calls = [
                 call for call in calls if call["name"] == "commit_context"]
 
@@ -884,6 +894,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     "safety_max_rounds"
                     if safety_hit else "generation_context_tokens")
                 finishing = True
+                log.info("[%s] budget reached (%s); finishing",
+                         query_id, stop_reason)
                 generation_step = next(
                     step for step in tb.trace_steps
                     if step["id"] == generation_id)
@@ -899,6 +911,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     sentences = candidate
                     repairs = notes
                     break
+                log.info("[%s] final report rejected: %s",
+                         query_id, "; ".join(validation_errors))
                 if any(error.startswith(_UNCITED_ERRORS)
                        for error in validation_errors):
                     uncited_refusals += 1
@@ -1013,6 +1027,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 result_by_id[call["id"]] = {
                     "id": call["id"], "content": out, "is_error": failed}
                 if failed:
+                    log.warning("[%s] commit_context FAILED (batch expired)",
+                                query_id)
+                else:
+                    log.info("[%s] commit_context: %d committed, %d rejected "
+                             "(%d total)", query_id, len(documents),
+                             len(decision.rejected),
+                             len(ledger.committed_docids))
+                if failed:
                     # The invalid batch has already expired; refuse remaining
                     # same-turn actions so the next turn starts cleanly.
                     ts = now_iso()
@@ -1094,6 +1116,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         trace_output=trace_output,
                         tool_call_id=call["id"],
                     )
+                    log.info("[%s] search %r: %s", query_id,
+                             call["arguments"].get("query", ""),
+                             "FAILED" if failed
+                             else f"{len(documents)} docs staged")
                     if not failed:
                         ledger.stage(
                             call["id"], call["name"], out, documents)
@@ -1111,6 +1137,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
     except Exception as e:
         status = "failed"
+        log.exception("[%s] run failed", query_id)
         if not sentences:
             sentences = [{"text": f"Run failed: {type(e).__name__}: {e}",
                           "citations": []}]
@@ -1118,8 +1145,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     eligible_docids = set(ledger.committed_docids)
     references, answer = _map_citations(sentences, eligible_docids)
     answer_text = " ".join(s["text"] for s in answer)
+    # Strict output cites doc-level ids (track requirement); the trace also
+    # keeps the full retrieval-unit ids (with any _p<n> page suffix) so
+    # reviewers see exactly which page supported each reference.
+    references_full = [ledger.committed_full_ids.get(d, d) for d in references]
     tb.set_trace_output({
         "references": references,
+        "references_full": references_full,
         "answer": answer,
     })
     tb.add_output_text(
@@ -1127,6 +1159,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         turn=last_turn[2], stats=last_turn[4],
         context=_context_snapshot(ledger), record_trace=False)
 
+    log.info("[%s] finished status=%s: %d sentences, %d references, "
+             "%d committed docs", query_id, status, len(answer),
+             len(references), len(ledger.committed_docids))
     output = build_output(references, answer)
     trajectory = build_trajectory(status)
     # The final save is the only one that writes the trajectory, validates, and

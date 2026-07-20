@@ -1,12 +1,14 @@
 "use client";
+import * as React from "react";
 import useSWR from "swr";
 import Box from "@mui/material/Box";
+import Tabs from "@mui/material/Tabs";
+import Tab from "@mui/material/Tab";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
 import Chip from "@mui/material/Chip";
 import Stack from "@mui/material/Stack";
-import Divider from "@mui/material/Divider";
 import Skeleton from "@mui/material/Skeleton";
 import Alert from "@mui/material/Alert";
 import Tooltip from "@mui/material/Tooltip";
@@ -24,19 +26,33 @@ import FeedbackWidget from "@/components/FeedbackWidget";
  */
 export default function DocSidebar({
   docid,
+  source,
   system,
   sessionId,
   onClose,
 }: {
   docid: string;
+  /** engine that surfaced this doc in the trace — fetch from the same side */
+  source?: "sparse" | "dense";
   system: string;
   sessionId: string;
   onClose: () => void;
 }) {
-  const { data, error, isLoading } = useSWR<DocResult>(
-    `/api/doc/${encodeURIComponent(docid)}`,
+  const [view, setView] = React.useState<"retrieved" | "full">("retrieved");
+  // A new docid resets to the retrieved unit.
+  React.useEffect(() => setView("retrieved"), [docid]);
+
+  const retrieved = useSWR<DocResult>(
+    `/api/doc/${encodeURIComponent(docid)}${source ? `?source=${source}` : ""}`,
     fetcher,
   );
+  // Full parent document via the sparse (Pyserini) full-doc API; only
+  // fetched once the tab is opened.
+  const full = useSWR<DocResult>(
+    view === "full" ? `/api/doc/${encodeURIComponent(docid)}?full=1` : null,
+    fetcher,
+  );
+  const { data, error, isLoading } = view === "full" ? full : retrieved;
 
   return (
     <Paper
@@ -72,7 +88,7 @@ export default function DocSidebar({
               size="small"
               variant="outlined"
               color="primary"
-              label={`source: ${data.source === "dense" ? "dense endpoint" : "pyserini"}`}
+              label={`source: ${data.source}`}
               sx={{ height: 18 }}
             />
             {data.parentFallback ? (
@@ -91,7 +107,25 @@ export default function DocSidebar({
           />
         </Box>
       </Box>
-      <Divider />
+      <Tabs
+        value={view}
+        onChange={(_e, v) => setView(v)}
+        variant="scrollable"
+        scrollButtons="auto"
+        allowScrollButtonsMobile
+        sx={{ px: 1, minHeight: 32, borderBottom: 1, borderColor: "divider" }}
+      >
+        <Tab
+          value="retrieved"
+          label="Retrieved"
+          sx={{ minHeight: 32, py: 0, textTransform: "none" }}
+        />
+        <Tab
+          value="full"
+          label="Full document"
+          sx={{ minHeight: 32, py: 0, textTransform: "none" }}
+        />
+      </Tabs>
       <Box sx={{ p: 1.5, overflowY: "auto", flexGrow: 1 }}>
         {isLoading ? (
           <>
