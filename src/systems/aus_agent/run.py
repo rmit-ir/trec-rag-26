@@ -7,8 +7,15 @@ Usage (from the repo root):
     uv run --group aus-agent python src/systems/aus_agent/run.py \\
         --query "..." [--model au.anthropic.claude-sonnet-5] [--k 10]
     uv run --group aus-agent python src/systems/aus_agent/run.py --all
+
+Every option's default can also be set via a ``RUN_AUS_AGENT_<OPTION>`` env
+var (e.g. ``RUN_AUS_AGENT_BACKEND=openai``, ``RUN_AUS_AGENT_MODEL=...`` in a
+``.env``); an explicit CLI flag still wins.
 """
 from __future__ import annotations
+from utils.env import env
+from systems.aus_agent.agent import DEFAULT_MAX_COMMITTED_PER_STEP, run_agent
+from ragrun.outputs import data_dir
 
 import argparse
 import json
@@ -20,8 +27,6 @@ _src_root = str(_SRC_ROOT)
 sys.path[:] = [entry for entry in sys.path if entry != _src_root]
 sys.path.insert(0, _src_root)
 
-from ragrun.outputs import data_dir
-from systems.aus_agent.agent import DEFAULT_MAX_COMMITTED_PER_STEP, run_agent
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
 DEFAULT_TOPICS = (_REPO_ROOT / "data/official/trec-rag-2026-data/trec-rag-2026"
@@ -70,29 +75,38 @@ def main() -> None:
     src.add_argument("--qid", help="topic id from the topics TSV")
     src.add_argument("--all", action="store_true",
                      help="run every topic in the topics TSV")
-    ap.add_argument("--topics", type=Path, default=DEFAULT_TOPICS,
+    ap.add_argument("--topics", type=Path,
+                    default=env("RUN_AUS_AGENT_TOPICS", DEFAULT_TOPICS),
                     help=f"topics TSV (default: {DEFAULT_TOPICS})")
-    ap.add_argument("--backend", default="bedrock")
-    ap.add_argument("--model", default=None,
-                    help="model id (default: BEDROCK_MODEL_ID env or "
-                         "au.anthropic.claude-sonnet-5)")
-    ap.add_argument("--k", type=int, default=10, help="search results per call")
+    ap.add_argument("--backend",
+                    default=env("RUN_AUS_AGENT_BACKEND", "bedrock"))
+    ap.add_argument("--model",
+                    default=env("RUN_AUS_AGENT_MODEL", None),
+                    help="model id (default: backend's own env/default, e.g. "
+                         "BEDROCK_MODEL_ID or OPENAI_MODEL_ID)")
+    ap.add_argument("--k", type=int, default=env("RUN_AUS_AGENT_K", 10),
+                    help="search results per call")
     ap.add_argument(
-        "--context-token-budget", type=int, default=500_000,
+        "--context-token-budget", type=int,
+        default=env("RUN_AUS_AGENT_CONTEXT_TOKEN_BUDGET", 500_000),
         help="stop retrieval when one generation's provider-reported input "
              "context reaches this size (default: 500000)")
     ap.add_argument(
-        "--safety-max-rounds", "--max-rounds", type=int, default=100,
+        "--safety-max-rounds", "--max-rounds", type=int,
+        default=env("RUN_AUS_AGENT_SAFETY_MAX_ROUNDS", 100),
         help="runaway-loop safety backstop, not the normal research budget "
              "(default: 100)")
     ap.add_argument(
         "--max-committed-per-step", type=int,
-        default=DEFAULT_MAX_COMMITTED_PER_STEP,
+        default=env("RUN_AUS_AGENT_MAX_COMMITTED_PER_STEP",
+                    DEFAULT_MAX_COMMITTED_PER_STEP),
         help="maximum documents commit_context may retain from one staged "
              f"batch (default: {DEFAULT_MAX_COMMITTED_PER_STEP})")
-    ap.add_argument("--run-id", default="aus-agent-dev")
+    ap.add_argument("--run-id",
+                    default=env("RUN_AUS_AGENT_RUN_ID", "aus-agent-dev"))
     ap.add_argument(
         "--skip-existing", action="store_true",
+        default=env("RUN_AUS_AGENT_SKIP_EXISTING", False),
         help="skip topics this --run-id has already answered successfully, so "
              "an interrupted batch resumes instead of starting over (a failed "
              "run does not count as answered)")
