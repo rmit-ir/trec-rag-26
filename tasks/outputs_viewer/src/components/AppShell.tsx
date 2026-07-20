@@ -158,7 +158,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
               minWidth: 0,
             }}
           >
-            RAG Outputs Viewer
+            RMIT-IR
           </Typography>
           <Box sx={{ display: { xs: "none", md: "flex" }, gap: 0.5, flexGrow: 1 }}>
             {NAV.map((item) => {

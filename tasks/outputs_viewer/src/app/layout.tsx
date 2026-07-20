@@ -8,7 +8,7 @@ import { IdentityProvider } from "@/lib/client/identity";
 import AppShell from "@/components/AppShell";
 
 export const metadata: Metadata = {
-  title: "RAG Outputs Viewer",
+  title: "TREC RAG | RMIT-IR",
   description: "Preview and judge TREC RAG 2026 run outputs",
 };
 
