@@ -13,19 +13,28 @@ var (e.g. ``RUN_AUS_AGENT_BACKEND=openai``, ``RUN_AUS_AGENT_MODEL=...`` in a
 ``.env``); an explicit CLI flag still wins.
 """
 from __future__ import annotations
-from utils.env import env
-from systems.aus_agent.agent import DEFAULT_MAX_COMMITTED_PER_STEP, run_agent
-from ragrun.outputs import data_dir
 
 import argparse
 import json
+import logging
 import sys
 from pathlib import Path
 
+# The sys.path munge MUST run before any project import: in script mode the
+# script's own dir (src/systems/aus_agent) leads sys.path, where the local
+# `tools` package shadows src/tools. Hence the noqa: E402 on the imports below
+# — an import sorter hoisting them above this block breaks script execution.
 _SRC_ROOT = Path(__file__).resolve().parents[2]
 _src_root = str(_SRC_ROOT)
 sys.path[:] = [entry for entry in sys.path if entry != _src_root]
 sys.path.insert(0, _src_root)
+
+from ragrun.outputs import data_dir  # noqa: E402
+from systems.aus_agent.agent import (  # noqa: E402
+    DEFAULT_MAX_COMMITTED_PER_STEP,
+    run_agent,
+)
+from utils.env import env  # noqa: E402
 
 
 _REPO_ROOT = Path(__file__).resolve().parents[3]
@@ -69,6 +78,8 @@ def finished_topics(run_id: str) -> set[str]:
 
 
 def main() -> None:
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(levelname)s %(message)s")
     ap = argparse.ArgumentParser(description="aus_agent RAG harness")
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--query", help="ad-hoc query text (qid 'adhoc')")
@@ -144,9 +155,9 @@ def main() -> None:
                                 max_committed_per_step=(
                                     args.max_committed_per_step),
                                 run_id=args.run_id)
-        except Exception as e:  # keep --all going
+        except Exception:  # keep --all going
             failures += 1
-            print(f"    ERROR {type(e).__name__}: {e}", flush=True)
+            logging.exception("run for %s failed", qid)
             continue
         summary["paths"] = {k: str(v) for k, v in summary["paths"].items()}
         print(json.dumps(summary, indent=2), flush=True)

@@ -172,6 +172,8 @@ export interface RunRecord {
   error?: string;
   /** Bounded tail of the child's stdout+stderr. */
   logTail: string[];
+  /** Server-side file holding the FULL stdout+stderr (under the system tmp dir). */
+  logPath?: string;
 }
 
 export type FeedbackTargetType = "answer" | "sentence" | "citation";
