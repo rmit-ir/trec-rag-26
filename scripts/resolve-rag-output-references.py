@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 """Add RAGDoll-compatible reference text to TREC RAG output artifacts.
 
-Each input ``*.output.json`` is copied to the output directory with a
-``segments`` object mapping every entry in ``references`` to its full shard
-text. Sentence citation indices are preserved unchanged. A normalized JSONL
-file is also written in RAGDoll's answers schema.
+All input ``*.output.json`` artifacts are combined into one normalized JSONL
+file in RAGDoll's answers schema. Each row gets a ``segments`` object mapping
+every entry in ``references`` to its full shard text. Sentence citation indices
+are preserved unchanged.
 """
 from __future__ import annotations
 
@@ -221,7 +221,6 @@ def main() -> int:
     load_repo_env()
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("inputs", nargs="+", type=Path)
-    parser.add_argument("--output-dir", required=True, type=Path)
     parser.add_argument(
         "--ragdoll-output",
         type=Path,
@@ -297,15 +296,10 @@ def main() -> int:
             preview = ", ".join(missing[:10])
             raise RuntimeError(f"{len(missing)} references were not resolved: {preview}")
 
-        args.output_dir.mkdir(parents=True, exist_ok=True)
         ragdoll_by_cell: dict[tuple[str, str], dict[str, Any]] = {}
         superseded = 0
         for path, row, references in rows:
             row["segments"] = {docid: resolved[docid] for docid in references}
-            destination = args.output_dir / path.name
-            destination.write_text(
-                json.dumps(row, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
-            )
             normalized = ragdoll_row(row)
             cell = (normalized["run_id"], normalized["qid"])
             if cell in ragdoll_by_cell:
@@ -322,10 +316,9 @@ def main() -> int:
             encoding="utf-8",
         )
         print(
-            f"wrote {len(rows)} resolved outputs with {len(unique_docids)} unique references "
-            f"to {args.output_dir}"
+            f"wrote {len(ragdoll_rows)} RAGDoll answer rows with "
+            f"{len(unique_docids)} unique references to {args.ragdoll_output}"
         )
-        print(f"wrote {len(ragdoll_rows)} RAGDoll answer rows to {args.ragdoll_output}")
         if superseded:
             print(f"deduplicated {superseded} older reruns by (run_id, qid); newest artifacts kept")
         return 0
