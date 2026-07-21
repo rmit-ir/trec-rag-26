@@ -26,7 +26,7 @@ from utils.search_dense import DEFAULT_DENSE_URL, auth_headers  # noqa: E402
 
 DEFAULT_PYSERINI_DOC_URL = "http://api.castorini.uwaterloo.ca/v1/climbmix-400b/doc"
 DEFAULT_RAGDOLL_OUTPUT = (
-    REPO_ROOT / "evaluation" / "ragdoll" / "results" / "aus-agent" / "answers.resolved.jsonl"
+    REPO_ROOT / "evaluation-results" / "aus-agent" / "answers.resolved.jsonl"
 )
 
 

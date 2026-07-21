@@ -16,3 +16,9 @@ wrote one RAGDOLL JSONL row containing 25 answer sentences. Python compilation
 and the updated `--help` command also completed successfully. The repository's
 `uv.exe` WinGet link could not be launched in the sandbox, so verification used
 the repository-root `.venv/Scripts/python.exe` interpreter instead.
+
+Follow-up: changed the converter's default destination from RAGDOLL's ignored
+submodule-local `evaluation/ragdoll/results/aus-agent/` directory to the parent
+repository's tracked `evaluation-results/aus-agent/` directory. Callers can now
+omit `--ragdoll-output`; the consolidated file defaults to
+`evaluation-results/aus-agent/answers.resolved.jsonl`.
