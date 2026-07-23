@@ -291,6 +291,33 @@ reorders rows, so serve must resolve by the chunk-id *string*. New script:
 - **README:** added a pipeline diagram (stages + input/output shapes + the
   parallel encode ∥ docstore branches) to `how-to-build-index.md`.
 
+## 8e. Incident: global OOM killed the encode at 79.7% (2026-07-20)
+
+- **Symptom:** chained job (`bd5vtxk1j`) failed exit 1; all 8 GPUs dropped to
+  0 %/0 MiB; encode log ended mid-line (`in 5`) with **no Python traceback** —
+  the hallmark of an abrupt SIGKILL, not an exception.
+- **Root cause — NOT us.** `dmesg`: `sshd invoked oom-killer ... global_oom,
+  constraint=CONSTRAINT_NONE`. The box's full 2 TB RAM was globally exhausted;
+  the kernel killed the largest process — **pid 2727656, a 720 GB-RSS python
+  owned by a different user (uid 14021545)**. Our uid is 200128356. Our encode
+  workers were collateral: they died under the memory-pressure window (failed
+  allocs), not because our footprint was large. No code bug; nothing to fix in
+  our pipeline. Confirms [[feedback_shared_box_ram]] — assume 2× overshoot from
+  other tenants and keep headroom.
+- **State was resume-safe.** Atomic `.tmp`→`os.replace` meant **5,217/6,543
+  complete triplets** (fbin/docids/meta all == 5217), zero corrupt shards. The
+  8 in-flight shards were left as `shard_*.fbin.tmp` (harmless partials).
+- **Recovery:** memory fully recovered (1,972 GB avail). Removed the 8 stale
+  `.fbin.tmp`, relaunched the same chain (task `bwo0nyi0y`). `encode_pretokenized.py`
+  skips shards whose fbin+docids+meta all exist, so the resume did only the
+  remaining ~1,326 shards (~26 h). Verified: fbin held at 5,217 on restart,
+  worker 7 re-picked shard_05222, all 8 GPUs back to ~100 %.
+- **Lesson:** on this shared box, a multi-day encode WILL occasionally eat a
+  global OOM from another tenant. The atomic-per-shard write + skip-existing
+  resume already makes this a no-data-loss, one-command restart. The 5-hour
+  cron check (job a9af7978) is what caught it. Consider `oom_score_adj` self-
+  protection or a supervisor auto-restart if it recurs.
+
 ## 9. Open items / notes
 - The token store bakes in `"Document: "` prefix + max_len 1024. Correct for
   retrieval FT with the same model; a different scheme would need re-tokenize

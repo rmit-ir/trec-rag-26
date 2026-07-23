@@ -5,58 +5,54 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from tools.search_tool import SEARCH_TOOL, run_search_tool
+from tools.search_tool import build_search_tool, run_search_tool
 
 DEFAULT_BUDGET_TOKENS_PER_RESULT = 4096
 CHARS_PER_TOKEN_BUDGET = 5
 
-SEARCH_TOOL_DEF = {
-    **SEARCH_TOOL,
-    "description": (
-        "Search the available evidence corpus. Results contain ranked document "
-        "IDs and document text; inspect that text directly and cite by docid. "
-        "Each result is bounded independently before it is staged. Match "
-        "query style to engine: exact names and rare strings favor keyword; "
-        "concepts and questions favor semantic. The engines rank differently, "
-        "and extra queries are cheap — cover an important facet with both "
-        "engines, one styled query each."
-    ),
-    "input_schema": {
-        **SEARCH_TOOL["input_schema"],
-        # Engine choice is deliberately required here: without a fused
-        # fallback, every query must be styled for the engine it targets.
-        "required": ["query", "search_engine"],
-        "properties": {
-            **SEARCH_TOOL["input_schema"]["properties"],
-            "query": {
-                "type": "string",
-                "minLength": 1,
-                "description": (
-                    "One information need as a short, specific phrase: a few "
-                    "distinctive content words (names, technical terms, the "
-                    "core concept) or a natural question phrased like a "
-                    "webpage title or FAQ. Include at least one rare or "
-                    "specific term — never a single common word — and attach "
-                    "one disambiguating qualifier to any proper name. Omit "
-                    "audience, format, and task words from the request and "
-                    "query a single facet at a time. For numeric or "
-                    "statistical facts, query the topic and entity, not the "
-                    "number."
-                ),
-            },
-            "budget_tokens_per_result": {
-                "type": "integer",
-                "minimum": 1,
-                "description": (
-                    "Maximum approximate tokens staged per result. Text is "
-                    "bounded at tokens × 5 characters and cut at the final "
-                    "line break before that boundary. Default 4096."
-                ),
-                "default": DEFAULT_BUDGET_TOKENS_PER_RESULT,
-            },
-        },
+# The per-result staging budget is an AUS-specific control layered on top of the
+# shared search tool; the query/engine guidance itself comes from
+# ``build_search_tool`` so it always matches the enabled engines.
+_BUDGET_PROP = {
+    "budget_tokens_per_result": {
+        "type": "integer",
+        "minimum": 1,
+        "description": (
+            "Maximum approximate tokens staged per result. Text is bounded at "
+            "tokens × 5 characters and cut at the final line break before that "
+            "boundary. Default 4096."
+        ),
+        "default": DEFAULT_BUDGET_TOKENS_PER_RESULT,
     },
 }
+
+
+def build_search_tool_def(engines: list[str] | tuple[str, ...] | None = None
+                          ) -> dict[str, Any]:
+    """AUS ``search`` tool for exactly ``engines`` (see ``build_search_tool``).
+
+    Adds the AUS-only ``budget_tokens_per_result`` control and the staging note
+    to the engine-aware base tool. When more than one engine is enabled,
+    ``search_engine`` stays required (every query must be styled for its target
+    engine); with a single engine it is optional and defaults to that engine.
+    """
+    base = build_search_tool(engines)
+    return {
+        **base,
+        "description": (
+            base["description"] + " Each result is bounded independently "
+            "before it is staged; extra queries are cheap — cover an important "
+            "facet with more than one query."
+        ),
+        "input_schema": {
+            **base["input_schema"],
+            "properties": {**base["input_schema"]["properties"], **_BUDGET_PROP},
+        },
+    }
+
+
+# Default definition (semantic + keyword) for back-compat with existing imports.
+SEARCH_TOOL_DEF = build_search_tool_def(["semantic", "keyword"])
 
 CONTEXT_PROTOCOL = (
     "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be "
@@ -114,8 +110,14 @@ def execute_full_text_search(
     *,
     default_k: int,
     seen_docids: set[str],
+    default_engine: str | None = None,
 ) -> SearchExecution:
-    """Retrieve full hits, then independently bound each staged result."""
+    """Retrieve full hits, then independently bound each staged result.
+
+    ``default_engine`` is the run's enabled engine used when the model omits
+    ``search_engine`` (so a single-engine run always hits the intended backend
+    instead of the tool's built-in ``semantic`` default).
+    """
     query = str(arguments.get("query", ""))
     budget_tokens = int(arguments.get(
         "budget_tokens_per_result",
@@ -131,11 +133,14 @@ def execute_full_text_search(
             True,
             [],
         )
-    # Forward search_engine only when the model supplied it, so the backend's
-    # default (semantic) stays the single source of truth.
+    # Use the model's search_engine when supplied; otherwise fall back to the
+    # run's enabled engine (default_engine), and only then to the backend's own
+    # default. This keeps a single-engine run pinned to its engine.
     engine_kwargs: dict[str, Any] = {}
-    if "search_engine" in arguments:
+    if arguments.get("search_engine"):
         engine_kwargs["search_engine"] = str(arguments["search_engine"])
+    elif default_engine:
+        engine_kwargs["search_engine"] = default_engine
     output = run_search_tool(
         query=query,
         k=int(arguments.get("k", default_k)),

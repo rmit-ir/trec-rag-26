@@ -116,12 +116,21 @@ def main() -> None:
     ap.add_argument("--run-id",
                     default=env("RUN_AUS_AGENT_RUN_ID", "aus-agent-dev"))
     ap.add_argument(
+        "--search-backends", "--engines", dest="search_backends",
+        default=env("RUN_AUS_AGENT_SEARCH_BACKENDS", "semantic,keyword"),
+        help="comma-separated retrieval backends the search tool may use: "
+             "semantic, keyword, ssr, lucene_bool. Restrict to one (e.g. "
+             "--search-backends ssr) to test that method's effectiveness in "
+             "isolation (default: semantic,keyword). Alias: --engines.")
+    ap.add_argument(
         "--skip-existing", action="store_true",
         default=env("RUN_AUS_AGENT_SKIP_EXISTING", False),
         help="skip topics this --run-id has already answered successfully, so "
              "an interrupted batch resumes instead of starting over (a failed "
              "run does not count as answered)")
     args = ap.parse_args()
+    search_backends = [e.strip() for e in str(args.search_backends).split(",")
+                       if e.strip()]
 
     if args.query:
         jobs = [("adhoc", args.query)]
@@ -154,7 +163,8 @@ def main() -> None:
                                 safety_max_rounds=args.safety_max_rounds,
                                 max_committed_per_step=(
                                     args.max_committed_per_step),
-                                run_id=args.run_id)
+                                run_id=args.run_id,
+                                engines=search_backends)
         except Exception:  # keep --all going
             failures += 1
             logging.exception("run for %s failed", qid)
