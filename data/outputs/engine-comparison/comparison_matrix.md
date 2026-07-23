@@ -1,4 +1,121 @@
-# Retrieval-backend comparison — 10 topics x 4 backends
+# Retrieval-backend comparison — 10 topics × 4 backends
+
+*Same `aus_agent` deep-research loop (OpenAI `gpt-5.6-luna`, full 500k-token budget), each topic run four times restricted to ONE retrieval backend via `--search-backends`, over the full 3.5 TB corpus. All 40 runs completed.*
+
+## Findings
+
+**Winner tally (best fit per topic, graded by reading queries + committed evidence + final answer):** dense ~5, keyword ~3, lucene ~2, **SSR 0**.
+
+**1. Dense (semantic) is the most consistent winner** for these long, synthesis-heavy narrative topics. Natural-language queries map one-to-one onto the request's own facets, essentially never miss (**0 zero-result searches across all 10 topics**), and produce the most densely-cited reports in the fewest searches. Safest default for broad "help me understand / brief me" questions.
+
+**2. Lucene-Boolean and keyword-BM25 win on entity-rich, fact-heavy topics** (2020-election specifics, COVID statistics, investment authorities). Required-term BM25 (`+term`) **degrades gracefully** — it ranks partial matches instead of hard-zeroing — and its **full-document passages** (vs snippets) surface the richest concrete anchors (dollar figures, dates, named episodes). Lucene retrieves/commits the most docs; keyword is the most search-efficient.
+
+**3. SSR was never the best standalone backend for this task — for two distinct reasons:**
+- **Over-constraint → truthful zeros.** On 7 of 10 topics the agent stacked 4–7 required terms into one `(^ ...)` AND; required co-occurrence in a single document collapsed to empty. Worst: de-minimis (rag2026-5) **11 zeros / 19 searches**; investment (rag2026-3) 6/15; nuclear-fuel (rag2026-9) 6/15, knocking out the pivotal HALEU facet. The agent kept *adding* rare tokens instead of dropping the weakest — the opposite of the right recovery.
+- **Thin evidence windows (independent of zeros).** Even when ANDs stayed populated (rag2026-7), SSR returns short ~1.2k-char shortest-substring snippets vs full-document passages, so its committed evidence is shallower and more answer sentences go uncited.
+
+**4. What SSR is actually for.** Its strengths — required co-occurrence, exact phrases, and *truthful zeros that confirm non-existence* — make it a **precision / disambiguation instrument** (surname collisions, "do these two rare entities co-occur?", verbatim fact-checks), not a broad-recall synthesis engine. Used as a bag-of-ANDs for open-ended research it fights its own precision.
+
+**5. Actionable SSR tool-instruction fix (validated by this sweep).** The guidance says "2–4 terms" but the agent routinely wrote 5–7. It should (a) hard-cap AND arity at ~3, (b) lead with the single rarest term, (c) make the "**on zero, DROP a term (never add one)**" rule primary, and (d) prefer `(+ ...)`-inside-`(^ ...)` to keep one facet required while widening the rest.
+
+> `#zero` = searches returning empty; `#uniqDoc` = distinct docids retrieved (recall proxy); `#commit` = docs retained as evidence. SSR `score` is synthetic rank-decay (1/rank), not comparable across engines.
+
+## Per-topic comparison
+
+### rag2026-0 — Hospital nursing DEI three-year plan under budget
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 8 search / 0 zero / 57 doc / 15 commit | 8 / 0 / 56 / 16 | 12 / 1 / 108 / 15 | 17 / 0 / 122 / 13 |
+| **Trajectory** | 8 natural-language facet queries (5–9 terms) mapping onto pipeline, hiring, reporting, curriculum, then advancement/psych-safety/microlearning follow-ups; every query returned 8 hits. | 8 bag-of-words queries, round-2 refined to distinctive terms (National Commission, implicit-bias, psychological safety); pure OR bags, all 8 hits. | 12 GCL ANDs, mostly 4–5 required terms; one 5-term AND `(^ nursing DEI accountability metrics leadership)` returned ZERO, recovered by dropping terms. | Most iterative: 17 `+`required BM25 queries over 3 rounds, narrowing (retaliation, anonymous, simulation, scholarship); no zeros. |
+| **Analysis** | Cleanest run: 0 empty/failed, fully-grounded report, every sentence cited incl. microlearning/hidden-curriculum specifics. | Effective & grounded; long full-text passages gave rich evidence, OR surfaced some off-facet docs it correctly rejected. | Worked but strained: one over-constrained AND zeroed, and short ~1.3k snippets left 5 plan-scaffolding sentences uncited — weakest grounding. | Broadest exploration but only 13 cited; extra iterations bought coverage yet the report leans more on model priors. |
+
+**Verdict:** Dense served this broad conceptual topic best — one-pass facet coverage, zero misses, tightest fully-grounded report. SSR over-constrained once and its short windows left plan-structure sentences uncited.
+
+### rag2026-1 — Biological effects of grief on an elderly widow
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 8 / 0 / 61 / 14 | 6 / 0 / 48 / 10 | 9 / 0 / 83 / 10 | 8 / 0 / 63 / 12 |
+| **Trajectory** | 8 NL queries (7–11 words) mirroring sub-questions almost verbatim (heart/immune/hormones, complicated vs normal grief, takotsubo, PGD criteria). | 6 long bag-of-words queries (8–12 terms) piling concepts, relying on OR overlap. | 9 GCL `(^ ...)` ANDs (4–8 required terms), finest decomposition into sub-topics (glucocorticoid/immune, ECG/echo, adherence). | 8 terse `+`required queries of just 3–5 terms, one facet each with strict AND. |
+| **Analysis** | Committed the most (14 refs); well-grounded on stress cardiomyopathy, DSM-5-TR 12-month criteria, medication review. | All 8 hits, term-piling worked under OR; grounded (takotsubo/troponin/ECG, suicide signs). | **The one topic SSR hit ZERO zeros** — grief-biology terms co-occur densely, so required-ANDs stayed populated; solid but slightly less quantified. | Short 3–5-term `+`ANDs stayed populated; best-quantified answer (21× day-1, 6× week-1 MI risk). |
+
+**Verdict:** Unusual topic — all four had zero empty searches because grief-biology vocabulary co-occurs densely, so even SSR's required-ANDs stayed populated. Dense committed the most; Lucene's short `+`ANDs gave the most quantified answer. The one case SSR did NOT over-constrain — a property of the corpus, not of operator choice.
+
+### rag2026-2 — Endorsing a health-care-as-a-right ballot campaign
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 10 / 0 / 74 / 10 | 7 / 0 / 56 / 13 | 14 / 5 / 82 / 18 | 14 / 0 / 137 / 19 |
+| **Trajectory** | 10 NL queries (8–10 words) as parallel facet batches (universal coverage, medical debt, Medicaid, single-payer); no zeros. | 7 long BM25 bags (6–9 terms), all 8 hits, none zeroed. | 14 GCL ANDs, several 5–6 required terms; **5 zeroed — every AND containing "Medicaid expansion"** (e.g. `(^ Medicaid expansion employer insurance emergency room safety net)`), forcing 2–3 term rewrites. | 14 `+`required queries (3–5 terms); BM25 back-off kept all 10 populated, none zeroed; committed 20. |
+| **Analysis** | First-pass usable hits on every facet; cleanest evidence spread (KFF, Oregon Medicaid, EMTALA, single-payer), best-grounded with fewest searches. | OR shrugged off long term lists; strong sources (28%-underinsured, Oregon +40% ER); long queries cost nothing here. | Still produced a solid report via short ANDs, but the central Medicaid facet repeatedly over-constrained to zero; most wasted searches, thinnest per-query coverage. | Stayed populated even on 5-term ANDs; richest quantified answer (160M employer-covered, 138% FPL, 2.5M coverage-gap); highest search cost. |
+
+**Verdict:** Lucene and dense best — lucene for richest specific evidence, dense for the same coverage in far fewer searches. SSR weakest: strict required co-occurrence over-constrained the long "Medicaid expansion" ANDs to five truthful zeros.
+
+### rag2026-3 — Lifelong investment plan for an 18-year-old with $10,000
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 9 / 0 / 71 / 12 | 10 / 0 / 90 / 12 | 15 / 7 / 79 / 9 | 11 / 0 / 103 / 13 |
+| **Trajectory** | 9 NL phrases (7–10 terms) targeting named authorities (ASIC/Moneysmart/ATO), super, diversification, academic passive-investing; adapted to AU-specific tax/super. | 10 BM25 OR bags (6–9 terms) mixing topic, authority, academic terms; broadened smoothly. | 15 `(^ ...)` required-ANDs (4–7 stemmed terms); kept retrying narrower AU-specific variants after repeated empties. | 11 terse all-`+`required conjunctions (4–6 keywords, incl. literal `+18 +10000`). |
+| **Analysis** | 0 failures, well-grounded (16/29 sentences cited); ~45% uncited scaffolding. | **Most fully-cited report — all 26 sentences cited**; OR matched enough evidence to ground every claim. | **6 of 15 zeroed** (every Australia/super/Moneysmart/ETF/tax probe); fewest refs (9) despite most attempts; misses AU super/tax grounding. | Most refs committed (13) but least grounded — only 11/32 sentences cited. |
+
+**Verdict:** Keyword (BM25 OR) best — zero dead-ends, 100% sentence-level grounding. SSR clearly over-constrained: required co-occurrence zeroed 6/15 (every Australia/super/Moneysmart/ETF/tax probe), fewest refs despite most attempts.
+
+### rag2026-4 — Nostalgia, the social clock, and midlife life decisions
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 8 / 0 / 48 / 12 | 7 / 0 / 38 / 8 | 8 / 1 / 54 / 8 | 9 / 0 / 69 / 9 |
+| **Trajectory** | 8 NL queries (5–8 words) onto facets (nostalgia psych, social clock, comparison, rumination, decisions); adapted round-2 from round-1 hits. | 7 bag-of-words queries (5–7 terms), broad then narrowed to social-comparison, memory-reconstruction, transition-planning. | 8 `(^ ...)` ANDs anchored on nostalgia/social-clock + 3–4 qualifiers; one 4-term AND `(^ "social comparison" self-esteem friends success)` hit ZERO, then loosened. | 9 `+`required; opened with over-long 6-term AND `+life +choices +dating +career +move +city`, later split into tighter 3–4 term ANDs + phrase `+"social clock"`. |
+| **Analysis** | Strongest fit: 6 hits every query, 12 committed, nearly every sentence cited (often two) — most densely grounded. | Worked well; BM25 OR surfaced on-topic psychology docs, fewer sources per claim than dense. | Required-AND returned short ~1.2k snippets; practical-advice sections left uncited — most citation-free sentences, thinnest grounding. | Grounded the definitional/social-clock claims well, but ~500-char snippets left advice sentences uncited — between dense and ssr. |
+
+**Verdict:** Dense best — natural-language phrasing matched the psychology corpus, zero misses, richest most-cited synthesis. SSR weakest: REQUIRED co-occurrence over-constrained a soft advice topic (a 4-term AND returned an outright zero, and tiny snippets starved practical-advice citations).
+
+### rag2026-5 — De minimis / Section 321 China direct-ship for small ecommerce
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 11 / 0 / 88 / 12 | 6 / 0 / 37 / 10 | **19 / 11 / 44 / 6** | 21 / 0 / 168 / 10 |
+| **Trajectory** | 11 NL searches (6–13 words) covering every sub-question (de minimis, air freight, forced labor/UFLPA, Mexico/Canada inventory, 2025/2026 policy), refined with year/enforcement terms. | Just 6 broad OR queries, each packing many terms (Temu/Shein, USMCA, UFLPA, Xinjiang, postal suspension); relied on OR recall. | 19 `(^ ...)` required-ANDs; started 4–5 terms and **kept ADDING rare tokens** (UFLPA, CUSMA, quoted `"6-13 days"`) instead of dropping. | 21 queries mixing `+`required clauses with quoted phrases; adapted well, dropping to bare phrase queries (`"What is Section 321"`) when strict ANDs thinned. |
+| **Analysis** | Zero misses, widest pool (88 docs); 12 refs, 17/19 segments cited — best-grounded. | No zeros, steady 8 hits; 20/21 segments cited — efficient despite fewest searches. | **11 of 19 ZERO** and several thin; over-constraint collapsed recall to 44 docs, only 6 refs, 8/18 cited — the textbook over-constraint case. | No zeros, mostly 10 hits; 10 refs, strong recall/grounding — close second to dense. |
+
+**Verdict:** Dense best on this entity-dense topic — full coverage, largest pool, most-cited; keyword/lucene close. SSR the clear loser: required co-occurrence of long term-stacks (adding UFLPA/CUSMA/Xinjiang/phrases as ANDs) drove 11/19 to zero — the sharpest illustration that SSR must DROP terms on zero, not add them.
+
+### rag2026-6 — Historical analysis of world change since COVID-19
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 12 / 0 / 93 / 17 | 9 / 0 / 62 / 12 | 10 / 1 / 90 / 17 | 16 / 0 / 159 / 27 |
+| **Trajectory** | 12 NL queries mirroring the domain list (health, work, education, travel, economy, mental health, tech) as full noun phrases; broad fan-out then targeted follow-ups. | 9 bag-of-words queries; one long 11-term opener then compact 5–7 term facets, later trimming k 8→6. | 10 `(^ ...)` ANDs anchored on covid + 4–7 terms; the long opener `(^ 2025 post-pandemic lifestyle work travel education economy)` returned empty, recovered by per-domain decomposition. | 16 `+`required queries (most facets/rounds), each stacking 4–6 terms; broadest sweep, no empties, added date probes (+2025, +2023). |
+| **Analysis** | 0 empties; 17 committed/cited; well-grounded, chronological, rich figures (74% tourism drop, 52% hybrid, first UK dose 8 Dec 2020). | Densest statistics of any run (1.7B students, remote work 5.2%→46.3%); best-evidenced, example-heavy. | 18 committed but tiny ~1.2–1.5k passages and 1/n scores → thinner grounding; coherent but fewer hard numbers. | Committed 30 / cited 27 — most evidence — but 500-char snippets → shallow per-doc depth; most granular on dates. |
+
+**Verdict:** Keyword best — full-document hits gave the richest quantified, example-laden grounding with no wasted searches; dense close. SSR's one long 7-term AND over-constrained to a zero (forcing decomposition) and short passages gave thinner support; Lucene most docs but only 500-char snippets — breadth over depth.
+
+### rag2026-7 — AI political-signals trading strategy, pension due-diligence
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 7 / 0 / 56 / 12 | 6 / 0 / 46 / 14 | 12 / 0 / 107 / 9 | 14 / 0 / 130 / 16 |
+| **Trajectory** | 7 NL queries (8–14 words) from the question's facets, then STOCK Act / spoofing / adviser-fiduciary follow-ups; no zeros. | 6 broad BM25 bags, later seeded with Height Analytics, "SEC predictive data analytics"; every query 8 long full-body docs. | 12 `(^ ...)` required-ANDs, 5–7 terms then decomposed to 3–5; **no zeros here** (corpus populates 7-term ANDs). | 14 queries with 4–7 `+`required terms, widest fan-out, every facet decomposed; no zeros. |
+| **Analysis** | Well-grounded; hit STOCK Act 45-day, 75.1% benchmark, flash crash, spoofing, but missed Height/Medicare and CFTC. | **Best-grounded: 34 sentences, zero uncited**; only answer to hit every anchor (STOCK Act, 75.1%, Height/Medicare, CFTC, flash crash, spoofing) via long passages. | **Weakest grounding despite no zeros** — thin ~1.2k passages + rank-decay surfaced generic docs; 9 refs, 19/27 uncited, closed with an "I could not establish" disclaimer. | Broad but shallow — 500-char cap starved depth; 21/31 uncited, caught only STOCK Act + CFTC. |
+
+**Verdict:** Keyword best — full-body passages uniquely surfaced every concrete anchor with zero uncited; dense close second. Notably SSR did NOT over-constrain here (7-term ANDs stayed populated) yet still grounded worst — its short shortest-substring windows returned generic docs. **SSR's second, distinct weakness: thin evidence, independent of the zero-result problem.**
+
+### rag2026-8 — Explaining 2020 fraud claims & election-integrity reforms
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 12 / 0 / 89 / 13 | 8 / 0 / 50 / 11 | 18 / 4 / 106 / 16 | 14 / 0 / 123 / 18 |
+| **Trajectory** | 12 NL queries: 3 broad facets then 6–9 single-facet paraphrases (dead voters, Dominion recounts, Maricopa audit, poll watchers, risk-limiting audits); never zero. | 8 bag-of-words queries (4–5 terms), round-2 seeded with names surfaced earlier (Antrim, Fulton suitcases, 2000 Mules); 5–10 hits, no zeros. | 18 `(^ ...)` ANDs, mostly 2–4 anchors; **4 over-constrained 4–7-term ANDs returned ZERO** (Arizona-report, voting-restriction, voter-ID, Dominion-defamation). | 14 `+`required queries; round-2 seeded proper names (Maricopa/forensic, Wisconsin/address, defamation); always ≥8 hits, no zeros. |
+| **Analysis** | Comprehensive; 18/21 cited incl. +360-vote Maricopa detail, 41% drop-box figure. | Efficient, fully grounded (18/18 cited); richest specific rebuttals (Antrim error, 2000 Mules debunk). | Most searches/docs but least efficient; the zeros cost it the Dominion-defamation and audit-report facets → more generic answer, fewer hard numbers. | Retrieved/committed the most; best-sourced concrete answer (Fox $787.5M, 36 states, 10,457 vs 45,109 margins), one repair dropped 2 hallucinated docids. |
+
+**Verdict:** Lucene best — required-term BM25 stayed populated on every facet and surfaced the most verifiable specifics; dense/keyword close. SSR over-constrained: long 4–7-term ANDs produced four zero-result searches that dropped whole sub-claims — weakest grounding.
+
+### rag2026-9 — Nuclear fuel-supply risk for a utility board's PPA/SMR decision
+| | dense (semantic) | keyword (BM25-OR) | ssr (GCL-Boolean) | lucene (Boolean) |
+|---|---|---|---|---|
+| **stats** | 12 / 0 / 97 / 16 | 8 / 0 / 68 / 10 | 15 / 6 / 87 / 11 | 18 / 0 / 127 / 14 |
+| **Trajectory** | 12 NL queries: 4 broad facets (Russia/China/Kazakhstan, front-end bottlenecks, HALEU, contracting) then 8 targeted follow-ups (sanctions, price formulas, PPA pass-through). | 8 BM25 OR queries, two rounds of 4 facets with plain distinctive terms; no zeros, stopped early. | 15 `(^ ...)` required-ANDs; opening 4–6-term ANDs + HALEU/TENEX/enrichment facets **zeroed (6 of 15)**, forcing 2–3-term rewrites and the phrase `"high assay" "low enriched uranium"` to recover HALEU. | 18 `+`required queries, widest iteration (Cameco/Orano shortfalls, China demand, HALEU); all non-empty, several capped at 4–8 hits. |
+| **Analysis** | Cleanest fit: every facet answered, 19 committed/16 cited, quantified (Kazakhstan 43%, Russia 12/17%, ~5% cost, 91% long-term) — most complete/grounded. | Efficient, grounded (Slovak fuel-qualification example) but thinnest effort, less quantitative depth. | Over-constrained — long ANDs collapsed exactly the HALEU/Russian-enrichment facets the board most needs; fewest docs, shortest least-quantified answer. | Broadest net (18 committed) with UK HALEU-funding/Cameco/Orano specifics, but under-cited — many board-recommendation sentences uncited. |
+
+**Verdict:** Dense best — full facet coverage, most quantified/grounded answer, no wasted queries. SSR clearly over-constrained: multi-term required ANDs returned 6 truthful zeros that knocked out HALEU and Russian-enrichment until it relaxed to short ANDs and a phrase.
+
+
+---
+
+# Appendix: numeric matrix & full query trajectories
 
 | topic | backend | status | #search | #zero | #fail | #uniqDoc | #commit | ans.chars |
 |---|---|---|--:|--:|--:|--:|--:|--:|
