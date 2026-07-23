@@ -486,6 +486,22 @@ wheels = [
 ]
 
 [[package]]
+name = "pytrec-eval-terrier"
+version = "0.5.10"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "numpy" },
+    { name = "scipy" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/04/96/4925a95e4865a647bc74d3bb052243d12a3c8e8a34909d7d097b5a4d08c5/pytrec_eval_terrier-0.5.10.tar.gz", hash = "sha256:eaaf20580d17b5575a233e04dab8a4cbcc01a7e45be8cf547c07f0a2bb3e7eb9", size = 18634, upload-time = "2025-10-20T16:50:18.098Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/18/de/7659555355381e57a73e7ba31437dc31d3df146b5cc3fb66eb032683e84e/pytrec_eval_terrier-0.5.10-cp311-cp311-macosx_10_9_universal2.whl", hash = "sha256:1036735d4a12d1c92eea38a14a071168a292f8696099e90742c2c701479f010b", size = 136866, upload-time = "2025-10-20T16:50:40.054Z" },
+    { url = "https://files.pythonhosted.org/packages/d3/d7/1cbc2d3936eec51b57e1146840eb3ccd8a9fb2debc519d7aa748f13dd724/pytrec_eval_terrier-0.5.10-cp311-cp311-manylinux_2_24_x86_64.manylinux_2_28_x86_64.whl", hash = "sha256:b36a2fbdccc7669c4b8aba1f6de2a661e6f2f77c10f05855eda55dda60fc88f5", size = 304025, upload-time = "2025-10-20T16:54:15.957Z" },
+    { url = "https://files.pythonhosted.org/packages/7a/a2/84c93f0a260d0dabca007a02b206981d235c7f4b4c569ec746b5ef6d965b/pytrec_eval_terrier-0.5.10-cp311-cp311-musllinux_1_2_x86_64.whl", hash = "sha256:9e4ca19110f24922d7435cf9ef9951a61f0b575488b6a1db86081d82b88dd621", size = 1327402, upload-time = "2025-10-20T16:54:16.842Z" },
+    { url = "https://files.pythonhosted.org/packages/4e/ee/3a20da0523228f54d8b89b9a11d7ec402625086cc3167fb940e36a9e2d5b/pytrec_eval_terrier-0.5.10-cp311-cp311-win_amd64.whl", hash = "sha256:d36e9a8966560ed10bc5aeb30c5c29a53d3fe8e4ccb6ff6bb026bffb21be3fe3", size = 58558, upload-time = "2025-10-20T16:51:46.032Z" },
+]
+
+[[package]]
 name = "pyyaml"
 version = "6.0.3"
 source = { registry = "https://pypi.org/simple" }
@@ -752,6 +768,7 @@ dependencies = [
     { name = "numpy" },
     { name = "peft" },
     { name = "pyarrow" },
+    { name = "pytrec-eval-terrier" },
     { name = "sentence-transformers" },
     { name = "torch" },
     { name = "tqdm" },
@@ -765,6 +782,7 @@ requires-dist = [
     { name = "numpy", specifier = "<2" },
     { name = "peft", specifier = ">=0.11" },
     { name = "pyarrow", specifier = ">=15" },
+    { name = "pytrec-eval-terrier", specifier = ">=0.5.10" },
     { name = "sentence-transformers", specifier = ">=3.1" },
     { name = "torch", specifier = ">=2.2", index = "https://download.pytorch.org/whl/cu124" },
     { name = "tqdm", specifier = ">=4.66" },
