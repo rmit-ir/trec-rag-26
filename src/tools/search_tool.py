@@ -1,18 +1,26 @@
-"""Agent tool wrapper around hybrid retrieval.
+"""Agent tool wrapper around the ClimbMix retrieval backends.
 
 Exposes a single ``search`` tool that an LLM agent can call to retrieve passages
-from the ClimbMix corpus via dense (semantic) or sparse (BM25 keyword)
-retrieval, returning compact JSON the model can cite. There is deliberately no
-fused option: the caller is the fusion layer — cover an important facet by
-querying both engines with queries styled for each.
+from the ClimbMix corpus. Four engines are available, and a run can enable any
+subset (see ``build_search_tool``) so each method's effectiveness can be tested
+in isolation:
+
+- ``semantic``     dense embedding match (Jina-v5 DiskANN)          — natural language
+- ``keyword``      hosted BM25 bag-of-words OR (index-server)        — natural language
+- ``ssr``          Cottontail Shortest-Substring Ranking, GCL Boolean — Boolean syntax
+- ``lucene_bool``  full Lucene query-parser over the BM25 index       — Lucene syntax
+
+There is deliberately no fused option: the caller is the fusion layer.
 
 Usage as a tool:
-    from tools.search_tool import SEARCH_TOOL, run_search_tool
-    # SEARCH_TOOL -> Anthropic-style tool definition (name/description/input_schema)
+    from tools.search_tool import SEARCH_TOOL, build_search_tool, run_search_tool
+    # SEARCH_TOOL           -> default (semantic+keyword) tool definition
+    # build_search_tool([...]) -> tool definition restricted to the given engines
     # run_search_tool(**tool_input) -> JSON string to hand back as the tool result
 
 Usage as a CLI:
-    python src/tools/search_tool.py "influenza vaccination" --k 5
+    python src/tools/search_tool.py "influenza vaccination" --k 5 --engine semantic
+    python src/tools/search_tool.py "(^ influenza vaccine)" --engine ssr
 """
 from __future__ import annotations
 
@@ -20,52 +28,159 @@ import json
 from typing import Any
 
 from utils.search_dense import search_dense
+from utils.search_lucene_bool import search_lucene_bool
 from utils.search_sparse import search_sparse
+from utils.search_ssr import search_ssr
 
-SEARCH_ENGINES = ("semantic", "keyword")
-
-# Anthropic / OpenAI-compatible tool definition.
-SEARCH_TOOL: dict[str, Any] = {
-    "name": "search",
-    "description": (
-        "Search the ClimbMix corpus for passages relevant to a query. "
-        "search_engine selects dense (semantic, default) or exact-keyword "
-        "BM25 (keyword) retrieval. Returns ranked passages with their docid "
-        "and text; cite results by docid."
-    ),
-    "input_schema": {
-        "type": "object",
-        "properties": {
-            "query": {
-                "type": "string",
-                "description": "Natural-language search query.",
-            },
-            "k": {
-                "type": "integer",
-                "description": "Number of fused passages to return (default 10).",
-                "default": 10,
-            },
-            "search_engine": {
-                "type": "string",
-                "enum": list(SEARCH_ENGINES),
-                "default": "semantic",
-                "description": (
-                    "Retrieval engine. semantic (dense embedding match): "
-                    "conceptual, definitional, or broad-topic queries, "
-                    "natural-question phrasing, and well-known product or "
-                    "concept names; style the query as a natural phrase or "
-                    "question. keyword (exact BM25 match): rare proper "
-                    "names, surnames, IDs, codes, and verbatim technical "
-                    "strings, where semantic may drift to a similar-"
-                    "sounding topic; style the query as bare distinctive "
-                    "terms without stopwords. The engines rank differently "
-                    "— cover an important facet with both, one styled query "
-                    "each; duplicate results are deduplicated downstream."
-                ),
-            },
-        },
-        "required": ["query"],
+# All engines, in a stable order. ``kind`` selects the query-writing guidance
+# handed to the model; ``blurb`` is the one-line "when to use" for the tool
+# description. The dispatch below maps each name to its backend client.
+ENGINE_INFO: dict[str, dict[str, str]] = {
+    "semantic": {
+        "kind": "nl",
+        "blurb": ("semantic (dense embedding match): conceptual, definitional, "
+                  "or broad-topic needs and natural-question phrasing"),
     },
+    "keyword": {
+        "kind": "nl",
+        "blurb": ("keyword (hosted BM25, bag-of-words OR — operators are "
+                  "ignored): rare proper names, IDs, and verbatim strings; "
+                  "any query term may match, none is required"),
+    },
+    "ssr": {
+        "kind": "gcl",
+        "blurb": ("ssr (Cottontail Shortest-Substring Ranking, GCL Boolean): "
+                  "precise co-occurrence and phrases with REQUIRED terms; a "
+                  "required-but-absent term returns an empty set (a truthful "
+                  "zero) instead of a wrong near-match"),
+    },
+    "lucene_bool": {
+        "kind": "lucene",
+        "blurb": ("lucene_bool (full Lucene query-parser over the BM25 index): "
+                  "Boolean AND/OR, required (+) / excluded (-) terms, phrases, "
+                  "and proximity — BM25-ranked"),
+    },
+}
+SEARCH_ENGINES = tuple(ENGINE_INFO)
+
+# ---------------------------------------------------------------------------
+# Query-writing guidance, selected by the enabled engines' ``kind``.
+# ---------------------------------------------------------------------------
+_NL_GUIDANCE = (
+    "Write the query as a short, specific phrase: a few distinctive content "
+    "words (names, technical terms, the core concept) or a natural question "
+    "phrased like a webpage title or FAQ. Include at least one rare or specific "
+    "term — never a single common word — and attach one disambiguating "
+    "qualifier to any proper name. Omit audience, format, and task words, and "
+    "query a single facet at a time. For semantic, phrase naturally; for "
+    "keyword, use bare distinctive terms without stopwords."
+)
+
+# Baked from measured SSR probes on the full corpus (see the ssr_search worklog).
+_GCL_GUIDANCE = (
+    "Write a GCL Boolean query, NOT natural language. Operators: "
+    "`(^ a b ...)` = AND (all terms co-occur in one document — the workhorse); "
+    "`(+ a b ...)` = OR (any); `\"a b\"` = exact phrase (adjacent, in order); "
+    "`(<< (^ a b) (# k))` = a AND b within k tokens (proximity, k~15-60); "
+    "`(>> A B)` / `(<< A B)` = A contains / is-contained-in B. Terms are "
+    "Porter-stemmed and case-insensitive — use ONE form (reactor matches "
+    "reactors; russia matches Russia). TACTICS that maximise SSR: "
+    "(1) Decompose the need into facets and issue one `(^ ...)` per facet, "
+    "anchored on the rarest/most-distinctive term (a proper name, technical "
+    "term, or term-of-art) plus 1-2 qualifiers. "
+    "(2) 2-4 specific terms in an AND is the sweet spot; the corpus is huge, so "
+    "precise ANDs stay well-populated AND sharpen relevance — don't be shy. "
+    "(3) Disambiguate a polysemous word by AND-ing a context term: "
+    "`(^ \"de minimis\" tariff)` not bare `\"de minimis\"`; "
+    "`(^ ... \"small modular reactor\")` not bare `smr`. "
+    "(4) Quote multiword names/terms-of-art, but pair a phrase with a term (a "
+    "bare phrase pulls patents/boilerplate). "
+    "(5) Use OR inside an AND to cover synonyms of one facet: "
+    "`(^ uranium (+ enrichment conversion fabrication))`. "
+    "(6) An empty result means a REQUIRED term is absent — drop or replace the "
+    "weakest term; do not fall back to a pure OR of everything."
+)
+
+_LUCENE_GUIDANCE = (
+    "Write a Lucene query-parser query. The default operator is OR, so REQUIRE "
+    "terms with `+`: `+uranium +enrichment +russia` (all three required). "
+    "Operators: `+term` required, `-term` excluded, `\"exact phrase\"`, "
+    "`\"a b\"~N` = a and b within N tokens (proximity), `term*` prefix "
+    "wildcard, `( )` grouping, and `AND`/`OR`/`NOT`. The field is the document "
+    "body by default. Terms are English-analysed (Porter-stemmed, lowercased) "
+    "— one form suffices. TACTICS: require 2-4 distinctive terms with `+`; "
+    "quote multiword names; disambiguate a polysemous term by REQUIRING a "
+    "context term (`+\"de minimis\" +tariff`); use `\"a b\"~N` when two terms "
+    "must be near each other."
+)
+
+_GUIDANCE_BY_KIND = {"nl": _NL_GUIDANCE, "gcl": _GCL_GUIDANCE,
+                     "lucene": _LUCENE_GUIDANCE}
+
+
+def _query_guidance(engines: list[str]) -> str:
+    """Query-writing guidance covering exactly the enabled engines' kinds."""
+    kinds: list[str] = []
+    for e in engines:
+        kind = ENGINE_INFO[e]["kind"]
+        if kind not in kinds:
+            kinds.append(kind)
+    if len(kinds) == 1:
+        return _GUIDANCE_BY_KIND[kinds[0]]
+    # Mixed kinds: the query language depends on search_engine — spell out each.
+    label = {"nl": "for semantic/keyword", "gcl": "for ssr",
+             "lucene": "for lucene_bool"}
+    return " ".join(f"[{label[k]}] {_GUIDANCE_BY_KIND[k]}" for k in kinds)
+
+
+def build_search_tool(engines: list[str] | tuple[str, ...] | None = None
+                      ) -> dict[str, Any]:
+    """Build a ``search`` tool definition enabling exactly ``engines``.
+
+    The ``search_engine`` enum and default, the "when to use" description, and
+    the query-writing guidance are all derived from the enabled set, so a
+    single-engine run yields a tool cleanly specialised to that engine (used to
+    test each method's effectiveness in isolation). ``search_engine`` is
+    required only when more than one engine is enabled.
+    """
+    engines = list(engines) if engines else ["semantic", "keyword"]
+    unknown = [e for e in engines if e not in ENGINE_INFO]
+    if unknown:
+        raise ValueError(f"unknown engine(s): {unknown} "
+                         f"(known: {list(ENGINE_INFO)})")
+    blurbs = " | ".join(ENGINE_INFO[e]["blurb"] for e in engines)
+    multi = len(engines) > 1
+    engine_prop = {
+        "type": "string",
+        "enum": engines,
+        "default": engines[0],
+        "description": ("Retrieval engine. " + blurbs
+                        + (". The engines rank differently — cover an important "
+                           "facet with more than one." if multi else ".")),
+    }
+    props: dict[str, Any] = {
+        "query": {"type": "string", "description": _query_guidance(engines)},
+        "k": {"type": "integer", "default": 10,
+              "description": "Number of passages to return (default 10)."},
+        "search_engine": engine_prop,
+    }
+    required = ["query", "search_engine"] if multi else ["query"]
+    desc = ("Search the ClimbMix corpus for passages relevant to a query. "
+            "Returns ranked passages with their docid and text; cite by docid. "
+            "search_engine selects: " + blurbs + ".")
+    return {"name": "search", "description": desc,
+            "input_schema": {"type": "object", "properties": props,
+                             "required": required}}
+
+
+# Default definition (semantic + keyword) for back-compat with existing imports.
+SEARCH_TOOL: dict[str, Any] = build_search_tool(["semantic", "keyword"])
+
+_DISPATCH = {
+    "semantic": lambda q, k, **kw: search_dense(q, k, **kw),
+    "keyword": lambda q, k, **kw: search_sparse(q, k, **kw),
+    "ssr": lambda q, k, **kw: search_ssr(q, k, **kw),
+    "lucene_bool": lambda q, k, **kw: search_lucene_bool(q, k, **kw),
 }
 
 
@@ -74,24 +189,19 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
                     **kwargs: Any) -> str:
     """Execute the tool and return a JSON string of results (for a tool result).
 
-    ``search_engine`` picks the backend: ``semantic`` (default, dense only)
-    or ``keyword`` (BM25 only). Each result is ``{rank, id, docid, kind,
-    score, text}``; ``score`` is the engine's native score (inner-product /
-    BM25), so scores are not comparable across engines.
-    Text is truncated to ``max_chars``; pass ``None`` to preserve the
-    complete text returned by the search backend. Errors are returned as
-    ``{"error": "..."}`` rather than raised so the agent can react instead of
-    crashing.
+    ``search_engine`` picks the backend (see ``ENGINE_INFO``). Each result is
+    ``{rank, id, docid, kind, score, text}``; ``score`` is the engine's native
+    score (inner-product / BM25 / rank-synthetic for SSR), so scores are not
+    comparable across engines. Text is truncated to ``max_chars`` (pass ``None``
+    to keep the full text). Errors are returned as ``{"error": "..."}`` rather
+    than raised so the agent can react instead of crashing.
     """
-    if search_engine not in SEARCH_ENGINES:
+    if search_engine not in _DISPATCH:
         return json.dumps({"error": (
             f"unknown search_engine: {search_engine!r} "
-            f"(expected one of {list(SEARCH_ENGINES)})")})
+            f"(expected one of {list(_DISPATCH)})")})
     try:
-        if search_engine == "semantic":
-            hits = search_dense(query, k, **kwargs)
-        else:
-            hits = search_sparse(query, k, **kwargs)
+        hits = _DISPATCH[search_engine](query, k, **kwargs)
     except Exception as e:  # surface as tool output, not an exception
         return json.dumps({"error": f"{type(e).__name__}: {e}"})
 
@@ -106,19 +216,18 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
             "score": round(h["score"], 6),
             "text": text if max_chars is None else text[:max_chars],
         })
-    return json.dumps({"query": query, "k": k, "results": results},
-                      ensure_ascii=False)
+    return json.dumps({"query": query, "k": k, "engine": search_engine,
+                       "results": results}, ensure_ascii=False)
 
 
 def main() -> None:
     import argparse
 
-    ap = argparse.ArgumentParser(description="Hybrid search tool")
+    ap = argparse.ArgumentParser(description="ClimbMix search tool")
     ap.add_argument("query", nargs="+")
     ap.add_argument("--k", type=int, default=10)
     ap.add_argument("--max-chars", type=int, default=300)
-    ap.add_argument("--engine", choices=SEARCH_ENGINES,
-                    default="semantic")
+    ap.add_argument("--engine", choices=SEARCH_ENGINES, default="semantic")
     args = ap.parse_args()
 
     out = run_search_tool(" ".join(args.query), k=args.k,

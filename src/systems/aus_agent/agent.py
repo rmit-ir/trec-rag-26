@@ -40,11 +40,13 @@ from .context import ContextLedger
 from .providers.base import Provider
 from .tools import (
     COMMIT_CONTEXT_TOOL,
-    SEARCH_TOOL_DEF,
     apply_commit,
+    build_search_tool_def,
     execute_full_text_search,
     expire_staged,
 )
+
+DEFAULT_ENGINES = ["semantic", "keyword"]
 
 DEFAULT_CONTEXT_TOKEN_BUDGET = 500_000
 # A run rewrites its output.json as it goes so the outputs viewer can follow it
@@ -115,18 +117,21 @@ def make_provider(backend: str, model: str | None) -> Provider:
 
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
-                        seen_docids: set[str]) -> list[tuple]:
+                        seen_docids: set[str],
+                        default_engine: str | None = None) -> list[tuple]:
     """Execute one model turn's tool calls IN PARALLEL (threads; the tools are
     I/O-bound and thread-safe). Returns, in the model's tool_use order, one
     ``(output, trace_output, returned, failed, documents, t_start, t_end,
     duration_ms)``
     tuple per call — each
-    call carries its own real wall-clock bounds."""
+    call carries its own real wall-clock bounds. ``default_engine`` pins a
+    single-engine run to its engine when the model omits ``search_engine``."""
     def timed(call: dict[str, Any]) -> tuple:
         t0 = now_iso()
         started = perf_counter()
         execution = execute_full_text_search(
-            call["arguments"], default_k=k, seen_docids=seen_docids)
+            call["arguments"], default_k=k, seen_docids=seen_docids,
+            default_engine=default_engine)
         return (execution.output, execution.trace_output,
                 execution.returned, execution.failed, execution.documents,
                 t0, now_iso(),
@@ -486,10 +491,18 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               safety_max_rounds: int = DEFAULT_SAFETY_MAX_ROUNDS,
               max_committed_per_step: int = DEFAULT_MAX_COMMITTED_PER_STEP,
               run_id: str = "aus-agent-dev",
-              run_desc: str | None = None) -> dict[str, Any]:
-    """Run one topic end-to-end; saves trajectory + output, returns paths."""
+              run_desc: str | None = None,
+              engines: list[str] | None = None) -> dict[str, Any]:
+    """Run one topic end-to-end; saves trajectory + output, returns paths.
+
+    ``engines`` selects which retrieval backends the search tool exposes (e.g.
+    ``["ssr"]`` to test SSR Boolean in isolation); defaults to the hybrid
+    ``semantic`` + ``keyword`` pair.
+    """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
+    engines = list(engines) if engines else list(DEFAULT_ENGINES)
+    default_engine = engines[0]
     provider = make_provider(backend, model)
     tb = TrajectoryBuilder(query_id, query, metadata={
         "model": provider.model_id,
@@ -497,6 +510,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "k": k,
         "temperature": None,  # sampling params not sent (removed on 4.6+)
         "run_id": run_id,
+        "engines": engines,
     })
     log.info("[%s] starting: backend=%s model=%s k=%d run_id=%s budget=%d",
              query_id, backend, provider.model_id, k, run_id,
@@ -691,7 +705,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     try:
         system_prompt = load_system_prompt(max_committed_per_step)
         tool_definitions = [
-            SEARCH_TOOL_DEF,
+            build_search_tool_def(engines),
             COMMIT_CONTEXT_TOOL,
         ]
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
@@ -1095,7 +1109,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 # Calls from one model turn execute concurrently. The builder
                 # records their real overlapping bounds for the viewer.
                 executed = _execute_tool_calls(
-                    retrieval_calls, k=k, seen_docids=seen_docids)
+                    retrieval_calls, k=k, seen_docids=seen_docids,
+                    default_engine=default_engine)
                 for call, (
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms

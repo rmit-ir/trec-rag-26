@@ -1,0 +1,2757 @@
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-7",
+    "narrative": "I’m on the investment committee for a small public pension plan, and a manager is pitching us on an AI political signals strategy: scraping congressional trades, lobbying disclosures, proposed bills, geopolitical headlines, and social media, then letting algorithms trade quickly around the expected market impact. Can you help me understand whether this is a serious edge or a governance headache? What should we ask about legality, ethics, data quality, model risk, market impact, and regulation before we even consider allocating money?",
+    "run_id": "cmp-dense",
+    "run_desc": "aus_agent research harness (openai/gpt-5.6-luna): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_00925_25381",
+    "shard_01349_63235",
+    "shard_03434_14812",
+    "shard_05753_35573",
+    "shard_03450_62513",
+    "shard_02625_14020",
+    "shard_00443_14899",
+    "shard_01759_56272",
+    "shard_01301_38421",
+    "shard_04374_38298",
+    "shard_02546_80328",
+    "shard_02420_59784"
+  ],
+  "answer": [
+    {
+      "text": "Treat this as a high-risk alternative-data and automated-trading program, not simply as an “AI” strategy, and demand evidence that the edge survives fees, latency, crowding, false signals, and regime changes.",
+      "citations": []
+    },
+    {
+      "text": "The potential edge is plausible because legislative, lobbying, trading, news, and social data can reveal information before it is fully incorporated into prices, but the same data are noisy, delayed, incomplete, and difficult to translate into causal predictions.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "A useful warning sign is that an AI system tested on 485 congressional bills achieved only 75.1% average relevance under one model and materially better results only when applying a high-confidence threshold, while the study did not establish that its outputs would influence real-world outcomes.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "The committee should therefore ask the manager to demonstrate incremental out-of-sample returns from each signal family separately, rather than accepting a blended backtest whose strongest results may come from one unstable or accidentally leaked feature.",
+      "citations": []
+    },
+    {
+      "text": "Ask for a complete signal dictionary showing each data source, collection time, publication time, licensing terms, revisions, missingness, geographic and political coverage, and the exact timestamp at which the strategy could legitimately have acted.",
+      "citations": []
+    },
+    {
+      "text": "Lobbying data deserve particular skepticism because disclosure rules differ across jurisdictions, informal or private influence may be absent, and the observed relationship between lobbying activity and policy outcomes is confounded by many other factors.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "For congressional trades, ask whether the system uses legally public filings or obtains tips, embargoed feeds, personal data, hacked material, or information supplied under confidentiality, and require written counsel’s analysis of insider-trading, misappropriation, confidentiality, privacy, and data-licensing risks.",
+      "citations": []
+    },
+    {
+      "text": "The STOCK Act increased public reporting of congressional transactions above $1,000 to within 45 days, but public disclosure does not by itself prove that a trade is lawful, timely enough to monetize, or free of an appearance-of-conflict problem.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Ask whether the manager has controls preventing the strategy from trading on material nonpublic information, whether every source is archived with its access conditions, and whether compliance can reconstruct the information available before every order.",
+      "citations": []
+    },
+    {
+      "text": "Ask how the strategy handles social-media impersonation, bots, coordinated campaigns, deleted posts, satire, translation errors, hacked accounts, and synthetic or AI-generated content, because a fake social-media message has previously produced an almost immediate market decline followed by a recovery.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Require an independent data-quality study measuring precision, recall, duplicate content, survivorship bias, timestamp accuracy, revisions, source concentration, and the performance impact of removing the most questionable sources.",
+      "citations": []
+    },
+    {
+      "text": "Ask the manager to distinguish prediction from explanation: a model may identify correlations in text without establishing that a bill, lobbyist, headline, or geopolitical event caused the market move, and apparent confidence scores must be calibrated against realized outcomes rather than treated as probabilities by assertion.",
+      "citations": [
+        0,
+        2
+      ]
+    },
+    {
+      "text": "Demand a model inventory covering every classifier, language model, ranking system, portfolio optimizer, execution algorithm, and vendor model, together with ownership, version history, training data, validation results, known failure modes, and change-approval procedures.",
+      "citations": []
+    },
+    {
+      "text": "Require genuinely out-of-sample and walk-forward testing with point-in-time data, realistic publication and execution delays, transaction costs, spreads, market impact, borrow costs, capacity limits, and a documented prohibition on tuning the strategy to the test period.",
+      "citations": []
+    },
+    {
+      "text": "Curve-fitting and dependence on accurate, timely data are recognized automated-trading risks, so the manager should show performance across political administrations, election cycles, wars, volatility regimes, liquidity conditions, and periods in which the relevant signal was widely known.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Ask what happens when models disagree, confidence collapses, a data feed stops, a source changes its format, a vendor is compromised, or an event moves prices faster than the system can validate it.",
+      "citations": []
+    },
+    {
+      "text": "The strategy must have pre-trade limits, position and sector concentration caps, order-size and participation limits, kill switches, human escalation rules, post-trade surveillance, and tested disaster-recovery procedures, rather than relying on a promise that a human is “in the loop.”",
+      "citations": []
+    },
+    {
+      "text": "This is also a market-integrity issue: regulators have treated algorithmic spoofing—placing orders intended to be cancelled to create false market depth or artificial price movements—as unlawful, and automated systems can create problematic behavior even when their operators do not fully understand the mechanism.",
+      "citations": [
+        6,
+        7
+      ]
+    },
+    {
+      "text": "Ask specifically how the manager detects spoofing, layering, excessive cancellation, momentum ignition, coordinated trading, self-trading, and unintended interaction with other algorithms, and require the relevant surveillance records to be available to the plan and regulators.",
+      "citations": []
+    },
+    {
+      "text": "On governance, insist that the manager remains accountable for the strategy and cannot attribute losses, harmful trades, or compliance failures to the model or to a third-party technology provider.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "The investment adviser’s duties of care and loyalty remain relevant when AI autonomously executes trades or uses alternative data such as social-media posts, and the committee should require disclosure of conflicts involving data vendors, affiliated brokers, proprietary models, and compensation linked to turnover or assets.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "Ask whether the strategy’s rapid trading serves the pension’s long-horizon obligations or merely creates fee, turnover, liquidity, reputational, and operational risks that are borne by beneficiaries while the manager collects management and performance fees.",
+      "citations": []
+    },
+    {
+      "text": "Require a written conflict assessment, privacy and cybersecurity review, third-party due diligence, audit rights, incident-notification deadlines, model and data retention, business-continuity obligations, indemnities, termination assistance, and a right to inspect source-level evidence for disputed trades.",
+      "citations": [
+        8,
+        10
+      ]
+    },
+    {
+      "text": "The committee should also ask which regulatory regimes apply to the adviser, broker, trading venues, instruments, jurisdictions, data suppliers, and automated execution process, and should obtain current advice from securities, privacy, market-abuse, pension, and public-sector counsel rather than relying on the manager’s generic compliance memorandum.",
+      "citations": []
+    },
+    {
+      "text": "For a public pension, fiduciary decision-makers should be able to explain the strategy’s risks, limitations, liability allocation, and monitoring plan to beneficiaries and auditors, especially because pension research cautions that AI can generate misleading information and may not predict market prices accurately.",
+      "citations": [
+        11
+      ]
+    },
+    {
+      "text": "A sensible allocation gate is a small, reversible pilot only after independent validation, with predefined drawdown, model-drift, data-integrity, compliance, and capacity stop conditions and no expansion until live results reconcile to the investment case.",
+      "citations": []
+    },
+    {
+      "text": "The manager should not receive an allocation if it cannot provide point-in-time audit trails, legally clean data provenance, independently reproducible testing, calibrated uncertainty, robust controls, and a credible explanation of why the edge should persist after other traders learn the same signals.",
+      "citations": []
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-7",
+    "status": "completed",
+    "metadata": {
+      "model": "gpt-5.6-luna",
+      "backend": "openai",
+      "k": 10,
+      "temperature": null,
+      "run_id": "cmp-dense",
+      "engines": [
+        "semantic"
+      ],
+      "query_source": "I’m on the investment committee for a small public pension plan, and a manager is pitching us on an AI political signals strategy: scraping congressional trades, lobbying disclosures, proposed bills, geopolitical headlines, and social media, then letting algorithms trade quickly around the expected market impact. Can you help me understand whether this is a serious edge or a governance headache? What should we ask about legality, ethics, data quality, model risk, market impact, and regulation before we even consider allocating money?"
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 7,
+        "commit_context": 2
+      },
+      "tool_call_counts_all": {
+        "search": 7,
+        "commit_context": 2
+      },
+      "retrieved_docids": [
+        "shard_00363_30056",
+        "shard_00443_14899",
+        "shard_00745_64139",
+        "shard_00826_8009",
+        "shard_00899_48264",
+        "shard_00925_25381",
+        "shard_01115_31179",
+        "shard_01301_38421",
+        "shard_01349_63235",
+        "shard_01727_48630",
+        "shard_01739_61538",
+        "shard_01759_56272",
+        "shard_01897_67189",
+        "shard_02026_82374",
+        "shard_02105_32304",
+        "shard_02249_1637",
+        "shard_02420_59784",
+        "shard_02546_80328",
+        "shard_02625_14020",
+        "shard_02873_22567",
+        "shard_02874_8323",
+        "shard_02879_39872",
+        "shard_03227_14226",
+        "shard_03232_72958",
+        "shard_03434_14812",
+        "shard_03450_62513",
+        "shard_03707_21657",
+        "shard_03806_75105",
+        "shard_03854_73144",
+        "shard_04066_71601",
+        "shard_04114_31718",
+        "shard_04146_71503",
+        "shard_04270_23218",
+        "shard_04346_43831",
+        "shard_04374_38298",
+        "shard_04722_60323",
+        "shard_04736_25197",
+        "shard_04881_83100",
+        "shard_05164_52831",
+        "shard_05178_31562",
+        "shard_05277_30043",
+        "shard_05307_17602",
+        "shard_05440_71786",
+        "shard_05725_58864",
+        "shard_05753_35573",
+        "shard_05787_76200",
+        "shard_05962_36978",
+        "shard_06010_71427",
+        "shard_06024_29247",
+        "shard_06099_7298",
+        "shard_06129_43057",
+        "shard_06155_30447",
+        "shard_06205_53360",
+        "shard_06294_73953",
+        "shard_06500_56531",
+        "shard_06501_12086"
+      ],
+      "tokens": {
+        "input": 95163,
+        "input_uncached": 91579,
+        "output": 2891,
+        "cache_read": 3584,
+        "cache_write": 0,
+        "total": 98054,
+        "processed_input": 91579,
+        "processed": 94470,
+        "context_tokens": 25083,
+        "peak_context_tokens": 38028,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00443_14899",
+          "shard_00925_25381",
+          "shard_01301_38421",
+          "shard_01349_63235",
+          "shard_01727_48630",
+          "shard_01759_56272",
+          "shard_02420_59784",
+          "shard_02546_80328",
+          "shard_02625_14020",
+          "shard_02873_22567",
+          "shard_03434_14812",
+          "shard_03450_62513",
+          "shard_04374_38298",
+          "shard_05753_35573",
+          "shard_06294_73953"
+        ],
+        "rejected": [
+          "shard_00363_30056",
+          "shard_00745_64139",
+          "shard_00826_8009",
+          "shard_00899_48264",
+          "shard_01115_31179",
+          "shard_01739_61538",
+          "shard_01897_67189",
+          "shard_02026_82374",
+          "shard_02105_32304",
+          "shard_02249_1637",
+          "shard_02874_8323",
+          "shard_02879_39872",
+          "shard_03227_14226",
+          "shard_03232_72958",
+          "shard_03707_21657",
+          "shard_03806_75105",
+          "shard_03854_73144",
+          "shard_04066_71601",
+          "shard_04114_31718",
+          "shard_04146_71503",
+          "shard_04270_23218",
+          "shard_04346_43831",
+          "shard_04722_60323",
+          "shard_04736_25197",
+          "shard_04881_83100",
+          "shard_05164_52831",
+          "shard_05178_31562",
+          "shard_05277_30043",
+          "shard_05307_17602",
+          "shard_05440_71786",
+          "shard_05725_58864",
+          "shard_05787_76200",
+          "shard_05962_36978",
+          "shard_06010_71427",
+          "shard_06024_29247",
+          "shard_06099_7298",
+          "shard_06129_43057",
+          "shard_06155_30447",
+          "shard_06205_53360",
+          "shard_06500_56531",
+          "shard_06501_12086"
+        ]
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nphrase searches and read results, but it is not evidence and must not support\nfactual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the argument, connections, and voice of the answer are\nyours to build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. Which of\n   these the corpus can actually support is unknown until it answers; the\n   opening searches exist to find that out before the answer's structure is\n   fixed. This list is provisional: searching reveals what the request\n   actually needs, and the plan is revised as it does.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\nResearch is one loop — search, commit, decide — repeated until the internal\nsuccess plan is satisfied:\n\n1. **Search.** Round one's queries come from the question: build them only\n   from the question's own wording and plain paraphrases of it. Do not seed\n   a query with candidate answers — specific names, techniques, causes,\n   examples — that the question itself does not mention: you do not know\n   what this corpus holds until it answers, no matter how well you know the\n   subject. In every later round, each new content-bearing query term must\n   be traceable to a document retrieved in an earlier round; prior knowledge\n   may rephrase, disambiguate, and supply synonyms — it may never introduce\n   a candidate the corpus has not yet surfaced.\n2. **Commit.** Read what came back and commit the documents whose distinct\n   contributions the answer will need. Committing nothing is the right call\n   for a batch with nothing worth keeping.\n3. **Decide.** Reflect before judging: searching teaches you what the\n   request actually needs, so first revise the plan against what retrieval\n   has shown. An aspect that retrieved material has revealed as important to\n   the request joins the coverage areas even though the opening plan missed\n   it; a planned area whose reformulated searches keep coming back empty is\n   recorded as unsupportable, not retried forever. Then compare committed\n   material against the revised plan. If a coverage area still lacks support\n   — or is supported only thinly where the request deserves depth — loop\n   again with queries aimed at that gap. The loop ends when every coverage\n   area of the current plan is resolved: committed material behind it, or\n   searches that failed to support it. Then write the report — only after\n   committing everything it will cite.\n\nNotes on the loop:\n\n- If reformulated question-term queries keep returning nothing useful, probe\n  candidates from prior knowledge, one query each. A candidate the corpus\n  then returns has been surfaced like any other retrieved material; one it\n  does not return stays out of the answer.\n- The answer's structure follows what was retrieved. Fix the outline — which\n  items, sections, comparisons — only after the rounds that surfaced those\n  items, so that every part of it traces to a committed document.\n- Size the search to the question. Several independent coverage areas call\n  for multiple complementary queries in parallel across them; a single fact,\n  name, date, or definition needs one or two queries, then the answer. Small\n  is not shallow: even the shortest answer rests on the strongest support\n  the corpus offers.\n- Move from broad discovery to targeted follow-ups on what earlier rounds\n  surfaced: specific names, dates, mechanisms, examples, definitions, causal\n  claims, and disputed points.\n- Reformulate weak queries instead of accepting poor coverage: synonyms,\n  alternative terminology, different phrasings.\n- Actively search for counter-evidence, contradictions, limitations, and\n  missing perspectives when they matter to the request.\n- Every tool call must have a concrete purpose tied to an unmet requirement\n  or evidence gap; never call a tool solely to create another model turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `10` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Refer to every document by its full docid exactly as returned (e.g.\n  `shard_01851_76734`) — in selection reasons, working notes, and citations\n  alike. Never abbreviate to a fragment such as `01851`: that is only the\n  shard number, shared by many unrelated documents, and shorthand ids lead to\n  wrong or invalid citations.\n- A `_p<n>` suffix marks a page of a document: `shard_01851_76734_p2` is page\n  2 of `shard_01851_76734`. Keep the suffix when it is part of the returned\n  id — recalling the page-specific id, not just the parent document, is what\n  makes the reference precise.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching — but quality does: after satisfying the\nconcrete minimum, keep improving toward the target/excellence requirements\nwhile you can name a specific weakness whose resolution would materially\nimprove the answer. An unresolved or thinly supported coverage area in the\ncurrent plan is always such a weakness.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write the report only after committing everything it will cite. A report\n  turn issues no tool calls, so a batch still staged when you start writing\n  lapses uncommitted and everything you meant to cite from it becomes\n  invalid — commit first, and write the report on the following turn.\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Thursday, 23 July 2026, 10:39:45 +1000 (Australia/Melbourne)\n\nResearch request:\n\nI’m on the investment committee for a small public pension plan, and a manager is pitching us on an AI political signals strategy: scraping congressional trades, lobbying disclosures, proposed bills, geopolitical headlines, and social media, then letting algorithms trade quickly around the expected market impact. Can you help me understand whether this is a serious edge or a governance headache? What should we ask about legality, ethics, data quality, model risk, market impact, and regulation before we even consider allocating money?\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the ClimbMix corpus for passages relevant to a query. Returns ranked passages with their docid and text; cite by docid. search_engine selects: semantic (dense embedding match): conceptual, definitional, or broad-topic needs and natural-question phrasing. Each result is bounded independently before it is staged; extra queries are cheap — cover an important facet with more than one query.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "description": "Write the query as a short, specific phrase: a few distinctive content words (names, technical terms, the core concept) or a natural question phrased like a webpage title or FAQ. Include at least one rare or specific term — never a single common word — and attach one disambiguating qualifier to any proper name. Omit audience, format, and task words, and query a single facet at a time. For semantic, phrase naturally; for keyword, use bare distinctive terms without stopwords."
+              },
+              "k": {
+                "type": "integer",
+                "default": 10,
+                "description": "Number of passages to return (default 10)."
+              },
+              "search_engine": {
+                "type": "string",
+                "enum": [
+                  "semantic"
+                ],
+                "default": "semantic",
+                "description": "Retrieval engine. semantic (dense embedding match): conceptual, definitional, or broad-topic needs and natural-question phrasing."
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_I05SNOc1TKW72KoAFedYdsDj",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "AI political signals strategy congressional trades lobbying disclosures proposed bills geopolitical headlines social media trading",
+                "k": 8,
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_uUy3R4qZLmgqYVRYAI2kOjJ5",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "legality ethics governance algorithmic trading public pension political information",
+                "k": 8,
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_bvRHQIz9swpYfvWa7EvLgcXX",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "data quality model risk market impact regulation automated trading social media",
+                "k": 8,
+                "budget_tokens_per_result": 2500
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-23T10:39:45.804+10:00",
+        "t_end": "2026-07-23T10:39:50.732+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 4928.259,
+          "context_tokens": 3751,
+          "peak_context_tokens": 3751,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 4929,
+          "tokens": {
+            "input": 3751,
+            "input_uncached": 3751,
+            "output": 173,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3924,
+            "processed_input": 3751,
+            "processed": 3924,
+            "context": 3751
+          },
+          "provider_usage": {
+            "input_tokens": 3751,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 173
+          },
+          "cumulative_tokens": {
+            "input": 3751,
+            "input_uncached": 3751,
+            "output": 173,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3924,
+            "processed_input": 3751,
+            "processed": 3924
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "AI political signals strategy congressional trades lobbying disclosures proposed bills geopolitical headlines social media trading",
+          "k": 8,
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "AI political signals strategy congressional trades lobbying disclosures proposed bills geopolitical headlines social media trading",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06129_43057",
+              "docid": "shard_06129_43057",
+              "kind": "document",
+              "score": 0.302045,
+              "truncated": false,
+              "original_chars": 1349,
+              "returned_chars": 1349
+            },
+            {
+              "rank": 2,
+              "id": "shard_05164_52831",
+              "docid": "shard_05164_52831",
+              "kind": "document",
+              "score": 0.300537,
+              "truncated": false,
+              "original_chars": 3923,
+              "returned_chars": 3923
+            },
+            {
+              "rank": 3,
+              "id": "shard_03434_14812",
+              "docid": "shard_03434_14812",
+              "kind": "document",
+              "score": 0.298266,
+              "truncated": false,
+              "original_chars": 4983,
+              "returned_chars": 4983
+            },
+            {
+              "rank": 4,
+              "id": "shard_01115_31179",
+              "docid": "shard_01115_31179",
+              "kind": "document",
+              "score": 0.296589,
+              "truncated": false,
+              "original_chars": 3266,
+              "returned_chars": 3266
+            },
+            {
+              "rank": 5,
+              "id": "shard_02879_39872",
+              "docid": "shard_02879_39872",
+              "kind": "document",
+              "score": 0.296499,
+              "truncated": false,
+              "original_chars": 3112,
+              "returned_chars": 3112
+            },
+            {
+              "rank": 6,
+              "id": "shard_02026_82374",
+              "docid": "shard_02026_82374",
+              "kind": "document",
+              "score": 0.296084,
+              "truncated": false,
+              "original_chars": 656,
+              "returned_chars": 656
+            },
+            {
+              "rank": 7,
+              "id": "shard_06294_73953",
+              "docid": "shard_06294_73953",
+              "kind": "document",
+              "score": 0.295444,
+              "truncated": false,
+              "original_chars": 3503,
+              "returned_chars": 3503
+            },
+            {
+              "rank": 8,
+              "id": "shard_05440_71786",
+              "docid": "shard_05440_71786",
+              "kind": "document",
+              "score": 0.295353,
+              "truncated": false,
+              "original_chars": 3512,
+              "returned_chars": 3512
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06129_43057",
+          "shard_05164_52831",
+          "shard_03434_14812",
+          "shard_01115_31179",
+          "shard_02879_39872",
+          "shard_02026_82374",
+          "shard_06294_73953",
+          "shard_05440_71786"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06129_43057",
+            "score": 0.302045
+          },
+          {
+            "docid": "shard_05164_52831",
+            "score": 0.300537
+          },
+          {
+            "docid": "shard_03434_14812",
+            "score": 0.298266
+          },
+          {
+            "docid": "shard_01115_31179",
+            "score": 0.296589
+          },
+          {
+            "docid": "shard_02879_39872",
+            "score": 0.296499
+          },
+          {
+            "docid": "shard_02026_82374",
+            "score": 0.296084
+          },
+          {
+            "docid": "shard_06294_73953",
+            "score": 0.295444
+          },
+          {
+            "docid": "shard_05440_71786",
+            "score": 0.295353
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_I05SNOc1TKW72KoAFedYdsDj",
+        "id": "step-0001",
+        "t_start": "2026-07-23T10:39:50.733+10:00",
+        "t_end": "2026-07-23T10:39:50.805+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 71.83,
+          "context_tokens": 3751,
+          "peak_context_tokens": 3751,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5117,
+          "cumulative_tokens": {
+            "input": 3751,
+            "input_uncached": 3751,
+            "output": 173,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3924,
+            "processed_input": 3751,
+            "processed": 3924
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06129_43057",
+            "shard_05164_52831",
+            "shard_03434_14812",
+            "shard_01115_31179",
+            "shard_02879_39872",
+            "shard_02026_82374",
+            "shard_06294_73953",
+            "shard_05440_71786"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "legality ethics governance algorithmic trading public pension political information",
+          "k": 8,
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "legality ethics governance algorithmic trading public pension political information",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05725_58864",
+              "docid": "shard_05725_58864",
+              "kind": "document",
+              "score": 0.295727,
+              "truncated": false,
+              "original_chars": 3711,
+              "returned_chars": 3711
+            },
+            {
+              "rank": 2,
+              "id": "shard_05178_31562",
+              "docid": "shard_05178_31562",
+              "kind": "document",
+              "score": 0.278901,
+              "truncated": false,
+              "original_chars": 3353,
+              "returned_chars": 3353
+            },
+            {
+              "rank": 3,
+              "id": "shard_06500_56531",
+              "docid": "shard_06500_56531",
+              "kind": "document",
+              "score": 0.276264,
+              "truncated": false,
+              "original_chars": 3104,
+              "returned_chars": 3104
+            },
+            {
+              "rank": 4,
+              "id": "shard_04722_60323",
+              "docid": "shard_04722_60323",
+              "kind": "document",
+              "score": 0.262273,
+              "truncated": false,
+              "original_chars": 281,
+              "returned_chars": 281
+            },
+            {
+              "rank": 5,
+              "id": "shard_04736_25197",
+              "docid": "shard_04736_25197",
+              "kind": "document",
+              "score": 0.261964,
+              "truncated": false,
+              "original_chars": 130,
+              "returned_chars": 130
+            },
+            {
+              "rank": 6,
+              "id": "shard_02249_1637",
+              "docid": "shard_02249_1637",
+              "kind": "document",
+              "score": 0.260066,
+              "truncated": false,
+              "original_chars": 2070,
+              "returned_chars": 2070
+            },
+            {
+              "rank": 7,
+              "id": "shard_00925_25381",
+              "docid": "shard_00925_25381",
+              "kind": "document",
+              "score": 0.259115,
+              "truncated": false,
+              "original_chars": 3188,
+              "returned_chars": 3188
+            },
+            {
+              "rank": 8,
+              "id": "shard_01727_48630",
+              "docid": "shard_01727_48630",
+              "kind": "document",
+              "score": 0.259006,
+              "truncated": false,
+              "original_chars": 2490,
+              "returned_chars": 2490
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05725_58864",
+          "shard_05178_31562",
+          "shard_06500_56531",
+          "shard_04722_60323",
+          "shard_04736_25197",
+          "shard_02249_1637",
+          "shard_00925_25381",
+          "shard_01727_48630"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05725_58864",
+            "score": 0.295727
+          },
+          {
+            "docid": "shard_05178_31562",
+            "score": 0.278901
+          },
+          {
+            "docid": "shard_06500_56531",
+            "score": 0.276264
+          },
+          {
+            "docid": "shard_04722_60323",
+            "score": 0.262273
+          },
+          {
+            "docid": "shard_04736_25197",
+            "score": 0.261964
+          },
+          {
+            "docid": "shard_02249_1637",
+            "score": 0.260066
+          },
+          {
+            "docid": "shard_00925_25381",
+            "score": 0.259115
+          },
+          {
+            "docid": "shard_01727_48630",
+            "score": 0.259006
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_uUy3R4qZLmgqYVRYAI2kOjJ5",
+        "id": "step-0002",
+        "t_start": "2026-07-23T10:39:50.734+10:00",
+        "t_end": "2026-07-23T10:39:50.866+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 132.231,
+          "context_tokens": 3751,
+          "peak_context_tokens": 3751,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5117,
+          "cumulative_tokens": {
+            "input": 3751,
+            "input_uncached": 3751,
+            "output": 173,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3924,
+            "processed_input": 3751,
+            "processed": 3924
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05725_58864",
+            "shard_05178_31562",
+            "shard_06500_56531",
+            "shard_04722_60323",
+            "shard_04736_25197",
+            "shard_02249_1637",
+            "shard_00925_25381",
+            "shard_01727_48630"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "data quality model risk market impact regulation automated trading social media",
+          "k": 8,
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "data quality model risk market impact regulation automated trading social media",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01897_67189",
+              "docid": "shard_01897_67189",
+              "kind": "document",
+              "score": 0.280784,
+              "truncated": false,
+              "original_chars": 597,
+              "returned_chars": 597
+            },
+            {
+              "rank": 2,
+              "id": "shard_04270_23218",
+              "docid": "shard_04270_23218",
+              "kind": "document",
+              "score": 0.267454,
+              "truncated": false,
+              "original_chars": 1909,
+              "returned_chars": 1909
+            },
+            {
+              "rank": 3,
+              "id": "shard_06010_71427",
+              "docid": "shard_06010_71427",
+              "kind": "document",
+              "score": 0.265441,
+              "truncated": false,
+              "original_chars": 421,
+              "returned_chars": 421
+            },
+            {
+              "rank": 4,
+              "id": "shard_02105_32304",
+              "docid": "shard_02105_32304",
+              "kind": "document",
+              "score": 0.263872,
+              "truncated": false,
+              "original_chars": 3055,
+              "returned_chars": 3055
+            },
+            {
+              "rank": 5,
+              "id": "shard_02625_14020",
+              "docid": "shard_02625_14020",
+              "kind": "document",
+              "score": 0.262922,
+              "truncated": false,
+              "original_chars": 3891,
+              "returned_chars": 3891
+            },
+            {
+              "rank": 6,
+              "id": "shard_03450_62513",
+              "docid": "shard_03450_62513",
+              "kind": "document",
+              "score": 0.260536,
+              "truncated": false,
+              "original_chars": 1548,
+              "returned_chars": 1548
+            },
+            {
+              "rank": 7,
+              "id": "shard_03707_21657",
+              "docid": "shard_03707_21657",
+              "kind": "document",
+              "score": 0.258778,
+              "truncated": false,
+              "original_chars": 4177,
+              "returned_chars": 4177
+            },
+            {
+              "rank": 8,
+              "id": "shard_06501_12086",
+              "docid": "shard_06501_12086",
+              "kind": "document",
+              "score": 0.258698,
+              "truncated": false,
+              "original_chars": 1760,
+              "returned_chars": 1760
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01897_67189",
+          "shard_04270_23218",
+          "shard_06010_71427",
+          "shard_02105_32304",
+          "shard_02625_14020",
+          "shard_03450_62513",
+          "shard_03707_21657",
+          "shard_06501_12086"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01897_67189",
+            "score": 0.280784
+          },
+          {
+            "docid": "shard_04270_23218",
+            "score": 0.267454
+          },
+          {
+            "docid": "shard_06010_71427",
+            "score": 0.265441
+          },
+          {
+            "docid": "shard_02105_32304",
+            "score": 0.263872
+          },
+          {
+            "docid": "shard_02625_14020",
+            "score": 0.262922
+          },
+          {
+            "docid": "shard_03450_62513",
+            "score": 0.260536
+          },
+          {
+            "docid": "shard_03707_21657",
+            "score": 0.258778
+          },
+          {
+            "docid": "shard_06501_12086",
+            "score": 0.258698
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_bvRHQIz9swpYfvWa7EvLgcXX",
+        "id": "step-0003",
+        "t_start": "2026-07-23T10:39:50.734+10:00",
+        "t_end": "2026-07-23T10:39:50.920+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 185.267,
+          "context_tokens": 3751,
+          "peak_context_tokens": 3751,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5117,
+          "cumulative_tokens": {
+            "input": 3751,
+            "input_uncached": 3751,
+            "output": 173,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3924,
+            "processed_input": 3751,
+            "processed": 3924
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01897_67189",
+            "shard_04270_23218",
+            "shard_06010_71427",
+            "shard_02105_32304",
+            "shard_02625_14020",
+            "shard_03450_62513",
+            "shard_03707_21657",
+            "shard_06501_12086"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_I05SNOc1TKW72KoAFedYdsDj",
+            "call_uUy3R4qZLmgqYVRYAI2kOjJ5",
+            "call_bvRHQIz9swpYfvWa7EvLgcXX"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [
+            "**Choosing documentation topics**\n\nI need to decide on my first action for the next turn. I'm considering several documents: 03434 on political AI specifics, 06294 regarding transparency and disclosures, 00925 on measurement, 03450 about a fake tweet, and 02625 which discusses risks. I'm also thinking of the legal aspect regarding public pension fiduciaries, which might be missing. I'll commit to an action first and search for more details later."
+          ],
+          "tool_calls": [
+            {
+              "id": "call_2Q4wSB9jZmH99Ce1PoPWG7Lj",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_03434_14812",
+                    "reason": "Concrete evidence on an AI system classifying congressional bills, its accuracy limits, confidence calibration, and risks of automated political influence."
+                  },
+                  {
+                    "docid": "shard_06294_73953",
+                    "reason": "Distinct governance evidence on political-system AI relying on legislative, lobbying, contribution, and voting data, plus transparency and impersonation concerns."
+                  },
+                  {
+                    "docid": "shard_00925_25381",
+                    "reason": "Evidence that abundant political data still creates difficult measurement problems and requires transparency about data, mechanisms, and effects."
+                  },
+                  {
+                    "docid": "shard_03450_62513",
+                    "reason": "Direct market-impact example of a fake social-media post causing a rapid equity drop and automated trading concerns."
+                  },
+                  {
+                    "docid": "shard_02625_14020",
+                    "reason": "Evidence on curve-fitting, dependency on accurate data, and automated-trading legal, control, and manipulation-prevention obligations."
+                  },
+                  {
+                    "docid": "shard_01727_48630",
+                    "reason": "Distinct model-governance evidence explaining why algorithmic transparency may not reveal inferred rules or exact behavior and can create false clarity."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0004",
+        "t_start": "2026-07-23T10:39:50.920+10:00",
+        "t_end": "2026-07-23T10:39:54.907+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3986.344,
+          "context_tokens": 17551,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 9103,
+          "tokens": {
+            "input": 17551,
+            "input_uncached": 17551,
+            "output": 318,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 17869,
+            "processed_input": 17551,
+            "processed": 17869,
+            "context": 17551
+          },
+          "provider_usage": {
+            "input_tokens": 17551,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 318
+          },
+          "cumulative_tokens": {
+            "input": 21302,
+            "input_uncached": 21302,
+            "output": 491,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 21793,
+            "processed_input": 21302,
+            "processed": 21793
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06129_43057",
+            "shard_05164_52831",
+            "shard_03434_14812",
+            "shard_01115_31179",
+            "shard_02879_39872",
+            "shard_02026_82374",
+            "shard_06294_73953",
+            "shard_05440_71786",
+            "shard_05725_58864",
+            "shard_05178_31562",
+            "shard_06500_56531",
+            "shard_04722_60323",
+            "shard_04736_25197",
+            "shard_02249_1637",
+            "shard_00925_25381",
+            "shard_01727_48630",
+            "shard_01897_67189",
+            "shard_04270_23218",
+            "shard_06010_71427",
+            "shard_02105_32304",
+            "shard_02625_14020",
+            "shard_03450_62513",
+            "shard_03707_21657",
+            "shard_06501_12086"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_03434_14812",
+              "reason": "Concrete evidence on an AI system classifying congressional bills, its accuracy limits, confidence calibration, and risks of automated political influence."
+            },
+            {
+              "docid": "shard_06294_73953",
+              "reason": "Distinct governance evidence on political-system AI relying on legislative, lobbying, contribution, and voting data, plus transparency and impersonation concerns."
+            },
+            {
+              "docid": "shard_00925_25381",
+              "reason": "Evidence that abundant political data still creates difficult measurement problems and requires transparency about data, mechanisms, and effects."
+            },
+            {
+              "docid": "shard_03450_62513",
+              "reason": "Direct market-impact example of a fake social-media post causing a rapid equity drop and automated trading concerns."
+            },
+            {
+              "docid": "shard_02625_14020",
+              "reason": "Evidence on curve-fitting, dependency on accurate data, and automated-trading legal, control, and manipulation-prevention obligations."
+            },
+            {
+              "docid": "shard_01727_48630",
+              "reason": "Distinct model-governance evidence explaining why algorithmic transparency may not reveal inferred rules or exact behavior and can create false clarity."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_03434_14812\", \"shard_06294_73953\", \"shard_00925_25381\", \"shard_01727_48630\", \"shard_02625_14020\", \"shard_03450_62513\"], \"rejected\": [{\"docid\": \"shard_06129_43057\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05164_52831\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01115_31179\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02879_39872\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02026_82374\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05440_71786\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05725_58864\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05178_31562\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06500_56531\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04722_60323\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04736_25197\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02249_1637\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01897_67189\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04270_23218\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06010_71427\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02105_32304\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03707_21657\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06501_12086\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 17,551 / 500,000 tokens (3.5%) · elapsed: 0m 9s]",
+        "failed": false,
+        "tool_call_id": "call_2Q4wSB9jZmH99Ce1PoPWG7Lj",
+        "id": "step-0005",
+        "t_start": "2026-07-23T10:39:54.908+10:00",
+        "t_end": "2026-07-23T10:39:54.908+10:00",
+        "turn": 1,
+        "parent_id": "step-0004",
+        "stats": {
+          "duration_ms": 0.493,
+          "context_tokens": 17551,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 9105,
+          "cumulative_tokens": {
+            "input": 21302,
+            "input_uncached": 21302,
+            "output": 491,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 21793,
+            "processed_input": 21302,
+            "processed": 21793
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06129_43057",
+            "shard_05164_52831",
+            "shard_03434_14812",
+            "shard_01115_31179",
+            "shard_02879_39872",
+            "shard_02026_82374",
+            "shard_06294_73953",
+            "shard_05440_71786",
+            "shard_05725_58864",
+            "shard_05178_31562",
+            "shard_06500_56531",
+            "shard_04722_60323",
+            "shard_04736_25197",
+            "shard_02249_1637",
+            "shard_00925_25381",
+            "shard_01727_48630",
+            "shard_01897_67189",
+            "shard_04270_23218",
+            "shard_06010_71427",
+            "shard_02105_32304",
+            "shard_02625_14020",
+            "shard_03450_62513",
+            "shard_03707_21657",
+            "shard_06501_12086"
+          ],
+          "committed": [
+            "shard_03434_14812",
+            "shard_06294_73953",
+            "shard_00925_25381",
+            "shard_01727_48630",
+            "shard_02625_14020",
+            "shard_03450_62513"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_06129_43057",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05164_52831",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01115_31179",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02879_39872",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02026_82374",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05440_71786",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05725_58864",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05178_31562",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06500_56531",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04722_60323",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04736_25197",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02249_1637",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01897_67189",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04270_23218",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06010_71427",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02105_32304",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03707_21657",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06501_12086",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_2Q4wSB9jZmH99Ce1PoPWG7Lj"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [
+            "**Searching legal terms**\n\nI’m thinking about follow-up queries related to legislative matters, like congressional bills and lobbying disclosures. I want to touch on topics like social media fake news and algorithmic trading, focusing on data integrity. I should search for legal regulations, considering terms like “insider trading” linked to the STOCK Act or “SEC AI investment adviser fiduciary.” Certain terms like \"congressional trades\" need attention too, as well as public pension fiduciary matters."
+          ],
+          "tool_calls": [
+            {
+              "id": "call_bkjxqUnnsaIQh2cpNceRZ00q",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "congressional stock trades STOCK Act insider trading disclosure legality",
+                "k": 8,
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_aVtI3hlchWESvBmpWe4PF7yW",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "algorithmic trading market manipulation spoofing risk controls regulation",
+                "k": 8,
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_DwpW1PSlz0QmG8DNgJ1yI5gu",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "AI investment adviser fiduciary duty model risk regulation pension",
+                "k": 8,
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_Tiyehzn37zphhqLgnmmluFxM",
+              "name": "search",
+              "arguments": {
+                "search_engine": "semantic",
+                "query": "lobbying disclosure data quality political influence conflicts ethics",
+                "k": 8,
+                "budget_tokens_per_result": 3000
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0006",
+        "t_start": "2026-07-23T10:39:54.908+10:00",
+        "t_end": "2026-07-23T10:40:02.463+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 7555.065,
+          "context_tokens": 10750,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 16660,
+          "tokens": {
+            "input": 10750,
+            "input_uncached": 7166,
+            "output": 256,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 11006,
+            "processed_input": 7166,
+            "processed": 7422,
+            "context": 10750
+          },
+          "provider_usage": {
+            "input_tokens": 7166,
+            "cache_read_input_tokens": 3584,
+            "output_tokens": 256
+          },
+          "cumulative_tokens": {
+            "input": 32052,
+            "input_uncached": 28468,
+            "output": 747,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 32799,
+            "processed_input": 28468,
+            "processed": 29215
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00925_25381",
+            "shard_01727_48630",
+            "shard_02625_14020",
+            "shard_03434_14812",
+            "shard_03450_62513",
+            "shard_06294_73953"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "congressional stock trades STOCK Act insider trading disclosure legality",
+          "k": 8,
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "congressional stock trades STOCK Act insider trading disclosure legality",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05753_35573",
+              "docid": "shard_05753_35573",
+              "kind": "document",
+              "score": 0.311231,
+              "truncated": false,
+              "original_chars": 3084,
+              "returned_chars": 3084
+            },
+            {
+              "rank": 2,
+              "id": "shard_03806_75105",
+              "docid": "shard_03806_75105",
+              "kind": "document",
+              "score": 0.30996,
+              "truncated": false,
+              "original_chars": 3106,
+              "returned_chars": 3106
+            },
+            {
+              "rank": 3,
+              "id": "shard_02874_8323",
+              "docid": "shard_02874_8323",
+              "kind": "document",
+              "score": 0.309561,
+              "truncated": false,
+              "original_chars": 2086,
+              "returned_chars": 2086
+            },
+            {
+              "rank": 4,
+              "id": "shard_00899_48264",
+              "docid": "shard_00899_48264",
+              "kind": "document",
+              "score": 0.309214,
+              "truncated": false,
+              "original_chars": 736,
+              "returned_chars": 736
+            },
+            {
+              "rank": 5,
+              "id": "shard_03854_73144",
+              "docid": "shard_03854_73144",
+              "kind": "document",
+              "score": 0.30857,
+              "truncated": false,
+              "original_chars": 3756,
+              "returned_chars": 3756
+            },
+            {
+              "rank": 6,
+              "id": "shard_05787_76200",
+              "docid": "shard_05787_76200",
+              "kind": "document",
+              "score": 0.308408,
+              "truncated": false,
+              "original_chars": 4411,
+              "returned_chars": 4411
+            },
+            {
+              "rank": 7,
+              "id": "shard_04146_71503",
+              "docid": "shard_04146_71503",
+              "kind": "document",
+              "score": 0.307186,
+              "truncated": false,
+              "original_chars": 3864,
+              "returned_chars": 3864
+            },
+            {
+              "rank": 8,
+              "id": "shard_04114_31718",
+              "docid": "shard_04114_31718",
+              "kind": "document",
+              "score": 0.304415,
+              "truncated": false,
+              "original_chars": 3075,
+              "returned_chars": 3075
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05753_35573",
+          "shard_03806_75105",
+          "shard_02874_8323",
+          "shard_00899_48264",
+          "shard_03854_73144",
+          "shard_05787_76200",
+          "shard_04146_71503",
+          "shard_04114_31718"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05753_35573",
+            "score": 0.311231
+          },
+          {
+            "docid": "shard_03806_75105",
+            "score": 0.30996
+          },
+          {
+            "docid": "shard_02874_8323",
+            "score": 0.309561
+          },
+          {
+            "docid": "shard_00899_48264",
+            "score": 0.309214
+          },
+          {
+            "docid": "shard_03854_73144",
+            "score": 0.30857
+          },
+          {
+            "docid": "shard_05787_76200",
+            "score": 0.308408
+          },
+          {
+            "docid": "shard_04146_71503",
+            "score": 0.307186
+          },
+          {
+            "docid": "shard_04114_31718",
+            "score": 0.304415
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_bkjxqUnnsaIQh2cpNceRZ00q",
+        "id": "step-0007",
+        "t_start": "2026-07-23T10:40:02.464+10:00",
+        "t_end": "2026-07-23T10:40:02.592+10:00",
+        "turn": 2,
+        "parent_id": "step-0006",
+        "stats": {
+          "duration_ms": 127.969,
+          "context_tokens": 10750,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 16894,
+          "cumulative_tokens": {
+            "input": 32052,
+            "input_uncached": 28468,
+            "output": 747,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 32799,
+            "processed_input": 28468,
+            "processed": 29215
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05753_35573",
+            "shard_03806_75105",
+            "shard_02874_8323",
+            "shard_00899_48264",
+            "shard_03854_73144",
+            "shard_05787_76200",
+            "shard_04146_71503",
+            "shard_04114_31718"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "algorithmic trading market manipulation spoofing risk controls regulation",
+          "k": 8,
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "algorithmic trading market manipulation spoofing risk controls regulation",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00443_14899",
+              "docid": "shard_00443_14899",
+              "kind": "document",
+              "score": 0.301303,
+              "truncated": false,
+              "original_chars": 10727,
+              "returned_chars": 10727
+            },
+            {
+              "rank": 2,
+              "id": "shard_04066_71601",
+              "docid": "shard_04066_71601",
+              "kind": "document",
+              "score": 0.297376,
+              "truncated": false,
+              "original_chars": 3538,
+              "returned_chars": 3538
+            },
+            {
+              "rank": 3,
+              "id": "shard_01759_56272",
+              "docid": "shard_01759_56272",
+              "kind": "document",
+              "score": 0.29636,
+              "truncated": false,
+              "original_chars": 3337,
+              "returned_chars": 3337
+            },
+            {
+              "rank": 4,
+              "id": "shard_06205_53360",
+              "docid": "shard_06205_53360",
+              "kind": "document",
+              "score": 0.293606,
+              "truncated": false,
+              "original_chars": 3484,
+              "returned_chars": 3484
+            },
+            {
+              "rank": 5,
+              "id": "shard_00745_64139",
+              "docid": "shard_00745_64139",
+              "kind": "document",
+              "score": 0.291152,
+              "truncated": false,
+              "original_chars": 7242,
+              "returned_chars": 7242
+            },
+            {
+              "rank": 6,
+              "id": "shard_00826_8009",
+              "docid": "shard_00826_8009",
+              "kind": "document",
+              "score": 0.289966,
+              "truncated": false,
+              "original_chars": 4193,
+              "returned_chars": 4193
+            },
+            {
+              "rank": 7,
+              "id": "shard_05277_30043",
+              "docid": "shard_05277_30043",
+              "kind": "document",
+              "score": 0.289496,
+              "truncated": false,
+              "original_chars": 6620,
+              "returned_chars": 6620
+            },
+            {
+              "rank": 8,
+              "id": "shard_06099_7298",
+              "docid": "shard_06099_7298",
+              "kind": "document",
+              "score": 0.287461,
+              "truncated": false,
+              "original_chars": 689,
+              "returned_chars": 689
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00443_14899",
+          "shard_04066_71601",
+          "shard_01759_56272",
+          "shard_06205_53360",
+          "shard_00745_64139",
+          "shard_00826_8009",
+          "shard_05277_30043",
+          "shard_06099_7298"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00443_14899",
+            "score": 0.301303
+          },
+          {
+            "docid": "shard_04066_71601",
+            "score": 0.297376
+          },
+          {
+            "docid": "shard_01759_56272",
+            "score": 0.29636
+          },
+          {
+            "docid": "shard_06205_53360",
+            "score": 0.293606
+          },
+          {
+            "docid": "shard_00745_64139",
+            "score": 0.291152
+          },
+          {
+            "docid": "shard_00826_8009",
+            "score": 0.289966
+          },
+          {
+            "docid": "shard_05277_30043",
+            "score": 0.289496
+          },
+          {
+            "docid": "shard_06099_7298",
+            "score": 0.287461
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_aVtI3hlchWESvBmpWe4PF7yW",
+        "id": "step-0008",
+        "t_start": "2026-07-23T10:40:02.465+10:00",
+        "t_end": "2026-07-23T10:40:02.540+10:00",
+        "turn": 2,
+        "parent_id": "step-0006",
+        "stats": {
+          "duration_ms": 75.241,
+          "context_tokens": 10750,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 16894,
+          "cumulative_tokens": {
+            "input": 32052,
+            "input_uncached": 28468,
+            "output": 747,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 32799,
+            "processed_input": 28468,
+            "processed": 29215
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00443_14899",
+            "shard_04066_71601",
+            "shard_01759_56272",
+            "shard_06205_53360",
+            "shard_00745_64139",
+            "shard_00826_8009",
+            "shard_05277_30043",
+            "shard_06099_7298"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "AI investment adviser fiduciary duty model risk regulation pension",
+          "k": 8,
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "AI investment adviser fiduciary duty model risk regulation pension",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06024_29247",
+              "docid": "shard_06024_29247",
+              "kind": "document",
+              "score": 0.281813,
+              "truncated": false,
+              "original_chars": 945,
+              "returned_chars": 945
+            },
+            {
+              "rank": 2,
+              "id": "shard_00363_30056",
+              "docid": "shard_00363_30056",
+              "kind": "document",
+              "score": 0.280669,
+              "truncated": false,
+              "original_chars": 3755,
+              "returned_chars": 3755
+            },
+            {
+              "rank": 3,
+              "id": "shard_02873_22567",
+              "docid": "shard_02873_22567",
+              "kind": "document",
+              "score": 0.278201,
+              "truncated": false,
+              "original_chars": 3439,
+              "returned_chars": 3439
+            },
+            {
+              "rank": 4,
+              "id": "shard_03227_14226",
+              "docid": "shard_03227_14226",
+              "kind": "document",
+              "score": 0.276602,
+              "truncated": false,
+              "original_chars": 3871,
+              "returned_chars": 3871
+            },
+            {
+              "rank": 5,
+              "id": "shard_02546_80328",
+              "docid": "shard_02546_80328",
+              "kind": "document",
+              "score": 0.269339,
+              "truncated": false,
+              "original_chars": 3261,
+              "returned_chars": 3261
+            },
+            {
+              "rank": 6,
+              "id": "shard_02420_59784",
+              "docid": "shard_02420_59784",
+              "kind": "document",
+              "score": 0.269013,
+              "truncated": false,
+              "original_chars": 3005,
+              "returned_chars": 3005
+            },
+            {
+              "rank": 7,
+              "id": "shard_01301_38421",
+              "docid": "shard_01301_38421",
+              "kind": "document",
+              "score": 0.265561,
+              "truncated": false,
+              "original_chars": 14918,
+              "returned_chars": 14918
+            },
+            {
+              "rank": 8,
+              "id": "shard_04374_38298",
+              "docid": "shard_04374_38298",
+              "kind": "document",
+              "score": 0.262939,
+              "truncated": false,
+              "original_chars": 3622,
+              "returned_chars": 3622
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06024_29247",
+          "shard_00363_30056",
+          "shard_02873_22567",
+          "shard_03227_14226",
+          "shard_02546_80328",
+          "shard_02420_59784",
+          "shard_01301_38421",
+          "shard_04374_38298"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06024_29247",
+            "score": 0.281813
+          },
+          {
+            "docid": "shard_00363_30056",
+            "score": 0.280669
+          },
+          {
+            "docid": "shard_02873_22567",
+            "score": 0.278201
+          },
+          {
+            "docid": "shard_03227_14226",
+            "score": 0.276602
+          },
+          {
+            "docid": "shard_02546_80328",
+            "score": 0.269339
+          },
+          {
+            "docid": "shard_02420_59784",
+            "score": 0.269013
+          },
+          {
+            "docid": "shard_01301_38421",
+            "score": 0.265561
+          },
+          {
+            "docid": "shard_04374_38298",
+            "score": 0.262939
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_DwpW1PSlz0QmG8DNgJ1yI5gu",
+        "id": "step-0009",
+        "t_start": "2026-07-23T10:40:02.465+10:00",
+        "t_end": "2026-07-23T10:40:02.646+10:00",
+        "turn": 2,
+        "parent_id": "step-0006",
+        "stats": {
+          "duration_ms": 180.383,
+          "context_tokens": 10750,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 16895,
+          "cumulative_tokens": {
+            "input": 32052,
+            "input_uncached": 28468,
+            "output": 747,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 32799,
+            "processed_input": 28468,
+            "processed": 29215
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06024_29247",
+            "shard_00363_30056",
+            "shard_02873_22567",
+            "shard_03227_14226",
+            "shard_02546_80328",
+            "shard_02420_59784",
+            "shard_01301_38421",
+            "shard_04374_38298"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "search_engine": "semantic",
+          "query": "lobbying disclosure data quality political influence conflicts ethics",
+          "k": 8,
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "lobbying disclosure data quality political influence conflicts ethics",
+          "k": 8,
+          "engine": "semantic",
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01349_63235",
+              "docid": "shard_01349_63235",
+              "kind": "document",
+              "score": 0.300192,
+              "truncated": false,
+              "original_chars": 3989,
+              "returned_chars": 3989
+            },
+            {
+              "rank": 2,
+              "id": "shard_05307_17602",
+              "docid": "shard_05307_17602",
+              "kind": "document",
+              "score": 0.285614,
+              "truncated": false,
+              "original_chars": 2977,
+              "returned_chars": 2977
+            },
+            {
+              "rank": 3,
+              "id": "shard_03232_72958",
+              "docid": "shard_03232_72958",
+              "kind": "document",
+              "score": 0.284467,
+              "truncated": false,
+              "original_chars": 2734,
+              "returned_chars": 2734
+            },
+            {
+              "rank": 4,
+              "id": "shard_04346_43831",
+              "docid": "shard_04346_43831",
+              "kind": "document",
+              "score": 0.28069,
+              "truncated": false,
+              "original_chars": 2278,
+              "returned_chars": 2278
+            },
+            {
+              "rank": 5,
+              "id": "shard_05962_36978",
+              "docid": "shard_05962_36978",
+              "kind": "document",
+              "score": 0.279433,
+              "truncated": false,
+              "original_chars": 1290,
+              "returned_chars": 1290
+            },
+            {
+              "rank": 6,
+              "id": "shard_04881_83100",
+              "docid": "shard_04881_83100",
+              "kind": "document",
+              "score": 0.269199,
+              "truncated": false,
+              "original_chars": 5553,
+              "returned_chars": 5553
+            },
+            {
+              "rank": 7,
+              "id": "shard_01739_61538",
+              "docid": "shard_01739_61538",
+              "kind": "document",
+              "score": 0.269131,
+              "truncated": false,
+              "original_chars": 958,
+              "returned_chars": 958
+            },
+            {
+              "rank": 8,
+              "id": "shard_06155_30447",
+              "docid": "shard_06155_30447",
+              "kind": "document",
+              "score": 0.262451,
+              "truncated": false,
+              "original_chars": 4585,
+              "returned_chars": 4585
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01349_63235",
+          "shard_05307_17602",
+          "shard_03232_72958",
+          "shard_04346_43831",
+          "shard_05962_36978",
+          "shard_04881_83100",
+          "shard_01739_61538",
+          "shard_06155_30447"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01349_63235",
+            "score": 0.300192
+          },
+          {
+            "docid": "shard_05307_17602",
+            "score": 0.285614
+          },
+          {
+            "docid": "shard_03232_72958",
+            "score": 0.284467
+          },
+          {
+            "docid": "shard_04346_43831",
+            "score": 0.28069
+          },
+          {
+            "docid": "shard_05962_36978",
+            "score": 0.279433
+          },
+          {
+            "docid": "shard_04881_83100",
+            "score": 0.269199
+          },
+          {
+            "docid": "shard_01739_61538",
+            "score": 0.269131
+          },
+          {
+            "docid": "shard_06155_30447",
+            "score": 0.262451
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_Tiyehzn37zphhqLgnmmluFxM",
+        "id": "step-0010",
+        "t_start": "2026-07-23T10:40:02.466+10:00",
+        "t_end": "2026-07-23T10:40:02.697+10:00",
+        "turn": 2,
+        "parent_id": "step-0006",
+        "stats": {
+          "duration_ms": 230.962,
+          "context_tokens": 10750,
+          "peak_context_tokens": 17551,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 16895,
+          "cumulative_tokens": {
+            "input": 32052,
+            "input_uncached": 28468,
+            "output": 747,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 32799,
+            "processed_input": 28468,
+            "processed": 29215
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01349_63235",
+            "shard_05307_17602",
+            "shard_03232_72958",
+            "shard_04346_43831",
+            "shard_05962_36978",
+            "shard_04881_83100",
+            "shard_01739_61538",
+            "shard_06155_30447"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_bkjxqUnnsaIQh2cpNceRZ00q",
+            "call_aVtI3hlchWESvBmpWe4PF7yW",
+            "call_DwpW1PSlz0QmG8DNgJ1yI5gu",
+            "call_Tiyehzn37zphhqLgnmmluFxM"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_L0s0DJtFMcdIQu17dDJlsylh",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_05753_35573",
+                    "reason": "Specific legal baseline for congressional trades: STOCK Act public reporting within 45 days and documented appearance-of-insider-trading risk."
+                  },
+                  {
+                    "docid": "shard_00443_14899",
+                    "reason": "Concrete market-abuse precedent: algorithmic spoofing, statutory prohibition, intent issue, and enforcement consequences."
+                  },
+                  {
+                    "docid": "shard_01759_56272",
+                    "reason": "Distinct model-risk and supervision evidence on runaway algorithms, unintended spoofing or collusion, circuit breakers, and difficulty measuring AI performance."
+                  },
+                  {
+                    "docid": "shard_02873_22567",
+                    "reason": "Evidence on AI investment conflicts, inappropriate risk recommendations, and proposed testing, recordkeeping, and conflict-neutralization requirements."
+                  },
+                  {
+                    "docid": "shard_04374_38298",
+                    "reason": "Direct investment-adviser fiduciary-duty context for autonomous AI trading and alternative-data scraping, including duty of care and loyalty."
+                  },
+                  {
+                    "docid": "shard_02546_80328",
+                    "reason": "Fiduciary checklist evidence covering misinformation, bias, liability, privacy/security, understanding AI, and independent advice."
+                  },
+                  {
+                    "docid": "shard_02420_59784",
+                    "reason": "Pension-specific evidence that AI can generate misleading information, may not predict prices accurately, and requires cyber defenses."
+                  },
+                  {
+                    "docid": "shard_01301_38421",
+                    "reason": "Comprehensive asset-manager governance framework covering data quality, model validation, explainability, conflicts, third-party diligence, monitoring, audits, and circuit breakers."
+                  },
+                  {
+                    "docid": "shard_01349_63235",
+                    "reason": "Evidence on lobbying data's completeness, cross-jurisdiction consistency, informal channels, and causal-interpretation limits."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0011",
+        "t_start": "2026-07-23T10:40:02.698+10:00",
+        "t_end": "2026-07-23T10:40:06.838+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 4139.873,
+          "context_tokens": 38028,
+          "peak_context_tokens": 38028,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 21035,
+          "tokens": {
+            "input": 38028,
+            "input_uncached": 38028,
+            "output": 429,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 38457,
+            "processed_input": 38028,
+            "processed": 38457,
+            "context": 38028
+          },
+          "provider_usage": {
+            "input_tokens": 38028,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 429
+          },
+          "cumulative_tokens": {
+            "input": 70080,
+            "input_uncached": 66496,
+            "output": 1176,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 71256,
+            "processed_input": 66496,
+            "processed": 67672
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05753_35573",
+            "shard_03806_75105",
+            "shard_02874_8323",
+            "shard_00899_48264",
+            "shard_03854_73144",
+            "shard_05787_76200",
+            "shard_04146_71503",
+            "shard_04114_31718",
+            "shard_00443_14899",
+            "shard_04066_71601",
+            "shard_01759_56272",
+            "shard_06205_53360",
+            "shard_00745_64139",
+            "shard_00826_8009",
+            "shard_05277_30043",
+            "shard_06099_7298",
+            "shard_06024_29247",
+            "shard_00363_30056",
+            "shard_02873_22567",
+            "shard_03227_14226",
+            "shard_02546_80328",
+            "shard_02420_59784",
+            "shard_01301_38421",
+            "shard_04374_38298",
+            "shard_01349_63235",
+            "shard_05307_17602",
+            "shard_03232_72958",
+            "shard_04346_43831",
+            "shard_05962_36978",
+            "shard_04881_83100",
+            "shard_01739_61538",
+            "shard_06155_30447"
+          ],
+          "committed": [
+            "shard_00925_25381",
+            "shard_01727_48630",
+            "shard_02625_14020",
+            "shard_03434_14812",
+            "shard_03450_62513",
+            "shard_06294_73953"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_05753_35573",
+              "reason": "Specific legal baseline for congressional trades: STOCK Act public reporting within 45 days and documented appearance-of-insider-trading risk."
+            },
+            {
+              "docid": "shard_00443_14899",
+              "reason": "Concrete market-abuse precedent: algorithmic spoofing, statutory prohibition, intent issue, and enforcement consequences."
+            },
+            {
+              "docid": "shard_01759_56272",
+              "reason": "Distinct model-risk and supervision evidence on runaway algorithms, unintended spoofing or collusion, circuit breakers, and difficulty measuring AI performance."
+            },
+            {
+              "docid": "shard_02873_22567",
+              "reason": "Evidence on AI investment conflicts, inappropriate risk recommendations, and proposed testing, recordkeeping, and conflict-neutralization requirements."
+            },
+            {
+              "docid": "shard_04374_38298",
+              "reason": "Direct investment-adviser fiduciary-duty context for autonomous AI trading and alternative-data scraping, including duty of care and loyalty."
+            },
+            {
+              "docid": "shard_02546_80328",
+              "reason": "Fiduciary checklist evidence covering misinformation, bias, liability, privacy/security, understanding AI, and independent advice."
+            },
+            {
+              "docid": "shard_02420_59784",
+              "reason": "Pension-specific evidence that AI can generate misleading information, may not predict prices accurately, and requires cyber defenses."
+            },
+            {
+              "docid": "shard_01301_38421",
+              "reason": "Comprehensive asset-manager governance framework covering data quality, model validation, explainability, conflicts, third-party diligence, monitoring, audits, and circuit breakers."
+            },
+            {
+              "docid": "shard_01349_63235",
+              "reason": "Evidence on lobbying data's completeness, cross-jurisdiction consistency, informal channels, and causal-interpretation limits."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_05753_35573\", \"shard_00443_14899\", \"shard_01759_56272\", \"shard_02873_22567\", \"shard_02546_80328\", \"shard_02420_59784\", \"shard_01301_38421\", \"shard_04374_38298\", \"shard_01349_63235\"], \"rejected\": [{\"docid\": \"shard_03806_75105\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02874_8323\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00899_48264\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03854_73144\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05787_76200\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04146_71503\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04114_31718\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04066_71601\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06205_53360\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00745_64139\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00826_8009\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05277_30043\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06099_7298\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06024_29247\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00363_30056\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03227_14226\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05307_17602\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03232_72958\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04346_43831\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05962_36978\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04881_83100\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01739_61538\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06155_30447\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 38,028 / 500,000 tokens (7.6%) · elapsed: 0m 21s]",
+        "failed": false,
+        "tool_call_id": "call_L0s0DJtFMcdIQu17dDJlsylh",
+        "id": "step-0012",
+        "t_start": "2026-07-23T10:40:06.839+10:00",
+        "t_end": "2026-07-23T10:40:06.840+10:00",
+        "turn": 3,
+        "parent_id": "step-0011",
+        "stats": {
+          "duration_ms": 0.888,
+          "context_tokens": 38028,
+          "peak_context_tokens": 38028,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 21037,
+          "cumulative_tokens": {
+            "input": 70080,
+            "input_uncached": 66496,
+            "output": 1176,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 71256,
+            "processed_input": 66496,
+            "processed": 67672
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05753_35573",
+            "shard_03806_75105",
+            "shard_02874_8323",
+            "shard_00899_48264",
+            "shard_03854_73144",
+            "shard_05787_76200",
+            "shard_04146_71503",
+            "shard_04114_31718",
+            "shard_00443_14899",
+            "shard_04066_71601",
+            "shard_01759_56272",
+            "shard_06205_53360",
+            "shard_00745_64139",
+            "shard_00826_8009",
+            "shard_05277_30043",
+            "shard_06099_7298",
+            "shard_06024_29247",
+            "shard_00363_30056",
+            "shard_02873_22567",
+            "shard_03227_14226",
+            "shard_02546_80328",
+            "shard_02420_59784",
+            "shard_01301_38421",
+            "shard_04374_38298",
+            "shard_01349_63235",
+            "shard_05307_17602",
+            "shard_03232_72958",
+            "shard_04346_43831",
+            "shard_05962_36978",
+            "shard_04881_83100",
+            "shard_01739_61538",
+            "shard_06155_30447"
+          ],
+          "committed": [
+            "shard_05753_35573",
+            "shard_00443_14899",
+            "shard_01759_56272",
+            "shard_02873_22567",
+            "shard_02546_80328",
+            "shard_02420_59784",
+            "shard_01301_38421",
+            "shard_04374_38298",
+            "shard_01349_63235"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_03806_75105",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02874_8323",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00899_48264",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03854_73144",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05787_76200",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04146_71503",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04114_31718",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04066_71601",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06205_53360",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00745_64139",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00826_8009",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05277_30043",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06099_7298",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06024_29247",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00363_30056",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03227_14226",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05307_17602",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03232_72958",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04346_43831",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05962_36978",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04881_83100",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01739_61538",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06155_30447",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_L0s0DJtFMcdIQu17dDJlsylh"
+          ]
+        },
+        "output": {
+          "text": "Treat this as a high-risk alternative-data and automated-trading program, not simply as an “AI” strategy, and demand evidence that the edge survives fees, latency, crowding, false signals, and regime changes.\n\nThe potential edge is plausible because legislative, lobbying, trading, news, and social data can reveal information before it is fully incorporated into prices, but the same data are noisy, delayed, incomplete, and difficult to translate into causal predictions. [shard_00925_25381] [shard_01349_63235]\n\nA useful warning sign is that an AI system tested on 485 congressional bills achieved only 75.1% average relevance under one model and materially better results only when applying a high-confidence threshold, while the study did not establish that its outputs would influence real-world outcomes. [shard_03434_14812]\n\nThe committee should therefore ask the manager to demonstrate incremental out-of-sample returns from each signal family separately, rather than accepting a blended backtest whose strongest results may come from one unstable or accidentally leaked feature.\n\nAsk for a complete signal dictionary showing each data source, collection time, publication time, licensing terms, revisions, missingness, geographic and political coverage, and the exact timestamp at which the strategy could legitimately have acted.\n\nLobbying data deserve particular skepticism because disclosure rules differ across jurisdictions, informal or private influence may be absent, and the observed relationship between lobbying activity and policy outcomes is confounded by many other factors. [shard_01349_63235]\n\nFor congressional trades, ask whether the system uses legally public filings or obtains tips, embargoed feeds, personal data, hacked material, or information supplied under confidentiality, and require written counsel’s analysis of insider-trading, misappropriation, confidentiality, privacy, and data-licensing risks.\n\nThe STOCK Act increased public reporting of congressional transactions above $1,000 to within 45 days, but public disclosure does not by itself prove that a trade is lawful, timely enough to monetize, or free of an appearance-of-conflict problem. [shard_05753_35573]\n\nAsk whether the manager has controls preventing the strategy from trading on material nonpublic information, whether every source is archived with its access conditions, and whether compliance can reconstruct the information available before every order.\n\nAsk how the strategy handles social-media impersonation, bots, coordinated campaigns, deleted posts, satire, translation errors, hacked accounts, and synthetic or AI-generated content, because a fake social-media message has previously produced an almost immediate market decline followed by a recovery. [shard_03450_62513]\n\nRequire an independent data-quality study measuring precision, recall, duplicate content, survivorship bias, timestamp accuracy, revisions, source concentration, and the performance impact of removing the most questionable sources.\n\nAsk the manager to distinguish prediction from explanation: a model may identify correlations in text without establishing that a bill, lobbyist, headline, or geopolitical event caused the market move, and apparent confidence scores must be calibrated against realized outcomes rather than treated as probabilities by assertion. [shard_00925_25381] [shard_03434_14812]\n\nDemand a model inventory covering every classifier, language model, ranking system, portfolio optimizer, execution algorithm, and vendor model, together with ownership, version history, training data, validation results, known failure modes, and change-approval procedures.\n\nRequire genuinely out-of-sample and walk-forward testing with point-in-time data, realistic publication and execution delays, transaction costs, spreads, market impact, borrow costs, capacity limits, and a documented prohibition on tuning the strategy to the test period.\n\nCurve-fitting and dependence on accurate, timely data are recognized automated-trading risks, so the manager should show performance across political administrations, election cycles, wars, volatility regimes, liquidity conditions, and periods in which the relevant signal was widely known. [shard_02625_14020]\n\nAsk what happens when models disagree, confidence collapses, a data feed stops, a source changes its format, a vendor is compromised, or an event moves prices faster than the system can validate it.\n\nThe strategy must have pre-trade limits, position and sector concentration caps, order-size and participation limits, kill switches, human escalation rules, post-trade surveillance, and tested disaster-recovery procedures, rather than relying on a promise that a human is “in the loop.”\n\nThis is also a market-integrity issue: regulators have treated algorithmic spoofing—placing orders intended to be cancelled to create false market depth or artificial price movements—as unlawful, and automated systems can create problematic behavior even when their operators do not fully understand the mechanism. [shard_00443_14899] [shard_01759_56272]\n\nAsk specifically how the manager detects spoofing, layering, excessive cancellation, momentum ignition, coordinated trading, self-trading, and unintended interaction with other algorithms, and require the relevant surveillance records to be available to the plan and regulators.\n\nOn governance, insist that the manager remains accountable for the strategy and cannot attribute losses, harmful trades, or compliance failures to the model or to a third-party technology provider. [shard_01301_38421]\n\nThe investment adviser’s duties of care and loyalty remain relevant when AI autonomously executes trades or uses alternative data such as social-media posts, and the committee should require disclosure of conflicts involving data vendors, affiliated brokers, proprietary models, and compensation linked to turnover or assets. [shard_04374_38298]\n\nAsk whether the strategy’s rapid trading serves the pension’s long-horizon obligations or merely creates fee, turnover, liquidity, reputational, and operational risks that are borne by beneficiaries while the manager collects management and performance fees.\n\nRequire a written conflict assessment, privacy and cybersecurity review, third-party due diligence, audit rights, incident-notification deadlines, model and data retention, business-continuity obligations, indemnities, termination assistance, and a right to inspect source-level evidence for disputed trades. [shard_01301_38421] [shard_02546_80328]\n\nThe committee should also ask which regulatory regimes apply to the adviser, broker, trading venues, instruments, jurisdictions, data suppliers, and automated execution process, and should obtain current advice from securities, privacy, market-abuse, pension, and public-sector counsel rather than relying on the manager’s generic compliance memorandum.\n\nFor a public pension, fiduciary decision-makers should be able to explain the strategy’s risks, limitations, liability allocation, and monitoring plan to beneficiaries and auditors, especially because pension research cautions that AI can generate misleading information and may not predict market prices accurately. [shard_02420_59784]\n\nA sensible allocation gate is a small, reversible pilot only after independent validation, with predefined drawdown, model-drift, data-integrity, compliance, and capacity stop conditions and no expansion until live results reconcile to the investment case.\n\nThe manager should not receive an allocation if it cannot provide point-in-time audit trails, legally clean data provenance, independently reproducible testing, calibrated uncertainty, robust controls, and a credible explanation of why the edge should persist after other traders learn the same signals.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "completed"
+        },
+        "id": "step-0013",
+        "t_start": "2026-07-23T10:40:06.840+10:00",
+        "t_end": "2026-07-23T10:40:21.380+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 14539.693,
+          "context_tokens": 25083,
+          "peak_context_tokens": 38028,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 35576,
+          "tokens": {
+            "input": 25083,
+            "input_uncached": 25083,
+            "output": 1715,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 26798,
+            "processed_input": 25083,
+            "processed": 26798,
+            "context": 25083
+          },
+          "provider_usage": {
+            "input_tokens": 25083,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 1715
+          },
+          "cumulative_tokens": {
+            "input": 95163,
+            "input_uncached": 91579,
+            "output": 2891,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 98054,
+            "processed_input": 91579,
+            "processed": 94470
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00443_14899",
+            "shard_00925_25381",
+            "shard_01301_38421",
+            "shard_01349_63235",
+            "shard_01727_48630",
+            "shard_01759_56272",
+            "shard_02420_59784",
+            "shard_02546_80328",
+            "shard_02625_14020",
+            "shard_02873_22567",
+            "shard_03434_14812",
+            "shard_03450_62513",
+            "shard_04374_38298",
+            "shard_05753_35573",
+            "shard_06294_73953"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_00925_25381",
+        "shard_01349_63235",
+        "shard_03434_14812",
+        "shard_05753_35573",
+        "shard_03450_62513",
+        "shard_02625_14020",
+        "shard_00443_14899",
+        "shard_01759_56272",
+        "shard_01301_38421",
+        "shard_04374_38298",
+        "shard_02546_80328",
+        "shard_02420_59784"
+      ],
+      "references_full": [
+        "shard_00925_25381",
+        "shard_01349_63235",
+        "shard_03434_14812",
+        "shard_05753_35573",
+        "shard_03450_62513",
+        "shard_02625_14020",
+        "shard_00443_14899",
+        "shard_01759_56272",
+        "shard_01301_38421",
+        "shard_04374_38298",
+        "shard_02546_80328",
+        "shard_02420_59784"
+      ],
+      "answer": [
+        {
+          "text": "Treat this as a high-risk alternative-data and automated-trading program, not simply as an “AI” strategy, and demand evidence that the edge survives fees, latency, crowding, false signals, and regime changes.",
+          "citations": []
+        },
+        {
+          "text": "The potential edge is plausible because legislative, lobbying, trading, news, and social data can reveal information before it is fully incorporated into prices, but the same data are noisy, delayed, incomplete, and difficult to translate into causal predictions.",
+          "citations": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "A useful warning sign is that an AI system tested on 485 congressional bills achieved only 75.1% average relevance under one model and materially better results only when applying a high-confidence threshold, while the study did not establish that its outputs would influence real-world outcomes.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "The committee should therefore ask the manager to demonstrate incremental out-of-sample returns from each signal family separately, rather than accepting a blended backtest whose strongest results may come from one unstable or accidentally leaked feature.",
+          "citations": []
+        },
+        {
+          "text": "Ask for a complete signal dictionary showing each data source, collection time, publication time, licensing terms, revisions, missingness, geographic and political coverage, and the exact timestamp at which the strategy could legitimately have acted.",
+          "citations": []
+        },
+        {
+          "text": "Lobbying data deserve particular skepticism because disclosure rules differ across jurisdictions, informal or private influence may be absent, and the observed relationship between lobbying activity and policy outcomes is confounded by many other factors.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "For congressional trades, ask whether the system uses legally public filings or obtains tips, embargoed feeds, personal data, hacked material, or information supplied under confidentiality, and require written counsel’s analysis of insider-trading, misappropriation, confidentiality, privacy, and data-licensing risks.",
+          "citations": []
+        },
+        {
+          "text": "The STOCK Act increased public reporting of congressional transactions above $1,000 to within 45 days, but public disclosure does not by itself prove that a trade is lawful, timely enough to monetize, or free of an appearance-of-conflict problem.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Ask whether the manager has controls preventing the strategy from trading on material nonpublic information, whether every source is archived with its access conditions, and whether compliance can reconstruct the information available before every order.",
+          "citations": []
+        },
+        {
+          "text": "Ask how the strategy handles social-media impersonation, bots, coordinated campaigns, deleted posts, satire, translation errors, hacked accounts, and synthetic or AI-generated content, because a fake social-media message has previously produced an almost immediate market decline followed by a recovery.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Require an independent data-quality study measuring precision, recall, duplicate content, survivorship bias, timestamp accuracy, revisions, source concentration, and the performance impact of removing the most questionable sources.",
+          "citations": []
+        },
+        {
+          "text": "Ask the manager to distinguish prediction from explanation: a model may identify correlations in text without establishing that a bill, lobbyist, headline, or geopolitical event caused the market move, and apparent confidence scores must be calibrated against realized outcomes rather than treated as probabilities by assertion.",
+          "citations": [
+            0,
+            2
+          ]
+        },
+        {
+          "text": "Demand a model inventory covering every classifier, language model, ranking system, portfolio optimizer, execution algorithm, and vendor model, together with ownership, version history, training data, validation results, known failure modes, and change-approval procedures.",
+          "citations": []
+        },
+        {
+          "text": "Require genuinely out-of-sample and walk-forward testing with point-in-time data, realistic publication and execution delays, transaction costs, spreads, market impact, borrow costs, capacity limits, and a documented prohibition on tuning the strategy to the test period.",
+          "citations": []
+        },
+        {
+          "text": "Curve-fitting and dependence on accurate, timely data are recognized automated-trading risks, so the manager should show performance across political administrations, election cycles, wars, volatility regimes, liquidity conditions, and periods in which the relevant signal was widely known.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Ask what happens when models disagree, confidence collapses, a data feed stops, a source changes its format, a vendor is compromised, or an event moves prices faster than the system can validate it.",
+          "citations": []
+        },
+        {
+          "text": "The strategy must have pre-trade limits, position and sector concentration caps, order-size and participation limits, kill switches, human escalation rules, post-trade surveillance, and tested disaster-recovery procedures, rather than relying on a promise that a human is “in the loop.”",
+          "citations": []
+        },
+        {
+          "text": "This is also a market-integrity issue: regulators have treated algorithmic spoofing—placing orders intended to be cancelled to create false market depth or artificial price movements—as unlawful, and automated systems can create problematic behavior even when their operators do not fully understand the mechanism.",
+          "citations": [
+            6,
+            7
+          ]
+        },
+        {
+          "text": "Ask specifically how the manager detects spoofing, layering, excessive cancellation, momentum ignition, coordinated trading, self-trading, and unintended interaction with other algorithms, and require the relevant surveillance records to be available to the plan and regulators.",
+          "citations": []
+        },
+        {
+          "text": "On governance, insist that the manager remains accountable for the strategy and cannot attribute losses, harmful trades, or compliance failures to the model or to a third-party technology provider.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "The investment adviser’s duties of care and loyalty remain relevant when AI autonomously executes trades or uses alternative data such as social-media posts, and the committee should require disclosure of conflicts involving data vendors, affiliated brokers, proprietary models, and compensation linked to turnover or assets.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "Ask whether the strategy’s rapid trading serves the pension’s long-horizon obligations or merely creates fee, turnover, liquidity, reputational, and operational risks that are borne by beneficiaries while the manager collects management and performance fees.",
+          "citations": []
+        },
+        {
+          "text": "Require a written conflict assessment, privacy and cybersecurity review, third-party due diligence, audit rights, incident-notification deadlines, model and data retention, business-continuity obligations, indemnities, termination assistance, and a right to inspect source-level evidence for disputed trades.",
+          "citations": [
+            8,
+            10
+          ]
+        },
+        {
+          "text": "The committee should also ask which regulatory regimes apply to the adviser, broker, trading venues, instruments, jurisdictions, data suppliers, and automated execution process, and should obtain current advice from securities, privacy, market-abuse, pension, and public-sector counsel rather than relying on the manager’s generic compliance memorandum.",
+          "citations": []
+        },
+        {
+          "text": "For a public pension, fiduciary decision-makers should be able to explain the strategy’s risks, limitations, liability allocation, and monitoring plan to beneficiaries and auditors, especially because pension research cautions that AI can generate misleading information and may not predict market prices accurately.",
+          "citations": [
+            11
+          ]
+        },
+        {
+          "text": "A sensible allocation gate is a small, reversible pilot only after independent validation, with predefined drawdown, model-drift, data-integrity, compliance, and capacity stop conditions and no expansion until live results reconcile to the investment case.",
+          "citations": []
+        },
+        {
+          "text": "The manager should not receive an allocation if it cannot provide point-in-time audit trails, legally clean data provenance, independently reproducible testing, calibrated uncertainty, robust controls, and a credible explanation of why the edge should persist after other traders learn the same signals.",
+          "citations": []
+        }
+      ]
+    },
+    "started_at": "2026-07-23T10:39:45.804+10:00",
+    "ended_at": "2026-07-23T10:40:21.382+10:00",
+    "duration_ms": 35578,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 10
+    }
+  }
+}

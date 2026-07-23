@@ -25,6 +25,16 @@ TREC RAG 2026 Official Skills: https://github.com/TREC-RAG/trec-rag-skills.git
   under `data/`. Task scripts should point their output paths at `data/`, not
   at their own task dir — keeps large artifacts out of the code tree and
   consistent across tasks.
+- **Reference / external repos live under `tmp/`.** Any upstream source repo we
+  consult (e.g. `tmp/Cottontail`) is cloned under `tmp/` so it can be browsed
+  and re-pulled (`git -C tmp/<repo> pull --ff-only`). **Before cloning an
+  external repo anywhere else, check whether it already exists under `tmp/` and
+  reuse it.** The index of what's there is `tmp/REFERENCE-REPOS.md`; add a row
+  when you clone a new one.
+- **A task may use a `mamba`/conda env instead of `uv` when it needs a native
+  toolchain** (C++/Bazel, etc.) that `uv` can't provide. Create it in-folder as
+  a prefix env (`tasks/<task>/env`) so it stays self-contained like `.venv`.
+  `tasks/ssr_search/` does this (gcc 13 + bazelisk for building Cottontail).
 
 ## Running Long Commands
 
@@ -99,6 +109,26 @@ uv run --group notebook python -m ipykernel install --user \
 
 ## Active Tasks
 
+- **BM25 index (Lucene/Anserini)** — built in `tasks/bm25_index/`. This is a
+  *build* task, not a search server: it produced the on-disk Lucene index at
+  `data/built-indexes/climbmix-bm25/` (single segment, positions present, ~1.5 TB;
+  `.fdt` stored text = 1 TB). Usable for ad-hoc experiments via
+  `tasks/bm25_index/boolsearch/BoolSearch.java` (+ `bs.sh`) — a read-only
+  full-Lucene-syntax searcher (Boolean `+must`/`-not`, `"phrase"`, `"phrase"~N`
+  proximity) over the same mmap'd index. NB: the *hosted* index-server
+  (`:8085` / `index-climbmix-bm25.dsync.net`) is **OR-only** — its
+  `BagOfWordsQueryGenerator` strips all Boolean operators, so use `BoolSearch`
+  for true Boolean/phrase/proximity on Lucene.
+- **SSR / Cottontail search (paper approach)** — working in `tasks/ssr_search/`.
+  Implements the *Boolean Queries Are All You Need?* (arXiv 2607.11362) stack:
+  Cottontail annotative index + Shortest-Substring Ranking (SSR), driven by a
+  GCL Boolean query language (`(^ a b)` OR, `(+ a b)` AND, `"phrase"`, `>>`/`<<`
+  containment). **This is NOT our Lucene index** — it's a separate C++/Bazel
+  engine (upstream at `tmp/Cottontail`). The task uses a mamba env
+  (`tasks/ssr_search/env`, gcc 13 + bazelisk) to build Cottontail, indexes
+  ClimbMix JSONL shards into Hazel burrows (mmap'd single-file, page-cache
+  bounded — the key to serving a huge corpus without RAM-resident index), and
+  wraps `ssr-server` in an HTTP service + CLI + `src/tools/` Boolean tool.
 - **Creating local custom index** — working in `tasks/custom_index/`. All
   scripts, logs, and intermediate artifacts for this task live there.
 - **Search engine + REST API** — working in `tasks/search_serve/`. Consumes a
