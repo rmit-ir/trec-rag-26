@@ -7,7 +7,7 @@ set -euo pipefail
 
 ROOT=/scratch/fast/kun/projects/trec-rag-26
 ENV=$ROOT/tasks/ssr_search/env
-CT=$ROOT/tmp/Cottontail-uwaterloo                 # the fork
+CT=$ROOT/tmp/Cottontail                 # the fork
 
 export PATH="$ENV/bin:$PATH"
 export CC="$ENV/bin/x86_64-conda-linux-gnu-gcc"

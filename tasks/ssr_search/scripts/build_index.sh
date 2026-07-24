@@ -15,7 +15,7 @@ set -euo pipefail
 
 ROOT=/scratch/fast/kun/projects/trec-rag-26
 ENV=$ROOT/tasks/ssr_search/env
-JSONL=$ROOT/tmp/Cottontail/bazel-bin/apps/jsonl
+JSONL=$ROOT/tmp/Cottontail-claclark/bazel-bin/apps/jsonl
 export LD_LIBRARY_PATH="$ENV/lib:${LD_LIBRARY_PATH:-}"
 
 MODE=--simple

@@ -16,7 +16,7 @@ set -euo pipefail
 
 ROOT=/scratch/fast/kun/projects/trec-rag-26
 ENV=$ROOT/tasks/ssr_search/env
-BIN=$ROOT/tmp/Cottontail-uwaterloo/bazel-bin/apps/cottontail-jsonl-server
+BIN=$ROOT/tmp/Cottontail/bazel-bin/apps/cottontail-jsonl-server
 OUT=$ROOT/data/built-indexes/fork-climbmix-full
 LOGDIR=/tmp/fork-servers
 export LD_LIBRARY_PATH="$ENV/lib:${LD_LIBRARY_PATH:-}"

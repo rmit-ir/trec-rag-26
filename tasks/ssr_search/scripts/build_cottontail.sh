@@ -9,7 +9,7 @@ set -euo pipefail
 
 ROOT=/scratch/fast/kun/projects/trec-rag-26
 ENV=$ROOT/tasks/ssr_search/env
-CT=$ROOT/tmp/Cottontail                       # upstream reference checkout
+CT=$ROOT/tmp/Cottontail-claclark                       # upstream reference checkout
 
 export PATH="$ENV/bin:$PATH"
 export CC="$ENV/bin/x86_64-conda-linux-gnu-gcc"

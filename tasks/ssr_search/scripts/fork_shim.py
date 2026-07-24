@@ -13,7 +13,7 @@ directly usable for dedup/citation against qrels.
 
 Run (from repo root):
   BASE_PORT=7000 NGROUPS=26 WINDOW=200 SHIM_PORT=8099 \
-    PYTHONPATH=tmp/Cottontail-uwaterloo/isj \
+    PYTHONPATH=tmp/Cottontail/isj \
     uv run --no-project --with pydantic --with httpx \
     python tasks/ssr_search/scripts/fork_shim.py
 """

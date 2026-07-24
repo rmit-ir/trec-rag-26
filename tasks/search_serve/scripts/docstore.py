@@ -77,6 +77,10 @@ class _ShardHandle:
     offs_mm: mmap.mmap
     bin_fd: int
     offs_fd: int
+    # For a chunk_id-keyed docstore: {record id -> row index within this shard},
+    # built from <stem>.ids.bin (newline-separated, record order). None for a
+    # legacy <stem>_<row> docstore, where the row is arithmetic (no id index).
+    ids_row: dict[str, int] | None = None
 
     def close(self) -> None:
         for closer in (self.bin_mm.close, self.offs_mm.close):
@@ -91,7 +95,7 @@ class _ShardHandle:
                 pass
 
 
-def _open_pair(root: Path, stem: str) -> _ShardHandle:
+def _open_pair(root: Path, stem: str, ids_suffix: str | None = None) -> _ShardHandle:
     bin_path = root / f"{stem}.bin"
     offs_path = root / f"{stem}.offsets.bin"
     if not (bin_path.exists() and offs_path.exists()):
@@ -104,8 +108,22 @@ def _open_pair(root: Path, stem: str) -> _ShardHandle:
     offs_fd = os.open(offs_path, os.O_RDONLY)
     bin_mm = mmap.mmap(bin_fd, os.fstat(bin_fd).st_size, prot=mmap.PROT_READ)
     offs_mm = mmap.mmap(offs_fd, os.fstat(offs_fd).st_size, prot=mmap.PROT_READ)
+    ids_row: dict[str, int] | None = None
+    if ids_suffix is not None:
+        ids_path = root / f"{stem}.{ids_suffix}"
+        if not ids_path.exists():
+            raise EngineLoadError(
+                f"chunk_id-keyed docstore is missing the id index for {stem!r}: "
+                f"expected {ids_path.name} under {root}.\n\n"
+                f"{docstore_build_hint(root.parent)}"
+            )
+        # ids.bin is newline-separated record ids in record order; the line
+        # number IS the row. Built once per shard open and cached on the handle.
+        ids_row = {rid: i for i, rid in
+                   enumerate(ids_path.read_bytes().decode("utf-8").split("\n"))
+                   if rid}
     return _ShardHandle(bin_mm=bin_mm, offs_mm=offs_mm,
-                        bin_fd=bin_fd, offs_fd=offs_fd)
+                        bin_fd=bin_fd, offs_fd=offs_fd, ids_row=ids_row)
 
 
 def _read_slice(h: _ShardHandle, row: int) -> bytes:
@@ -155,6 +173,22 @@ class FlatShardDocStore:
         if self.compression != "none":
             ensure_path(self.root / self.manifest["dict"], docstore_build_hint)
             self._dict_bytes = (self.root / self.manifest["dict"]).read_bytes()
+        # Keying mode. Legacy (full-corpus) docstores are keyed by <stem>_<row>:
+        # the row is arithmetic, no per-shard id index. A chunk docstore is keyed
+        # by chunk_id: the shard comes from `shard_of_rule` and the row from the
+        # shard's <stem>.<id_index> (ids.bin). Absent keyed_by => legacy.
+        self.keyed_by: str = self.manifest.get("keyed_by", "stem_row")
+        self._ids_suffix: str | None = None
+        if self.keyed_by == "chunk_id":
+            self._ids_suffix = self.manifest.get("id_index", "ids.bin")
+            rule = self.manifest.get("shard_of_rule")
+            expected = "chunk_id.rsplit('_p',1)[0].rsplit('_',1)[0]"
+            if rule not in (None, expected):
+                raise EngineLoadError(
+                    f"docstore shard_of_rule {rule!r} differs from the rule this "
+                    f"reader implements ({expected!r}); update FlatShardDocStore._shard_of")
+        elif self.keyed_by != "stem_row":
+            raise EngineLoadError(f"unknown docstore keyed_by {self.keyed_by!r}")
         self._lru_size = lru_size
         self._handles: OrderedDict[str, _ShardHandle] = OrderedDict()
         # Zstd decoder is NOT thread-safe: instances maintain an internal
@@ -198,6 +232,26 @@ class FlatShardDocStore:
             self._tls.decoder = d
         return d.decompress(raw)
 
+    def _shard_of(self, docid: str) -> str:
+        """The shard stem owning ``docid``. chunk_id: apply shard_of_rule
+        (strip _p<page>, then _<row>); legacy: the <stem> half of <stem>_<row>."""
+        if self.keyed_by == "chunk_id":
+            return docid.rsplit("_p", 1)[0].rsplit("_", 1)[0]
+        return split_docid(docid)[0]
+
+    def _row_of(self, h: _ShardHandle, docid: str) -> int:
+        """The row of ``docid`` within its shard. chunk_id: via the shard's id
+        index; legacy: the <row> half of <stem>_<row>."""
+        if h.ids_row is not None:
+            row = h.ids_row.get(docid)
+            if row is None:
+                raise KeyError(f"docid {docid!r} not found in its shard's id index")
+            return row
+        return split_docid(docid)[1]
+
+    def _open_shard(self, stem: str) -> _ShardHandle:
+        return _open_pair(self.root, stem, self._ids_suffix)
+
     def _get_handle(self, stem: str) -> _ShardHandle:
         h = self._handles.get(stem)
         if h is not None:
@@ -210,15 +264,15 @@ class FlatShardDocStore:
         while len(self._handles) >= self._lru_size:
             _, evicted = self._handles.popitem(last=False)
             evicted.close()
-        h = _open_pair(self.root, stem)
+        h = self._open_shard(stem)
         self._handles[stem] = h
         return h
 
     # ---- public --------------------------------------------------------
 
     def get_text(self, docid: str) -> str:
-        stem, row = split_docid(docid)
-        raw = _read_slice(self._get_handle(stem), row)
+        h = self._get_handle(self._shard_of(docid))
+        raw = _read_slice(h, self._row_of(h, docid))
         return self._decode(raw).decode("utf-8")
 
     def get_texts(self, docids: Iterable[str], *,
@@ -235,12 +289,13 @@ class FlatShardDocStore:
         decode work fans out across a thread pool. Handles are always opened
         sequentially in the main thread so the LRU never needs locking.
         """
-        # Phase 1: parse + group by shard.
-        by_shard: dict[str, list[tuple[int, int]]] = {}
+        # Phase 1: group by shard. For a chunk_id docstore the row can only be
+        # resolved AFTER the shard is open (it comes from the shard's id index),
+        # so group by (i, did) here and fill rows once handles are open.
+        by_shard_ids: dict[str, list[tuple[int, str]]] = {}
         order: list[str] = []
         for i, did in enumerate(docids):
-            stem, row = split_docid(did)
-            by_shard.setdefault(stem, []).append((i, row))
+            by_shard_ids.setdefault(self._shard_of(did), []).append((i, did))
             order.append(did)
         n_records = len(order)
         out: list[str] = [""] * n_records
@@ -248,7 +303,13 @@ class FlatShardDocStore:
         use_parallel = (self.parallel > 1 and n_records >= self.parallel_min_k)
 
         # Phase 2: pre-open shard handles (serial; updates LRU under no lock).
-        n_opens, handles, t_open = self._preopen_handles(by_shard, time_it=timings is not None)
+        n_opens, handles, t_open = self._preopen_handles(by_shard_ids, time_it=timings is not None)
+
+        # Resolve the row for each id now that its shard handle is open.
+        by_shard: dict[str, list[tuple[int, int]]] = {
+            stem: [(i, self._row_of(handles[stem], did)) for (i, did) in items]
+            for stem, items in by_shard_ids.items()
+        }
 
         # Phase 3: read + decompress + decode.
         if use_parallel:
@@ -295,7 +356,7 @@ class FlatShardDocStore:
                 handles[stem] = cached
             else:
                 n_opens += 1
-                h = _open_pair(self.root, stem)
+                h = self._open_shard(stem)
                 self._handles[stem] = h
                 handles[stem] = h
         elapsed = (time.perf_counter() - t0) if time_it else 0.0

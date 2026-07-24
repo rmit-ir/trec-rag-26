@@ -5,7 +5,7 @@ built for our corpus: a **Cottontail** annotative index ranked by
 **Shortest-Substring Ranking (SSR)**, driven by a **GCL Boolean query language**,
 served over HTTP + CLI, and exposed to agents via `src/tools/search_boolean_tool.py`.
 
-Upstream reference lives at `tmp/Cottontail` (see `tmp/REFERENCE-REPOS.md`).
+Upstream reference lives at `tmp/Cottontail-claclark` (see `tmp/REFERENCE-REPOS.md`).
 This task **wraps** it, it does not fork it.
 
 ## Why this exists (vs. our Lucene BM25)

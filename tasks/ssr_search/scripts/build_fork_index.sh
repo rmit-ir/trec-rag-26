@@ -14,7 +14,7 @@ set -euo pipefail
 
 ROOT=/scratch/fast/kun/projects/trec-rag-26
 ENV=$ROOT/tasks/ssr_search/env
-BIN=$ROOT/tmp/Cottontail-uwaterloo/bazel-bin/apps
+BIN=$ROOT/tmp/Cottontail/bazel-bin/apps
 COLL=$ROOT/data/climbmix-bm25-collection
 OUT=$ROOT/data/built-indexes/${OUT_NAME:-fork-climbmix-full}
 export LD_LIBRARY_PATH="$ENV/lib:${LD_LIBRARY_PATH:-}"

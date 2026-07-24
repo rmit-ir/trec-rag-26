@@ -26,7 +26,7 @@ TREC RAG 2026 Official Skills: https://github.com/TREC-RAG/trec-rag-skills.git
   at their own task dir — keeps large artifacts out of the code tree and
   consistent across tasks.
 - **Reference / external repos live under `tmp/`.** Any upstream source repo we
-  consult (e.g. `tmp/Cottontail`) is cloned under `tmp/` so it can be browsed
+  consult (e.g. `tmp/Cottontail-claclark`) is cloned under `tmp/` so it can be browsed
   and re-pulled (`git -C tmp/<repo> pull --ff-only`). **Before cloning an
   external repo anywhere else, check whether it already exists under `tmp/` and
   reuse it.** The index of what's there is `tmp/REFERENCE-REPOS.md`; add a row
@@ -124,7 +124,8 @@ uv run --group notebook python -m ipykernel install --user \
   Cottontail annotative index + Shortest-Substring Ranking (SSR), driven by a
   GCL Boolean query language (`(^ a b)` OR, `(+ a b)` AND, `"phrase"`, `>>`/`<<`
   containment). **This is NOT our Lucene index** — it's a separate C++/Bazel
-  engine (upstream at `tmp/Cottontail`). The task uses a mamba env
+  engine (our fork at `tmp/Cottontail`, remote `rmit-ir/Cottontail`; upstream
+  reference at `tmp/Cottontail-claclark`). The task uses a mamba env
   (`tasks/ssr_search/env`, gcc 13 + bazelisk) to build Cottontail, indexes
   ClimbMix JSONL shards into Hazel burrows (mmap'd single-file, page-cache
   bounded — the key to serving a huge corpus without RAM-resident index), and

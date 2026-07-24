@@ -13,7 +13,7 @@ import sys
 import time
 from pathlib import Path
 
-sys.path.insert(0, "/scratch/fast/kun/projects/trec-rag-26/tmp/Cottontail-uwaterloo/isj")
+sys.path.insert(0, "/scratch/fast/kun/projects/trec-rag-26/tmp/Cottontail/isj")
 from isj_agent.index import build_sqlite_map  # noqa: E402
 
 ROOT = Path("/scratch/fast/kun/projects/trec-rag-26/data/built-indexes/fork-climbmix-full")

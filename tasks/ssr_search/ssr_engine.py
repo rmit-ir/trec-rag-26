@@ -45,7 +45,7 @@ from typing import Any, Optional
 
 ROOT = Path("/scratch/fast/kun/projects/trec-rag-26")
 ENV = ROOT / "tasks/ssr_search/env"
-DEFAULT_SERVER_BIN = ROOT / "tmp/Cottontail/bazel-bin/apps/ssr-server"
+DEFAULT_SERVER_BIN = ROOT / "tmp/Cottontail-claclark/bazel-bin/apps/ssr-server"
 
 # GCL structure queries for a JSONL corpus built by Cottontail's ``jsonl`` app
 # (records like {"id": "...", "contents": "..."}). ``:`` is the whole JSON
