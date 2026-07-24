@@ -1,3 +1,3209 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:6e42f6ce4b0329da3e982e810f296accd20369ca19e682ac72f80a44cde67d7d
-size 137309
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a605493",
+    "narrative": "Write an introduction on Markov chains in the field of statistics/combinatorics and the reason behind their genesis. Then, write a literature review on Markov chains in contemporary research. Include one section devoted to their application and intuition in solving problems like \"what is the expected value of flips to get N heads in a row\".",
+    "run_id": "aus-agent-luna-cap10",
+    "run_desc": "aus_agent research harness (openai/gpt-5.6-luna): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_03629_43609",
+    "shard_01311_23450",
+    "shard_03951_21465",
+    "shard_04077_47809",
+    "shard_02921_55806",
+    "shard_02391_23601",
+    "shard_04830_20461",
+    "shard_02803_64527",
+    "shard_06372_3482",
+    "shard_01901_70670",
+    "shard_02822_24503"
+  ],
+  "answer": [
+    {
+      "text": "Markov chains are stochastic processes in which the distribution of the next state depends on the present state, but not on the earlier history once the present state is known.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "For a countable chain, the transition probabilities are written as \\(p_{ij}=\\Pr(X_{t+1}=j\\mid X_t=i)\\), and they can be collected in a stochastic transition matrix \\(P\\).",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "This structure makes a complicated random evolution manageable because the full past can be compressed into a suitably chosen current state.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "In combinatorics, the states may be vertices of a graph, permutations of cards, graph colourings, or configurations of a physical model, while in statistics they may represent latent regimes, evolving observations, or samples from a target distribution.",
+      "citations": [
+        2,
+        3
+      ]
+    },
+    {
+      "text": "The theory originated partly from a desire to extend probability beyond idealised sequences of independent trials.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Before Markov’s work, elementary probability was often illustrated through independent events such as repeated coin flips, whereas Andrey Markov emphasised that successive events could be dependent while still admitting precise probabilistic analysis.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "In his 1913 lecture to the Imperial Academy of Sciences in St Petersburg, Markov studied the dependence between successive vowels and consonants in Alexander Pushkin’s Eugene Onegin.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "This choice demonstrated that dependence in a sequence could be quantified without modelling every linguistic or literary detail, thereby motivating a general framework for analysing systems whose next behaviour is influenced by their current condition.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "The central computational identity is the Chapman–Kolmogorov equation, \\(p_{ij}^{(n+m)}=\\sum_k p_{ik}^{(n)}p_{kj}^{(m)}\\), which is equivalent to multiplying transition matrices.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "When a chain is irreducible and satisfies suitable recurrence and aperiodicity conditions, it can possess a stationary distribution \\(\\pi\\) satisfying \\(\\pi P=\\pi\\), and its distribution may converge toward \\(\\pi\\) over time.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "This convergence explains why Markov chains became important in both statistics and combinatorics: they provide a mechanism for exploring a large space while allowing long-run behaviour to be studied through a stationary distribution.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "The contemporary literature is especially concerned not merely with whether convergence occurs, but with how rapidly it occurs as the state space grows.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "The number of steps required to approach stationarity within a prescribed error is called the mixing time, and modern work studies its dependence on the size and geometry of the underlying structure.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Markov chain Monte Carlo constructs a chain whose stationary distribution is the probability distribution of interest, so that sufficiently late states can serve as approximately distributed samples when direct sampling is difficult.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Gibbs sampling, Metropolis-type procedures, coupling, spectral analysis, conductance, and comparison of Dirichlet forms are among the principal tools used to design chains and establish mixing-time bounds.",
+      "citations": [
+        5,
+        6
+      ]
+    },
+    {
+      "text": "In theoretical computer science and enumerative combinatorics, these methods support approximate counting and random generation for objects such as graph colourings, permutations, orientations, and statistical-mechanical configurations.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "A major research question is whether a chain is rapidly mixing, meaning that its mixing time grows sufficiently slowly—often polynomially in the logarithm of the number of states or in the size of the underlying object—to make sampling computationally feasible.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "Random walks on graphs connect probabilistic dynamics with graph geometry, electrical networks, hitting times, cover times, and discrete potential theory.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "Random walks on symmetric groups model card shuffles and link Markov-chain analysis to algebraic combinatorics and representation theory, while the seven-riffle-shuffle result for a standard deck illustrates how mixing-time theory can answer a concrete applied question.",
+      "citations": [
+        2,
+        8
+      ]
+    },
+    {
+      "text": "Other research traditions use Markov chains in statistical mechanics through Glauber dynamics and related spin-system models, where the chain explores configurations and its stationary law represents an equilibrium distribution.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "In statistics and machine learning, hidden Markov models separate an unobserved Markovian state process from observed emissions and have been developed for applications including speech recognition, biological sequence analysis, and information extraction.",
+      "citations": [
+        1,
+        3
+      ]
+    },
+    {
+      "text": "Markovian models also underlie queueing theory, information processing, PageRank, reinforcement learning, and models of physical and chemical systems.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "A simple consecutive-heads problem shows how the same ideas work at an elementary level, because the relevant state is the number of consecutive heads currently held rather than the entire sequence of previous flips.",
+      "citations": [
+        9,
+        10
+      ]
+    },
+    {
+      "text": "For a fair coin and a target of \\(N\\) consecutive heads, define state \\(k\\) as having just observed \\(k\\) consecutive heads, with states \\(0,1,\\ldots,N\\), where state \\(N\\) is absorbing.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "A head moves the chain from \\(k\\) to \\(k+1\\), whereas a tail moves it back to state \\(0\\), because the current run has been broken.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "If \\(E_k\\) denotes the expected additional flips from state \\(k\\), then \\(E_N=0\\) and, for \\(0\\leq k<N\\), \\(E_k=1+\\tfrac12E_{k+1}+\\tfrac12E_0\\).",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "The recurrence expresses the intuition that every flip costs one step, a head extends the current progress, and a tail discards the partial run rather than merely reducing it by one.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "Solving these equations gives \\(E_0=2^{N+1}-2\\), so the expected number of flips is \\(6\\) for two consecutive heads, \\(14\\) for three, and \\(62\\) for five.",
+      "citations": [
+        9,
+        10
+      ]
+    },
+    {
+      "text": "For a coin with head probability \\(p\\), the same state construction yields \\(E_0=(1-p^N)/((1-p)p^N)\\) when \\(p\\neq1\\), which reduces to the fair-coin expression as \\(p\\) approaches one half.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "The example captures the broader value of Markov chains: a problem that appears to depend on an exponentially long history becomes a finite system of local transition equations once the state records exactly the information relevant to the future.",
+      "citations": [
+        0
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "6847465956a0f6376a605493",
+    "status": "completed",
+    "metadata": {
+      "model": "gpt-5.6-luna",
+      "backend": "openai",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-luna-cap10",
+      "query_source": "Write an introduction on Markov chains in the field of statistics/combinatorics and the reason behind their genesis. Then, write a literature review on Markov chains in contemporary research. Include one section devoted to their application and intuition in solving problems like \"what is the expected value of flips to get N heads in a row\"."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 8,
+        "commit_context": 2
+      },
+      "tool_call_counts_all": {
+        "search": 8,
+        "commit_context": 2
+      },
+      "retrieved_docids": [
+        "shard_00234_8379",
+        "shard_00253_12128",
+        "shard_00851_56130",
+        "shard_00909_68865",
+        "shard_00915_25493",
+        "shard_01080_25173",
+        "shard_01157_7609",
+        "shard_01215_47572",
+        "shard_01218_5202",
+        "shard_01261_28060",
+        "shard_01281_79067",
+        "shard_01311_23450",
+        "shard_01513_27619",
+        "shard_01547_55905",
+        "shard_01718_11547",
+        "shard_01860_9051",
+        "shard_01887_11477",
+        "shard_01901_70670",
+        "shard_02196_62216",
+        "shard_02237_64206",
+        "shard_02345_32983",
+        "shard_02354_53672",
+        "shard_02366_17926",
+        "shard_02391_23601",
+        "shard_02497_46012",
+        "shard_02557_41813",
+        "shard_02763_31458",
+        "shard_02803_64527",
+        "shard_02822_24503",
+        "shard_02921_55806",
+        "shard_02965_47567",
+        "shard_03056_13045",
+        "shard_03185_73462",
+        "shard_03286_20914",
+        "shard_03507_66812",
+        "shard_03629_43609",
+        "shard_03633_33584",
+        "shard_03646_78840",
+        "shard_03806_74452",
+        "shard_03873_81730",
+        "shard_03886_41624",
+        "shard_03951_21465",
+        "shard_04077_47809",
+        "shard_04084_21681",
+        "shard_04211_82566",
+        "shard_04308_30843",
+        "shard_04439_16596",
+        "shard_04497_23669",
+        "shard_04527_2218",
+        "shard_04662_49176",
+        "shard_04830_20461",
+        "shard_04846_65469",
+        "shard_04958_82114",
+        "shard_05059_56682",
+        "shard_05235_29348",
+        "shard_05619_68970",
+        "shard_06057_78111",
+        "shard_06167_42556",
+        "shard_06326_23535",
+        "shard_06372_3482",
+        "shard_06410_12122",
+        "shard_06418_49957",
+        "shard_06446_64619",
+        "shard_06464_33595",
+        "shard_06537_5004"
+      ],
+      "tokens": {
+        "input": 141373,
+        "input_uncached": 123453,
+        "output": 3089,
+        "cache_read": 17920,
+        "cache_write": 0,
+        "total": 144462,
+        "processed_input": 123453,
+        "processed": 126542,
+        "context_tokens": 25234,
+        "peak_context_tokens": 56280,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_01311_23450",
+          "shard_01901_70670",
+          "shard_02391_23601",
+          "shard_02803_64527",
+          "shard_02822_24503",
+          "shard_02921_55806",
+          "shard_03629_43609",
+          "shard_03951_21465",
+          "shard_04077_47809",
+          "shard_04830_20461",
+          "shard_06372_3482"
+        ],
+        "rejected": [
+          "shard_00234_8379",
+          "shard_00253_12128",
+          "shard_00851_56130",
+          "shard_00909_68865",
+          "shard_00915_25493",
+          "shard_01080_25173",
+          "shard_01157_7609",
+          "shard_01215_47572",
+          "shard_01218_5202",
+          "shard_01261_28060",
+          "shard_01281_79067",
+          "shard_01513_27619",
+          "shard_01547_55905",
+          "shard_01718_11547",
+          "shard_01860_9051",
+          "shard_01887_11477",
+          "shard_02196_62216",
+          "shard_02237_64206",
+          "shard_02345_32983",
+          "shard_02354_53672",
+          "shard_02366_17926",
+          "shard_02497_46012",
+          "shard_02557_41813",
+          "shard_02763_31458",
+          "shard_02965_47567",
+          "shard_03056_13045",
+          "shard_03185_73462",
+          "shard_03286_20914",
+          "shard_03507_66812",
+          "shard_03633_33584",
+          "shard_03646_78840",
+          "shard_03806_74452",
+          "shard_03873_81730",
+          "shard_03886_41624",
+          "shard_04084_21681",
+          "shard_04211_82566",
+          "shard_04308_30843",
+          "shard_04439_16596",
+          "shard_04497_23669",
+          "shard_04527_2218",
+          "shard_04662_49176",
+          "shard_04846_65469",
+          "shard_04958_82114",
+          "shard_05059_56682",
+          "shard_05235_29348",
+          "shard_05619_68970",
+          "shard_06057_78111",
+          "shard_06167_42556",
+          "shard_06326_23535",
+          "shard_06410_12122",
+          "shard_06418_49957",
+          "shard_06446_64619",
+          "shard_06464_33595",
+          "shard_06537_5004"
+        ]
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nphrase searches and read results, but it is not evidence and must not support\nfactual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the argument, connections, and voice of the answer are\nyours to build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. Which of\n   these the corpus can actually support is unknown until it answers; the\n   opening searches exist to find that out before the answer's structure is\n   fixed. This list is provisional: searching reveals what the request\n   actually needs, and the plan is revised as it does.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\nResearch is one loop — search, commit, decide — repeated until the internal\nsuccess plan is satisfied:\n\n1. **Search.** Round one's queries come from the question: build them only\n   from the question's own wording and plain paraphrases of it. Do not seed\n   a query with candidate answers — specific names, techniques, causes,\n   examples — that the question itself does not mention: you do not know\n   what this corpus holds until it answers, no matter how well you know the\n   subject. In every later round, each new content-bearing query term must\n   be traceable to a document retrieved in an earlier round; prior knowledge\n   may rephrase, disambiguate, and supply synonyms — it may never introduce\n   a candidate the corpus has not yet surfaced.\n2. **Commit.** Read what came back and commit the documents whose distinct\n   contributions the answer will need. Committing nothing is the right call\n   for a batch with nothing worth keeping.\n3. **Decide.** Reflect before judging: searching teaches you what the\n   request actually needs, so first revise the plan against what retrieval\n   has shown. An aspect that retrieved material has revealed as important to\n   the request joins the coverage areas even though the opening plan missed\n   it; a planned area whose reformulated searches keep coming back empty is\n   recorded as unsupportable, not retried forever. Then compare committed\n   material against the revised plan. If a coverage area still lacks support\n   — or is supported only thinly where the request deserves depth — loop\n   again with queries aimed at that gap. The loop ends when every coverage\n   area of the current plan is resolved: committed material behind it, or\n   searches that failed to support it. Then write the report — only after\n   committing everything it will cite.\n\nNotes on the loop:\n\n- If reformulated question-term queries keep returning nothing useful, probe\n  candidates from prior knowledge, one query each. A candidate the corpus\n  then returns has been surfaced like any other retrieved material; one it\n  does not return stays out of the answer.\n- The answer's structure follows what was retrieved. Fix the outline — which\n  items, sections, comparisons — only after the rounds that surfaced those\n  items, so that every part of it traces to a committed document.\n- Size the search to the question. Several independent coverage areas call\n  for multiple complementary queries in parallel across them; a single fact,\n  name, date, or definition needs one or two queries, then the answer. Small\n  is not shallow: even the shortest answer rests on the strongest support\n  the corpus offers.\n- Move from broad discovery to targeted follow-ups on what earlier rounds\n  surfaced: specific names, dates, mechanisms, examples, definitions, causal\n  claims, and disputed points.\n- Reformulate weak queries instead of accepting poor coverage: synonyms,\n  alternative terminology, different phrasings.\n- Actively search for counter-evidence, contradictions, limitations, and\n  missing perspectives when they matter to the request.\n- Every tool call must have a concrete purpose tied to an unmet requirement\n  or evidence gap; never call a tool solely to create another model turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `10` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching — but quality does: after satisfying the\nconcrete minimum, keep improving toward the target/excellence requirements\nwhile you can name a specific weakness whose resolution would materially\nimprove the answer. An unresolved or thinly supported coverage area in the\ncurrent plan is always such a weakness.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write the report only after committing everything it will cite. A report\n  turn issues no tool calls, so a batch still staged when you start writing\n  lapses uncommitted and everything you meant to cite from it becomes\n  invalid — commit first, and write the report on the following turn.\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Saturday, 18 July 2026, 21:41:33 +1000 (Australia/Melbourne)\n\nResearch request:\n\nWrite an introduction on Markov chains in the field of statistics/combinatorics and the reason behind their genesis. Then, write a literature review on Markov chains in contemporary research. Include one section devoted to their application and intuition in solving problems like \"what is the expected value of flips to get N heads in a row\".\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged. Match query style to engine: exact names and rare strings favor keyword; concepts and questions favor semantic. The engines rank differently, and extra queries are cheap — cover an important facet with both engines, one styled query each.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "One information need as a short, specific phrase: a few distinctive content words (names, technical terms, the core concept) or a natural question phrased like a webpage title or FAQ. Include at least one rare or specific term — never a single common word — and attach one disambiguating qualifier to any proper name. Omit audience, format, and task words from the request and query a single facet at a time. For numeric or statistical facts, query the topic and entity, not the number."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "search_engine": {
+                "type": "string",
+                "enum": [
+                  "semantic",
+                  "keyword"
+                ],
+                "default": "semantic",
+                "description": "Retrieval engine. semantic (dense embedding match): conceptual, definitional, or broad-topic queries, natural-question phrasing, and well-known product or concept names; style the query as a natural phrase or question. keyword (exact BM25 match): rare proper names, surnames, IDs, codes, and verbatim technical strings, where semantic may drift to a similar-sounding topic; style the query as bare distinctive terms without stopwords. The engines rank differently — cover an important facet with both, one styled query each; duplicate results are deduplicated downstream."
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query",
+              "search_engine"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_AWhDIwZGRsqG6uhqsMPUsaid",
+              "name": "search",
+              "arguments": {
+                "query": "Markov chains statistics combinatorics genesis history reason",
+                "k": 10,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_p7KiKRJhYXQWXTL4dWan8Tq6",
+              "name": "search",
+              "arguments": {
+                "query": "Markov chains contemporary research applications statistics combinatorics",
+                "k": 10,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_jpc75L7ukrFwvmy3nNtnVKVC",
+              "name": "search",
+              "arguments": {
+                "query": "expected flips N heads in a row Markov chain",
+                "k": 10,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_mWRIZSYfWmoRgSI7ELUhfnqG",
+              "name": "search",
+              "arguments": {
+                "query": "Markov chain definition transition probabilities state memoryless property",
+                "k": 10,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2500
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-18T21:41:33.195+10:00",
+        "t_end": "2026-07-18T21:41:37.142+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3947.143,
+          "context_tokens": 3665,
+          "peak_context_tokens": 3665,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3948,
+          "tokens": {
+            "input": 3665,
+            "input_uncached": 3665,
+            "output": 222,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3887,
+            "processed_input": 3665,
+            "processed": 3887,
+            "context": 3665
+          },
+          "provider_usage": {
+            "input_tokens": 3665,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 222
+          },
+          "cumulative_tokens": {
+            "input": 3665,
+            "input_uncached": 3665,
+            "output": 222,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3887,
+            "processed_input": 3665,
+            "processed": 3887
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Markov chains statistics combinatorics genesis history reason",
+          "k": 10,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "Markov chains statistics combinatorics genesis history reason",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03646_78840",
+              "docid": "shard_03646_78840",
+              "kind": "document",
+              "score": 0.331376,
+              "truncated": false,
+              "original_chars": 2540,
+              "returned_chars": 2540
+            },
+            {
+              "rank": 2,
+              "id": "shard_02763_31458",
+              "docid": "shard_02763_31458",
+              "kind": "document",
+              "score": 0.323367,
+              "truncated": false,
+              "original_chars": 3199,
+              "returned_chars": 3199
+            },
+            {
+              "rank": 3,
+              "id": "shard_02921_55806",
+              "docid": "shard_02921_55806",
+              "kind": "document",
+              "score": 0.319735,
+              "truncated": false,
+              "original_chars": 2937,
+              "returned_chars": 2937
+            },
+            {
+              "rank": 4,
+              "id": "shard_05619_68970",
+              "docid": "shard_05619_68970",
+              "kind": "document",
+              "score": 0.318812,
+              "truncated": false,
+              "original_chars": 4518,
+              "returned_chars": 4518
+            },
+            {
+              "rank": 5,
+              "id": "shard_04846_65469",
+              "docid": "shard_04846_65469",
+              "kind": "document",
+              "score": 0.31769,
+              "truncated": false,
+              "original_chars": 3610,
+              "returned_chars": 3610
+            },
+            {
+              "rank": 6,
+              "id": "shard_06167_42556",
+              "docid": "shard_06167_42556",
+              "kind": "document",
+              "score": 0.315338,
+              "truncated": false,
+              "original_chars": 797,
+              "returned_chars": 797
+            },
+            {
+              "rank": 7,
+              "id": "shard_03886_41624",
+              "docid": "shard_03886_41624",
+              "kind": "document",
+              "score": 0.31411,
+              "truncated": false,
+              "original_chars": 2709,
+              "returned_chars": 2709
+            },
+            {
+              "rank": 8,
+              "id": "shard_03633_33584",
+              "docid": "shard_03633_33584",
+              "kind": "document",
+              "score": 0.313211,
+              "truncated": false,
+              "original_chars": 2680,
+              "returned_chars": 2680
+            },
+            {
+              "rank": 9,
+              "id": "shard_04439_16596",
+              "docid": "shard_04439_16596",
+              "kind": "document",
+              "score": 0.312845,
+              "truncated": false,
+              "original_chars": 530,
+              "returned_chars": 530
+            },
+            {
+              "rank": 10,
+              "id": "shard_03629_43609",
+              "docid": "shard_03629_43609",
+              "kind": "document",
+              "score": 0.312378,
+              "truncated": true,
+              "original_chars": 62426,
+              "returned_chars": 14590
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03646_78840",
+          "shard_02763_31458",
+          "shard_02921_55806",
+          "shard_05619_68970",
+          "shard_04846_65469",
+          "shard_06167_42556",
+          "shard_03886_41624",
+          "shard_03633_33584",
+          "shard_04439_16596",
+          "shard_03629_43609"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03646_78840",
+            "score": 0.331376
+          },
+          {
+            "docid": "shard_02763_31458",
+            "score": 0.323367
+          },
+          {
+            "docid": "shard_02921_55806",
+            "score": 0.319735
+          },
+          {
+            "docid": "shard_05619_68970",
+            "score": 0.318812
+          },
+          {
+            "docid": "shard_04846_65469",
+            "score": 0.31769
+          },
+          {
+            "docid": "shard_06167_42556",
+            "score": 0.315338
+          },
+          {
+            "docid": "shard_03886_41624",
+            "score": 0.31411
+          },
+          {
+            "docid": "shard_03633_33584",
+            "score": 0.313211
+          },
+          {
+            "docid": "shard_04439_16596",
+            "score": 0.312845
+          },
+          {
+            "docid": "shard_03629_43609",
+            "score": 0.312378
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_AWhDIwZGRsqG6uhqsMPUsaid",
+        "id": "step-0001",
+        "t_start": "2026-07-18T21:41:37.143+10:00",
+        "t_end": "2026-07-18T21:41:37.450+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 306.436,
+          "context_tokens": 3665,
+          "peak_context_tokens": 3665,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 4349,
+          "cumulative_tokens": {
+            "input": 3665,
+            "input_uncached": 3665,
+            "output": 222,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3887,
+            "processed_input": 3665,
+            "processed": 3887
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03646_78840",
+            "shard_02763_31458",
+            "shard_02921_55806",
+            "shard_05619_68970",
+            "shard_04846_65469",
+            "shard_06167_42556",
+            "shard_03886_41624",
+            "shard_03633_33584",
+            "shard_04439_16596",
+            "shard_03629_43609"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Markov chains contemporary research applications statistics combinatorics",
+          "k": 10,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "Markov chains contemporary research applications statistics combinatorics",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02965_47567",
+              "docid": "shard_02965_47567",
+              "kind": "document",
+              "score": 0.325534,
+              "truncated": false,
+              "original_chars": 363,
+              "returned_chars": 363
+            },
+            {
+              "rank": 2,
+              "id": "shard_01261_28060",
+              "docid": "shard_01261_28060",
+              "kind": "document",
+              "score": 0.315136,
+              "truncated": false,
+              "original_chars": 771,
+              "returned_chars": 771
+            },
+            {
+              "rank": 3,
+              "id": "shard_03646_78840",
+              "docid": "shard_03646_78840",
+              "kind": "document",
+              "score": 0.311509,
+              "truncated": false,
+              "original_chars": 2540,
+              "returned_chars": 2540
+            },
+            {
+              "rank": 4,
+              "id": "shard_01860_9051",
+              "docid": "shard_01860_9051",
+              "kind": "document",
+              "score": 0.308989,
+              "truncated": false,
+              "original_chars": 788,
+              "returned_chars": 788
+            },
+            {
+              "rank": 5,
+              "id": "shard_02354_53672",
+              "docid": "shard_02354_53672",
+              "kind": "document",
+              "score": 0.308781,
+              "truncated": false,
+              "original_chars": 761,
+              "returned_chars": 761
+            },
+            {
+              "rank": 6,
+              "id": "shard_06057_78111",
+              "docid": "shard_06057_78111",
+              "kind": "document",
+              "score": 0.307833,
+              "truncated": false,
+              "original_chars": 889,
+              "returned_chars": 889
+            },
+            {
+              "rank": 7,
+              "id": "shard_01311_23450",
+              "docid": "shard_01311_23450",
+              "kind": "document",
+              "score": 0.306817,
+              "truncated": false,
+              "original_chars": 3281,
+              "returned_chars": 3281
+            },
+            {
+              "rank": 8,
+              "id": "shard_03873_81730",
+              "docid": "shard_03873_81730",
+              "kind": "document",
+              "score": 0.305863,
+              "truncated": false,
+              "original_chars": 2897,
+              "returned_chars": 2897
+            },
+            {
+              "rank": 9,
+              "id": "shard_04439_16596",
+              "docid": "shard_04439_16596",
+              "kind": "document",
+              "score": 0.305844,
+              "truncated": false,
+              "original_chars": 530,
+              "returned_chars": 530
+            },
+            {
+              "rank": 10,
+              "id": "shard_02391_23601",
+              "docid": "shard_02391_23601",
+              "kind": "document",
+              "score": 0.305428,
+              "truncated": true,
+              "original_chars": 159259,
+              "returned_chars": 14893
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02965_47567",
+          "shard_01261_28060",
+          "shard_03646_78840",
+          "shard_01860_9051",
+          "shard_02354_53672",
+          "shard_06057_78111",
+          "shard_01311_23450",
+          "shard_03873_81730",
+          "shard_04439_16596",
+          "shard_02391_23601"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02965_47567",
+            "score": 0.325534
+          },
+          {
+            "docid": "shard_01261_28060",
+            "score": 0.315136
+          },
+          {
+            "docid": "shard_03646_78840",
+            "score": 0.311509
+          },
+          {
+            "docid": "shard_01860_9051",
+            "score": 0.308989
+          },
+          {
+            "docid": "shard_02354_53672",
+            "score": 0.308781
+          },
+          {
+            "docid": "shard_06057_78111",
+            "score": 0.307833
+          },
+          {
+            "docid": "shard_01311_23450",
+            "score": 0.306817
+          },
+          {
+            "docid": "shard_03873_81730",
+            "score": 0.305863
+          },
+          {
+            "docid": "shard_04439_16596",
+            "score": 0.305844
+          },
+          {
+            "docid": "shard_02391_23601",
+            "score": 0.305428
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_p7KiKRJhYXQWXTL4dWan8Tq6",
+        "id": "step-0002",
+        "t_start": "2026-07-18T21:41:37.143+10:00",
+        "t_end": "2026-07-18T21:41:37.543+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 399.384,
+          "context_tokens": 3665,
+          "peak_context_tokens": 3665,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 4349,
+          "cumulative_tokens": {
+            "input": 3665,
+            "input_uncached": 3665,
+            "output": 222,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3887,
+            "processed_input": 3665,
+            "processed": 3887
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02965_47567",
+            "shard_01261_28060",
+            "shard_03646_78840",
+            "shard_01860_9051",
+            "shard_02354_53672",
+            "shard_06057_78111",
+            "shard_01311_23450",
+            "shard_03873_81730",
+            "shard_04439_16596",
+            "shard_02391_23601"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "expected flips N heads in a row Markov chain",
+          "k": 10,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "expected flips N heads in a row Markov chain",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01718_11547",
+              "docid": "shard_01718_11547",
+              "kind": "document",
+              "score": 0.296759,
+              "truncated": false,
+              "original_chars": 1024,
+              "returned_chars": 1024
+            },
+            {
+              "rank": 2,
+              "id": "shard_01547_55905",
+              "docid": "shard_01547_55905",
+              "kind": "document",
+              "score": 0.295971,
+              "truncated": false,
+              "original_chars": 604,
+              "returned_chars": 604
+            },
+            {
+              "rank": 3,
+              "id": "shard_01901_70670",
+              "docid": "shard_01901_70670",
+              "kind": "document",
+              "score": 0.292291,
+              "truncated": false,
+              "original_chars": 2569,
+              "returned_chars": 2569
+            },
+            {
+              "rank": 4,
+              "id": "shard_05059_56682",
+              "docid": "shard_05059_56682",
+              "kind": "document",
+              "score": 0.292154,
+              "truncated": false,
+              "original_chars": 2374,
+              "returned_chars": 2374
+            },
+            {
+              "rank": 5,
+              "id": "shard_02822_24503",
+              "docid": "shard_02822_24503",
+              "kind": "document",
+              "score": 0.290227,
+              "truncated": false,
+              "original_chars": 3156,
+              "returned_chars": 3156
+            },
+            {
+              "rank": 6,
+              "id": "shard_06537_5004",
+              "docid": "shard_06537_5004",
+              "kind": "document",
+              "score": 0.288189,
+              "truncated": false,
+              "original_chars": 362,
+              "returned_chars": 362
+            },
+            {
+              "rank": 7,
+              "id": "shard_02366_17926",
+              "docid": "shard_02366_17926",
+              "kind": "document",
+              "score": 0.287178,
+              "truncated": false,
+              "original_chars": 2403,
+              "returned_chars": 2403
+            },
+            {
+              "rank": 8,
+              "id": "shard_04211_82566",
+              "docid": "shard_04211_82566",
+              "kind": "document",
+              "score": 0.284663,
+              "truncated": false,
+              "original_chars": 1159,
+              "returned_chars": 1159
+            },
+            {
+              "rank": 9,
+              "id": "shard_05235_29348",
+              "docid": "shard_05235_29348",
+              "kind": "document",
+              "score": 0.284473,
+              "truncated": false,
+              "original_chars": 2174,
+              "returned_chars": 2174
+            },
+            {
+              "rank": 10,
+              "id": "shard_02237_64206",
+              "docid": "shard_02237_64206",
+              "kind": "document",
+              "score": 0.281091,
+              "truncated": false,
+              "original_chars": 1298,
+              "returned_chars": 1298
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01718_11547",
+          "shard_01547_55905",
+          "shard_01901_70670",
+          "shard_05059_56682",
+          "shard_02822_24503",
+          "shard_06537_5004",
+          "shard_02366_17926",
+          "shard_04211_82566",
+          "shard_05235_29348",
+          "shard_02237_64206"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01718_11547",
+            "score": 0.296759
+          },
+          {
+            "docid": "shard_01547_55905",
+            "score": 0.295971
+          },
+          {
+            "docid": "shard_01901_70670",
+            "score": 0.292291
+          },
+          {
+            "docid": "shard_05059_56682",
+            "score": 0.292154
+          },
+          {
+            "docid": "shard_02822_24503",
+            "score": 0.290227
+          },
+          {
+            "docid": "shard_06537_5004",
+            "score": 0.288189
+          },
+          {
+            "docid": "shard_02366_17926",
+            "score": 0.287178
+          },
+          {
+            "docid": "shard_04211_82566",
+            "score": 0.284663
+          },
+          {
+            "docid": "shard_05235_29348",
+            "score": 0.284473
+          },
+          {
+            "docid": "shard_02237_64206",
+            "score": 0.281091
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_jpc75L7ukrFwvmy3nNtnVKVC",
+        "id": "step-0003",
+        "t_start": "2026-07-18T21:41:37.144+10:00",
+        "t_end": "2026-07-18T21:41:37.508+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 363.852,
+          "context_tokens": 3665,
+          "peak_context_tokens": 3665,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 4349,
+          "cumulative_tokens": {
+            "input": 3665,
+            "input_uncached": 3665,
+            "output": 222,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3887,
+            "processed_input": 3665,
+            "processed": 3887
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01718_11547",
+            "shard_01547_55905",
+            "shard_01901_70670",
+            "shard_05059_56682",
+            "shard_02822_24503",
+            "shard_06537_5004",
+            "shard_02366_17926",
+            "shard_04211_82566",
+            "shard_05235_29348",
+            "shard_02237_64206"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Markov chain definition transition probabilities state memoryless property",
+          "k": 10,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "Markov chain definition transition probabilities state memoryless property",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02345_32983",
+              "docid": "shard_02345_32983",
+              "kind": "document",
+              "score": 31.378494,
+              "truncated": false,
+              "original_chars": 3680,
+              "returned_chars": 3680
+            },
+            {
+              "rank": 2,
+              "id": "shard_06464_33595",
+              "docid": "shard_06464_33595",
+              "kind": "document",
+              "score": 31.217667,
+              "truncated": false,
+              "original_chars": 3921,
+              "returned_chars": 3921
+            },
+            {
+              "rank": 3,
+              "id": "shard_04527_2218",
+              "docid": "shard_04527_2218",
+              "kind": "document",
+              "score": 31.147236,
+              "truncated": false,
+              "original_chars": 3853,
+              "returned_chars": 3853
+            },
+            {
+              "rank": 4,
+              "id": "shard_01215_47572",
+              "docid": "shard_01215_47572",
+              "kind": "document",
+              "score": 30.79801,
+              "truncated": false,
+              "original_chars": 6849,
+              "returned_chars": 6849
+            },
+            {
+              "rank": 5,
+              "id": "shard_03056_13045",
+              "docid": "shard_03056_13045",
+              "kind": "document",
+              "score": 30.744951,
+              "truncated": false,
+              "original_chars": 6221,
+              "returned_chars": 6221
+            },
+            {
+              "rank": 6,
+              "id": "shard_02557_41813",
+              "docid": "shard_02557_41813",
+              "kind": "document",
+              "score": 30.526958,
+              "truncated": false,
+              "original_chars": 6756,
+              "returned_chars": 6756
+            },
+            {
+              "rank": 7,
+              "id": "shard_03286_20914",
+              "docid": "shard_03286_20914",
+              "kind": "document",
+              "score": 30.004751,
+              "truncated": false,
+              "original_chars": 11762,
+              "returned_chars": 11762
+            },
+            {
+              "rank": 8,
+              "id": "shard_04958_82114",
+              "docid": "shard_04958_82114",
+              "kind": "document",
+              "score": 29.91266,
+              "truncated": false,
+              "original_chars": 3672,
+              "returned_chars": 3672
+            },
+            {
+              "rank": 9,
+              "id": "shard_01887_11477",
+              "docid": "shard_01887_11477",
+              "kind": "document",
+              "score": 29.840456,
+              "truncated": false,
+              "original_chars": 3259,
+              "returned_chars": 3259
+            },
+            {
+              "rank": 10,
+              "id": "shard_02196_62216",
+              "docid": "shard_02196_62216",
+              "kind": "document",
+              "score": 29.838465,
+              "truncated": false,
+              "original_chars": 3417,
+              "returned_chars": 3417
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02345_32983",
+          "shard_06464_33595",
+          "shard_04527_2218",
+          "shard_01215_47572",
+          "shard_03056_13045",
+          "shard_02557_41813",
+          "shard_03286_20914",
+          "shard_04958_82114",
+          "shard_01887_11477",
+          "shard_02196_62216"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02345_32983",
+            "score": 31.378494
+          },
+          {
+            "docid": "shard_06464_33595",
+            "score": 31.217667
+          },
+          {
+            "docid": "shard_04527_2218",
+            "score": 31.147236
+          },
+          {
+            "docid": "shard_01215_47572",
+            "score": 30.79801
+          },
+          {
+            "docid": "shard_03056_13045",
+            "score": 30.744951
+          },
+          {
+            "docid": "shard_02557_41813",
+            "score": 30.526958
+          },
+          {
+            "docid": "shard_03286_20914",
+            "score": 30.004751
+          },
+          {
+            "docid": "shard_04958_82114",
+            "score": 29.91266
+          },
+          {
+            "docid": "shard_01887_11477",
+            "score": 29.840456
+          },
+          {
+            "docid": "shard_02196_62216",
+            "score": 29.838465
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_mWRIZSYfWmoRgSI7ELUhfnqG",
+        "id": "step-0004",
+        "t_start": "2026-07-18T21:41:37.144+10:00",
+        "t_end": "2026-07-18T21:41:37.446+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 301.641,
+          "context_tokens": 3665,
+          "peak_context_tokens": 3665,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 4349,
+          "cumulative_tokens": {
+            "input": 3665,
+            "input_uncached": 3665,
+            "output": 222,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3887,
+            "processed_input": 3665,
+            "processed": 3887
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02345_32983",
+            "shard_06464_33595",
+            "shard_04527_2218",
+            "shard_01215_47572",
+            "shard_03056_13045",
+            "shard_02557_41813",
+            "shard_03286_20914",
+            "shard_04958_82114",
+            "shard_01887_11477",
+            "shard_02196_62216"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_AWhDIwZGRsqG6uhqsMPUsaid",
+            "call_p7KiKRJhYXQWXTL4dWan8Tq6",
+            "call_jpc75L7ukrFwvmy3nNtnVKVC",
+            "call_mWRIZSYfWmoRgSI7ELUhfnqG"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_SMgmlCOxK93ucSxNZBENq9aN",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_02921_55806",
+                    "reason": "Historical account of Markov's 1913 lecture, dependence versus independence, and his vowel/consonant analysis of Pushkin."
+                  },
+                  {
+                    "docid": "shard_03629_43609",
+                    "reason": "Detailed mathematical foundation: Markov property, transition matrices, Chapman–Kolmogorov equation, stationary distributions, convergence, coupling, and sampling motivation."
+                  },
+                  {
+                    "docid": "shard_02391_23601",
+                    "reason": "Literature-level overview of contemporary Markov-chain mixing research across statistics, computer science, physics, combinatorics, MCMC, spectral methods, coupling, shuffling, and open problems."
+                  },
+                  {
+                    "docid": "shard_01311_23450",
+                    "reason": "Survey of applications including information theory, hidden Markov models, queues, PageRank, reinforcement learning, and statistical mechanics."
+                  },
+                  {
+                    "docid": "shard_01901_70670",
+                    "reason": "Worked consecutive-heads expectations for one, two, and three heads and the general fair-coin pattern, with Monte Carlo context."
+                  },
+                  {
+                    "docid": "shard_02822_24503",
+                    "reason": "Explicit absorbing-state formulation for N consecutive heads, linear system (I−Q)m=1, and fair-coin result for five heads."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-18T21:41:37.543+10:00",
+        "t_end": "2026-07-18T21:41:41.042+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3498.591,
+          "context_tokens": 37741,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7848,
+          "tokens": {
+            "input": 37741,
+            "input_uncached": 37741,
+            "output": 340,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 38081,
+            "processed_input": 37741,
+            "processed": 38081,
+            "context": 37741
+          },
+          "provider_usage": {
+            "input_tokens": 37741,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 340
+          },
+          "cumulative_tokens": {
+            "input": 41406,
+            "input_uncached": 41406,
+            "output": 562,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 41968,
+            "processed_input": 41406,
+            "processed": 41968
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03646_78840",
+            "shard_02763_31458",
+            "shard_02921_55806",
+            "shard_05619_68970",
+            "shard_04846_65469",
+            "shard_06167_42556",
+            "shard_03886_41624",
+            "shard_03633_33584",
+            "shard_04439_16596",
+            "shard_03629_43609",
+            "shard_02965_47567",
+            "shard_01261_28060",
+            "shard_01860_9051",
+            "shard_02354_53672",
+            "shard_06057_78111",
+            "shard_01311_23450",
+            "shard_03873_81730",
+            "shard_02391_23601",
+            "shard_01718_11547",
+            "shard_01547_55905",
+            "shard_01901_70670",
+            "shard_05059_56682",
+            "shard_02822_24503",
+            "shard_06537_5004",
+            "shard_02366_17926",
+            "shard_04211_82566",
+            "shard_05235_29348",
+            "shard_02237_64206",
+            "shard_02345_32983",
+            "shard_06464_33595",
+            "shard_04527_2218",
+            "shard_01215_47572",
+            "shard_03056_13045",
+            "shard_02557_41813",
+            "shard_03286_20914",
+            "shard_04958_82114",
+            "shard_01887_11477",
+            "shard_02196_62216"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_02921_55806",
+              "reason": "Historical account of Markov's 1913 lecture, dependence versus independence, and his vowel/consonant analysis of Pushkin."
+            },
+            {
+              "docid": "shard_03629_43609",
+              "reason": "Detailed mathematical foundation: Markov property, transition matrices, Chapman–Kolmogorov equation, stationary distributions, convergence, coupling, and sampling motivation."
+            },
+            {
+              "docid": "shard_02391_23601",
+              "reason": "Literature-level overview of contemporary Markov-chain mixing research across statistics, computer science, physics, combinatorics, MCMC, spectral methods, coupling, shuffling, and open problems."
+            },
+            {
+              "docid": "shard_01311_23450",
+              "reason": "Survey of applications including information theory, hidden Markov models, queues, PageRank, reinforcement learning, and statistical mechanics."
+            },
+            {
+              "docid": "shard_01901_70670",
+              "reason": "Worked consecutive-heads expectations for one, two, and three heads and the general fair-coin pattern, with Monte Carlo context."
+            },
+            {
+              "docid": "shard_02822_24503",
+              "reason": "Explicit absorbing-state formulation for N consecutive heads, linear system (I−Q)m=1, and fair-coin result for five heads."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_02921_55806\", \"shard_03629_43609\", \"shard_01311_23450\", \"shard_02391_23601\", \"shard_01901_70670\", \"shard_02822_24503\"], \"rejected\": [{\"docid\": \"shard_03646_78840\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02763_31458\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05619_68970\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04846_65469\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06167_42556\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03886_41624\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03633_33584\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04439_16596\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02965_47567\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01261_28060\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01860_9051\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02354_53672\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06057_78111\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03873_81730\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01718_11547\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01547_55905\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05059_56682\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06537_5004\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02366_17926\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04211_82566\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05235_29348\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02237_64206\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02345_32983\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06464_33595\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04527_2218\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01215_47572\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03056_13045\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02557_41813\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03286_20914\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04958_82114\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01887_11477\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02196_62216\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 37,741 / 500,000 tokens (7.5%) · elapsed: 0m 7s]",
+        "failed": false,
+        "tool_call_id": "call_SMgmlCOxK93ucSxNZBENq9aN",
+        "id": "step-0006",
+        "t_start": "2026-07-18T21:41:41.044+10:00",
+        "t_end": "2026-07-18T21:41:41.046+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1.377,
+          "context_tokens": 37741,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7851,
+          "cumulative_tokens": {
+            "input": 41406,
+            "input_uncached": 41406,
+            "output": 562,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 41968,
+            "processed_input": 41406,
+            "processed": 41968
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03646_78840",
+            "shard_02763_31458",
+            "shard_02921_55806",
+            "shard_05619_68970",
+            "shard_04846_65469",
+            "shard_06167_42556",
+            "shard_03886_41624",
+            "shard_03633_33584",
+            "shard_04439_16596",
+            "shard_03629_43609",
+            "shard_02965_47567",
+            "shard_01261_28060",
+            "shard_01860_9051",
+            "shard_02354_53672",
+            "shard_06057_78111",
+            "shard_01311_23450",
+            "shard_03873_81730",
+            "shard_02391_23601",
+            "shard_01718_11547",
+            "shard_01547_55905",
+            "shard_01901_70670",
+            "shard_05059_56682",
+            "shard_02822_24503",
+            "shard_06537_5004",
+            "shard_02366_17926",
+            "shard_04211_82566",
+            "shard_05235_29348",
+            "shard_02237_64206",
+            "shard_02345_32983",
+            "shard_06464_33595",
+            "shard_04527_2218",
+            "shard_01215_47572",
+            "shard_03056_13045",
+            "shard_02557_41813",
+            "shard_03286_20914",
+            "shard_04958_82114",
+            "shard_01887_11477",
+            "shard_02196_62216"
+          ],
+          "committed": [
+            "shard_02921_55806",
+            "shard_03629_43609",
+            "shard_01311_23450",
+            "shard_02391_23601",
+            "shard_01901_70670",
+            "shard_02822_24503"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_03646_78840",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02763_31458",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05619_68970",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04846_65469",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06167_42556",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03886_41624",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03633_33584",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04439_16596",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02965_47567",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01261_28060",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01860_9051",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02354_53672",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06057_78111",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03873_81730",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01718_11547",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01547_55905",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05059_56682",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06537_5004",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02366_17926",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04211_82566",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05235_29348",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02237_64206",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02345_32983",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06464_33595",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04527_2218",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01215_47572",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03056_13045",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02557_41813",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03286_20914",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04958_82114",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01887_11477",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02196_62216",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_SMgmlCOxK93ucSxNZBENq9aN"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_m0cdKKabKgGzTQPi1UYRWpEg",
+              "name": "search",
+              "arguments": {
+                "query": "Markov chain Monte Carlo sampling approximate counting mixing time",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_KAHrjYV1UxQxaOiVe3liICYv",
+              "name": "search",
+              "arguments": {
+                "query": "Markov chain mixing time spectral gap coupling combinatorial structures",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_XIgGLDcLrdHY3yPTWFPRVSvJ",
+              "name": "search",
+              "arguments": {
+                "query": "hidden Markov models contemporary statistics applications bioinformatics speech recognition",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_beBihQxEdRJZpCcSfdlhGMm4",
+              "name": "search",
+              "arguments": {
+                "query": "Markov chain combinatorics random walks graphs card shuffling stationary distribution",
+                "k": 8,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2500
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0007",
+        "t_start": "2026-07-18T21:41:41.046+10:00",
+        "t_end": "2026-07-18T21:41:44.201+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3155.803,
+          "context_tokens": 18453,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 11007,
+          "tokens": {
+            "input": 18453,
+            "input_uncached": 18453,
+            "output": 264,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 18717,
+            "processed_input": 18453,
+            "processed": 18717,
+            "context": 18453
+          },
+          "provider_usage": {
+            "input_tokens": 18453,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 264
+          },
+          "cumulative_tokens": {
+            "input": 59859,
+            "input_uncached": 59859,
+            "output": 826,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 60685,
+            "processed_input": 59859,
+            "processed": 60685
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_01311_23450",
+            "shard_01901_70670",
+            "shard_02391_23601",
+            "shard_02822_24503",
+            "shard_02921_55806",
+            "shard_03629_43609"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Markov chain Monte Carlo sampling approximate counting mixing time",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "Markov chain Monte Carlo sampling approximate counting mixing time",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02391_23601",
+              "docid": "shard_02391_23601",
+              "kind": "document",
+              "score": 0.313376,
+              "truncated": true,
+              "original_chars": 159259,
+              "returned_chars": 14893
+            },
+            {
+              "rank": 2,
+              "id": "shard_04308_30843",
+              "docid": "shard_04308_30843",
+              "kind": "document",
+              "score": 0.313376,
+              "truncated": false,
+              "original_chars": 3279,
+              "returned_chars": 3279
+            },
+            {
+              "rank": 3,
+              "id": "shard_04830_20461",
+              "docid": "shard_04830_20461",
+              "kind": "document",
+              "score": 0.312656,
+              "truncated": false,
+              "original_chars": 546,
+              "returned_chars": 546
+            },
+            {
+              "rank": 4,
+              "id": "shard_00851_56130",
+              "docid": "shard_00851_56130",
+              "kind": "document",
+              "score": 0.311849,
+              "truncated": false,
+              "original_chars": 499,
+              "returned_chars": 499
+            },
+            {
+              "rank": 5,
+              "id": "shard_00234_8379",
+              "docid": "shard_00234_8379",
+              "kind": "document",
+              "score": 0.305552,
+              "truncated": false,
+              "original_chars": 466,
+              "returned_chars": 466
+            },
+            {
+              "rank": 6,
+              "id": "shard_04497_23669",
+              "docid": "shard_04497_23669",
+              "kind": "document",
+              "score": 0.305295,
+              "truncated": false,
+              "original_chars": 9250,
+              "returned_chars": 9250
+            },
+            {
+              "rank": 7,
+              "id": "shard_01513_27619",
+              "docid": "shard_01513_27619",
+              "kind": "document",
+              "score": 0.304451,
+              "truncated": false,
+              "original_chars": 1667,
+              "returned_chars": 1667
+            },
+            {
+              "rank": 8,
+              "id": "shard_02803_64527",
+              "docid": "shard_02803_64527",
+              "kind": "document",
+              "score": 0.297643,
+              "truncated": false,
+              "original_chars": 1991,
+              "returned_chars": 1991
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02391_23601",
+          "shard_04308_30843",
+          "shard_04830_20461",
+          "shard_00851_56130",
+          "shard_00234_8379",
+          "shard_04497_23669",
+          "shard_01513_27619",
+          "shard_02803_64527"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02391_23601",
+            "score": 0.313376
+          },
+          {
+            "docid": "shard_04308_30843",
+            "score": 0.313376
+          },
+          {
+            "docid": "shard_04830_20461",
+            "score": 0.312656
+          },
+          {
+            "docid": "shard_00851_56130",
+            "score": 0.311849
+          },
+          {
+            "docid": "shard_00234_8379",
+            "score": 0.305552
+          },
+          {
+            "docid": "shard_04497_23669",
+            "score": 0.305295
+          },
+          {
+            "docid": "shard_01513_27619",
+            "score": 0.304451
+          },
+          {
+            "docid": "shard_02803_64527",
+            "score": 0.297643
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_m0cdKKabKgGzTQPi1UYRWpEg",
+        "id": "step-0008",
+        "t_start": "2026-07-18T21:41:44.203+10:00",
+        "t_end": "2026-07-18T21:41:44.548+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 345.347,
+          "context_tokens": 18453,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 11405,
+          "cumulative_tokens": {
+            "input": 59859,
+            "input_uncached": 59859,
+            "output": 826,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 60685,
+            "processed_input": 59859,
+            "processed": 60685
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02391_23601",
+            "shard_04308_30843",
+            "shard_04830_20461",
+            "shard_00851_56130",
+            "shard_00234_8379",
+            "shard_04497_23669",
+            "shard_01513_27619",
+            "shard_02803_64527"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Markov chain mixing time spectral gap coupling combinatorial structures",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "Markov chain mixing time spectral gap coupling combinatorial structures",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01218_5202",
+              "docid": "shard_01218_5202",
+              "kind": "document",
+              "score": 0.291133,
+              "truncated": false,
+              "original_chars": 2453,
+              "returned_chars": 2453
+            },
+            {
+              "rank": 2,
+              "id": "shard_00909_68865",
+              "docid": "shard_00909_68865",
+              "kind": "document",
+              "score": 0.289403,
+              "truncated": false,
+              "original_chars": 804,
+              "returned_chars": 804
+            },
+            {
+              "rank": 3,
+              "id": "shard_04084_21681",
+              "docid": "shard_04084_21681",
+              "kind": "document",
+              "score": 0.28382,
+              "truncated": false,
+              "original_chars": 3101,
+              "returned_chars": 3101
+            },
+            {
+              "rank": 4,
+              "id": "shard_02391_23601",
+              "docid": "shard_02391_23601",
+              "kind": "document",
+              "score": 0.283705,
+              "truncated": true,
+              "original_chars": 159259,
+              "returned_chars": 14893
+            },
+            {
+              "rank": 5,
+              "id": "shard_04308_30843",
+              "docid": "shard_04308_30843",
+              "kind": "document",
+              "score": 0.283705,
+              "truncated": false,
+              "original_chars": 3279,
+              "returned_chars": 3279
+            },
+            {
+              "rank": 6,
+              "id": "shard_00253_12128",
+              "docid": "shard_00253_12128",
+              "kind": "document",
+              "score": 0.283095,
+              "truncated": false,
+              "original_chars": 2673,
+              "returned_chars": 2673
+            },
+            {
+              "rank": 7,
+              "id": "shard_02497_46012",
+              "docid": "shard_02497_46012",
+              "kind": "document",
+              "score": 0.281595,
+              "truncated": false,
+              "original_chars": 2897,
+              "returned_chars": 2897
+            },
+            {
+              "rank": 8,
+              "id": "shard_01080_25173",
+              "docid": "shard_01080_25173",
+              "kind": "document",
+              "score": 0.280257,
+              "truncated": false,
+              "original_chars": 3319,
+              "returned_chars": 3319
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01218_5202",
+          "shard_00909_68865",
+          "shard_04084_21681",
+          "shard_02391_23601",
+          "shard_04308_30843",
+          "shard_00253_12128",
+          "shard_02497_46012",
+          "shard_01080_25173"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01218_5202",
+            "score": 0.291133
+          },
+          {
+            "docid": "shard_00909_68865",
+            "score": 0.289403
+          },
+          {
+            "docid": "shard_04084_21681",
+            "score": 0.28382
+          },
+          {
+            "docid": "shard_02391_23601",
+            "score": 0.283705
+          },
+          {
+            "docid": "shard_04308_30843",
+            "score": 0.283705
+          },
+          {
+            "docid": "shard_00253_12128",
+            "score": 0.283095
+          },
+          {
+            "docid": "shard_02497_46012",
+            "score": 0.281595
+          },
+          {
+            "docid": "shard_01080_25173",
+            "score": 0.280257
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_KAHrjYV1UxQxaOiVe3liICYv",
+        "id": "step-0009",
+        "t_start": "2026-07-18T21:41:44.203+10:00",
+        "t_end": "2026-07-18T21:41:44.529+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 325.566,
+          "context_tokens": 18453,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 11405,
+          "cumulative_tokens": {
+            "input": 59859,
+            "input_uncached": 59859,
+            "output": 826,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 60685,
+            "processed_input": 59859,
+            "processed": 60685
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01218_5202",
+            "shard_00909_68865",
+            "shard_04084_21681",
+            "shard_02391_23601",
+            "shard_04308_30843",
+            "shard_00253_12128",
+            "shard_02497_46012",
+            "shard_01080_25173"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "hidden Markov models contemporary statistics applications bioinformatics speech recognition",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "hidden Markov models contemporary statistics applications bioinformatics speech recognition",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04077_47809",
+              "docid": "shard_04077_47809",
+              "kind": "document",
+              "score": 0.34639,
+              "truncated": false,
+              "original_chars": 1861,
+              "returned_chars": 1861
+            },
+            {
+              "rank": 2,
+              "id": "shard_06410_12122",
+              "docid": "shard_06410_12122",
+              "kind": "document",
+              "score": 0.341939,
+              "truncated": true,
+              "original_chars": 13277,
+              "returned_chars": 39
+            },
+            {
+              "rank": 3,
+              "id": "shard_06446_64619",
+              "docid": "shard_06446_64619",
+              "kind": "document",
+              "score": 0.339615,
+              "truncated": false,
+              "original_chars": 6646,
+              "returned_chars": 6646
+            },
+            {
+              "rank": 4,
+              "id": "shard_03507_66812",
+              "docid": "shard_03507_66812",
+              "kind": "document",
+              "score": 0.337857,
+              "truncated": false,
+              "original_chars": 1924,
+              "returned_chars": 1924
+            },
+            {
+              "rank": 5,
+              "id": "shard_06326_23535",
+              "docid": "shard_06326_23535",
+              "kind": "document",
+              "score": 0.336959,
+              "truncated": true,
+              "original_chars": 14039,
+              "returned_chars": 12500
+            },
+            {
+              "rank": 6,
+              "id": "shard_06418_49957",
+              "docid": "shard_06418_49957",
+              "kind": "document",
+              "score": 0.335265,
+              "truncated": false,
+              "original_chars": 1181,
+              "returned_chars": 1181
+            },
+            {
+              "rank": 7,
+              "id": "shard_03806_74452",
+              "docid": "shard_03806_74452",
+              "kind": "document",
+              "score": 0.333655,
+              "truncated": false,
+              "original_chars": 2701,
+              "returned_chars": 2701
+            },
+            {
+              "rank": 8,
+              "id": "shard_03185_73462",
+              "docid": "shard_03185_73462",
+              "kind": "document",
+              "score": 0.333033,
+              "truncated": true,
+              "original_chars": 13895,
+              "returned_chars": 39
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04077_47809",
+          "shard_06410_12122",
+          "shard_06446_64619",
+          "shard_03507_66812",
+          "shard_06326_23535",
+          "shard_06418_49957",
+          "shard_03806_74452",
+          "shard_03185_73462"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04077_47809",
+            "score": 0.34639
+          },
+          {
+            "docid": "shard_06410_12122",
+            "score": 0.341939
+          },
+          {
+            "docid": "shard_06446_64619",
+            "score": 0.339615
+          },
+          {
+            "docid": "shard_03507_66812",
+            "score": 0.337857
+          },
+          {
+            "docid": "shard_06326_23535",
+            "score": 0.336959
+          },
+          {
+            "docid": "shard_06418_49957",
+            "score": 0.335265
+          },
+          {
+            "docid": "shard_03806_74452",
+            "score": 0.333655
+          },
+          {
+            "docid": "shard_03185_73462",
+            "score": 0.333033
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_XIgGLDcLrdHY3yPTWFPRVSvJ",
+        "id": "step-0010",
+        "t_start": "2026-07-18T21:41:44.206+10:00",
+        "t_end": "2026-07-18T21:41:44.531+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 324.595,
+          "context_tokens": 18453,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 11406,
+          "cumulative_tokens": {
+            "input": 59859,
+            "input_uncached": 59859,
+            "output": 826,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 60685,
+            "processed_input": 59859,
+            "processed": 60685
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04077_47809",
+            "shard_06410_12122",
+            "shard_06446_64619",
+            "shard_03507_66812",
+            "shard_06326_23535",
+            "shard_06418_49957",
+            "shard_03806_74452",
+            "shard_03185_73462"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Markov chain combinatorics random walks graphs card shuffling stationary distribution",
+          "k": 8,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "Markov chain combinatorics random walks graphs card shuffling stationary distribution",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03951_21465",
+              "docid": "shard_03951_21465",
+              "kind": "document",
+              "score": 39.468082,
+              "truncated": false,
+              "original_chars": 3768,
+              "returned_chars": 3768
+            },
+            {
+              "rank": 2,
+              "id": "shard_04662_49176",
+              "docid": "shard_04662_49176",
+              "kind": "document",
+              "score": 36.038246,
+              "truncated": false,
+              "original_chars": 11319,
+              "returned_chars": 11319
+            },
+            {
+              "rank": 3,
+              "id": "shard_02391_23601",
+              "docid": "shard_02391_23601",
+              "kind": "document",
+              "score": 34.833893,
+              "truncated": true,
+              "original_chars": 159259,
+              "returned_chars": 11905
+            },
+            {
+              "rank": 4,
+              "id": "shard_01281_79067",
+              "docid": "shard_01281_79067",
+              "kind": "document",
+              "score": 33.268677,
+              "truncated": true,
+              "original_chars": 15696,
+              "returned_chars": 11969
+            },
+            {
+              "rank": 5,
+              "id": "shard_06372_3482",
+              "docid": "shard_06372_3482",
+              "kind": "document",
+              "score": 33.181828,
+              "truncated": false,
+              "original_chars": 2279,
+              "returned_chars": 2279
+            },
+            {
+              "rank": 6,
+              "id": "shard_01157_7609",
+              "docid": "shard_01157_7609",
+              "kind": "document",
+              "score": 32.867733,
+              "truncated": false,
+              "original_chars": 3820,
+              "returned_chars": 3820
+            },
+            {
+              "rank": 7,
+              "id": "shard_03629_43609",
+              "docid": "shard_03629_43609",
+              "kind": "document",
+              "score": 32.687885,
+              "truncated": true,
+              "original_chars": 62426,
+              "returned_chars": 12489
+            },
+            {
+              "rank": 8,
+              "id": "shard_00915_25493",
+              "docid": "shard_00915_25493",
+              "kind": "document",
+              "score": 32.64225,
+              "truncated": false,
+              "original_chars": 2118,
+              "returned_chars": 2118
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03951_21465",
+          "shard_04662_49176",
+          "shard_02391_23601",
+          "shard_01281_79067",
+          "shard_06372_3482",
+          "shard_01157_7609",
+          "shard_03629_43609",
+          "shard_00915_25493"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03951_21465",
+            "score": 39.468082
+          },
+          {
+            "docid": "shard_04662_49176",
+            "score": 36.038246
+          },
+          {
+            "docid": "shard_02391_23601",
+            "score": 34.833893
+          },
+          {
+            "docid": "shard_01281_79067",
+            "score": 33.268677
+          },
+          {
+            "docid": "shard_06372_3482",
+            "score": 33.181828
+          },
+          {
+            "docid": "shard_01157_7609",
+            "score": 32.867733
+          },
+          {
+            "docid": "shard_03629_43609",
+            "score": 32.687885
+          },
+          {
+            "docid": "shard_00915_25493",
+            "score": 32.64225
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_beBihQxEdRJZpCcSfdlhGMm4",
+        "id": "step-0011",
+        "t_start": "2026-07-18T21:41:44.206+10:00",
+        "t_end": "2026-07-18T21:41:44.599+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 392.976,
+          "context_tokens": 18453,
+          "peak_context_tokens": 37741,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 11406,
+          "cumulative_tokens": {
+            "input": 59859,
+            "input_uncached": 59859,
+            "output": 826,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 60685,
+            "processed_input": 59859,
+            "processed": 60685
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03951_21465",
+            "shard_04662_49176",
+            "shard_02391_23601",
+            "shard_01281_79067",
+            "shard_06372_3482",
+            "shard_01157_7609",
+            "shard_03629_43609",
+            "shard_00915_25493"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_m0cdKKabKgGzTQPi1UYRWpEg",
+            "call_KAHrjYV1UxQxaOiVe3liICYv",
+            "call_XIgGLDcLrdHY3yPTWFPRVSvJ",
+            "call_beBihQxEdRJZpCcSfdlhGMm4"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_x9Eu086NxBdaoYEJNueKlLax",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_04830_20461",
+                    "reason": "Concise MCMC literature framing: stationary target distributions, Gibbs sampling, coupling, and mixing-time bounds."
+                  },
+                  {
+                    "docid": "shard_03951_21465",
+                    "reason": "Combinatorics-focused examples linking random walks to graph geometry, resistor networks, card shuffles, hitting/cover times, and algebraic combinatorics."
+                  },
+                  {
+                    "docid": "shard_06372_3482",
+                    "reason": "Concrete modern significance of mixing-time theory: riffle shuffles, approximate graph-coloring counts, rapid mixing, conductance, coupling, and limits of rigorous guarantees."
+                  },
+                  {
+                    "docid": "shard_04077_47809",
+                    "reason": "Evidence for hidden Markov models as a statistical application, with speech recognition, computational biology, and foundational literature."
+                  },
+                  {
+                    "docid": "shard_02803_64527",
+                    "reason": "Application of bounding/perfect-sampling chains to graph colorings, statistical mechanics, and approximation of hard combinatorial problems."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0012",
+        "t_start": "2026-07-18T21:41:44.600+10:00",
+        "t_end": "2026-07-18T21:41:47.933+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3333.467,
+          "context_tokens": 56280,
+          "peak_context_tokens": 56280,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14739,
+          "tokens": {
+            "input": 56280,
+            "input_uncached": 38360,
+            "output": 319,
+            "cache_read": 17920,
+            "cache_write": 0,
+            "total": 56599,
+            "processed_input": 38360,
+            "processed": 38679,
+            "context": 56280
+          },
+          "provider_usage": {
+            "input_tokens": 38360,
+            "cache_read_input_tokens": 17920,
+            "output_tokens": 319
+          },
+          "cumulative_tokens": {
+            "input": 116139,
+            "input_uncached": 98219,
+            "output": 1145,
+            "cache_read": 17920,
+            "cache_write": 0,
+            "total": 117284,
+            "processed_input": 98219,
+            "processed": 99364
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02391_23601",
+            "shard_04308_30843",
+            "shard_04830_20461",
+            "shard_00851_56130",
+            "shard_00234_8379",
+            "shard_04497_23669",
+            "shard_01513_27619",
+            "shard_02803_64527",
+            "shard_01218_5202",
+            "shard_00909_68865",
+            "shard_04084_21681",
+            "shard_00253_12128",
+            "shard_02497_46012",
+            "shard_01080_25173",
+            "shard_04077_47809",
+            "shard_06410_12122",
+            "shard_06446_64619",
+            "shard_03507_66812",
+            "shard_06326_23535",
+            "shard_06418_49957",
+            "shard_03806_74452",
+            "shard_03185_73462",
+            "shard_03951_21465",
+            "shard_04662_49176",
+            "shard_01281_79067",
+            "shard_06372_3482",
+            "shard_01157_7609",
+            "shard_03629_43609",
+            "shard_00915_25493"
+          ],
+          "committed": [
+            "shard_01311_23450",
+            "shard_01901_70670",
+            "shard_02391_23601",
+            "shard_02822_24503",
+            "shard_02921_55806",
+            "shard_03629_43609"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_04830_20461",
+              "reason": "Concise MCMC literature framing: stationary target distributions, Gibbs sampling, coupling, and mixing-time bounds."
+            },
+            {
+              "docid": "shard_03951_21465",
+              "reason": "Combinatorics-focused examples linking random walks to graph geometry, resistor networks, card shuffles, hitting/cover times, and algebraic combinatorics."
+            },
+            {
+              "docid": "shard_06372_3482",
+              "reason": "Concrete modern significance of mixing-time theory: riffle shuffles, approximate graph-coloring counts, rapid mixing, conductance, coupling, and limits of rigorous guarantees."
+            },
+            {
+              "docid": "shard_04077_47809",
+              "reason": "Evidence for hidden Markov models as a statistical application, with speech recognition, computational biology, and foundational literature."
+            },
+            {
+              "docid": "shard_02803_64527",
+              "reason": "Application of bounding/perfect-sampling chains to graph colorings, statistical mechanics, and approximation of hard combinatorial problems."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_04830_20461\", \"shard_02803_64527\", \"shard_04077_47809\", \"shard_03951_21465\", \"shard_06372_3482\"], \"rejected\": [{\"docid\": \"shard_02391_23601\", \"reason\": \"duplicate/already committed; later occurrence compacted\"}, {\"docid\": \"shard_04308_30843\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00851_56130\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00234_8379\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04497_23669\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01513_27619\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01218_5202\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00909_68865\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04084_21681\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00253_12128\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02497_46012\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01080_25173\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06410_12122\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06446_64619\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03507_66812\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06326_23535\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06418_49957\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03806_74452\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03185_73462\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04662_49176\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01281_79067\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01157_7609\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03629_43609\", \"reason\": \"duplicate/already committed; later occurrence compacted\"}, {\"docid\": \"shard_00915_25493\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 56,280 / 500,000 tokens (11.3%) · elapsed: 0m 14s]",
+        "failed": false,
+        "tool_call_id": "call_x9Eu086NxBdaoYEJNueKlLax",
+        "id": "step-0013",
+        "t_start": "2026-07-18T21:41:47.935+10:00",
+        "t_end": "2026-07-18T21:41:47.936+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 0.809,
+          "context_tokens": 56280,
+          "peak_context_tokens": 56280,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14741,
+          "cumulative_tokens": {
+            "input": 116139,
+            "input_uncached": 98219,
+            "output": 1145,
+            "cache_read": 17920,
+            "cache_write": 0,
+            "total": 117284,
+            "processed_input": 98219,
+            "processed": 99364
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02391_23601",
+            "shard_04308_30843",
+            "shard_04830_20461",
+            "shard_00851_56130",
+            "shard_00234_8379",
+            "shard_04497_23669",
+            "shard_01513_27619",
+            "shard_02803_64527",
+            "shard_01218_5202",
+            "shard_00909_68865",
+            "shard_04084_21681",
+            "shard_00253_12128",
+            "shard_02497_46012",
+            "shard_01080_25173",
+            "shard_04077_47809",
+            "shard_06410_12122",
+            "shard_06446_64619",
+            "shard_03507_66812",
+            "shard_06326_23535",
+            "shard_06418_49957",
+            "shard_03806_74452",
+            "shard_03185_73462",
+            "shard_03951_21465",
+            "shard_04662_49176",
+            "shard_01281_79067",
+            "shard_06372_3482",
+            "shard_01157_7609",
+            "shard_03629_43609",
+            "shard_00915_25493"
+          ],
+          "committed": [
+            "shard_04830_20461",
+            "shard_02803_64527",
+            "shard_04077_47809",
+            "shard_03951_21465",
+            "shard_06372_3482"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_02391_23601",
+              "reason": "duplicate/already committed; later occurrence compacted"
+            },
+            {
+              "docid": "shard_04308_30843",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00851_56130",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00234_8379",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04497_23669",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01513_27619",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01218_5202",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00909_68865",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04084_21681",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00253_12128",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02497_46012",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01080_25173",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06410_12122",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06446_64619",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03507_66812",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06326_23535",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06418_49957",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03806_74452",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03185_73462",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04662_49176",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01281_79067",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01157_7609",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03629_43609",
+              "reason": "duplicate/already committed; later occurrence compacted"
+            },
+            {
+              "docid": "shard_00915_25493",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_x9Eu086NxBdaoYEJNueKlLax"
+          ]
+        },
+        "output": {
+          "text": "Markov chains are stochastic processes in which the distribution of the next state depends on the present state, but not on the earlier history once the present state is known. [shard_03629_43609]\n\nFor a countable chain, the transition probabilities are written as \\(p_{ij}=\\Pr(X_{t+1}=j\\mid X_t=i)\\), and they can be collected in a stochastic transition matrix \\(P\\). [shard_03629_43609]\n\nThis structure makes a complicated random evolution manageable because the full past can be compressed into a suitably chosen current state. [shard_01311_23450]\n\nIn combinatorics, the states may be vertices of a graph, permutations of cards, graph colourings, or configurations of a physical model, while in statistics they may represent latent regimes, evolving observations, or samples from a target distribution. [shard_03951_21465] [shard_04077_47809]\n\nThe theory originated partly from a desire to extend probability beyond idealised sequences of independent trials. [shard_02921_55806]\n\nBefore Markov’s work, elementary probability was often illustrated through independent events such as repeated coin flips, whereas Andrey Markov emphasised that successive events could be dependent while still admitting precise probabilistic analysis. [shard_02921_55806]\n\nIn his 1913 lecture to the Imperial Academy of Sciences in St Petersburg, Markov studied the dependence between successive vowels and consonants in Alexander Pushkin’s Eugene Onegin. [shard_02921_55806]\n\nThis choice demonstrated that dependence in a sequence could be quantified without modelling every linguistic or literary detail, thereby motivating a general framework for analysing systems whose next behaviour is influenced by their current condition. [shard_02921_55806]\n\nThe central computational identity is the Chapman–Kolmogorov equation, \\(p_{ij}^{(n+m)}=\\sum_k p_{ik}^{(n)}p_{kj}^{(m)}\\), which is equivalent to multiplying transition matrices. [shard_03629_43609]\n\nWhen a chain is irreducible and satisfies suitable recurrence and aperiodicity conditions, it can possess a stationary distribution \\(\\pi\\) satisfying \\(\\pi P=\\pi\\), and its distribution may converge toward \\(\\pi\\) over time. [shard_03629_43609]\n\nThis convergence explains why Markov chains became important in both statistics and combinatorics: they provide a mechanism for exploring a large space while allowing long-run behaviour to be studied through a stationary distribution. [shard_03629_43609]\n\nThe contemporary literature is especially concerned not merely with whether convergence occurs, but with how rapidly it occurs as the state space grows. [shard_02391_23601]\n\nThe number of steps required to approach stationarity within a prescribed error is called the mixing time, and modern work studies its dependence on the size and geometry of the underlying structure. [shard_02391_23601]\n\nMarkov chain Monte Carlo constructs a chain whose stationary distribution is the probability distribution of interest, so that sufficiently late states can serve as approximately distributed samples when direct sampling is difficult. [shard_04830_20461]\n\nGibbs sampling, Metropolis-type procedures, coupling, spectral analysis, conductance, and comparison of Dirichlet forms are among the principal tools used to design chains and establish mixing-time bounds. [shard_02391_23601] [shard_04830_20461]\n\nIn theoretical computer science and enumerative combinatorics, these methods support approximate counting and random generation for objects such as graph colourings, permutations, orientations, and statistical-mechanical configurations. [shard_02803_64527]\n\nA major research question is whether a chain is rapidly mixing, meaning that its mixing time grows sufficiently slowly—often polynomially in the logarithm of the number of states or in the size of the underlying object—to make sampling computationally feasible. [shard_06372_3482]\n\nRandom walks on graphs connect probabilistic dynamics with graph geometry, electrical networks, hitting times, cover times, and discrete potential theory. [shard_03951_21465]\n\nRandom walks on symmetric groups model card shuffles and link Markov-chain analysis to algebraic combinatorics and representation theory, while the seven-riffle-shuffle result for a standard deck illustrates how mixing-time theory can answer a concrete applied question. [shard_03951_21465] [shard_06372_3482]\n\nOther research traditions use Markov chains in statistical mechanics through Glauber dynamics and related spin-system models, where the chain explores configurations and its stationary law represents an equilibrium distribution. [shard_02391_23601]\n\nIn statistics and machine learning, hidden Markov models separate an unobserved Markovian state process from observed emissions and have been developed for applications including speech recognition, biological sequence analysis, and information extraction. [shard_01311_23450] [shard_04077_47809]\n\nMarkovian models also underlie queueing theory, information processing, PageRank, reinforcement learning, and models of physical and chemical systems. [shard_01311_23450]\n\nA simple consecutive-heads problem shows how the same ideas work at an elementary level, because the relevant state is the number of consecutive heads currently held rather than the entire sequence of previous flips. [shard_01901_70670] [shard_02822_24503]\n\nFor a fair coin and a target of \\(N\\) consecutive heads, define state \\(k\\) as having just observed \\(k\\) consecutive heads, with states \\(0,1,\\ldots,N\\), where state \\(N\\) is absorbing. [shard_02822_24503]\n\nA head moves the chain from \\(k\\) to \\(k+1\\), whereas a tail moves it back to state \\(0\\), because the current run has been broken. [shard_02822_24503]\n\nIf \\(E_k\\) denotes the expected additional flips from state \\(k\\), then \\(E_N=0\\) and, for \\(0\\leq k<N\\), \\(E_k=1+\\tfrac12E_{k+1}+\\tfrac12E_0\\). [shard_02822_24503]\n\nThe recurrence expresses the intuition that every flip costs one step, a head extends the current progress, and a tail discards the partial run rather than merely reducing it by one. [shard_01901_70670]\n\nSolving these equations gives \\(E_0=2^{N+1}-2\\), so the expected number of flips is \\(6\\) for two consecutive heads, \\(14\\) for three, and \\(62\\) for five. [shard_01901_70670] [shard_02822_24503]\n\nFor a coin with head probability \\(p\\), the same state construction yields \\(E_0=(1-p^N)/((1-p)p^N)\\) when \\(p\\neq1\\), which reduces to the fair-coin expression as \\(p\\) approaches one half. [shard_01901_70670]\n\nThe example captures the broader value of Markov chains: a problem that appears to depend on an exponentially long history becomes a finite system of local transition equations once the state records exactly the information relevant to the future. [shard_03629_43609]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "completed"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-18T21:41:47.936+10:00",
+        "t_end": "2026-07-18T21:42:02.407+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 14471.524,
+          "context_tokens": 25234,
+          "peak_context_tokens": 56280,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 29213,
+          "tokens": {
+            "input": 25234,
+            "input_uncached": 25234,
+            "output": 1944,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 27178,
+            "processed_input": 25234,
+            "processed": 27178,
+            "context": 25234
+          },
+          "provider_usage": {
+            "input_tokens": 25234,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 1944
+          },
+          "cumulative_tokens": {
+            "input": 141373,
+            "input_uncached": 123453,
+            "output": 3089,
+            "cache_read": 17920,
+            "cache_write": 0,
+            "total": 144462,
+            "processed_input": 123453,
+            "processed": 126542
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_01311_23450",
+            "shard_01901_70670",
+            "shard_02391_23601",
+            "shard_02803_64527",
+            "shard_02822_24503",
+            "shard_02921_55806",
+            "shard_03629_43609",
+            "shard_03951_21465",
+            "shard_04077_47809",
+            "shard_04830_20461",
+            "shard_06372_3482"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_03629_43609",
+        "shard_01311_23450",
+        "shard_03951_21465",
+        "shard_04077_47809",
+        "shard_02921_55806",
+        "shard_02391_23601",
+        "shard_04830_20461",
+        "shard_02803_64527",
+        "shard_06372_3482",
+        "shard_01901_70670",
+        "shard_02822_24503"
+      ],
+      "answer": [
+        {
+          "text": "Markov chains are stochastic processes in which the distribution of the next state depends on the present state, but not on the earlier history once the present state is known.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "For a countable chain, the transition probabilities are written as \\(p_{ij}=\\Pr(X_{t+1}=j\\mid X_t=i)\\), and they can be collected in a stochastic transition matrix \\(P\\).",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "This structure makes a complicated random evolution manageable because the full past can be compressed into a suitably chosen current state.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "In combinatorics, the states may be vertices of a graph, permutations of cards, graph colourings, or configurations of a physical model, while in statistics they may represent latent regimes, evolving observations, or samples from a target distribution.",
+          "citations": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "The theory originated partly from a desire to extend probability beyond idealised sequences of independent trials.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Before Markov’s work, elementary probability was often illustrated through independent events such as repeated coin flips, whereas Andrey Markov emphasised that successive events could be dependent while still admitting precise probabilistic analysis.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "In his 1913 lecture to the Imperial Academy of Sciences in St Petersburg, Markov studied the dependence between successive vowels and consonants in Alexander Pushkin’s Eugene Onegin.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "This choice demonstrated that dependence in a sequence could be quantified without modelling every linguistic or literary detail, thereby motivating a general framework for analysing systems whose next behaviour is influenced by their current condition.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "The central computational identity is the Chapman–Kolmogorov equation, \\(p_{ij}^{(n+m)}=\\sum_k p_{ik}^{(n)}p_{kj}^{(m)}\\), which is equivalent to multiplying transition matrices.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "When a chain is irreducible and satisfies suitable recurrence and aperiodicity conditions, it can possess a stationary distribution \\(\\pi\\) satisfying \\(\\pi P=\\pi\\), and its distribution may converge toward \\(\\pi\\) over time.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "This convergence explains why Markov chains became important in both statistics and combinatorics: they provide a mechanism for exploring a large space while allowing long-run behaviour to be studied through a stationary distribution.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "The contemporary literature is especially concerned not merely with whether convergence occurs, but with how rapidly it occurs as the state space grows.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "The number of steps required to approach stationarity within a prescribed error is called the mixing time, and modern work studies its dependence on the size and geometry of the underlying structure.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Markov chain Monte Carlo constructs a chain whose stationary distribution is the probability distribution of interest, so that sufficiently late states can serve as approximately distributed samples when direct sampling is difficult.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Gibbs sampling, Metropolis-type procedures, coupling, spectral analysis, conductance, and comparison of Dirichlet forms are among the principal tools used to design chains and establish mixing-time bounds.",
+          "citations": [
+            5,
+            6
+          ]
+        },
+        {
+          "text": "In theoretical computer science and enumerative combinatorics, these methods support approximate counting and random generation for objects such as graph colourings, permutations, orientations, and statistical-mechanical configurations.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "A major research question is whether a chain is rapidly mixing, meaning that its mixing time grows sufficiently slowly—often polynomially in the logarithm of the number of states or in the size of the underlying object—to make sampling computationally feasible.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "Random walks on graphs connect probabilistic dynamics with graph geometry, electrical networks, hitting times, cover times, and discrete potential theory.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "Random walks on symmetric groups model card shuffles and link Markov-chain analysis to algebraic combinatorics and representation theory, while the seven-riffle-shuffle result for a standard deck illustrates how mixing-time theory can answer a concrete applied question.",
+          "citations": [
+            2,
+            8
+          ]
+        },
+        {
+          "text": "Other research traditions use Markov chains in statistical mechanics through Glauber dynamics and related spin-system models, where the chain explores configurations and its stationary law represents an equilibrium distribution.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "In statistics and machine learning, hidden Markov models separate an unobserved Markovian state process from observed emissions and have been developed for applications including speech recognition, biological sequence analysis, and information extraction.",
+          "citations": [
+            1,
+            3
+          ]
+        },
+        {
+          "text": "Markovian models also underlie queueing theory, information processing, PageRank, reinforcement learning, and models of physical and chemical systems.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "A simple consecutive-heads problem shows how the same ideas work at an elementary level, because the relevant state is the number of consecutive heads currently held rather than the entire sequence of previous flips.",
+          "citations": [
+            9,
+            10
+          ]
+        },
+        {
+          "text": "For a fair coin and a target of \\(N\\) consecutive heads, define state \\(k\\) as having just observed \\(k\\) consecutive heads, with states \\(0,1,\\ldots,N\\), where state \\(N\\) is absorbing.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "A head moves the chain from \\(k\\) to \\(k+1\\), whereas a tail moves it back to state \\(0\\), because the current run has been broken.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "If \\(E_k\\) denotes the expected additional flips from state \\(k\\), then \\(E_N=0\\) and, for \\(0\\leq k<N\\), \\(E_k=1+\\tfrac12E_{k+1}+\\tfrac12E_0\\).",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "The recurrence expresses the intuition that every flip costs one step, a head extends the current progress, and a tail discards the partial run rather than merely reducing it by one.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "Solving these equations gives \\(E_0=2^{N+1}-2\\), so the expected number of flips is \\(6\\) for two consecutive heads, \\(14\\) for three, and \\(62\\) for five.",
+          "citations": [
+            9,
+            10
+          ]
+        },
+        {
+          "text": "For a coin with head probability \\(p\\), the same state construction yields \\(E_0=(1-p^N)/((1-p)p^N)\\) when \\(p\\neq1\\), which reduces to the fair-coin expression as \\(p\\) approaches one half.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "The example captures the broader value of Markov chains: a problem that appears to depend on an exponentially long history becomes a finite system of local transition equations once the state records exactly the information relevant to the future.",
+          "citations": [
+            0
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-18T21:41:33.194+10:00",
+    "ended_at": "2026-07-18T21:42:02.409+10:00",
+    "duration_ms": 29215,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 10
+    }
+  }
+}

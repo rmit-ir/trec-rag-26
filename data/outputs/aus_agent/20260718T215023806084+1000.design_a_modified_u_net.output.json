@@ -1,3 +1,4142 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:a67b834b7b62e5b3ada09993fac44ebed85fdebe6411f8786e3033036ba5b0e0
-size 178694
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a6053ca",
+    "narrative": "Design a modified U-Net architecture to perform instance segmentation on noisy fluorescence microscopy images with overlapping cells or organelles. Describe the U-Net variant used (e.g., attention, residual, or transformer-based) and justify the architectural choices. Explain the loss functions and postprocessing techniques used to separate touching objects. Include Python code for key components (e.g., model, loss). Compare your approach to 2–3 existing models (e.g., Cellpose, Stardist, Mask R-CNN).",
+    "run_id": "aus-agent-sat-go",
+    "run_desc": "aus_agent research harness (openai/gpt-5.6-luna): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_04356_54759",
+    "shard_00299_12151",
+    "shard_05783_31873",
+    "shard_04571_27888",
+    "shard_00498_26598",
+    "shard_03422_611",
+    "shard_00564_54177",
+    "shard_02807_62996",
+    "shard_04765_38691",
+    "shard_01524_49985",
+    "shard_02822_10240",
+    "shard_04861_39173"
+  ],
+  "answer": [
+    {
+      "text": "Use a residual-attention U-Net with three prediction heads: a foreground mask, a separating-boundary mask, and a normalized distance-transform map.",
+      "citations": []
+    },
+    {
+      "text": "This design is appropriate because ordinary U-Net predicts semantic foreground and therefore tends to merge adjacent objects, whereas explicitly learning contact regions provides a signal for cutting touching instances apart.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "The encoder should contain four residual stages with channel widths 32, 64, 128, and 256, while the bottleneck uses 512 channels and a 3 × 3 dilated convolution to enlarge the receptive field without excessive downsampling.",
+      "citations": []
+    },
+    {
+      "text": "Each residual block should use two 3 × 3 convolutions, group normalization, GELU activations, and an identity projection when the channel count changes.",
+      "citations": []
+    },
+    {
+      "text": "Residual shortcuts improve optimization in a deep U-Net, while attention gates can suppress irrelevant background activations and emphasize informative cell or organelle regions.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "The decoder should upsample with bilinear interpolation followed by a 3 × 3 convolution, concatenate the corresponding encoder feature map, and apply another residual block.",
+      "citations": []
+    },
+    {
+      "text": "Attention gates should be placed on the skip features before concatenation so that noisy fluorescence background is filtered before it reaches the decoder.",
+      "citations": []
+    },
+    {
+      "text": "The first head should predict a foreground logit, the second should predict a one-channel boundary or contact logit, and the third should regress a clipped distance transform whose high values occur near object centers.",
+      "citations": []
+    },
+    {
+      "text": "A compact PyTorch implementation of the residual-attention block is: class ResAttn(nn.Module): def __init__(self,cin,cout): super().__init__(); self.body=nn.Sequential(nn.Conv2d(cin,cout,3,padding=1),nn.GroupNorm(8,cout),nn.GELU(),nn.Conv2d(cout,cout,3,padding=1),nn.GroupNorm(8,cout)); self.skip=nn.Conv2d(cin,cout,1) if cin!=cout else nn.Identity(); self.g=nn.Sequential(nn.Conv2d(cout,cout,1),nn.Sigmoid()); def forward(self,x): y=self.body(x); return F.gelu(self.g(y)*y+self.skip(x)).",
+      "citations": []
+    },
+    {
+      "text": "A minimal multi-head model skeleton is: class RAUNet(nn.Module): def __init__(self,in_ch=1): super().__init__(); self.e1=ResAttn(in_ch,32); self.e2=ResAttn(32,64); self.e3=ResAttn(64,128); self.e4=ResAttn(128,256); self.b=ResAttn(256,512); self.pool=nn.MaxPool2d(2); self.up=nn.ModuleList([nn.ConvTranspose2d(512,256,2,2),nn.ConvTranspose2d(256,128,2,2),nn.ConvTranspose2d(128,64,2,2),nn.ConvTranspose2d(64,32,2,2)]); self.d4=ResAttn(512,256); self.d3=ResAttn(256,128); self.d2=ResAttn(128,64); self.d1=ResAttn(64,32); self.head=nn.Conv2d(32,3,1); def forward(self,x): a=self.e1(x); b=self.e2(self.pool(a)); c=self.e3(self.pool(b)); d=self.e4(self.pool(c)); z=self.b(self.pool(d)); z=self.d4(torch.cat([self.up (z),d],1)); z=self.d3(torch.cat([self.up (z),c],1)); z=self.d2(torch.cat([self.up (z),b],1)); z=self.d1(torch.cat([self.up (z),a],1)); return self.head(z).",
+      "citations": []
+    },
+    {
+      "text": "The implementation should pad or crop skip tensors when odd image dimensions cause one-pixel size mismatches.",
+      "citations": []
+    },
+    {
+      "text": "Training targets should include a binary foreground mask, a narrow boundary mask generated by dilating the borders between neighboring instances, and a distance transform normalized to the interval.",
+      "citations": []
+    },
+    {
+      "text": "The loss should combine soft Dice and focal binary-cross-entropy for foreground, weighted focal binary-cross-entropy for the boundary, and Smooth L1 for the distance head.",
+      "citations": []
+    },
+    {
+      "text": "This combination handles foreground-background imbalance, emphasizes difficult boundary pixels, and provides a geometrical center signal complementary to the region loss.",
+      "citations": [
+        3,
+        4
+      ]
+    },
+    {
+      "text": "A suitable objective is L = 1.0Lforeground + 2.0Lboundary + 0.5Ldistance, with the boundary weight increased when touching objects are common.",
+      "citations": []
+    },
+    {
+      "text": "A compact loss implementation is: def dice_loss(p,y,eps=1e-6): p=torch.sigmoid(p); return 1-(2*(p*y).sum((2,3))+eps)/(p.sum((2,3))+y.sum((2,3))+eps).mean().",
+      "citations": []
+    },
+    {
+      "text": "The focal component can be written as: def focal_bce(logit,y,alpha=.75,gamma=2): b=F.binary_cross_entropy_with_logits(logit,y,reduction=\"none\"); p=torch.sigmoid(logit); pt=p*y+(1-p)*(1-y); return (alpha*(1-pt).pow(gamma)*b).mean().",
+      "citations": []
+    },
+    {
+      "text": "The complete objective can be written as: def loss_fn(out,fg,bnd,dist): return dice_loss(out[:,0:1],fg)+focal_bce(out[:,0:1],fg)+2*focal_bce(out[:,1:2],bnd)+.5*F.smooth_l1_loss(torch.sigmoid(out[:,2:3]),dist).",
+      "citations": []
+    },
+    {
+      "text": "Use percentile normalization, flat-field correction, optional denoising, random intensity scaling, Poisson or Gaussian noise injection, elastic deformation, rotations, flips, and random crops during training because fluorescence images vary in intensity and noise, and elastic augmentation is established for biomedical U-Net training.",
+      "citations": [
+        5,
+        3
+      ]
+    },
+    {
+      "text": "At inference, threshold the foreground probability, subtract pixels whose boundary probability exceeds a learned threshold, and use connected components only to remove very small debris.",
+      "citations": []
+    },
+    {
+      "text": "Compute local maxima of the predicted distance map inside the cleaned foreground mask, enforce a minimum seed separation, and use those maxima as markers for marker-controlled watershed.",
+      "citations": []
+    },
+    {
+      "text": "Run watershed on the negative distance map or on a smoothed intensity-derived landscape, then discard regions below a minimum area or confidence threshold.",
+      "citations": []
+    },
+    {
+      "text": "Marker-controlled watershed is particularly natural for fluorescence microscopy because nuclei can provide seeds while a cell or organelle channel supplies the overall boundary landscape.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Gaussian smoothing, morphological opening, and h-minima suppression should precede watershed because classical watershed is sensitive to noise and can otherwise over-segment small fluctuations.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "For severe overlaps, use the predicted boundary map as a hard watershed barrier and reject a proposed split when the boundary evidence is weak or when the resulting fragments are implausibly small.",
+      "citations": []
+    },
+    {
+      "text": "Cellpose is a strong alternative for objects with highly variable shapes because it predicts flow fields in which pixels are assigned to common cell centers, allowing pixels far from a center to remain associated with the same object.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "The proposed model is preferable when training labels are available and the image domain contains noisy, touching objects for which explicit boundary supervision and a distance field are useful, whereas Cellpose is attractive when a broadly pretrained, general-purpose cell model is more important.",
+      "citations": []
+    },
+    {
+      "text": "StarDist predicts an object probability and radial distances to object boundaries, forms star-convex polygon candidates, and removes duplicate candidates with overlap-based non-maximum suppression.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "StarDist can be more direct and efficient for isolated, approximately star-convex nuclei, but its geometric assumption can be restrictive for elongated, branched, concave, or heavily overlapping organelles.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "Mask R-CNN detects region proposals and then predicts a class, bounding-box refinement, and mask for each region of interest.",
+      "citations": [
+        11
+      ]
+    },
+    {
+      "text": "Mask R-CNN offers explicit object instances and is attractive when bounding-box annotations or multiple object classes are required, but the proposal-and-ROI pipeline is heavier than this dense U-Net and can be less convenient for small, densely packed fluorescence objects.",
+      "citations": []
+    },
+    {
+      "text": "The proposed residual-attention U-Net therefore trades the broad pretrained generality of Cellpose, the compact geometric representation of StarDist, and the detection-oriented structure of Mask R-CNN for dense pixel accuracy, explicit contact supervision, and watershed-based control over touching-object separation.",
+      "citations": []
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "6847465956a0f6376a6053ca",
+    "status": "completed",
+    "metadata": {
+      "model": "gpt-5.6-luna",
+      "backend": "openai",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-sat-go",
+      "query_source": "Design a modified U-Net architecture to perform instance segmentation on noisy fluorescence microscopy images with overlapping cells or organelles. Describe the U-Net variant used (e.g., attention, residual, or transformer-based) and justify the architectural choices. Explain the loss functions and postprocessing techniques used to separate touching objects. Include Python code for key components (e.g., model, loss). Compare your approach to 2–3 existing models (e.g., Cellpose, Stardist, Mask R-CNN)."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 12,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 12,
+        "commit_context": 4
+      },
+      "retrieved_docids": [
+        "shard_00032_37119",
+        "shard_00085_46328",
+        "shard_00292_73196",
+        "shard_00299_12151",
+        "shard_00353_62949",
+        "shard_00383_20832",
+        "shard_00396_35671",
+        "shard_00442_75403",
+        "shard_00498_26598",
+        "shard_00564_54177",
+        "shard_00603_17974",
+        "shard_00890_43978",
+        "shard_00891_34405",
+        "shard_00967_67763",
+        "shard_01007_70699",
+        "shard_01197_52210",
+        "shard_01207_39633",
+        "shard_01277_52501",
+        "shard_01413_15681",
+        "shard_01490_75580",
+        "shard_01524_49985",
+        "shard_01640_74345",
+        "shard_01834_25911",
+        "shard_02191_25541",
+        "shard_02317_74078",
+        "shard_02341_24537",
+        "shard_02369_7779",
+        "shard_02631_29974",
+        "shard_02738_30069",
+        "shard_02754_26208",
+        "shard_02807_62996",
+        "shard_02808_3854",
+        "shard_02822_10240",
+        "shard_02823_14033",
+        "shard_02870_22173",
+        "shard_02911_36461",
+        "shard_02945_84195",
+        "shard_02949_50481",
+        "shard_03422_611",
+        "shard_03439_77986",
+        "shard_03503_70975",
+        "shard_03729_66810",
+        "shard_03814_487",
+        "shard_04112_16526",
+        "shard_04356_54759",
+        "shard_04375_24418",
+        "shard_04378_55966",
+        "shard_04400_73372",
+        "shard_04413_82870",
+        "shard_04571_27888",
+        "shard_04745_55661",
+        "shard_04765_38691",
+        "shard_04768_37338",
+        "shard_04854_63872",
+        "shard_04861_39173",
+        "shard_04893_7281",
+        "shard_04987_859",
+        "shard_04997_66472",
+        "shard_05115_43978",
+        "shard_05141_41125",
+        "shard_05437_48046",
+        "shard_05583_72051",
+        "shard_05598_39631",
+        "shard_05600_29863",
+        "shard_05740_24989",
+        "shard_05765_7993",
+        "shard_05769_21333",
+        "shard_05777_59196",
+        "shard_05783_31873",
+        "shard_05975_32510",
+        "shard_05982_20152",
+        "shard_06013_31924",
+        "shard_06193_20612",
+        "shard_06234_54040",
+        "shard_06325_32669",
+        "shard_06372_8726",
+        "shard_06462_25986"
+      ],
+      "tokens": {
+        "input": 215992,
+        "input_uncached": 140216,
+        "output": 3932,
+        "cache_read": 75776,
+        "cache_write": 0,
+        "total": 219924,
+        "processed_input": 140216,
+        "processed": 144148,
+        "context_tokens": 26949,
+        "peak_context_tokens": 35999,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00299_12151",
+          "shard_00498_26598",
+          "shard_00564_54177",
+          "shard_01524_49985",
+          "shard_02807_62996",
+          "shard_02822_10240",
+          "shard_03422_611",
+          "shard_04356_54759",
+          "shard_04571_27888",
+          "shard_04765_38691",
+          "shard_04768_37338",
+          "shard_04861_39173",
+          "shard_05783_31873"
+        ],
+        "rejected": [
+          "shard_00032_37119",
+          "shard_00085_46328",
+          "shard_00292_73196",
+          "shard_00353_62949",
+          "shard_00383_20832",
+          "shard_00396_35671",
+          "shard_00442_75403",
+          "shard_00603_17974",
+          "shard_00890_43978",
+          "shard_00891_34405",
+          "shard_00967_67763",
+          "shard_01007_70699",
+          "shard_01197_52210",
+          "shard_01207_39633",
+          "shard_01277_52501",
+          "shard_01413_15681",
+          "shard_01490_75580",
+          "shard_01640_74345",
+          "shard_01834_25911",
+          "shard_02191_25541",
+          "shard_02317_74078",
+          "shard_02341_24537",
+          "shard_02369_7779",
+          "shard_02631_29974",
+          "shard_02738_30069",
+          "shard_02754_26208",
+          "shard_02808_3854",
+          "shard_02823_14033",
+          "shard_02870_22173",
+          "shard_02911_36461",
+          "shard_02945_84195",
+          "shard_02949_50481",
+          "shard_03439_77986",
+          "shard_03503_70975",
+          "shard_03729_66810",
+          "shard_03814_487",
+          "shard_04112_16526",
+          "shard_04375_24418",
+          "shard_04378_55966",
+          "shard_04400_73372",
+          "shard_04413_82870",
+          "shard_04745_55661",
+          "shard_04854_63872",
+          "shard_04893_7281",
+          "shard_04987_859",
+          "shard_04997_66472",
+          "shard_05115_43978",
+          "shard_05141_41125",
+          "shard_05437_48046",
+          "shard_05583_72051",
+          "shard_05598_39631",
+          "shard_05600_29863",
+          "shard_05740_24989",
+          "shard_05765_7993",
+          "shard_05769_21333",
+          "shard_05777_59196",
+          "shard_05975_32510",
+          "shard_05982_20152",
+          "shard_06013_31924",
+          "shard_06193_20612",
+          "shard_06234_54040",
+          "shard_06325_32669",
+          "shard_06372_8726",
+          "shard_06462_25986"
+        ]
+      },
+      "report_repairs": [
+        "line 17: unwrapped Markdown emphasis",
+        "line 19: unwrapped Markdown emphasis",
+        "line 31: unwrapped Markdown emphasis",
+        "line 33: unwrapped Markdown emphasis",
+        "line 35: unwrapped Markdown emphasis",
+        "sentence 10: dropped uncommitted docids 0, 1, 2, 3",
+        "sentence 12: dropped uncommitted docids 0, 1"
+      ]
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nphrase searches and read results, but it is not evidence and must not support\nfactual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the argument, connections, and voice of the answer are\nyours to build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. Which of\n   these the corpus can actually support is unknown until it answers; the\n   opening searches exist to find that out before the answer's structure is\n   fixed. This list is provisional: searching reveals what the request\n   actually needs, and the plan is revised as it does.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\nResearch is one loop — search, commit, decide — repeated until the internal\nsuccess plan is satisfied:\n\n1. **Search.** Round one's queries come from the question: build them only\n   from the question's own wording and plain paraphrases of it. Do not seed\n   a query with candidate answers — specific names, techniques, causes,\n   examples — that the question itself does not mention: you do not know\n   what this corpus holds until it answers, no matter how well you know the\n   subject. In every later round, each new content-bearing query term must\n   be traceable to a document retrieved in an earlier round; prior knowledge\n   may rephrase, disambiguate, and supply synonyms — it may never introduce\n   a candidate the corpus has not yet surfaced.\n2. **Commit.** Read what came back and commit the documents whose distinct\n   contributions the answer will need. Committing nothing is the right call\n   for a batch with nothing worth keeping.\n3. **Decide.** Reflect before judging: searching teaches you what the\n   request actually needs, so first revise the plan against what retrieval\n   has shown. An aspect that retrieved material has revealed as important to\n   the request joins the coverage areas even though the opening plan missed\n   it; a planned area whose reformulated searches keep coming back empty is\n   recorded as unsupportable, not retried forever. Then compare committed\n   material against the revised plan. If a coverage area still lacks support\n   — or is supported only thinly where the request deserves depth — loop\n   again with queries aimed at that gap. The loop ends when every coverage\n   area of the current plan is resolved: committed material behind it, or\n   searches that failed to support it. Then write the report — only after\n   committing everything it will cite.\n\nNotes on the loop:\n\n- If reformulated question-term queries keep returning nothing useful, probe\n  candidates from prior knowledge, one query each. A candidate the corpus\n  then returns has been surfaced like any other retrieved material; one it\n  does not return stays out of the answer.\n- The answer's structure follows what was retrieved. Fix the outline — which\n  items, sections, comparisons — only after the rounds that surfaced those\n  items, so that every part of it traces to a committed document.\n- Size the search to the question. Several independent coverage areas call\n  for multiple complementary queries in parallel across them; a single fact,\n  name, date, or definition needs one or two queries, then the answer. Small\n  is not shallow: even the shortest answer rests on the strongest support\n  the corpus offers.\n- Move from broad discovery to targeted follow-ups on what earlier rounds\n  surfaced: specific names, dates, mechanisms, examples, definitions, causal\n  claims, and disputed points.\n- Reformulate weak queries instead of accepting poor coverage: synonyms,\n  alternative terminology, different phrasings.\n- Actively search for counter-evidence, contradictions, limitations, and\n  missing perspectives when they matter to the request.\n- Every tool call must have a concrete purpose tied to an unmet requirement\n  or evidence gap; never call a tool solely to create another model turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `10` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching — but quality does: after satisfying the\nconcrete minimum, keep improving toward the target/excellence requirements\nwhile you can name a specific weakness whose resolution would materially\nimprove the answer. An unresolved or thinly supported coverage area in the\ncurrent plan is always such a weakness.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write the report only after committing everything it will cite. A report\n  turn issues no tool calls, so a batch still staged when you start writing\n  lapses uncommitted and everything you meant to cite from it becomes\n  invalid — commit first, and write the report on the following turn.\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Saturday, 18 July 2026, 21:50:23 +1000 (Australia/Melbourne)\n\nResearch request:\n\nDesign a modified U-Net architecture to perform instance segmentation on noisy fluorescence microscopy images with overlapping cells or organelles. Describe the U-Net variant used (e.g., attention, residual, or transformer-based) and justify the architectural choices. Explain the loss functions and postprocessing techniques used to separate touching objects. Include Python code for key components (e.g., model, loss). Compare your approach to 2–3 existing models (e.g., Cellpose, Stardist, Mask R-CNN).\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged. Match query style to engine: exact names and rare strings favor keyword; concepts and questions favor semantic. The engines rank differently, and extra queries are cheap — cover an important facet with both engines, one styled query each.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "One information need as a short, specific phrase: a few distinctive content words (names, technical terms, the core concept) or a natural question phrased like a webpage title or FAQ. Include at least one rare or specific term — never a single common word — and attach one disambiguating qualifier to any proper name. Omit audience, format, and task words from the request and query a single facet at a time. For numeric or statistical facts, query the topic and entity, not the number."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "search_engine": {
+                "type": "string",
+                "enum": [
+                  "semantic",
+                  "keyword"
+                ],
+                "default": "semantic",
+                "description": "Retrieval engine. semantic (dense embedding match): conceptual, definitional, or broad-topic queries, natural-question phrasing, and well-known product or concept names; style the query as a natural phrase or question. keyword (exact BM25 match): rare proper names, surnames, IDs, codes, and verbatim technical strings, where semantic may drift to a similar-sounding topic; style the query as bare distinctive terms without stopwords. The engines rank differently — cover an important facet with both, one styled query each; duplicate results are deduplicated downstream."
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query",
+              "search_engine"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_tz8FTxzsNUAYY1gVJnULjthl",
+              "name": "search",
+              "arguments": {
+                "query": "modified U-Net instance segmentation noisy fluorescence microscopy overlapping cells organelles",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_1OQDocaQQsiW22DlE5B1BgS2",
+              "name": "search",
+              "arguments": {
+                "query": "U-Net touching cell separation instance segmentation loss distance transform watershed",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_grR7owINhP9zvZqRMDuPE8u3",
+              "name": "search",
+              "arguments": {
+                "query": "Cellpose StarDist Mask R-CNN microscopy instance segmentation comparison",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_AAtyL6Om5VjpRcaA46IWTJwO",
+              "name": "search",
+              "arguments": {
+                "query": "attention residual transformer U-Net fluorescence microscopy segmentation",
+                "k": 8,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 3000
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-18T21:50:23.806+10:00",
+        "t_end": "2026-07-18T21:50:26.993+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3186.745,
+          "context_tokens": 3698,
+          "peak_context_tokens": 3698,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3188,
+          "tokens": {
+            "input": 3698,
+            "input_uncached": 3698,
+            "output": 233,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3931,
+            "processed_input": 3698,
+            "processed": 3931,
+            "context": 3698
+          },
+          "provider_usage": {
+            "input_tokens": 3698,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 233
+          },
+          "cumulative_tokens": {
+            "input": 3698,
+            "input_uncached": 3698,
+            "output": 233,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3931,
+            "processed_input": 3698,
+            "processed": 3931
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "modified U-Net instance segmentation noisy fluorescence microscopy overlapping cells organelles",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "modified U-Net instance segmentation noisy fluorescence microscopy overlapping cells organelles",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06372_8726",
+              "docid": "shard_06372_8726",
+              "kind": "document",
+              "score": 0.321415,
+              "truncated": false,
+              "original_chars": 1246,
+              "returned_chars": 1246
+            },
+            {
+              "rank": 2,
+              "id": "shard_00564_54177",
+              "docid": "shard_00564_54177",
+              "kind": "document",
+              "score": 0.320428,
+              "truncated": false,
+              "original_chars": 953,
+              "returned_chars": 953
+            },
+            {
+              "rank": 3,
+              "id": "shard_05600_29863",
+              "docid": "shard_05600_29863",
+              "kind": "document",
+              "score": 0.319804,
+              "truncated": false,
+              "original_chars": 2984,
+              "returned_chars": 2984
+            },
+            {
+              "rank": 4,
+              "id": "shard_06013_31924",
+              "docid": "shard_06013_31924",
+              "kind": "document",
+              "score": 0.318566,
+              "truncated": false,
+              "original_chars": 1381,
+              "returned_chars": 1381
+            },
+            {
+              "rank": 5,
+              "id": "shard_03814_487",
+              "docid": "shard_03814_487",
+              "kind": "document",
+              "score": 0.311448,
+              "truncated": false,
+              "original_chars": 3053,
+              "returned_chars": 3053
+            },
+            {
+              "rank": 6,
+              "id": "shard_05777_59196",
+              "docid": "shard_05777_59196",
+              "kind": "document",
+              "score": 0.311448,
+              "truncated": false,
+              "original_chars": 3550,
+              "returned_chars": 3550
+            },
+            {
+              "rank": 7,
+              "id": "shard_04378_55966",
+              "docid": "shard_04378_55966",
+              "kind": "document",
+              "score": 0.310583,
+              "truncated": false,
+              "original_chars": 567,
+              "returned_chars": 567
+            },
+            {
+              "rank": 8,
+              "id": "shard_05975_32510",
+              "docid": "shard_05975_32510",
+              "kind": "document",
+              "score": 0.310583,
+              "truncated": false,
+              "original_chars": 567,
+              "returned_chars": 567
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06372_8726",
+          "shard_00564_54177",
+          "shard_05600_29863",
+          "shard_06013_31924",
+          "shard_03814_487",
+          "shard_05777_59196",
+          "shard_04378_55966",
+          "shard_05975_32510"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06372_8726",
+            "score": 0.321415
+          },
+          {
+            "docid": "shard_00564_54177",
+            "score": 0.320428
+          },
+          {
+            "docid": "shard_05600_29863",
+            "score": 0.319804
+          },
+          {
+            "docid": "shard_06013_31924",
+            "score": 0.318566
+          },
+          {
+            "docid": "shard_03814_487",
+            "score": 0.311448
+          },
+          {
+            "docid": "shard_05777_59196",
+            "score": 0.311448
+          },
+          {
+            "docid": "shard_04378_55966",
+            "score": 0.310583
+          },
+          {
+            "docid": "shard_05975_32510",
+            "score": 0.310583
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_tz8FTxzsNUAYY1gVJnULjthl",
+        "id": "step-0001",
+        "t_start": "2026-07-18T21:50:26.996+10:00",
+        "t_end": "2026-07-18T21:50:27.219+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 223.054,
+          "context_tokens": 3698,
+          "peak_context_tokens": 3698,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3978,
+          "cumulative_tokens": {
+            "input": 3698,
+            "input_uncached": 3698,
+            "output": 233,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3931,
+            "processed_input": 3698,
+            "processed": 3931
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06372_8726",
+            "shard_00564_54177",
+            "shard_05600_29863",
+            "shard_06013_31924",
+            "shard_03814_487",
+            "shard_05777_59196",
+            "shard_04378_55966",
+            "shard_05975_32510"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "U-Net touching cell separation instance segmentation loss distance transform watershed",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "U-Net touching cell separation instance segmentation loss distance transform watershed",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02823_14033",
+              "docid": "shard_02823_14033",
+              "kind": "document",
+              "score": 0.292106,
+              "truncated": false,
+              "original_chars": 759,
+              "returned_chars": 759
+            },
+            {
+              "rank": 2,
+              "id": "shard_02949_50481",
+              "docid": "shard_02949_50481",
+              "kind": "document",
+              "score": 0.288183,
+              "truncated": false,
+              "original_chars": 1162,
+              "returned_chars": 1162
+            },
+            {
+              "rank": 3,
+              "id": "shard_05769_21333",
+              "docid": "shard_05769_21333",
+              "kind": "document",
+              "score": 0.287165,
+              "truncated": false,
+              "original_chars": 799,
+              "returned_chars": 799
+            },
+            {
+              "rank": 4,
+              "id": "shard_04356_54759",
+              "docid": "shard_04356_54759",
+              "kind": "document",
+              "score": 0.280517,
+              "truncated": false,
+              "original_chars": 1105,
+              "returned_chars": 1105
+            },
+            {
+              "rank": 5,
+              "id": "shard_04571_27888",
+              "docid": "shard_04571_27888",
+              "kind": "document",
+              "score": 0.27877,
+              "truncated": false,
+              "original_chars": 6230,
+              "returned_chars": 6230
+            },
+            {
+              "rank": 6,
+              "id": "shard_02807_62996",
+              "docid": "shard_02807_62996",
+              "kind": "document",
+              "score": 0.278515,
+              "truncated": false,
+              "original_chars": 2962,
+              "returned_chars": 2962
+            },
+            {
+              "rank": 7,
+              "id": "shard_01413_15681",
+              "docid": "shard_01413_15681",
+              "kind": "document",
+              "score": 0.274141,
+              "truncated": false,
+              "original_chars": 909,
+              "returned_chars": 909
+            },
+            {
+              "rank": 8,
+              "id": "shard_04854_63872",
+              "docid": "shard_04854_63872",
+              "kind": "document",
+              "score": 0.273875,
+              "truncated": false,
+              "original_chars": 5858,
+              "returned_chars": 5858
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02823_14033",
+          "shard_02949_50481",
+          "shard_05769_21333",
+          "shard_04356_54759",
+          "shard_04571_27888",
+          "shard_02807_62996",
+          "shard_01413_15681",
+          "shard_04854_63872"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02823_14033",
+            "score": 0.292106
+          },
+          {
+            "docid": "shard_02949_50481",
+            "score": 0.288183
+          },
+          {
+            "docid": "shard_05769_21333",
+            "score": 0.287165
+          },
+          {
+            "docid": "shard_04356_54759",
+            "score": 0.280517
+          },
+          {
+            "docid": "shard_04571_27888",
+            "score": 0.27877
+          },
+          {
+            "docid": "shard_02807_62996",
+            "score": 0.278515
+          },
+          {
+            "docid": "shard_01413_15681",
+            "score": 0.274141
+          },
+          {
+            "docid": "shard_04854_63872",
+            "score": 0.273875
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_1OQDocaQQsiW22DlE5B1BgS2",
+        "id": "step-0002",
+        "t_start": "2026-07-18T21:50:26.996+10:00",
+        "t_end": "2026-07-18T21:50:27.218+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 221.974,
+          "context_tokens": 3698,
+          "peak_context_tokens": 3698,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3978,
+          "cumulative_tokens": {
+            "input": 3698,
+            "input_uncached": 3698,
+            "output": 233,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3931,
+            "processed_input": 3698,
+            "processed": 3931
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02823_14033",
+            "shard_02949_50481",
+            "shard_05769_21333",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_02807_62996",
+            "shard_01413_15681",
+            "shard_04854_63872"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Cellpose StarDist Mask R-CNN microscopy instance segmentation comparison",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "Cellpose StarDist Mask R-CNN microscopy instance segmentation comparison",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03439_77986",
+              "docid": "shard_03439_77986",
+              "kind": "document",
+              "score": 0.293514,
+              "truncated": false,
+              "original_chars": 4014,
+              "returned_chars": 4014
+            },
+            {
+              "rank": 2,
+              "id": "shard_05437_48046",
+              "docid": "shard_05437_48046",
+              "kind": "document",
+              "score": 0.285852,
+              "truncated": false,
+              "original_chars": 178,
+              "returned_chars": 178
+            },
+            {
+              "rank": 3,
+              "id": "shard_03503_70975",
+              "docid": "shard_03503_70975",
+              "kind": "document",
+              "score": 0.284714,
+              "truncated": false,
+              "original_chars": 1474,
+              "returned_chars": 1474
+            },
+            {
+              "rank": 4,
+              "id": "shard_04861_39173",
+              "docid": "shard_04861_39173",
+              "kind": "document",
+              "score": 0.284688,
+              "truncated": false,
+              "original_chars": 9238,
+              "returned_chars": 9238
+            },
+            {
+              "rank": 5,
+              "id": "shard_04356_54759",
+              "docid": "shard_04356_54759",
+              "kind": "document",
+              "score": 0.283827,
+              "truncated": false,
+              "original_chars": 1105,
+              "returned_chars": 1105
+            },
+            {
+              "rank": 6,
+              "id": "shard_04768_37338",
+              "docid": "shard_04768_37338",
+              "kind": "document",
+              "score": 0.283273,
+              "truncated": false,
+              "original_chars": 5228,
+              "returned_chars": 5228
+            },
+            {
+              "rank": 7,
+              "id": "shard_02945_84195",
+              "docid": "shard_02945_84195",
+              "kind": "document",
+              "score": 0.28264,
+              "truncated": false,
+              "original_chars": 1900,
+              "returned_chars": 1900
+            },
+            {
+              "rank": 8,
+              "id": "shard_05141_41125",
+              "docid": "shard_05141_41125",
+              "kind": "document",
+              "score": 0.281775,
+              "truncated": false,
+              "original_chars": 13256,
+              "returned_chars": 13256
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03439_77986",
+          "shard_05437_48046",
+          "shard_03503_70975",
+          "shard_04861_39173",
+          "shard_04356_54759",
+          "shard_04768_37338",
+          "shard_02945_84195",
+          "shard_05141_41125"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03439_77986",
+            "score": 0.293514
+          },
+          {
+            "docid": "shard_05437_48046",
+            "score": 0.285852
+          },
+          {
+            "docid": "shard_03503_70975",
+            "score": 0.284714
+          },
+          {
+            "docid": "shard_04861_39173",
+            "score": 0.284688
+          },
+          {
+            "docid": "shard_04356_54759",
+            "score": 0.283827
+          },
+          {
+            "docid": "shard_04768_37338",
+            "score": 0.283273
+          },
+          {
+            "docid": "shard_02945_84195",
+            "score": 0.28264
+          },
+          {
+            "docid": "shard_05141_41125",
+            "score": 0.281775
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_grR7owINhP9zvZqRMDuPE8u3",
+        "id": "step-0003",
+        "t_start": "2026-07-18T21:50:26.997+10:00",
+        "t_end": "2026-07-18T21:50:27.251+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 254.647,
+          "context_tokens": 3698,
+          "peak_context_tokens": 3698,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3978,
+          "cumulative_tokens": {
+            "input": 3698,
+            "input_uncached": 3698,
+            "output": 233,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3931,
+            "processed_input": 3698,
+            "processed": 3931
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03439_77986",
+            "shard_05437_48046",
+            "shard_03503_70975",
+            "shard_04861_39173",
+            "shard_04356_54759",
+            "shard_04768_37338",
+            "shard_02945_84195",
+            "shard_05141_41125"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "attention residual transformer U-Net fluorescence microscopy segmentation",
+          "k": 8,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "attention residual transformer U-Net fluorescence microscopy segmentation",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05783_31873",
+              "docid": "shard_05783_31873",
+              "kind": "document",
+              "score": 21.599966,
+              "truncated": false,
+              "original_chars": 1444,
+              "returned_chars": 1444
+            },
+            {
+              "rank": 2,
+              "id": "shard_02631_29974",
+              "docid": "shard_02631_29974",
+              "kind": "document",
+              "score": 20.62107,
+              "truncated": false,
+              "original_chars": 3751,
+              "returned_chars": 3751
+            },
+            {
+              "rank": 3,
+              "id": "shard_02754_26208",
+              "docid": "shard_02754_26208",
+              "kind": "document",
+              "score": 20.521372,
+              "truncated": true,
+              "original_chars": 70801,
+              "returned_chars": 14822
+            },
+            {
+              "rank": 4,
+              "id": "shard_03422_611",
+              "docid": "shard_03422_611",
+              "kind": "document",
+              "score": 20.289967,
+              "truncated": false,
+              "original_chars": 2510,
+              "returned_chars": 2510
+            },
+            {
+              "rank": 5,
+              "id": "shard_01490_75580",
+              "docid": "shard_01490_75580",
+              "kind": "document",
+              "score": 20.274078,
+              "truncated": false,
+              "original_chars": 3845,
+              "returned_chars": 3845
+            },
+            {
+              "rank": 6,
+              "id": "shard_04413_82870",
+              "docid": "shard_04413_82870",
+              "kind": "document",
+              "score": 20.16254,
+              "truncated": false,
+              "original_chars": 1748,
+              "returned_chars": 1748
+            },
+            {
+              "rank": 7,
+              "id": "shard_00032_37119",
+              "docid": "shard_00032_37119",
+              "kind": "document",
+              "score": 19.943085,
+              "truncated": true,
+              "original_chars": 59173,
+              "returned_chars": 14507
+            },
+            {
+              "rank": 8,
+              "id": "shard_01277_52501",
+              "docid": "shard_01277_52501",
+              "kind": "document",
+              "score": 19.651325,
+              "truncated": false,
+              "original_chars": 3844,
+              "returned_chars": 3844
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05783_31873",
+          "shard_02631_29974",
+          "shard_02754_26208",
+          "shard_03422_611",
+          "shard_01490_75580",
+          "shard_04413_82870",
+          "shard_00032_37119",
+          "shard_01277_52501"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05783_31873",
+            "score": 21.599966
+          },
+          {
+            "docid": "shard_02631_29974",
+            "score": 20.62107
+          },
+          {
+            "docid": "shard_02754_26208",
+            "score": 20.521372
+          },
+          {
+            "docid": "shard_03422_611",
+            "score": 20.289967
+          },
+          {
+            "docid": "shard_01490_75580",
+            "score": 20.274078
+          },
+          {
+            "docid": "shard_04413_82870",
+            "score": 20.16254
+          },
+          {
+            "docid": "shard_00032_37119",
+            "score": 19.943085
+          },
+          {
+            "docid": "shard_01277_52501",
+            "score": 19.651325
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_AAtyL6Om5VjpRcaA46IWTJwO",
+        "id": "step-0004",
+        "t_start": "2026-07-18T21:50:26.997+10:00",
+        "t_end": "2026-07-18T21:50:27.783+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 786.575,
+          "context_tokens": 3698,
+          "peak_context_tokens": 3698,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3978,
+          "cumulative_tokens": {
+            "input": 3698,
+            "input_uncached": 3698,
+            "output": 233,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3931,
+            "processed_input": 3698,
+            "processed": 3931
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05783_31873",
+            "shard_02631_29974",
+            "shard_02754_26208",
+            "shard_03422_611",
+            "shard_01490_75580",
+            "shard_04413_82870",
+            "shard_00032_37119",
+            "shard_01277_52501"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_tz8FTxzsNUAYY1gVJnULjthl",
+            "call_1OQDocaQQsiW22DlE5B1BgS2",
+            "call_grR7owINhP9zvZqRMDuPE8u3",
+            "call_AAtyL6Om5VjpRcaA46IWTJwO"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_Kk8i4muv9qu5kSw3G5oS5YGc",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_05783_31873",
+                    "reason": "Direct evidence for residual-attention U-Net design: attention suppresses irrelevant regions, residual paths address vanishing gradients, and watershed turns semantic output into cell instances."
+                  },
+                  {
+                    "docid": "shard_04356_54759",
+                    "reason": "Direct evidence that plain U-Net merges touching cells and that a two-branch multi-task network explicitly learns contact regions to improve instance separation."
+                  },
+                  {
+                    "docid": "shard_04861_39173",
+                    "reason": "Detailed evidence for U-Net encoder-decoder/skip connections, border-weighted cross-entropy, augmentation, and Mask R-CNN's proposal-box-mask workflow."
+                  },
+                  {
+                    "docid": "shard_00564_54177",
+                    "reason": "Microscopy-specific evidence for marker-controlled watershed using nuclei as seeds and an intensity-derived flooding landscape."
+                  },
+                  {
+                    "docid": "shard_02807_62996",
+                    "reason": "Evidence that classical watershed is noise-sensitive and that reconstruction, gradient, and distance transforms improve robustness."
+                  },
+                  {
+                    "docid": "shard_04768_37338",
+                    "reason": "Comparison evidence on Cellpose and distance-field-based Omnipose, including fluorescence and morphologically varied cells."
+                  },
+                  {
+                    "docid": "shard_03422_611",
+                    "reason": "Evidence about microscopy noise, common U-Net/StarDist/Cellpose use, and annotation burden."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-18T21:50:27.784+10:00",
+        "t_end": "2026-07-18T21:50:31.288+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3503.677,
+          "context_tokens": 30116,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7482,
+          "tokens": {
+            "input": 30116,
+            "input_uncached": 26532,
+            "output": 333,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 30449,
+            "processed_input": 26532,
+            "processed": 26865,
+            "context": 30116
+          },
+          "provider_usage": {
+            "input_tokens": 26532,
+            "cache_read_input_tokens": 3584,
+            "output_tokens": 333
+          },
+          "cumulative_tokens": {
+            "input": 33814,
+            "input_uncached": 30230,
+            "output": 566,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 34380,
+            "processed_input": 30230,
+            "processed": 30796
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06372_8726",
+            "shard_00564_54177",
+            "shard_05600_29863",
+            "shard_06013_31924",
+            "shard_03814_487",
+            "shard_05777_59196",
+            "shard_04378_55966",
+            "shard_05975_32510",
+            "shard_02823_14033",
+            "shard_02949_50481",
+            "shard_05769_21333",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_02807_62996",
+            "shard_01413_15681",
+            "shard_04854_63872",
+            "shard_03439_77986",
+            "shard_05437_48046",
+            "shard_03503_70975",
+            "shard_04861_39173",
+            "shard_04768_37338",
+            "shard_02945_84195",
+            "shard_05141_41125",
+            "shard_05783_31873",
+            "shard_02631_29974",
+            "shard_02754_26208",
+            "shard_03422_611",
+            "shard_01490_75580",
+            "shard_04413_82870",
+            "shard_00032_37119",
+            "shard_01277_52501"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_05783_31873",
+              "reason": "Direct evidence for residual-attention U-Net design: attention suppresses irrelevant regions, residual paths address vanishing gradients, and watershed turns semantic output into cell instances."
+            },
+            {
+              "docid": "shard_04356_54759",
+              "reason": "Direct evidence that plain U-Net merges touching cells and that a two-branch multi-task network explicitly learns contact regions to improve instance separation."
+            },
+            {
+              "docid": "shard_04861_39173",
+              "reason": "Detailed evidence for U-Net encoder-decoder/skip connections, border-weighted cross-entropy, augmentation, and Mask R-CNN's proposal-box-mask workflow."
+            },
+            {
+              "docid": "shard_00564_54177",
+              "reason": "Microscopy-specific evidence for marker-controlled watershed using nuclei as seeds and an intensity-derived flooding landscape."
+            },
+            {
+              "docid": "shard_02807_62996",
+              "reason": "Evidence that classical watershed is noise-sensitive and that reconstruction, gradient, and distance transforms improve robustness."
+            },
+            {
+              "docid": "shard_04768_37338",
+              "reason": "Comparison evidence on Cellpose and distance-field-based Omnipose, including fluorescence and morphologically varied cells."
+            },
+            {
+              "docid": "shard_03422_611",
+              "reason": "Evidence about microscopy noise, common U-Net/StarDist/Cellpose use, and annotation burden."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_00564_54177\", \"shard_04356_54759\", \"shard_02807_62996\", \"shard_04861_39173\", \"shard_04768_37338\", \"shard_05783_31873\", \"shard_03422_611\"], \"rejected\": [{\"docid\": \"shard_06372_8726\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05600_29863\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06013_31924\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03814_487\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05777_59196\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04378_55966\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05975_32510\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02823_14033\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02949_50481\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05769_21333\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04571_27888\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01413_15681\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04854_63872\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03439_77986\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05437_48046\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03503_70975\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02945_84195\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05141_41125\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02631_29974\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02754_26208\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01490_75580\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04413_82870\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00032_37119\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01277_52501\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04356_54759\", \"reason\": \"duplicate/already committed; repeated occurrence within the staged batch compacted\"}]}\n[context budget: 30,116 / 500,000 tokens (6.0%) · elapsed: 0m 7s]",
+        "failed": false,
+        "tool_call_id": "call_Kk8i4muv9qu5kSw3G5oS5YGc",
+        "id": "step-0006",
+        "t_start": "2026-07-18T21:50:31.291+10:00",
+        "t_end": "2026-07-18T21:50:31.293+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1.736,
+          "context_tokens": 30116,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7488,
+          "cumulative_tokens": {
+            "input": 33814,
+            "input_uncached": 30230,
+            "output": 566,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 34380,
+            "processed_input": 30230,
+            "processed": 30796
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06372_8726",
+            "shard_00564_54177",
+            "shard_05600_29863",
+            "shard_06013_31924",
+            "shard_03814_487",
+            "shard_05777_59196",
+            "shard_04378_55966",
+            "shard_05975_32510",
+            "shard_02823_14033",
+            "shard_02949_50481",
+            "shard_05769_21333",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_02807_62996",
+            "shard_01413_15681",
+            "shard_04854_63872",
+            "shard_03439_77986",
+            "shard_05437_48046",
+            "shard_03503_70975",
+            "shard_04861_39173",
+            "shard_04768_37338",
+            "shard_02945_84195",
+            "shard_05141_41125",
+            "shard_05783_31873",
+            "shard_02631_29974",
+            "shard_02754_26208",
+            "shard_03422_611",
+            "shard_01490_75580",
+            "shard_04413_82870",
+            "shard_00032_37119",
+            "shard_01277_52501"
+          ],
+          "committed": [
+            "shard_00564_54177",
+            "shard_04356_54759",
+            "shard_02807_62996",
+            "shard_04861_39173",
+            "shard_04768_37338",
+            "shard_05783_31873",
+            "shard_03422_611"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_06372_8726",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05600_29863",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06013_31924",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03814_487",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05777_59196",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04378_55966",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05975_32510",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02823_14033",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02949_50481",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05769_21333",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04571_27888",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01413_15681",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04854_63872",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03439_77986",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05437_48046",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03503_70975",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02945_84195",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05141_41125",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02631_29974",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02754_26208",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01490_75580",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04413_82870",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00032_37119",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01277_52501",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04356_54759",
+              "reason": "duplicate/already committed; repeated occurrence within the staged batch compacted"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_Kk8i4muv9qu5kSw3G5oS5YGc"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_omfWI7b1h4i20f3eCuSEfVDL",
+              "name": "search",
+              "arguments": {
+                "query": "StarDist star-convex polygons rays nuclei instance segmentation",
+                "k": 6,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_3NXwbv4fzjwCpMuzwFdNK1Il",
+              "name": "search",
+              "arguments": {
+                "query": "Cellpose flow fields mask reconstruction instance segmentation microscopy",
+                "k": 6,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_jIL7yl7tZqOXXKZWOyB6Uj0V",
+              "name": "search",
+              "arguments": {
+                "query": "DeepSplit contact regions multi-task U-Net touching cells loss",
+                "k": 6,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_GcswpuMigB0173lrKpKe9d2D",
+              "name": "search",
+              "arguments": {
+                "query": "distance transform boundary loss instance segmentation touching cells U-Net",
+                "k": 6,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0007",
+        "t_start": "2026-07-18T21:50:31.293+10:00",
+        "t_end": "2026-07-18T21:50:33.579+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 2285.936,
+          "context_tokens": 12674,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 9774,
+          "tokens": {
+            "input": 12674,
+            "input_uncached": 9090,
+            "output": 218,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 12892,
+            "processed_input": 9090,
+            "processed": 9308,
+            "context": 12674
+          },
+          "provider_usage": {
+            "input_tokens": 9090,
+            "cache_read_input_tokens": 3584,
+            "output_tokens": 218
+          },
+          "cumulative_tokens": {
+            "input": 46488,
+            "input_uncached": 39320,
+            "output": 784,
+            "cache_read": 7168,
+            "cache_write": 0,
+            "total": 47272,
+            "processed_input": 39320,
+            "processed": 40104
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00564_54177",
+            "shard_02807_62996",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "StarDist star-convex polygons rays nuclei instance segmentation",
+          "k": 6,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "StarDist star-convex polygons rays nuclei instance segmentation",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02341_24537",
+              "docid": "shard_02341_24537",
+              "kind": "document",
+              "score": 0.302381,
+              "truncated": false,
+              "original_chars": 2035,
+              "returned_chars": 2035
+            },
+            {
+              "rank": 2,
+              "id": "shard_01007_70699",
+              "docid": "shard_01007_70699",
+              "kind": "document",
+              "score": 0.293072,
+              "truncated": false,
+              "original_chars": 829,
+              "returned_chars": 829
+            },
+            {
+              "rank": 3,
+              "id": "shard_06234_54040",
+              "docid": "shard_06234_54040",
+              "kind": "document",
+              "score": 0.289849,
+              "truncated": false,
+              "original_chars": 2710,
+              "returned_chars": 2710
+            },
+            {
+              "rank": 4,
+              "id": "shard_01207_39633",
+              "docid": "shard_01207_39633",
+              "kind": "document",
+              "score": 0.289311,
+              "truncated": false,
+              "original_chars": 205,
+              "returned_chars": 205
+            },
+            {
+              "rank": 5,
+              "id": "shard_02191_25541",
+              "docid": "shard_02191_25541",
+              "kind": "document",
+              "score": 0.289004,
+              "truncated": false,
+              "original_chars": 362,
+              "returned_chars": 362
+            },
+            {
+              "rank": 6,
+              "id": "shard_00967_67763",
+              "docid": "shard_00967_67763",
+              "kind": "document",
+              "score": 0.288135,
+              "truncated": false,
+              "original_chars": 369,
+              "returned_chars": 369
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02341_24537",
+          "shard_01007_70699",
+          "shard_06234_54040",
+          "shard_01207_39633",
+          "shard_02191_25541",
+          "shard_00967_67763"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02341_24537",
+            "score": 0.302381
+          },
+          {
+            "docid": "shard_01007_70699",
+            "score": 0.293072
+          },
+          {
+            "docid": "shard_06234_54040",
+            "score": 0.289849
+          },
+          {
+            "docid": "shard_01207_39633",
+            "score": 0.289311
+          },
+          {
+            "docid": "shard_02191_25541",
+            "score": 0.289004
+          },
+          {
+            "docid": "shard_00967_67763",
+            "score": 0.288135
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_omfWI7b1h4i20f3eCuSEfVDL",
+        "id": "step-0008",
+        "t_start": "2026-07-18T21:50:33.581+10:00",
+        "t_end": "2026-07-18T21:50:33.803+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 222.592,
+          "context_tokens": 12674,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10831,
+          "cumulative_tokens": {
+            "input": 46488,
+            "input_uncached": 39320,
+            "output": 784,
+            "cache_read": 7168,
+            "cache_write": 0,
+            "total": 47272,
+            "processed_input": 39320,
+            "processed": 40104
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02341_24537",
+            "shard_01007_70699",
+            "shard_06234_54040",
+            "shard_01207_39633",
+            "shard_02191_25541",
+            "shard_00967_67763"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Cellpose flow fields mask reconstruction instance segmentation microscopy",
+          "k": 6,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "Cellpose flow fields mask reconstruction instance segmentation microscopy",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01197_52210",
+              "docid": "shard_01197_52210",
+              "kind": "document",
+              "score": 0.290141,
+              "truncated": false,
+              "original_chars": 232,
+              "returned_chars": 232
+            },
+            {
+              "rank": 2,
+              "id": "shard_06372_8726",
+              "docid": "shard_06372_8726",
+              "kind": "document",
+              "score": 0.288248,
+              "truncated": false,
+              "original_chars": 1246,
+              "returned_chars": 1246
+            },
+            {
+              "rank": 3,
+              "id": "shard_04765_38691",
+              "docid": "shard_04765_38691",
+              "kind": "document",
+              "score": 0.271767,
+              "truncated": false,
+              "original_chars": 3590,
+              "returned_chars": 3590
+            },
+            {
+              "rank": 4,
+              "id": "shard_00292_73196",
+              "docid": "shard_00292_73196",
+              "kind": "document",
+              "score": 0.268409,
+              "truncated": false,
+              "original_chars": 357,
+              "returned_chars": 357
+            },
+            {
+              "rank": 5,
+              "id": "shard_05598_39631",
+              "docid": "shard_05598_39631",
+              "kind": "document",
+              "score": 0.268367,
+              "truncated": false,
+              "original_chars": 1013,
+              "returned_chars": 1013
+            },
+            {
+              "rank": 6,
+              "id": "shard_02911_36461",
+              "docid": "shard_02911_36461",
+              "kind": "document",
+              "score": 0.267685,
+              "truncated": false,
+              "original_chars": 3761,
+              "returned_chars": 3761
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01197_52210",
+          "shard_06372_8726",
+          "shard_04765_38691",
+          "shard_00292_73196",
+          "shard_05598_39631",
+          "shard_02911_36461"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01197_52210",
+            "score": 0.290141
+          },
+          {
+            "docid": "shard_06372_8726",
+            "score": 0.288248
+          },
+          {
+            "docid": "shard_04765_38691",
+            "score": 0.271767
+          },
+          {
+            "docid": "shard_00292_73196",
+            "score": 0.268409
+          },
+          {
+            "docid": "shard_05598_39631",
+            "score": 0.268367
+          },
+          {
+            "docid": "shard_02911_36461",
+            "score": 0.267685
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_3NXwbv4fzjwCpMuzwFdNK1Il",
+        "id": "step-0009",
+        "t_start": "2026-07-18T21:50:33.581+10:00",
+        "t_end": "2026-07-18T21:50:33.752+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 170.654,
+          "context_tokens": 12674,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10831,
+          "cumulative_tokens": {
+            "input": 46488,
+            "input_uncached": 39320,
+            "output": 784,
+            "cache_read": 7168,
+            "cache_write": 0,
+            "total": 47272,
+            "processed_input": 39320,
+            "processed": 40104
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01197_52210",
+            "shard_06372_8726",
+            "shard_04765_38691",
+            "shard_00292_73196",
+            "shard_05598_39631",
+            "shard_02911_36461"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "DeepSplit contact regions multi-task U-Net touching cells loss",
+          "k": 6,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "DeepSplit contact regions multi-task U-Net touching cells loss",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04356_54759",
+              "docid": "shard_04356_54759",
+              "kind": "document",
+              "score": 32.42737,
+              "truncated": false,
+              "original_chars": 1105,
+              "returned_chars": 1105
+            },
+            {
+              "rank": 2,
+              "id": "shard_06325_32669",
+              "docid": "shard_06325_32669",
+              "kind": "document",
+              "score": 32.240086,
+              "truncated": false,
+              "original_chars": 1279,
+              "returned_chars": 1279
+            },
+            {
+              "rank": 3,
+              "id": "shard_05115_43978",
+              "docid": "shard_05115_43978",
+              "kind": "document",
+              "score": 18.448708,
+              "truncated": false,
+              "original_chars": 3617,
+              "returned_chars": 3617
+            },
+            {
+              "rank": 4,
+              "id": "shard_05982_20152",
+              "docid": "shard_05982_20152",
+              "kind": "document",
+              "score": 18.42378,
+              "truncated": false,
+              "original_chars": 11814,
+              "returned_chars": 11814
+            },
+            {
+              "rank": 5,
+              "id": "shard_02808_3854",
+              "docid": "shard_02808_3854",
+              "kind": "document",
+              "score": 18.21616,
+              "truncated": true,
+              "original_chars": 13179,
+              "returned_chars": 12487
+            },
+            {
+              "rank": 6,
+              "id": "shard_00299_12151",
+              "docid": "shard_00299_12151",
+              "kind": "document",
+              "score": 17.757048,
+              "truncated": true,
+              "original_chars": 13150,
+              "returned_chars": 11873
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04356_54759",
+          "shard_06325_32669",
+          "shard_05115_43978",
+          "shard_05982_20152",
+          "shard_02808_3854",
+          "shard_00299_12151"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04356_54759",
+            "score": 32.42737
+          },
+          {
+            "docid": "shard_06325_32669",
+            "score": 32.240086
+          },
+          {
+            "docid": "shard_05115_43978",
+            "score": 18.448708
+          },
+          {
+            "docid": "shard_05982_20152",
+            "score": 18.42378
+          },
+          {
+            "docid": "shard_02808_3854",
+            "score": 18.21616
+          },
+          {
+            "docid": "shard_00299_12151",
+            "score": 17.757048
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_jIL7yl7tZqOXXKZWOyB6Uj0V",
+        "id": "step-0010",
+        "t_start": "2026-07-18T21:50:33.581+10:00",
+        "t_end": "2026-07-18T21:50:34.637+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 1055.376,
+          "context_tokens": 12674,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10831,
+          "cumulative_tokens": {
+            "input": 46488,
+            "input_uncached": 39320,
+            "output": 784,
+            "cache_read": 7168,
+            "cache_write": 0,
+            "total": 47272,
+            "processed_input": 39320,
+            "processed": 40104
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04356_54759",
+            "shard_06325_32669",
+            "shard_05115_43978",
+            "shard_05982_20152",
+            "shard_02808_3854",
+            "shard_00299_12151"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "distance transform boundary loss instance segmentation touching cells U-Net",
+          "k": 6,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "distance transform boundary loss instance segmentation touching cells U-Net",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00603_17974",
+              "docid": "shard_00603_17974",
+              "kind": "document",
+              "score": 0.299837,
+              "truncated": false,
+              "original_chars": 2502,
+              "returned_chars": 2502
+            },
+            {
+              "rank": 2,
+              "id": "shard_05583_72051",
+              "docid": "shard_05583_72051",
+              "kind": "document",
+              "score": 0.299837,
+              "truncated": false,
+              "original_chars": 2415,
+              "returned_chars": 2415
+            },
+            {
+              "rank": 3,
+              "id": "shard_02317_74078",
+              "docid": "shard_02317_74078",
+              "kind": "document",
+              "score": 0.293052,
+              "truncated": false,
+              "original_chars": 3180,
+              "returned_chars": 3180
+            },
+            {
+              "rank": 4,
+              "id": "shard_04571_27888",
+              "docid": "shard_04571_27888",
+              "kind": "document",
+              "score": 0.292713,
+              "truncated": false,
+              "original_chars": 6230,
+              "returned_chars": 6230
+            },
+            {
+              "rank": 5,
+              "id": "shard_00498_26598",
+              "docid": "shard_00498_26598",
+              "kind": "document",
+              "score": 0.287693,
+              "truncated": false,
+              "original_chars": 2850,
+              "returned_chars": 2850
+            },
+            {
+              "rank": 6,
+              "id": "shard_04356_54759",
+              "docid": "shard_04356_54759",
+              "kind": "document",
+              "score": 0.285776,
+              "truncated": false,
+              "original_chars": 1105,
+              "returned_chars": 1105
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00603_17974",
+          "shard_05583_72051",
+          "shard_02317_74078",
+          "shard_04571_27888",
+          "shard_00498_26598",
+          "shard_04356_54759"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00603_17974",
+            "score": 0.299837
+          },
+          {
+            "docid": "shard_05583_72051",
+            "score": 0.299837
+          },
+          {
+            "docid": "shard_02317_74078",
+            "score": 0.293052
+          },
+          {
+            "docid": "shard_04571_27888",
+            "score": 0.292713
+          },
+          {
+            "docid": "shard_00498_26598",
+            "score": 0.287693
+          },
+          {
+            "docid": "shard_04356_54759",
+            "score": 0.285776
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_GcswpuMigB0173lrKpKe9d2D",
+        "id": "step-0011",
+        "t_start": "2026-07-18T21:50:33.581+10:00",
+        "t_end": "2026-07-18T21:50:33.780+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 198.557,
+          "context_tokens": 12674,
+          "peak_context_tokens": 30116,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10831,
+          "cumulative_tokens": {
+            "input": 46488,
+            "input_uncached": 39320,
+            "output": 784,
+            "cache_read": 7168,
+            "cache_write": 0,
+            "total": 47272,
+            "processed_input": 39320,
+            "processed": 40104
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00603_17974",
+            "shard_05583_72051",
+            "shard_02317_74078",
+            "shard_04571_27888",
+            "shard_00498_26598",
+            "shard_04356_54759"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_omfWI7b1h4i20f3eCuSEfVDL",
+            "call_3NXwbv4fzjwCpMuzwFdNK1Il",
+            "call_jIL7yl7tZqOXXKZWOyB6Uj0V",
+            "call_GcswpuMigB0173lrKpKe9d2D"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_uMi7Np4Pq3d8lEn5bUaHZGfO",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_04765_38691",
+                    "reason": "Direct comparison evidence for Cellpose: broad shape/cell-type generality and flow-field representation assigning pixels to individual-cell centers."
+                  },
+                  {
+                    "docid": "shard_04571_27888",
+                    "reason": "Direct evidence for weighted separating-background loss and elastic deformation augmentation in U-Net training."
+                  },
+                  {
+                    "docid": "shard_00299_12151",
+                    "reason": "Relevant alternative contour-aware multi-task U-Net evidence for clustered nuclei, including semantic, normal-edge, and clustered-edge heads and final subtraction-based mask formation."
+                  },
+                  {
+                    "docid": "shard_00498_26598",
+                    "reason": "Evidence supporting focal loss for class imbalance and boundary loss as complementary to regional losses."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0012",
+        "t_start": "2026-07-18T21:50:34.637+10:00",
+        "t_end": "2026-07-18T21:50:36.963+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 2326.034,
+          "context_tokens": 32077,
+          "peak_context_tokens": 32077,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 13158,
+          "tokens": {
+            "input": 32077,
+            "input_uncached": 20301,
+            "output": 190,
+            "cache_read": 11776,
+            "cache_write": 0,
+            "total": 32267,
+            "processed_input": 20301,
+            "processed": 20491,
+            "context": 32077
+          },
+          "provider_usage": {
+            "input_tokens": 20301,
+            "cache_read_input_tokens": 11776,
+            "output_tokens": 190
+          },
+          "cumulative_tokens": {
+            "input": 78565,
+            "input_uncached": 59621,
+            "output": 974,
+            "cache_read": 18944,
+            "cache_write": 0,
+            "total": 79539,
+            "processed_input": 59621,
+            "processed": 60595
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02341_24537",
+            "shard_01007_70699",
+            "shard_06234_54040",
+            "shard_01207_39633",
+            "shard_02191_25541",
+            "shard_00967_67763",
+            "shard_01197_52210",
+            "shard_06372_8726",
+            "shard_04765_38691",
+            "shard_00292_73196",
+            "shard_05598_39631",
+            "shard_02911_36461",
+            "shard_04356_54759",
+            "shard_06325_32669",
+            "shard_05115_43978",
+            "shard_05982_20152",
+            "shard_02808_3854",
+            "shard_00299_12151",
+            "shard_00603_17974",
+            "shard_05583_72051",
+            "shard_02317_74078",
+            "shard_04571_27888",
+            "shard_00498_26598"
+          ],
+          "committed": [
+            "shard_00564_54177",
+            "shard_02807_62996",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_04765_38691",
+              "reason": "Direct comparison evidence for Cellpose: broad shape/cell-type generality and flow-field representation assigning pixels to individual-cell centers."
+            },
+            {
+              "docid": "shard_04571_27888",
+              "reason": "Direct evidence for weighted separating-background loss and elastic deformation augmentation in U-Net training."
+            },
+            {
+              "docid": "shard_00299_12151",
+              "reason": "Relevant alternative contour-aware multi-task U-Net evidence for clustered nuclei, including semantic, normal-edge, and clustered-edge heads and final subtraction-based mask formation."
+            },
+            {
+              "docid": "shard_00498_26598",
+              "reason": "Evidence supporting focal loss for class imbalance and boundary loss as complementary to regional losses."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_04765_38691\", \"shard_00299_12151\", \"shard_04571_27888\", \"shard_00498_26598\"], \"rejected\": [{\"docid\": \"shard_02341_24537\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01007_70699\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06234_54040\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01207_39633\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02191_25541\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00967_67763\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01197_52210\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06372_8726\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00292_73196\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05598_39631\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02911_36461\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04356_54759\", \"reason\": \"duplicate/already committed; later occurrence compacted\"}, {\"docid\": \"shard_06325_32669\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05115_43978\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05982_20152\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02808_3854\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00603_17974\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05583_72051\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02317_74078\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 32,077 / 500,000 tokens (6.4%) · elapsed: 0m 13s]",
+        "failed": false,
+        "tool_call_id": "call_uMi7Np4Pq3d8lEn5bUaHZGfO",
+        "id": "step-0013",
+        "t_start": "2026-07-18T21:50:36.967+10:00",
+        "t_end": "2026-07-18T21:50:36.969+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 1.273,
+          "context_tokens": 32077,
+          "peak_context_tokens": 32077,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 13163,
+          "cumulative_tokens": {
+            "input": 78565,
+            "input_uncached": 59621,
+            "output": 974,
+            "cache_read": 18944,
+            "cache_write": 0,
+            "total": 79539,
+            "processed_input": 59621,
+            "processed": 60595
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02341_24537",
+            "shard_01007_70699",
+            "shard_06234_54040",
+            "shard_01207_39633",
+            "shard_02191_25541",
+            "shard_00967_67763",
+            "shard_01197_52210",
+            "shard_06372_8726",
+            "shard_04765_38691",
+            "shard_00292_73196",
+            "shard_05598_39631",
+            "shard_02911_36461",
+            "shard_04356_54759",
+            "shard_06325_32669",
+            "shard_05115_43978",
+            "shard_05982_20152",
+            "shard_02808_3854",
+            "shard_00299_12151",
+            "shard_00603_17974",
+            "shard_05583_72051",
+            "shard_02317_74078",
+            "shard_04571_27888",
+            "shard_00498_26598"
+          ],
+          "committed": [
+            "shard_04765_38691",
+            "shard_00299_12151",
+            "shard_04571_27888",
+            "shard_00498_26598"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_02341_24537",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01007_70699",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06234_54040",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01207_39633",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02191_25541",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00967_67763",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01197_52210",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06372_8726",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00292_73196",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05598_39631",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02911_36461",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04356_54759",
+              "reason": "duplicate/already committed; later occurrence compacted"
+            },
+            {
+              "docid": "shard_06325_32669",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05115_43978",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05982_20152",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02808_3854",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00603_17974",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05583_72051",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02317_74078",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_uMi7Np4Pq3d8lEn5bUaHZGfO"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_Dn23OMUdz0wUdendoGKvWID9",
+              "name": "search",
+              "arguments": {
+                "query": "StarDist",
+                "k": 8,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2200
+              }
+            },
+            {
+              "id": "call_bZWhtcY6GppxbUTKdtQYxP5s",
+              "name": "search",
+              "arguments": {
+                "query": "StarDist star convex polygon object detection microscopy",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2200
+              }
+            },
+            {
+              "id": "call_wra9KzHiONE5flOfJ125GSpi",
+              "name": "search",
+              "arguments": {
+                "query": "Mask R-CNN microscopy cells instance segmentation limitations",
+                "k": 6,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2200
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-18T21:50:36.969+10:00",
+        "t_end": "2026-07-18T21:50:38.827+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 1858.793,
+          "context_tokens": 21043,
+          "peak_context_tokens": 32077,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 15022,
+          "tokens": {
+            "input": 21043,
+            "input_uncached": 9267,
+            "output": 143,
+            "cache_read": 11776,
+            "cache_write": 0,
+            "total": 21186,
+            "processed_input": 9267,
+            "processed": 9410,
+            "context": 21043
+          },
+          "provider_usage": {
+            "input_tokens": 9267,
+            "cache_read_input_tokens": 11776,
+            "output_tokens": 143
+          },
+          "cumulative_tokens": {
+            "input": 99608,
+            "input_uncached": 68888,
+            "output": 1117,
+            "cache_read": 30720,
+            "cache_write": 0,
+            "total": 100725,
+            "processed_input": 68888,
+            "processed": 70005
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00299_12151",
+            "shard_00498_26598",
+            "shard_00564_54177",
+            "shard_02807_62996",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_04765_38691",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "StarDist",
+          "k": 8,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2200
+        },
+        "output": {
+          "query": "StarDist",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00396_35671",
+              "docid": "shard_00396_35671",
+              "kind": "document",
+              "score": 14.048206,
+              "truncated": false,
+              "original_chars": 2454,
+              "returned_chars": 2454
+            },
+            {
+              "rank": 2,
+              "id": "shard_06462_25986",
+              "docid": "shard_06462_25986",
+              "kind": "document",
+              "score": 14.007633,
+              "truncated": false,
+              "original_chars": 3050,
+              "returned_chars": 3050
+            },
+            {
+              "rank": 3,
+              "id": "shard_04745_55661",
+              "docid": "shard_04745_55661",
+              "kind": "document",
+              "score": 13.673357,
+              "truncated": false,
+              "original_chars": 2352,
+              "returned_chars": 2352
+            },
+            {
+              "rank": 4,
+              "id": "shard_01524_49985",
+              "docid": "shard_01524_49985",
+              "kind": "document",
+              "score": 13.468663,
+              "truncated": false,
+              "original_chars": 3453,
+              "returned_chars": 3453
+            },
+            {
+              "rank": 5,
+              "id": "shard_06193_20612",
+              "docid": "shard_06193_20612",
+              "kind": "document",
+              "score": 13.405091,
+              "truncated": false,
+              "original_chars": 2559,
+              "returned_chars": 2559
+            },
+            {
+              "rank": 6,
+              "id": "shard_00891_34405",
+              "docid": "shard_00891_34405",
+              "kind": "document",
+              "score": 13.139091,
+              "truncated": false,
+              "original_chars": 885,
+              "returned_chars": 885
+            },
+            {
+              "rank": 7,
+              "id": "shard_01834_25911",
+              "docid": "shard_01834_25911",
+              "kind": "document",
+              "score": 12.954711,
+              "truncated": false,
+              "original_chars": 4146,
+              "returned_chars": 4146
+            },
+            {
+              "rank": 8,
+              "id": "shard_02738_30069",
+              "docid": "shard_02738_30069",
+              "kind": "document",
+              "score": 12.810826,
+              "truncated": false,
+              "original_chars": 319,
+              "returned_chars": 319
+            }
+          ],
+          "budget_tokens_per_result": 2200,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00396_35671",
+          "shard_06462_25986",
+          "shard_04745_55661",
+          "shard_01524_49985",
+          "shard_06193_20612",
+          "shard_00891_34405",
+          "shard_01834_25911",
+          "shard_02738_30069"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00396_35671",
+            "score": 14.048206
+          },
+          {
+            "docid": "shard_06462_25986",
+            "score": 14.007633
+          },
+          {
+            "docid": "shard_04745_55661",
+            "score": 13.673357
+          },
+          {
+            "docid": "shard_01524_49985",
+            "score": 13.468663
+          },
+          {
+            "docid": "shard_06193_20612",
+            "score": 13.405091
+          },
+          {
+            "docid": "shard_00891_34405",
+            "score": 13.139091
+          },
+          {
+            "docid": "shard_01834_25911",
+            "score": 12.954711
+          },
+          {
+            "docid": "shard_02738_30069",
+            "score": 12.810826
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_Dn23OMUdz0wUdendoGKvWID9",
+        "id": "step-0015",
+        "t_start": "2026-07-18T21:50:38.828+10:00",
+        "t_end": "2026-07-18T21:50:38.997+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 168.967,
+          "context_tokens": 21043,
+          "peak_context_tokens": 32077,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 15285,
+          "cumulative_tokens": {
+            "input": 99608,
+            "input_uncached": 68888,
+            "output": 1117,
+            "cache_read": 30720,
+            "cache_write": 0,
+            "total": 100725,
+            "processed_input": 68888,
+            "processed": 70005
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00396_35671",
+            "shard_06462_25986",
+            "shard_04745_55661",
+            "shard_01524_49985",
+            "shard_06193_20612",
+            "shard_00891_34405",
+            "shard_01834_25911",
+            "shard_02738_30069"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "StarDist star convex polygon object detection microscopy",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2200
+        },
+        "output": {
+          "query": "StarDist star convex polygon object detection microscopy",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04987_859",
+              "docid": "shard_04987_859",
+              "kind": "document",
+              "score": 0.314063,
+              "truncated": false,
+              "original_chars": 7719,
+              "returned_chars": 7719
+            },
+            {
+              "rank": 2,
+              "id": "shard_03729_66810",
+              "docid": "shard_03729_66810",
+              "kind": "document",
+              "score": 0.312823,
+              "truncated": false,
+              "original_chars": 370,
+              "returned_chars": 370
+            },
+            {
+              "rank": 3,
+              "id": "shard_05765_7993",
+              "docid": "shard_05765_7993",
+              "kind": "document",
+              "score": 0.305703,
+              "truncated": false,
+              "original_chars": 1656,
+              "returned_chars": 1656
+            },
+            {
+              "rank": 4,
+              "id": "shard_00442_75403",
+              "docid": "shard_00442_75403",
+              "kind": "document",
+              "score": 0.303415,
+              "truncated": false,
+              "original_chars": 861,
+              "returned_chars": 861
+            },
+            {
+              "rank": 5,
+              "id": "shard_02369_7779",
+              "docid": "shard_02369_7779",
+              "kind": "document",
+              "score": 0.303312,
+              "truncated": false,
+              "original_chars": 331,
+              "returned_chars": 331
+            },
+            {
+              "rank": 6,
+              "id": "shard_00890_43978",
+              "docid": "shard_00890_43978",
+              "kind": "document",
+              "score": 0.299708,
+              "truncated": false,
+              "original_chars": 1187,
+              "returned_chars": 1187
+            },
+            {
+              "rank": 7,
+              "id": "shard_02822_10240",
+              "docid": "shard_02822_10240",
+              "kind": "document",
+              "score": 0.299637,
+              "truncated": false,
+              "original_chars": 691,
+              "returned_chars": 691
+            },
+            {
+              "rank": 8,
+              "id": "shard_00383_20832",
+              "docid": "shard_00383_20832",
+              "kind": "document",
+              "score": 0.298629,
+              "truncated": false,
+              "original_chars": 1733,
+              "returned_chars": 1733
+            }
+          ],
+          "budget_tokens_per_result": 2200,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04987_859",
+          "shard_03729_66810",
+          "shard_05765_7993",
+          "shard_00442_75403",
+          "shard_02369_7779",
+          "shard_00890_43978",
+          "shard_02822_10240",
+          "shard_00383_20832"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04987_859",
+            "score": 0.314063
+          },
+          {
+            "docid": "shard_03729_66810",
+            "score": 0.312823
+          },
+          {
+            "docid": "shard_05765_7993",
+            "score": 0.305703
+          },
+          {
+            "docid": "shard_00442_75403",
+            "score": 0.303415
+          },
+          {
+            "docid": "shard_02369_7779",
+            "score": 0.303312
+          },
+          {
+            "docid": "shard_00890_43978",
+            "score": 0.299708
+          },
+          {
+            "docid": "shard_02822_10240",
+            "score": 0.299637
+          },
+          {
+            "docid": "shard_00383_20832",
+            "score": 0.298629
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_bZWhtcY6GppxbUTKdtQYxP5s",
+        "id": "step-0016",
+        "t_start": "2026-07-18T21:50:38.829+10:00",
+        "t_end": "2026-07-18T21:50:39.034+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 205.303,
+          "context_tokens": 21043,
+          "peak_context_tokens": 32077,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 15285,
+          "cumulative_tokens": {
+            "input": 99608,
+            "input_uncached": 68888,
+            "output": 1117,
+            "cache_read": 30720,
+            "cache_write": 0,
+            "total": 100725,
+            "processed_input": 68888,
+            "processed": 70005
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04987_859",
+            "shard_03729_66810",
+            "shard_05765_7993",
+            "shard_00442_75403",
+            "shard_02369_7779",
+            "shard_00890_43978",
+            "shard_02822_10240",
+            "shard_00383_20832"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Mask R-CNN microscopy cells instance segmentation limitations",
+          "k": 6,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2200
+        },
+        "output": {
+          "query": "Mask R-CNN microscopy cells instance segmentation limitations",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04997_66472",
+              "docid": "shard_04997_66472",
+              "kind": "document",
+              "score": 0.339827,
+              "truncated": false,
+              "original_chars": 335,
+              "returned_chars": 335
+            },
+            {
+              "rank": 2,
+              "id": "shard_04400_73372",
+              "docid": "shard_04400_73372",
+              "kind": "document",
+              "score": 0.331699,
+              "truncated": false,
+              "original_chars": 4025,
+              "returned_chars": 4025
+            },
+            {
+              "rank": 3,
+              "id": "shard_02870_22173",
+              "docid": "shard_02870_22173",
+              "kind": "document",
+              "score": 0.329736,
+              "truncated": false,
+              "original_chars": 1296,
+              "returned_chars": 1296
+            },
+            {
+              "rank": 4,
+              "id": "shard_04112_16526",
+              "docid": "shard_04112_16526",
+              "kind": "document",
+              "score": 0.324473,
+              "truncated": false,
+              "original_chars": 3435,
+              "returned_chars": 3435
+            },
+            {
+              "rank": 5,
+              "id": "shard_00353_62949",
+              "docid": "shard_00353_62949",
+              "kind": "document",
+              "score": 0.324216,
+              "truncated": true,
+              "original_chars": 15114,
+              "returned_chars": 10998
+            },
+            {
+              "rank": 6,
+              "id": "shard_01640_74345",
+              "docid": "shard_01640_74345",
+              "kind": "document",
+              "score": 0.322926,
+              "truncated": false,
+              "original_chars": 6862,
+              "returned_chars": 6862
+            }
+          ],
+          "budget_tokens_per_result": 2200,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04997_66472",
+          "shard_04400_73372",
+          "shard_02870_22173",
+          "shard_04112_16526",
+          "shard_00353_62949",
+          "shard_01640_74345"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04997_66472",
+            "score": 0.339827
+          },
+          {
+            "docid": "shard_04400_73372",
+            "score": 0.331699
+          },
+          {
+            "docid": "shard_02870_22173",
+            "score": 0.329736
+          },
+          {
+            "docid": "shard_04112_16526",
+            "score": 0.324473
+          },
+          {
+            "docid": "shard_00353_62949",
+            "score": 0.324216
+          },
+          {
+            "docid": "shard_01640_74345",
+            "score": 0.322926
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_wra9KzHiONE5flOfJ125GSpi",
+        "id": "step-0017",
+        "t_start": "2026-07-18T21:50:38.829+10:00",
+        "t_end": "2026-07-18T21:50:39.089+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 260.088,
+          "context_tokens": 21043,
+          "peak_context_tokens": 32077,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 15285,
+          "cumulative_tokens": {
+            "input": 99608,
+            "input_uncached": 68888,
+            "output": 1117,
+            "cache_read": 30720,
+            "cache_write": 0,
+            "total": 100725,
+            "processed_input": 68888,
+            "processed": 70005
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04997_66472",
+            "shard_04400_73372",
+            "shard_02870_22173",
+            "shard_04112_16526",
+            "shard_00353_62949",
+            "shard_01640_74345"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_Dn23OMUdz0wUdendoGKvWID9",
+            "call_bZWhtcY6GppxbUTKdtQYxP5s",
+            "call_wra9KzHiONE5flOfJ125GSpi"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_f19NWLX2reiqlcbAerhhe34J",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01524_49985",
+                    "reason": "Direct StarDist mechanism evidence: predicts object probability and radial boundary distances, forms polygon candidates, and uses overlap-based non-maximum suppression."
+                  },
+                  {
+                    "docid": "shard_02822_10240",
+                    "reason": "Useful comparison limitation: Cellpose treats 3D as 2D stacks while StarDist3D constrains shapes to star-convex polygons."
+                  },
+                  {
+                    "docid": "shard_04861_39173",
+                    "reason": "Already committed and retained as the strongest detailed Mask R-CNN/U-Net comparison source."
+                  },
+                  {
+                    "docid": "shard_04400_73372",
+                    "reason": "Direct Mask R-CNN architecture evidence: backbone/FPN, region proposals, classification/box refinement, and per-ROI mask branch."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0018",
+        "t_start": "2026-07-18T21:50:39.095+10:00",
+        "t_end": "2026-07-18T21:50:41.410+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 2314.917,
+          "context_tokens": 35999,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 17605,
+          "tokens": {
+            "input": 35999,
+            "input_uncached": 16031,
+            "output": 194,
+            "cache_read": 19968,
+            "cache_write": 0,
+            "total": 36193,
+            "processed_input": 16031,
+            "processed": 16225,
+            "context": 35999
+          },
+          "provider_usage": {
+            "input_tokens": 16031,
+            "cache_read_input_tokens": 19968,
+            "output_tokens": 194
+          },
+          "cumulative_tokens": {
+            "input": 135607,
+            "input_uncached": 84919,
+            "output": 1311,
+            "cache_read": 50688,
+            "cache_write": 0,
+            "total": 136918,
+            "processed_input": 84919,
+            "processed": 86230
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00396_35671",
+            "shard_06462_25986",
+            "shard_04745_55661",
+            "shard_01524_49985",
+            "shard_06193_20612",
+            "shard_00891_34405",
+            "shard_01834_25911",
+            "shard_02738_30069",
+            "shard_04987_859",
+            "shard_03729_66810",
+            "shard_05765_7993",
+            "shard_00442_75403",
+            "shard_02369_7779",
+            "shard_00890_43978",
+            "shard_02822_10240",
+            "shard_00383_20832",
+            "shard_04997_66472",
+            "shard_04400_73372",
+            "shard_02870_22173",
+            "shard_04112_16526",
+            "shard_00353_62949",
+            "shard_01640_74345"
+          ],
+          "committed": [
+            "shard_00299_12151",
+            "shard_00498_26598",
+            "shard_00564_54177",
+            "shard_02807_62996",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_04765_38691",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01524_49985",
+              "reason": "Direct StarDist mechanism evidence: predicts object probability and radial boundary distances, forms polygon candidates, and uses overlap-based non-maximum suppression."
+            },
+            {
+              "docid": "shard_02822_10240",
+              "reason": "Useful comparison limitation: Cellpose treats 3D as 2D stacks while StarDist3D constrains shapes to star-convex polygons."
+            },
+            {
+              "docid": "shard_04861_39173",
+              "reason": "Already committed and retained as the strongest detailed Mask R-CNN/U-Net comparison source."
+            },
+            {
+              "docid": "shard_04400_73372",
+              "reason": "Direct Mask R-CNN architecture evidence: backbone/FPN, region proposals, classification/box refinement, and per-ROI mask branch."
+            }
+          ]
+        },
+        "output": "{\"error\": \"ValueError: cannot commit documents outside the staged context: shard_04861_39173\", \"committed\": [], \"rejected\": [{\"docid\": \"shard_00396_35671\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_06462_25986\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_04745_55661\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_01524_49985\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_06193_20612\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_00891_34405\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_01834_25911\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_02738_30069\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_04987_859\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_03729_66810\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_05765_7993\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_00442_75403\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_02369_7779\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_00890_43978\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_02822_10240\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_00383_20832\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_04997_66472\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_04400_73372\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_02870_22173\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_04112_16526\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_00353_62949\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}, {\"docid\": \"shard_01640_74345\", \"reason\": \"staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173\"}], \"instruction\": \"The staged batch was compacted and cannot be reselected; search again if the evidence is still needed.\"}\n[context budget: 35,999 / 500,000 tokens (7.2%) · elapsed: 0m 17s]",
+        "failed": true,
+        "tool_call_id": "call_f19NWLX2reiqlcbAerhhe34J",
+        "id": "step-0019",
+        "t_start": "2026-07-18T21:50:41.415+10:00",
+        "t_end": "2026-07-18T21:50:41.416+10:00",
+        "turn": 5,
+        "parent_id": "step-0018",
+        "stats": {
+          "duration_ms": 1.202,
+          "context_tokens": 35999,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 17611,
+          "cumulative_tokens": {
+            "input": 135607,
+            "input_uncached": 84919,
+            "output": 1311,
+            "cache_read": 50688,
+            "cache_write": 0,
+            "total": 136918,
+            "processed_input": 84919,
+            "processed": 86230
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00396_35671",
+            "shard_06462_25986",
+            "shard_04745_55661",
+            "shard_01524_49985",
+            "shard_06193_20612",
+            "shard_00891_34405",
+            "shard_01834_25911",
+            "shard_02738_30069",
+            "shard_04987_859",
+            "shard_03729_66810",
+            "shard_05765_7993",
+            "shard_00442_75403",
+            "shard_02369_7779",
+            "shard_00890_43978",
+            "shard_02822_10240",
+            "shard_00383_20832",
+            "shard_04997_66472",
+            "shard_04400_73372",
+            "shard_02870_22173",
+            "shard_04112_16526",
+            "shard_00353_62949",
+            "shard_01640_74345"
+          ],
+          "committed": [],
+          "rejected": [
+            {
+              "docid": "shard_00396_35671",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_06462_25986",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_04745_55661",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_01524_49985",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_06193_20612",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_00891_34405",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_01834_25911",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_02738_30069",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_04987_859",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_03729_66810",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_05765_7993",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_00442_75403",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_02369_7779",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_00890_43978",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_02822_10240",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_00383_20832",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_04997_66472",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_04400_73372",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_02870_22173",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_04112_16526",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_00353_62949",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            },
+            {
+              "docid": "shard_01640_74345",
+              "reason": "staged batch expired after invalid commit_context: ValueError: cannot commit documents outside the staged context: shard_04861_39173"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_f19NWLX2reiqlcbAerhhe34J"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_WfRp5lb6wCnEcSnwFu2foN5f",
+              "name": "search",
+              "arguments": {
+                "query": "StarDist radial distances star-convex polygons microscopy",
+                "k": 6,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2200
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0020",
+        "t_start": "2026-07-18T21:50:41.417+10:00",
+        "t_end": "2026-07-18T21:50:43.005+10:00",
+        "turn": 6,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 1588.013,
+          "context_tokens": 25098,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19199,
+          "tokens": {
+            "input": 25098,
+            "input_uncached": 5130,
+            "output": 79,
+            "cache_read": 19968,
+            "cache_write": 0,
+            "total": 25177,
+            "processed_input": 5130,
+            "processed": 5209,
+            "context": 25098
+          },
+          "provider_usage": {
+            "input_tokens": 5130,
+            "cache_read_input_tokens": 19968,
+            "output_tokens": 79
+          },
+          "cumulative_tokens": {
+            "input": 160705,
+            "input_uncached": 90049,
+            "output": 1390,
+            "cache_read": 70656,
+            "cache_write": 0,
+            "total": 162095,
+            "processed_input": 90049,
+            "processed": 91439
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00299_12151",
+            "shard_00498_26598",
+            "shard_00564_54177",
+            "shard_02807_62996",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_04765_38691",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "StarDist radial distances star-convex polygons microscopy",
+          "k": 6,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2200
+        },
+        "output": {
+          "query": "StarDist radial distances star-convex polygons microscopy",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01524_49985",
+              "docid": "shard_01524_49985",
+              "kind": "document",
+              "score": 24.676653,
+              "truncated": false,
+              "original_chars": 3453,
+              "returned_chars": 3453
+            },
+            {
+              "rank": 2,
+              "id": "shard_02822_10240",
+              "docid": "shard_02822_10240",
+              "kind": "document",
+              "score": 23.654701,
+              "truncated": false,
+              "original_chars": 691,
+              "returned_chars": 691
+            },
+            {
+              "rank": 3,
+              "id": "shard_05740_24989",
+              "docid": "shard_05740_24989",
+              "kind": "document",
+              "score": 23.348936,
+              "truncated": false,
+              "original_chars": 935,
+              "returned_chars": 935
+            },
+            {
+              "rank": 4,
+              "id": "shard_04893_7281",
+              "docid": "shard_04893_7281",
+              "kind": "document",
+              "score": 23.231743,
+              "truncated": false,
+              "original_chars": 3762,
+              "returned_chars": 3762
+            },
+            {
+              "rank": 5,
+              "id": "shard_00085_46328",
+              "docid": "shard_00085_46328",
+              "kind": "document",
+              "score": 22.243181,
+              "truncated": false,
+              "original_chars": 1663,
+              "returned_chars": 1663
+            },
+            {
+              "rank": 6,
+              "id": "shard_04375_24418",
+              "docid": "shard_04375_24418",
+              "kind": "document",
+              "score": 22.090115,
+              "truncated": false,
+              "original_chars": 1753,
+              "returned_chars": 1753
+            }
+          ],
+          "budget_tokens_per_result": 2200,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01524_49985",
+          "shard_02822_10240",
+          "shard_05740_24989",
+          "shard_04893_7281",
+          "shard_00085_46328",
+          "shard_04375_24418"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01524_49985",
+            "score": 24.676653
+          },
+          {
+            "docid": "shard_02822_10240",
+            "score": 23.654701
+          },
+          {
+            "docid": "shard_05740_24989",
+            "score": 23.348936
+          },
+          {
+            "docid": "shard_04893_7281",
+            "score": 23.231743
+          },
+          {
+            "docid": "shard_00085_46328",
+            "score": 22.243181
+          },
+          {
+            "docid": "shard_04375_24418",
+            "score": 22.090115
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_WfRp5lb6wCnEcSnwFu2foN5f",
+        "id": "step-0021",
+        "t_start": "2026-07-18T21:50:43.005+10:00",
+        "t_end": "2026-07-18T21:50:43.298+10:00",
+        "turn": 6,
+        "parent_id": "step-0020",
+        "stats": {
+          "duration_ms": 293.584,
+          "context_tokens": 25098,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19493,
+          "cumulative_tokens": {
+            "input": 160705,
+            "input_uncached": 90049,
+            "output": 1390,
+            "cache_read": 70656,
+            "cache_write": 0,
+            "total": 162095,
+            "processed_input": 90049,
+            "processed": 91439
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01524_49985",
+            "shard_02822_10240",
+            "shard_05740_24989",
+            "shard_04893_7281",
+            "shard_00085_46328",
+            "shard_04375_24418"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_WfRp5lb6wCnEcSnwFu2foN5f"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_E6kfyOdqmabDcK64CaAkmIuD",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01524_49985",
+                    "reason": "Direct StarDist mechanism evidence: per-pixel object probability and radial boundary distances generate star-convex polygon candidates, followed by overlap-based NMS."
+                  },
+                  {
+                    "docid": "shard_02822_10240",
+                    "reason": "Direct comparative limitation evidence for 3D microscopy: Cellpose treats volumes as 2D stacks whereas StarDist3D analyzes the volume but limits shapes to star-convex polygons."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0022",
+        "t_start": "2026-07-18T21:50:43.299+10:00",
+        "t_end": "2026-07-18T21:50:45.083+10:00",
+        "turn": 7,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 1784.458,
+          "context_tokens": 28338,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 21278,
+          "tokens": {
+            "input": 28338,
+            "input_uncached": 25778,
+            "output": 134,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 28472,
+            "processed_input": 25778,
+            "processed": 25912,
+            "context": 28338
+          },
+          "provider_usage": {
+            "input_tokens": 25778,
+            "cache_read_input_tokens": 2560,
+            "output_tokens": 134
+          },
+          "cumulative_tokens": {
+            "input": 189043,
+            "input_uncached": 115827,
+            "output": 1524,
+            "cache_read": 73216,
+            "cache_write": 0,
+            "total": 190567,
+            "processed_input": 115827,
+            "processed": 117351
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01524_49985",
+            "shard_02822_10240",
+            "shard_05740_24989",
+            "shard_04893_7281",
+            "shard_00085_46328",
+            "shard_04375_24418"
+          ],
+          "committed": [
+            "shard_00299_12151",
+            "shard_00498_26598",
+            "shard_00564_54177",
+            "shard_02807_62996",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_04765_38691",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01524_49985",
+              "reason": "Direct StarDist mechanism evidence: per-pixel object probability and radial boundary distances generate star-convex polygon candidates, followed by overlap-based NMS."
+            },
+            {
+              "docid": "shard_02822_10240",
+              "reason": "Direct comparative limitation evidence for 3D microscopy: Cellpose treats volumes as 2D stacks whereas StarDist3D analyzes the volume but limits shapes to star-convex polygons."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01524_49985\", \"shard_02822_10240\"], \"rejected\": [{\"docid\": \"shard_05740_24989\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04893_7281\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00085_46328\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04375_24418\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 28,338 / 500,000 tokens (5.7%) · elapsed: 0m 21s]",
+        "failed": false,
+        "tool_call_id": "call_E6kfyOdqmabDcK64CaAkmIuD",
+        "id": "step-0023",
+        "t_start": "2026-07-18T21:50:45.089+10:00",
+        "t_end": "2026-07-18T21:50:45.090+10:00",
+        "turn": 7,
+        "parent_id": "step-0022",
+        "stats": {
+          "duration_ms": 0.441,
+          "context_tokens": 28338,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 21284,
+          "cumulative_tokens": {
+            "input": 189043,
+            "input_uncached": 115827,
+            "output": 1524,
+            "cache_read": 73216,
+            "cache_write": 0,
+            "total": 190567,
+            "processed_input": 115827,
+            "processed": 117351
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01524_49985",
+            "shard_02822_10240",
+            "shard_05740_24989",
+            "shard_04893_7281",
+            "shard_00085_46328",
+            "shard_04375_24418"
+          ],
+          "committed": [
+            "shard_01524_49985",
+            "shard_02822_10240"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_05740_24989",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04893_7281",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00085_46328",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04375_24418",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_E6kfyOdqmabDcK64CaAkmIuD"
+          ]
+        },
+        "output": {
+          "text": "Use a residual-attention U-Net with three prediction heads: a foreground mask, a separating-boundary mask, and a normalized distance-transform map.\n\nThis design is appropriate because ordinary U-Net predicts semantic foreground and therefore tends to merge adjacent objects, whereas explicitly learning contact regions provides a signal for cutting touching instances apart. [shard_04356_54759] [shard_00299_12151]\n\nThe encoder should contain four residual stages with channel widths 32, 64, 128, and 256, while the bottleneck uses 512 channels and a 3 × 3 dilated convolution to enlarge the receptive field without excessive downsampling.\n\nEach residual block should use two 3 × 3 convolutions, group normalization, GELU activations, and an identity projection when the channel count changes.\n\nResidual shortcuts improve optimization in a deep U-Net, while attention gates can suppress irrelevant background activations and emphasize informative cell or organelle regions. [shard_05783_31873]\n\nThe decoder should upsample with bilinear interpolation followed by a 3 × 3 convolution, concatenate the corresponding encoder feature map, and apply another residual block.\n\nAttention gates should be placed on the skip features before concatenation so that noisy fluorescence background is filtered before it reaches the decoder.\n\nThe first head should predict a foreground logit, the second should predict a one-channel boundary or contact logit, and the third should regress a clipped distance transform whose high values occur near object centers.\n\nA compact PyTorch implementation of the residual-attention block is: `class ResAttn(nn.Module): def __init__(self,cin,cout): super().__init__(); self.body=nn.Sequential(nn.Conv2d(cin,cout,3,padding=1),nn.GroupNorm(8,cout),nn.GELU(),nn.Conv2d(cout,cout,3,padding=1),nn.GroupNorm(8,cout)); self.skip=nn.Conv2d(cin,cout,1) if cin!=cout else nn.Identity(); self.g=nn.Sequential(nn.Conv2d(cout,cout,1),nn.Sigmoid()); def forward(self,x): y=self.body(x); return F.gelu(self.g(y)*y+self.skip(x))`.\n\nA minimal multi-head model skeleton is: `class RAUNet(nn.Module): def __init__(self,in_ch=1): super().__init__(); self.e1=ResAttn(in_ch,32); self.e2=ResAttn(32,64); self.e3=ResAttn(64,128); self.e4=ResAttn(128,256); self.b=ResAttn(256,512); self.pool=nn.MaxPool2d(2); self.up=nn.ModuleList([nn.ConvTranspose2d(512,256,2,2),nn.ConvTranspose2d(256,128,2,2),nn.ConvTranspose2d(128,64,2,2),nn.ConvTranspose2d(64,32,2,2)]); self.d4=ResAttn(512,256); self.d3=ResAttn(256,128); self.d2=ResAttn(128,64); self.d1=ResAttn(64,32); self.head=nn.Conv2d(32,3,1); def forward(self,x): a=self.e1(x); b=self.e2(self.pool(a)); c=self.e3(self.pool(b)); d=self.e4(self.pool(c)); z=self.b(self.pool(d)); z=self.d4(torch.cat([self.up[0](z),d],1)); z=self.d3(torch.cat([self.up[1](z),c],1)); z=self.d2(torch.cat([self.up[2](z),b],1)); z=self.d1(torch.cat([self.up[3](z),a],1)); return self.head(z)`.\n\nThe implementation should pad or crop skip tensors when odd image dimensions cause one-pixel size mismatches.\n\nTraining targets should include a binary foreground mask, a narrow boundary mask generated by dilating the borders between neighboring instances, and a distance transform normalized to the interval [0,1].\n\nThe loss should combine soft Dice and focal binary-cross-entropy for foreground, weighted focal binary-cross-entropy for the boundary, and Smooth L1 for the distance head.\n\nThis combination handles foreground-background imbalance, emphasizes difficult boundary pixels, and provides a geometrical center signal complementary to the region loss. [shard_04571_27888] [shard_00498_26598]\n\nA suitable objective is L = 1.0Lforeground + 2.0Lboundary + 0.5Ldistance, with the boundary weight increased when touching objects are common.\n\nA compact loss implementation is: `def dice_loss(p,y,eps=1e-6): p=torch.sigmoid(p); return 1-(2*(p*y).sum((2,3))+eps)/(p.sum((2,3))+y.sum((2,3))+eps).mean()`.\n\nThe focal component can be written as: `def focal_bce(logit,y,alpha=.75,gamma=2): b=F.binary_cross_entropy_with_logits(logit,y,reduction=\"none\"); p=torch.sigmoid(logit); pt=p*y+(1-p)*(1-y); return (alpha*(1-pt).pow(gamma)*b).mean()`.\n\nThe complete objective can be written as: `def loss_fn(out,fg,bnd,dist): return dice_loss(out[:,0:1],fg)+focal_bce(out[:,0:1],fg)+2*focal_bce(out[:,1:2],bnd)+.5*F.smooth_l1_loss(torch.sigmoid(out[:,2:3]),dist)`.\n\nUse percentile normalization, flat-field correction, optional denoising, random intensity scaling, Poisson or Gaussian noise injection, elastic deformation, rotations, flips, and random crops during training because fluorescence images vary in intensity and noise, and elastic augmentation is established for biomedical U-Net training. [shard_03422_611] [shard_04571_27888]\n\nAt inference, threshold the foreground probability, subtract pixels whose boundary probability exceeds a learned threshold, and use connected components only to remove very small debris.\n\nCompute local maxima of the predicted distance map inside the cleaned foreground mask, enforce a minimum seed separation, and use those maxima as markers for marker-controlled watershed.\n\nRun watershed on the negative distance map or on a smoothed intensity-derived landscape, then discard regions below a minimum area or confidence threshold.\n\nMarker-controlled watershed is particularly natural for fluorescence microscopy because nuclei can provide seeds while a cell or organelle channel supplies the overall boundary landscape. [shard_00564_54177]\n\nGaussian smoothing, morphological opening, and h-minima suppression should precede watershed because classical watershed is sensitive to noise and can otherwise over-segment small fluctuations. [shard_02807_62996]\n\nFor severe overlaps, use the predicted boundary map as a hard watershed barrier and reject a proposed split when the boundary evidence is weak or when the resulting fragments are implausibly small.\n\nCellpose is a strong alternative for objects with highly variable shapes because it predicts flow fields in which pixels are assigned to common cell centers, allowing pixels far from a center to remain associated with the same object. [shard_04765_38691]\n\nThe proposed model is preferable when training labels are available and the image domain contains noisy, touching objects for which explicit boundary supervision and a distance field are useful, whereas Cellpose is attractive when a broadly pretrained, general-purpose cell model is more important.\n\nStarDist predicts an object probability and radial distances to object boundaries, forms star-convex polygon candidates, and removes duplicate candidates with overlap-based non-maximum suppression. [shard_01524_49985]\n\nStarDist can be more direct and efficient for isolated, approximately star-convex nuclei, but its geometric assumption can be restrictive for elongated, branched, concave, or heavily overlapping organelles. [shard_02822_10240]\n\nMask R-CNN detects region proposals and then predicts a class, bounding-box refinement, and mask for each region of interest. [shard_04861_39173]\n\nMask R-CNN offers explicit object instances and is attractive when bounding-box annotations or multiple object classes are required, but the proposal-and-ROI pipeline is heavier than this dense U-Net and can be less convenient for small, densely packed fluorescence objects.\n\nThe proposed residual-attention U-Net therefore trades the broad pretrained generality of Cellpose, the compact geometric representation of StarDist, and the detection-oriented structure of Mask R-CNN for dense pixel accuracy, explicit contact supervision, and watershed-based control over touching-object separation.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "completed"
+        },
+        "id": "step-0024",
+        "t_start": "2026-07-18T21:50:45.090+10:00",
+        "t_end": "2026-07-18T21:51:01.307+10:00",
+        "turn": 8,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 16217.48,
+          "context_tokens": 26949,
+          "peak_context_tokens": 35999,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 37502,
+          "tokens": {
+            "input": 26949,
+            "input_uncached": 24389,
+            "output": 2408,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 29357,
+            "processed_input": 24389,
+            "processed": 26797,
+            "context": 26949
+          },
+          "provider_usage": {
+            "input_tokens": 24389,
+            "cache_read_input_tokens": 2560,
+            "output_tokens": 2408
+          },
+          "cumulative_tokens": {
+            "input": 215992,
+            "input_uncached": 140216,
+            "output": 3932,
+            "cache_read": 75776,
+            "cache_write": 0,
+            "total": 219924,
+            "processed_input": 140216,
+            "processed": 144148
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00299_12151",
+            "shard_00498_26598",
+            "shard_00564_54177",
+            "shard_01524_49985",
+            "shard_02807_62996",
+            "shard_02822_10240",
+            "shard_03422_611",
+            "shard_04356_54759",
+            "shard_04571_27888",
+            "shard_04765_38691",
+            "shard_04768_37338",
+            "shard_04861_39173",
+            "shard_05783_31873"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_04356_54759",
+        "shard_00299_12151",
+        "shard_05783_31873",
+        "shard_04571_27888",
+        "shard_00498_26598",
+        "shard_03422_611",
+        "shard_00564_54177",
+        "shard_02807_62996",
+        "shard_04765_38691",
+        "shard_01524_49985",
+        "shard_02822_10240",
+        "shard_04861_39173"
+      ],
+      "answer": [
+        {
+          "text": "Use a residual-attention U-Net with three prediction heads: a foreground mask, a separating-boundary mask, and a normalized distance-transform map.",
+          "citations": []
+        },
+        {
+          "text": "This design is appropriate because ordinary U-Net predicts semantic foreground and therefore tends to merge adjacent objects, whereas explicitly learning contact regions provides a signal for cutting touching instances apart.",
+          "citations": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "The encoder should contain four residual stages with channel widths 32, 64, 128, and 256, while the bottleneck uses 512 channels and a 3 × 3 dilated convolution to enlarge the receptive field without excessive downsampling.",
+          "citations": []
+        },
+        {
+          "text": "Each residual block should use two 3 × 3 convolutions, group normalization, GELU activations, and an identity projection when the channel count changes.",
+          "citations": []
+        },
+        {
+          "text": "Residual shortcuts improve optimization in a deep U-Net, while attention gates can suppress irrelevant background activations and emphasize informative cell or organelle regions.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "The decoder should upsample with bilinear interpolation followed by a 3 × 3 convolution, concatenate the corresponding encoder feature map, and apply another residual block.",
+          "citations": []
+        },
+        {
+          "text": "Attention gates should be placed on the skip features before concatenation so that noisy fluorescence background is filtered before it reaches the decoder.",
+          "citations": []
+        },
+        {
+          "text": "The first head should predict a foreground logit, the second should predict a one-channel boundary or contact logit, and the third should regress a clipped distance transform whose high values occur near object centers.",
+          "citations": []
+        },
+        {
+          "text": "A compact PyTorch implementation of the residual-attention block is: class ResAttn(nn.Module): def __init__(self,cin,cout): super().__init__(); self.body=nn.Sequential(nn.Conv2d(cin,cout,3,padding=1),nn.GroupNorm(8,cout),nn.GELU(),nn.Conv2d(cout,cout,3,padding=1),nn.GroupNorm(8,cout)); self.skip=nn.Conv2d(cin,cout,1) if cin!=cout else nn.Identity(); self.g=nn.Sequential(nn.Conv2d(cout,cout,1),nn.Sigmoid()); def forward(self,x): y=self.body(x); return F.gelu(self.g(y)*y+self.skip(x)).",
+          "citations": []
+        },
+        {
+          "text": "A minimal multi-head model skeleton is: class RAUNet(nn.Module): def __init__(self,in_ch=1): super().__init__(); self.e1=ResAttn(in_ch,32); self.e2=ResAttn(32,64); self.e3=ResAttn(64,128); self.e4=ResAttn(128,256); self.b=ResAttn(256,512); self.pool=nn.MaxPool2d(2); self.up=nn.ModuleList([nn.ConvTranspose2d(512,256,2,2),nn.ConvTranspose2d(256,128,2,2),nn.ConvTranspose2d(128,64,2,2),nn.ConvTranspose2d(64,32,2,2)]); self.d4=ResAttn(512,256); self.d3=ResAttn(256,128); self.d2=ResAttn(128,64); self.d1=ResAttn(64,32); self.head=nn.Conv2d(32,3,1); def forward(self,x): a=self.e1(x); b=self.e2(self.pool(a)); c=self.e3(self.pool(b)); d=self.e4(self.pool(c)); z=self.b(self.pool(d)); z=self.d4(torch.cat([self.up (z),d],1)); z=self.d3(torch.cat([self.up (z),c],1)); z=self.d2(torch.cat([self.up (z),b],1)); z=self.d1(torch.cat([self.up (z),a],1)); return self.head(z).",
+          "citations": []
+        },
+        {
+          "text": "The implementation should pad or crop skip tensors when odd image dimensions cause one-pixel size mismatches.",
+          "citations": []
+        },
+        {
+          "text": "Training targets should include a binary foreground mask, a narrow boundary mask generated by dilating the borders between neighboring instances, and a distance transform normalized to the interval.",
+          "citations": []
+        },
+        {
+          "text": "The loss should combine soft Dice and focal binary-cross-entropy for foreground, weighted focal binary-cross-entropy for the boundary, and Smooth L1 for the distance head.",
+          "citations": []
+        },
+        {
+          "text": "This combination handles foreground-background imbalance, emphasizes difficult boundary pixels, and provides a geometrical center signal complementary to the region loss.",
+          "citations": [
+            3,
+            4
+          ]
+        },
+        {
+          "text": "A suitable objective is L = 1.0Lforeground + 2.0Lboundary + 0.5Ldistance, with the boundary weight increased when touching objects are common.",
+          "citations": []
+        },
+        {
+          "text": "A compact loss implementation is: def dice_loss(p,y,eps=1e-6): p=torch.sigmoid(p); return 1-(2*(p*y).sum((2,3))+eps)/(p.sum((2,3))+y.sum((2,3))+eps).mean().",
+          "citations": []
+        },
+        {
+          "text": "The focal component can be written as: def focal_bce(logit,y,alpha=.75,gamma=2): b=F.binary_cross_entropy_with_logits(logit,y,reduction=\"none\"); p=torch.sigmoid(logit); pt=p*y+(1-p)*(1-y); return (alpha*(1-pt).pow(gamma)*b).mean().",
+          "citations": []
+        },
+        {
+          "text": "The complete objective can be written as: def loss_fn(out,fg,bnd,dist): return dice_loss(out[:,0:1],fg)+focal_bce(out[:,0:1],fg)+2*focal_bce(out[:,1:2],bnd)+.5*F.smooth_l1_loss(torch.sigmoid(out[:,2:3]),dist).",
+          "citations": []
+        },
+        {
+          "text": "Use percentile normalization, flat-field correction, optional denoising, random intensity scaling, Poisson or Gaussian noise injection, elastic deformation, rotations, flips, and random crops during training because fluorescence images vary in intensity and noise, and elastic augmentation is established for biomedical U-Net training.",
+          "citations": [
+            5,
+            3
+          ]
+        },
+        {
+          "text": "At inference, threshold the foreground probability, subtract pixels whose boundary probability exceeds a learned threshold, and use connected components only to remove very small debris.",
+          "citations": []
+        },
+        {
+          "text": "Compute local maxima of the predicted distance map inside the cleaned foreground mask, enforce a minimum seed separation, and use those maxima as markers for marker-controlled watershed.",
+          "citations": []
+        },
+        {
+          "text": "Run watershed on the negative distance map or on a smoothed intensity-derived landscape, then discard regions below a minimum area or confidence threshold.",
+          "citations": []
+        },
+        {
+          "text": "Marker-controlled watershed is particularly natural for fluorescence microscopy because nuclei can provide seeds while a cell or organelle channel supplies the overall boundary landscape.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Gaussian smoothing, morphological opening, and h-minima suppression should precede watershed because classical watershed is sensitive to noise and can otherwise over-segment small fluctuations.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "For severe overlaps, use the predicted boundary map as a hard watershed barrier and reject a proposed split when the boundary evidence is weak or when the resulting fragments are implausibly small.",
+          "citations": []
+        },
+        {
+          "text": "Cellpose is a strong alternative for objects with highly variable shapes because it predicts flow fields in which pixels are assigned to common cell centers, allowing pixels far from a center to remain associated with the same object.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "The proposed model is preferable when training labels are available and the image domain contains noisy, touching objects for which explicit boundary supervision and a distance field are useful, whereas Cellpose is attractive when a broadly pretrained, general-purpose cell model is more important.",
+          "citations": []
+        },
+        {
+          "text": "StarDist predicts an object probability and radial distances to object boundaries, forms star-convex polygon candidates, and removes duplicate candidates with overlap-based non-maximum suppression.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "StarDist can be more direct and efficient for isolated, approximately star-convex nuclei, but its geometric assumption can be restrictive for elongated, branched, concave, or heavily overlapping organelles.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "Mask R-CNN detects region proposals and then predicts a class, bounding-box refinement, and mask for each region of interest.",
+          "citations": [
+            11
+          ]
+        },
+        {
+          "text": "Mask R-CNN offers explicit object instances and is attractive when bounding-box annotations or multiple object classes are required, but the proposal-and-ROI pipeline is heavier than this dense U-Net and can be less convenient for small, densely packed fluorescence objects.",
+          "citations": []
+        },
+        {
+          "text": "The proposed residual-attention U-Net therefore trades the broad pretrained generality of Cellpose, the compact geometric representation of StarDist, and the detection-oriented structure of Mask R-CNN for dense pixel accuracy, explicit contact supervision, and watershed-based control over touching-object separation.",
+          "citations": []
+        }
+      ]
+    },
+    "started_at": "2026-07-18T21:50:23.806+10:00",
+    "ended_at": "2026-07-18T21:51:01.310+10:00",
+    "duration_ms": 37504,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 10
+    }
+  }
+}

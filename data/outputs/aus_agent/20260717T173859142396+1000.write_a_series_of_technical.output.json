@@ -1,3 +1,3907 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:558e6b104a195a9d53f14d49e260b993d67adb8787246da6a8ea08430287c93a
-size 167254
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-72",
+    "narrative": "Write a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background.",
+    "run_id": "aus-agent-terra-check",
+    "run_desc": "aus_agent research harness (openai/gpt-5.6-terra): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_03876_64641",
+    "shard_01068_15111",
+    "shard_05598_29465",
+    "shard_02738_62757",
+    "shard_02436_51576",
+    "shard_03293_14943",
+    "shard_00107_19064",
+    "shard_05381_75364"
+  ],
+  "answer": [
+    {
+      "text": "Post 1: QLoRA made instruction tuning of very large models feasible on limited hardware by freezing a 4-bit quantized backbone and learning a low-rank correction rather than maintaining trainable full-precision copies of every base weight.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "For a dense weight W ∈ R^(d×d), LoRA writes W′ = W + BA, where B ∈ R^(d×r), A ∈ R^(r×d), and r ≪ d, reducing trainable parameters from d² to 2dr.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "QLoRA backpropagates through frozen quantized W into A and B, so gradients and optimizer state are required principally for the adapters.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "NF4 targets normally distributed weights, blockwise quantization supplies a scale per block, double quantization compresses those scales, and paged optimizers use unified memory to manage transient GPU-memory spikes.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "This enabled reported fine-tuning of a 65B model on one 48GB GPU, supporting private domain adaptation and rapid task-specific iteration.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "The trade-off is a restricted update space, so adapter rank, target modules, data quality, and downstream evaluation determine whether memory savings are worth the loss of full-parameter flexibility.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "A 9,000-example instruction dataset outperformed a 450,000-example alternative in one study, while disagreement between GPT-4 and human judges warns against optimizing only an automated preference metric.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "Post 2: Direct Preference Optimization recast preference alignment as supervised classification, avoiding the conventional sequence of reward-model fitting followed by online reinforcement learning.",
+      "citations": [
+        2,
+        3
+      ]
+    },
+    {
+      "text": "Begin with J(π) = E_(y∼π(·|x)) − β KL(π(·|x) || π_ref(·|x)), where π_ref anchors the policy and β trades reward against deviation.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "The optimum is π_r(y|x) = π_ref(y|x)exp(r(x,y)/β)/Z(x), which rearranges to r(x,y) = βlog + βlog Z(x).",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Substitution into P(y_w ≻ y_l|x) = σ(r_w − r_l) cancels the prompt normalizer, giving the DPO loss −log σ(β ).",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Each pair therefore raises the preferred completion’s reference-relative log probability and lowers the rejected completion’s without an explicit reward model or fresh on-policy samples.",
+      "citations": [
+        2,
+        3
+      ]
+    },
+    {
+      "text": "DPO fits offline comparison data for assistants, summarizers, style control, and single-turn dialogue, but the reference model, β, and coverage of a finite preference dataset still govern out-of-distribution behavior.",
+      "citations": [
+        2,
+        3
+      ]
+    },
+    {
+      "text": "Post 3: Long-context training asks not merely whether a model accepts more tokens, but whether it retrieves and reasons over them without sacrificing short-context competence.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "One recipe continued pretraining from Llama 2 with 400 billion extra tokens in long sequences while preserving its core architecture and modifying positional encoding.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "In RoPE, position p rotates a query or key component by an angle proportional to pω, so reducing the effective angle slows phase change across distant positions and mitigates positional decay.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Instruction tuning can then combine diverse short prompts with synthetic long self-instruction data, extending skills to document analysis, long conversations, and multi-document question answering.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Data quality during continual pretraining mattered more than context length alone, so indiscriminate document packing is unlikely to yield dependable long-range reasoning.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Evaluation should combine language-model loss and synthetic retrieval probes with normal short-context benchmarks, because a model can succeed on a retrieval probe while regressing on ordinary tasks.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Post 4: Data-centric post-training treats a small model’s capacity constraint as a reason to raise the educational density of tokens rather than simply increase scale or collect more web text.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Phi-3 used heavily filtered web data plus reviewed textbook-like synthetic material for mathematics, coding, commonsense reasoning, and general knowledge, progressing from broad foundations toward specialized reasoning.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "This is a curriculum in distribution space: early diverse data builds general linguistic structure, while later high-signal examples bias the conditional distribution toward valued capabilities.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Supervised fine-tuning over reasoning, coding, conversation, identity, and safety can be followed by DPO for chat and responsible-AI preferences, then automated and manual red-team testing.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Compact models are attractive for local deployment where latency or cost dominates, while retrieval can address limited capacity for extensive factual knowledge.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "The open problem is transferability, since an empirically effective data mixture may change with model size, domain, language, and adversarial conditions.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Post 5: Reinforced fine-tuning for reasoning recognizes that one demonstrated chain of thought is only one correct path, whereas online reinforcement learning can explore multiple paths and reward verifiable answers.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "A typical pipeline warms up on supervised question–chain-of-thought pairs, samples responses to question–answer pairs, and applies PPO using correctness against ground truth as reward.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Group Relative Policy Optimization avoids a separate value model by sampling G completions per prompt, scoring them, and assigning normalized relative advantage Â_i = (r_i − mean(r))/std(r).",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "The update raises probability for completions better than their siblings and lowers it for worse ones while preserving PPO’s constrained policy-update mechanism.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "This is especially useful for mathematics and code with exact or executable checks, where rewards need neither human preference labels nor a separately trained reward model.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Outcome rewards are nevertheless imperfect proxies for reasoning quality, because reward hacking produced invalid but rewarded chains of thought in multiple-choice reinforced-fine-tuning experiments.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "The open challenge is process supervision that rewards valid intermediate reasoning without relying on costly and brittle annotation of every acceptable solution path.",
+      "citations": [
+        7
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-72",
+    "status": "completed",
+    "metadata": {
+      "model": "gpt-5.6-terra",
+      "backend": "openai",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-terra-check",
+      "query_source": "Write a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 11,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 11,
+        "commit_context": 3
+      },
+      "retrieved_docids": [
+        "shard_00023_79367",
+        "shard_00100_16648",
+        "shard_00107_19064",
+        "shard_00123_47957",
+        "shard_00189_50225",
+        "shard_00284_53231",
+        "shard_00302_62186",
+        "shard_00320_38396",
+        "shard_00428_29328",
+        "shard_00446_26844",
+        "shard_00644_80931",
+        "shard_00708_37874",
+        "shard_00858_39470",
+        "shard_00917_54587",
+        "shard_00985_48798",
+        "shard_01068_15111",
+        "shard_01083_81411",
+        "shard_01205_63654",
+        "shard_01283_83638",
+        "shard_01307_57811",
+        "shard_01315_63220",
+        "shard_01335_36211",
+        "shard_01341_79935",
+        "shard_01359_72319",
+        "shard_01414_39692",
+        "shard_01450_50560",
+        "shard_01478_23814",
+        "shard_01751_80083",
+        "shard_02008_33147",
+        "shard_02090_70478",
+        "shard_02093_11532",
+        "shard_02297_27511",
+        "shard_02429_75068",
+        "shard_02436_51576",
+        "shard_02466_36730",
+        "shard_02491_83744",
+        "shard_02538_19125",
+        "shard_02621_57625",
+        "shard_02738_62757",
+        "shard_02748_79148",
+        "shard_02910_67541",
+        "shard_03230_84719",
+        "shard_03293_14943",
+        "shard_03321_60174",
+        "shard_03333_40514",
+        "shard_03359_81585",
+        "shard_03396_69675",
+        "shard_03522_4698",
+        "shard_03525_36834",
+        "shard_03670_48733",
+        "shard_03719_53409",
+        "shard_03870_24949",
+        "shard_03876_64641",
+        "shard_03907_69286",
+        "shard_04041_15641",
+        "shard_04054_1657",
+        "shard_04153_24300",
+        "shard_04199_71755",
+        "shard_04246_38475",
+        "shard_04297_20660",
+        "shard_04370_18897",
+        "shard_04539_80726",
+        "shard_04649_7429",
+        "shard_05319_13195",
+        "shard_05381_75364",
+        "shard_05398_65361",
+        "shard_05463_32340",
+        "shard_05598_29465",
+        "shard_05657_45587",
+        "shard_05712_77683",
+        "shard_05724_72968",
+        "shard_05728_43047",
+        "shard_05912_6230",
+        "shard_06408_57639"
+      ],
+      "tokens": {
+        "input": 255998,
+        "input_uncached": 155837,
+        "output": 5401,
+        "cache_read": 100161,
+        "cache_write": 0,
+        "total": 261399,
+        "processed_input": 155837,
+        "processed": 161238,
+        "context_tokens": 28644,
+        "peak_context_tokens": 64062,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00107_19064",
+          "shard_01068_15111",
+          "shard_02436_51576",
+          "shard_02738_62757",
+          "shard_03293_14943",
+          "shard_03876_64641",
+          "shard_05381_75364",
+          "shard_05598_29465"
+        ],
+        "rejected": [
+          "shard_00023_79367",
+          "shard_00100_16648",
+          "shard_00123_47957",
+          "shard_00189_50225",
+          "shard_00284_53231",
+          "shard_00302_62186",
+          "shard_00320_38396",
+          "shard_00428_29328",
+          "shard_00446_26844",
+          "shard_00644_80931",
+          "shard_00708_37874",
+          "shard_00858_39470",
+          "shard_00917_54587",
+          "shard_00985_48798",
+          "shard_01083_81411",
+          "shard_01205_63654",
+          "shard_01283_83638",
+          "shard_01307_57811",
+          "shard_01315_63220",
+          "shard_01335_36211",
+          "shard_01341_79935",
+          "shard_01359_72319",
+          "shard_01414_39692",
+          "shard_01450_50560",
+          "shard_01478_23814",
+          "shard_01751_80083",
+          "shard_02008_33147",
+          "shard_02090_70478",
+          "shard_02093_11532",
+          "shard_02297_27511",
+          "shard_02429_75068",
+          "shard_02466_36730",
+          "shard_02491_83744",
+          "shard_02538_19125",
+          "shard_02621_57625",
+          "shard_02748_79148",
+          "shard_02910_67541",
+          "shard_03230_84719",
+          "shard_03321_60174",
+          "shard_03333_40514",
+          "shard_03359_81585",
+          "shard_03396_69675",
+          "shard_03522_4698",
+          "shard_03525_36834",
+          "shard_03670_48733",
+          "shard_03719_53409",
+          "shard_03870_24949",
+          "shard_03907_69286",
+          "shard_04041_15641",
+          "shard_04054_1657",
+          "shard_04153_24300",
+          "shard_04199_71755",
+          "shard_04246_38475",
+          "shard_04297_20660",
+          "shard_04370_18897",
+          "shard_04539_80726",
+          "shard_04649_7429",
+          "shard_05319_13195",
+          "shard_05398_65361",
+          "shard_05463_32340",
+          "shard_05657_45587",
+          "shard_05712_77683",
+          "shard_05724_72968",
+          "shard_05728_43047",
+          "shard_05912_6230",
+          "shard_06408_57639"
+        ]
+      },
+      "report_repairs": [
+        "sentence 9: dropped uncommitted docids r(x, y)",
+        "sentence 10: dropped uncommitted docids π_r(y|x)/π_ref(y|x)",
+        "sentence 11: dropped uncommitted docids (log, π_θ(y_w|x), −, log, π_ref(y_w|x)), π_θ(y_l|x), π_ref(y_l|x))"
+      ]
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nphrase searches and read results, but it is not evidence and must not support\nfactual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the argument, connections, and voice of the answer are\nyours to build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. Which of\n   these the corpus can actually support is unknown until it answers; the\n   opening searches exist to find that out before the answer's structure is\n   fixed.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\nResearch is one loop — search, commit, decide — repeated until the internal\nsuccess plan is satisfied:\n\n1. **Search.** Round one's queries come from the question: build them only\n   from the question's own wording and plain paraphrases of it. Do not seed\n   a query with candidate answers — specific names, techniques, causes,\n   examples — that the question itself does not mention: you do not know\n   what this corpus holds until it answers, no matter how well you know the\n   subject. In every later round, each new content-bearing query term must\n   be traceable to a document retrieved in an earlier round; prior knowledge\n   may rephrase, disambiguate, and supply synonyms — it may never introduce\n   a candidate the corpus has not yet surfaced.\n2. **Commit.** Read what came back and commit the documents whose distinct\n   contributions the answer will need. Committing nothing is the right call\n   for a batch with nothing worth keeping.\n3. **Decide.** Compare committed material against the plan. If a requirement\n   still lacks support, loop again with queries aimed at that gap. When no\n   meaningful gap remains, stop and write the report — only after committing\n   everything it will cite.\n\nNotes on the loop:\n\n- If reformulated question-term queries keep returning nothing useful, probe\n  candidates from prior knowledge, one query each. A candidate the corpus\n  then returns has been surfaced like any other retrieved material; one it\n  does not return stays out of the answer.\n- The answer's structure follows what was retrieved. Fix the outline — which\n  items, sections, comparisons — only after the rounds that surfaced those\n  items, so that every part of it traces to a committed document.\n- Size the search to the question. Several independent coverage areas call\n  for multiple complementary queries in parallel across them; a single fact,\n  name, date, or definition needs one or two queries, then the answer.\n- Move from broad discovery to targeted follow-ups on what earlier rounds\n  surfaced: specific names, dates, mechanisms, examples, definitions, causal\n  claims, and disputed points.\n- Reformulate weak queries instead of accepting poor coverage: synonyms,\n  alternative terminology, different phrasings.\n- Actively search for counter-evidence, contradictions, limitations, and\n  missing perspectives when they matter to the request.\n- Every tool call must have a concrete purpose tied to an unmet requirement\n  or evidence gap; never call a tool solely to create another model turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write the report only after committing everything it will cite. A report\n  turn issues no tool calls, so a batch still staged when you start writing\n  lapses uncommitted and everything you meant to cite from it becomes\n  invalid — commit first, and write the report on the following turn.\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Friday, 17 July 2026, 17:38:59 +1000 (Australia/Melbourne)\n\nResearch request:\n\nWrite a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background.\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_LMeKZ5A4oAhxeZtaK9kMEPHm",
+              "name": "search",
+              "arguments": {
+                "query": "2023 large language model training fine-tuning advances methodology preference optimization technical report",
+                "k": 8,
+                "budget_tokens_per_result": 6000
+              }
+            },
+            {
+              "id": "call_XDgMbB26snmwSo0JOc8kLm30",
+              "name": "search",
+              "arguments": {
+                "query": "2024 large language model training fine-tuning advances reinforcement learning preference optimization technical report",
+                "k": 8,
+                "budget_tokens_per_result": 6000
+              }
+            },
+            {
+              "id": "call_HTQ1fIIrNrKYd1In0L9xNBnO",
+              "name": "search",
+              "arguments": {
+                "query": "2025 large language model training fine-tuning advances methodology technical report",
+                "k": 8,
+                "budget_tokens_per_result": 6000
+              }
+            },
+            {
+              "id": "call_GMwqAGh7PwPRlkiLo49LWLRC",
+              "name": "search",
+              "arguments": {
+                "query": "2023 2024 2025 large language model fine tuning low rank adaptation preference optimization reinforcement learning",
+                "k": 8,
+                "budget_tokens_per_result": 6000
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T17:38:59.143+10:00",
+        "t_end": "2026-07-17T17:39:02.663+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3519.82,
+          "context_tokens": 3226,
+          "peak_context_tokens": 3226,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3521,
+          "tokens": {
+            "input": 3226,
+            "input_uncached": 3226,
+            "output": 216,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3442,
+            "processed_input": 3226,
+            "processed": 3442,
+            "context": 3226
+          },
+          "provider_usage": {
+            "input_tokens": 3226,
+            "cache_read_input_tokens": 0,
+            "output_tokens": 216
+          },
+          "cumulative_tokens": {
+            "input": 3226,
+            "input_uncached": 3226,
+            "output": 216,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3442,
+            "processed_input": 3226,
+            "processed": 3442
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2023 large language model training fine-tuning advances methodology preference optimization technical report",
+          "k": 8,
+          "budget_tokens_per_result": 6000
+        },
+        "output": {
+          "query": "2023 large language model training fine-tuning advances methodology preference optimization technical report",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05598_29465",
+              "docid": "shard_05598_29465",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 1362,
+              "returned_chars": 1362
+            },
+            {
+              "rank": 2,
+              "id": "shard_06408_57639",
+              "docid": "shard_06408_57639",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 6149,
+              "returned_chars": 6149
+            },
+            {
+              "rank": 3,
+              "id": "shard_05724_72968",
+              "docid": "shard_05724_72968",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3346,
+              "returned_chars": 3346
+            },
+            {
+              "rank": 4,
+              "id": "shard_02621_57625",
+              "docid": "shard_02621_57625",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 2965,
+              "returned_chars": 2965
+            },
+            {
+              "rank": 5,
+              "id": "shard_01083_81411",
+              "docid": "shard_01083_81411",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 947,
+              "returned_chars": 947
+            },
+            {
+              "rank": 6,
+              "id": "shard_00123_47957",
+              "docid": "shard_00123_47957",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": true,
+              "original_chars": 35492,
+              "returned_chars": 29905
+            },
+            {
+              "rank": 7,
+              "id": "shard_05728_43047",
+              "docid": "shard_05728_43047",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1378,
+              "returned_chars": 1378
+            },
+            {
+              "rank": 8,
+              "id": "shard_02466_36730",
+              "docid": "shard_02466_36730",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": true,
+              "original_chars": 61312,
+              "returned_chars": 29718
+            }
+          ],
+          "budget_tokens_per_result": 6000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05598_29465",
+          "shard_06408_57639",
+          "shard_05724_72968",
+          "shard_02621_57625",
+          "shard_01083_81411",
+          "shard_00123_47957",
+          "shard_05728_43047",
+          "shard_02466_36730"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05598_29465",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_06408_57639",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05724_72968",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_02621_57625",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01083_81411",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00123_47957",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05728_43047",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02466_36730",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_LMeKZ5A4oAhxeZtaK9kMEPHm",
+        "id": "step-0001",
+        "t_start": "2026-07-17T17:39:02.664+10:00",
+        "t_end": "2026-07-17T17:39:04.548+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 1883.86,
+          "context_tokens": 3226,
+          "peak_context_tokens": 3226,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5561,
+          "cumulative_tokens": {
+            "input": 3226,
+            "input_uncached": 3226,
+            "output": 216,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3442,
+            "processed_input": 3226,
+            "processed": 3442
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05598_29465",
+            "shard_06408_57639",
+            "shard_05724_72968",
+            "shard_02621_57625",
+            "shard_01083_81411",
+            "shard_00123_47957",
+            "shard_05728_43047",
+            "shard_02466_36730"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2024 large language model training fine-tuning advances reinforcement learning preference optimization technical report",
+          "k": 8,
+          "budget_tokens_per_result": 6000
+        },
+        "output": {
+          "query": "2024 large language model training fine-tuning advances reinforcement learning preference optimization technical report",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02491_83744",
+              "docid": "shard_02491_83744",
+              "kind": "document",
+              "rrf_score": 0.02782,
+              "truncated": false,
+              "original_chars": 3158,
+              "returned_chars": 3158
+            },
+            {
+              "rank": 2,
+              "id": "shard_05598_29465",
+              "docid": "shard_05598_29465",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 1362,
+              "returned_chars": 1362
+            },
+            {
+              "rank": 3,
+              "id": "shard_02910_67541",
+              "docid": "shard_02910_67541",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": true,
+              "original_chars": 64528,
+              "returned_chars": 29372
+            },
+            {
+              "rank": 4,
+              "id": "shard_03230_84719",
+              "docid": "shard_03230_84719",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3744,
+              "returned_chars": 3744
+            },
+            {
+              "rank": 5,
+              "id": "shard_03333_40514",
+              "docid": "shard_03333_40514",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 9476,
+              "returned_chars": 9476
+            },
+            {
+              "rank": 6,
+              "id": "shard_01083_81411",
+              "docid": "shard_01083_81411",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 947,
+              "returned_chars": 947
+            },
+            {
+              "rank": 7,
+              "id": "shard_01414_39692",
+              "docid": "shard_01414_39692",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 8553,
+              "returned_chars": 8553
+            },
+            {
+              "rank": 8,
+              "id": "shard_03396_69675",
+              "docid": "shard_03396_69675",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4603,
+              "returned_chars": 4603
+            }
+          ],
+          "budget_tokens_per_result": 6000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02491_83744",
+          "shard_05598_29465",
+          "shard_02910_67541",
+          "shard_03230_84719",
+          "shard_03333_40514",
+          "shard_01083_81411",
+          "shard_01414_39692",
+          "shard_03396_69675"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02491_83744",
+            "score": 0.02782
+          },
+          {
+            "docid": "shard_05598_29465",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02910_67541",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03230_84719",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03333_40514",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01083_81411",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01414_39692",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03396_69675",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_XDgMbB26snmwSo0JOc8kLm30",
+        "id": "step-0002",
+        "t_start": "2026-07-17T17:39:02.664+10:00",
+        "t_end": "2026-07-17T17:39:04.703+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 2039.186,
+          "context_tokens": 3226,
+          "peak_context_tokens": 3226,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5561,
+          "cumulative_tokens": {
+            "input": 3226,
+            "input_uncached": 3226,
+            "output": 216,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3442,
+            "processed_input": 3226,
+            "processed": 3442
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02491_83744",
+            "shard_05598_29465",
+            "shard_02910_67541",
+            "shard_03230_84719",
+            "shard_03333_40514",
+            "shard_01083_81411",
+            "shard_01414_39692",
+            "shard_03396_69675"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2025 large language model training fine-tuning advances methodology technical report",
+          "k": 8,
+          "budget_tokens_per_result": 6000
+        },
+        "output": {
+          "query": "2025 large language model training fine-tuning advances methodology technical report",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05398_65361",
+              "docid": "shard_05398_65361",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3916,
+              "returned_chars": 3916
+            },
+            {
+              "rank": 2,
+              "id": "shard_04649_7429",
+              "docid": "shard_04649_7429",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3622,
+              "returned_chars": 3622
+            },
+            {
+              "rank": 3,
+              "id": "shard_04153_24300",
+              "docid": "shard_04153_24300",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1233,
+              "returned_chars": 1233
+            },
+            {
+              "rank": 4,
+              "id": "shard_01205_63654",
+              "docid": "shard_01205_63654",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 13830,
+              "returned_chars": 13830
+            },
+            {
+              "rank": 5,
+              "id": "shard_00985_48798",
+              "docid": "shard_00985_48798",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3365,
+              "returned_chars": 3365
+            },
+            {
+              "rank": 6,
+              "id": "shard_03293_14943",
+              "docid": "shard_03293_14943",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 17619,
+              "returned_chars": 17619
+            },
+            {
+              "rank": 7,
+              "id": "shard_05912_6230",
+              "docid": "shard_05912_6230",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 744,
+              "returned_chars": 744
+            },
+            {
+              "rank": 8,
+              "id": "shard_00644_80931",
+              "docid": "shard_00644_80931",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3860,
+              "returned_chars": 3860
+            }
+          ],
+          "budget_tokens_per_result": 6000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05398_65361",
+          "shard_04649_7429",
+          "shard_04153_24300",
+          "shard_01205_63654",
+          "shard_00985_48798",
+          "shard_03293_14943",
+          "shard_05912_6230",
+          "shard_00644_80931"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05398_65361",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04649_7429",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04153_24300",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01205_63654",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00985_48798",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03293_14943",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05912_6230",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_00644_80931",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_HTQ1fIIrNrKYd1In0L9xNBnO",
+        "id": "step-0003",
+        "t_start": "2026-07-17T17:39:02.664+10:00",
+        "t_end": "2026-07-17T17:39:04.248+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 1584.564,
+          "context_tokens": 3226,
+          "peak_context_tokens": 3226,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5561,
+          "cumulative_tokens": {
+            "input": 3226,
+            "input_uncached": 3226,
+            "output": 216,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3442,
+            "processed_input": 3226,
+            "processed": 3442
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05398_65361",
+            "shard_04649_7429",
+            "shard_04153_24300",
+            "shard_01205_63654",
+            "shard_00985_48798",
+            "shard_03293_14943",
+            "shard_05912_6230",
+            "shard_00644_80931"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2023 2024 2025 large language model fine tuning low rank adaptation preference optimization reinforcement learning",
+          "k": 8,
+          "budget_tokens_per_result": 6000
+        },
+        "output": {
+          "query": "2023 2024 2025 large language model fine tuning low rank adaptation preference optimization reinforcement learning",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00446_26844",
+              "docid": "shard_00446_26844",
+              "kind": "document",
+              "rrf_score": 0.02739,
+              "truncated": false,
+              "original_chars": 2335,
+              "returned_chars": 2335
+            },
+            {
+              "rank": 2,
+              "id": "shard_00858_39470",
+              "docid": "shard_00858_39470",
+              "kind": "document",
+              "rrf_score": 0.022511,
+              "truncated": false,
+              "original_chars": 4160,
+              "returned_chars": 4160
+            },
+            {
+              "rank": 3,
+              "id": "shard_05598_29465",
+              "docid": "shard_05598_29465",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 1362,
+              "returned_chars": 1362
+            },
+            {
+              "rank": 4,
+              "id": "shard_03876_64641",
+              "docid": "shard_03876_64641",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 10291,
+              "returned_chars": 10291
+            },
+            {
+              "rank": 5,
+              "id": "shard_05728_43047",
+              "docid": "shard_05728_43047",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1378,
+              "returned_chars": 1378
+            },
+            {
+              "rank": 6,
+              "id": "shard_02538_19125",
+              "docid": "shard_02538_19125",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 15948,
+              "returned_chars": 15948
+            },
+            {
+              "rank": 7,
+              "id": "shard_04370_18897",
+              "docid": "shard_04370_18897",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1577,
+              "returned_chars": 1577
+            },
+            {
+              "rank": 8,
+              "id": "shard_02093_11532",
+              "docid": "shard_02093_11532",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 16634,
+              "returned_chars": 16634
+            }
+          ],
+          "budget_tokens_per_result": 6000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00446_26844",
+          "shard_00858_39470",
+          "shard_05598_29465",
+          "shard_03876_64641",
+          "shard_05728_43047",
+          "shard_02538_19125",
+          "shard_04370_18897",
+          "shard_02093_11532"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00446_26844",
+            "score": 0.02739
+          },
+          {
+            "docid": "shard_00858_39470",
+            "score": 0.022511
+          },
+          {
+            "docid": "shard_05598_29465",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03876_64641",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05728_43047",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_02538_19125",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04370_18897",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02093_11532",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_GMwqAGh7PwPRlkiLo49LWLRC",
+        "id": "step-0004",
+        "t_start": "2026-07-17T17:39:02.664+10:00",
+        "t_end": "2026-07-17T17:39:04.343+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 1679.486,
+          "context_tokens": 3226,
+          "peak_context_tokens": 3226,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5561,
+          "cumulative_tokens": {
+            "input": 3226,
+            "input_uncached": 3226,
+            "output": 216,
+            "cache_read": 0,
+            "cache_write": 0,
+            "total": 3442,
+            "processed_input": 3226,
+            "processed": 3442
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00446_26844",
+            "shard_00858_39470",
+            "shard_05598_29465",
+            "shard_03876_64641",
+            "shard_05728_43047",
+            "shard_02538_19125",
+            "shard_04370_18897",
+            "shard_02093_11532"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_LMeKZ5A4oAhxeZtaK9kMEPHm",
+            "call_XDgMbB26snmwSo0JOc8kLm30",
+            "call_HTQ1fIIrNrKYd1In0L9xNBnO",
+            "call_GMwqAGh7PwPRlkiLo49LWLRC"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_WcKRicViL4k6P9yGusXr8Sr1",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_05598_29465",
+                    "reason": "Primary DPO abstract establishes its preference-learning motivation, single-stage objective framing, and removal of reward-model fitting, online sampling, and extensive tuning."
+                  },
+                  {
+                    "docid": "shard_03876_64641",
+                    "reason": "Detailed technical coverage of 2023 QLoRA, including NF4, double quantization, paged optimizers, frozen quantized backbone, and PEFT context."
+                  },
+                  {
+                    "docid": "shard_03293_14943",
+                    "reason": "Detailed Phi-3 case study of curated/synthetic data, staged training, SFT/DPO post-training, long-context extension, applications, and limitations."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T17:39:04.704+10:00",
+        "t_end": "2026-07-17T17:39:08.358+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3653.628,
+          "context_tokens": 54282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 9216,
+          "tokens": {
+            "input": 54282,
+            "input_uncached": 51059,
+            "output": 234,
+            "cache_read": 3223,
+            "cache_write": 0,
+            "total": 54516,
+            "processed_input": 51059,
+            "processed": 51293,
+            "context": 54282
+          },
+          "provider_usage": {
+            "input_tokens": 51059,
+            "cache_read_input_tokens": 3223,
+            "output_tokens": 234
+          },
+          "cumulative_tokens": {
+            "input": 57508,
+            "input_uncached": 54285,
+            "output": 450,
+            "cache_read": 3223,
+            "cache_write": 0,
+            "total": 57958,
+            "processed_input": 54285,
+            "processed": 54735
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05598_29465",
+            "shard_06408_57639",
+            "shard_05724_72968",
+            "shard_02621_57625",
+            "shard_01083_81411",
+            "shard_00123_47957",
+            "shard_05728_43047",
+            "shard_02466_36730",
+            "shard_02491_83744",
+            "shard_02910_67541",
+            "shard_03230_84719",
+            "shard_03333_40514",
+            "shard_01414_39692",
+            "shard_03396_69675",
+            "shard_05398_65361",
+            "shard_04649_7429",
+            "shard_04153_24300",
+            "shard_01205_63654",
+            "shard_00985_48798",
+            "shard_03293_14943",
+            "shard_05912_6230",
+            "shard_00644_80931",
+            "shard_00446_26844",
+            "shard_00858_39470",
+            "shard_03876_64641",
+            "shard_02538_19125",
+            "shard_04370_18897",
+            "shard_02093_11532"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_05598_29465",
+              "reason": "Primary DPO abstract establishes its preference-learning motivation, single-stage objective framing, and removal of reward-model fitting, online sampling, and extensive tuning."
+            },
+            {
+              "docid": "shard_03876_64641",
+              "reason": "Detailed technical coverage of 2023 QLoRA, including NF4, double quantization, paged optimizers, frozen quantized backbone, and PEFT context."
+            },
+            {
+              "docid": "shard_03293_14943",
+              "reason": "Detailed Phi-3 case study of curated/synthetic data, staged training, SFT/DPO post-training, long-context extension, applications, and limitations."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_05598_29465\", \"shard_03293_14943\", \"shard_03876_64641\"], \"rejected\": [{\"docid\": \"shard_06408_57639\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05724_72968\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02621_57625\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01083_81411\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00123_47957\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05728_43047\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02466_36730\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02491_83744\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02910_67541\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03230_84719\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03333_40514\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01414_39692\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03396_69675\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05398_65361\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04649_7429\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04153_24300\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01205_63654\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00985_48798\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05912_6230\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00644_80931\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00446_26844\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00858_39470\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02538_19125\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04370_18897\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02093_11532\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05598_29465\", \"reason\": \"duplicate/already committed; repeated occurrence within the staged batch compacted\"}, {\"docid\": \"shard_05598_29465\", \"reason\": \"duplicate/already committed; repeated occurrence within the staged batch compacted\"}]}\n[context budget: 54,282 / 500,000 tokens (10.9%) · elapsed: 0m 9s]",
+        "failed": false,
+        "tool_call_id": "call_WcKRicViL4k6P9yGusXr8Sr1",
+        "id": "step-0006",
+        "t_start": "2026-07-17T17:39:08.360+10:00",
+        "t_end": "2026-07-17T17:39:08.363+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 2.637,
+          "context_tokens": 54282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 9221,
+          "cumulative_tokens": {
+            "input": 57508,
+            "input_uncached": 54285,
+            "output": 450,
+            "cache_read": 3223,
+            "cache_write": 0,
+            "total": 57958,
+            "processed_input": 54285,
+            "processed": 54735
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05598_29465",
+            "shard_06408_57639",
+            "shard_05724_72968",
+            "shard_02621_57625",
+            "shard_01083_81411",
+            "shard_00123_47957",
+            "shard_05728_43047",
+            "shard_02466_36730",
+            "shard_02491_83744",
+            "shard_02910_67541",
+            "shard_03230_84719",
+            "shard_03333_40514",
+            "shard_01414_39692",
+            "shard_03396_69675",
+            "shard_05398_65361",
+            "shard_04649_7429",
+            "shard_04153_24300",
+            "shard_01205_63654",
+            "shard_00985_48798",
+            "shard_03293_14943",
+            "shard_05912_6230",
+            "shard_00644_80931",
+            "shard_00446_26844",
+            "shard_00858_39470",
+            "shard_03876_64641",
+            "shard_02538_19125",
+            "shard_04370_18897",
+            "shard_02093_11532"
+          ],
+          "committed": [
+            "shard_05598_29465",
+            "shard_03293_14943",
+            "shard_03876_64641"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_06408_57639",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05724_72968",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02621_57625",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01083_81411",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00123_47957",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05728_43047",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02466_36730",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02491_83744",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02910_67541",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03230_84719",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03333_40514",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01414_39692",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03396_69675",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05398_65361",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04649_7429",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04153_24300",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01205_63654",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00985_48798",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05912_6230",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00644_80931",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00446_26844",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00858_39470",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02538_19125",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04370_18897",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02093_11532",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05598_29465",
+              "reason": "duplicate/already committed; repeated occurrence within the staged batch compacted"
+            },
+            {
+              "docid": "shard_05598_29465",
+              "reason": "duplicate/already committed; repeated occurrence within the staged batch compacted"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_WcKRicViL4k6P9yGusXr8Sr1"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_BlLgWPNg9but1Ulutqja1UD3",
+              "name": "search",
+              "arguments": {
+                "query": "Direct Preference Optimization derivation reward function optimal policy beta reference model log sigmoid loss",
+                "k": 6,
+                "budget_tokens_per_result": 7000
+              }
+            },
+            {
+              "id": "call_depH7C6Ye3n6S0TKrYN0bzgD",
+              "name": "search",
+              "arguments": {
+                "query": "QLoRA NF4 double quantization paged optimizers derivation 2023 paper",
+                "k": 6,
+                "budget_tokens_per_result": 7000
+              }
+            },
+            {
+              "id": "call_VxTp8rOgFbo2oO6OpyRIQC4y",
+              "name": "search",
+              "arguments": {
+                "query": "2025 large language model training reasoning reinforcement learning technical report methodology",
+                "k": 8,
+                "budget_tokens_per_result": 7000
+              }
+            },
+            {
+              "id": "call_UEoNHjg3w45fSvD5OzT8xfEx",
+              "name": "search",
+              "arguments": {
+                "query": "2024 large language model long context training fine tuning methodology technical report",
+                "k": 8,
+                "budget_tokens_per_result": 7000
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0007",
+        "t_start": "2026-07-17T17:39:08.363+10:00",
+        "t_end": "2026-07-17T17:39:12.051+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3688.102,
+          "context_tokens": 13282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 12909,
+          "tokens": {
+            "input": 13282,
+            "input_uncached": 10059,
+            "output": 306,
+            "cache_read": 3223,
+            "cache_write": 0,
+            "total": 13588,
+            "processed_input": 10059,
+            "processed": 10365,
+            "context": 13282
+          },
+          "provider_usage": {
+            "input_tokens": 10059,
+            "cache_read_input_tokens": 3223,
+            "output_tokens": 306
+          },
+          "cumulative_tokens": {
+            "input": 70790,
+            "input_uncached": 64344,
+            "output": 756,
+            "cache_read": 6446,
+            "cache_write": 0,
+            "total": 71546,
+            "processed_input": 64344,
+            "processed": 65100
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_03293_14943",
+            "shard_03876_64641",
+            "shard_05598_29465"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Direct Preference Optimization derivation reward function optimal policy beta reference model log sigmoid loss",
+          "k": 6,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "Direct Preference Optimization derivation reward function optimal policy beta reference model log sigmoid loss",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02738_62757",
+              "docid": "shard_02738_62757",
+              "kind": "document",
+              "rrf_score": 0.032258,
+              "truncated": false,
+              "original_chars": 8709,
+              "returned_chars": 8709
+            },
+            {
+              "rank": 2,
+              "id": "shard_00100_16648",
+              "docid": "shard_00100_16648",
+              "kind": "document",
+              "rrf_score": 0.02886,
+              "truncated": false,
+              "original_chars": 2724,
+              "returned_chars": 2724
+            },
+            {
+              "rank": 3,
+              "id": "shard_02297_27511",
+              "docid": "shard_02297_27511",
+              "kind": "document",
+              "rrf_score": 0.028298,
+              "truncated": false,
+              "original_chars": 3726,
+              "returned_chars": 3726
+            },
+            {
+              "rank": 4,
+              "id": "shard_05463_32340",
+              "docid": "shard_05463_32340",
+              "kind": "document",
+              "rrf_score": 0.027973,
+              "truncated": false,
+              "original_chars": 4300,
+              "returned_chars": 4300
+            },
+            {
+              "rank": 5,
+              "id": "shard_00023_79367",
+              "docid": "shard_00023_79367",
+              "kind": "document",
+              "rrf_score": 0.024802,
+              "truncated": false,
+              "original_chars": 4220,
+              "returned_chars": 4220
+            },
+            {
+              "rank": 6,
+              "id": "shard_04054_1657",
+              "docid": "shard_04054_1657",
+              "kind": "document",
+              "rrf_score": 0.024481,
+              "truncated": false,
+              "original_chars": 5571,
+              "returned_chars": 5571
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02738_62757",
+          "shard_00100_16648",
+          "shard_02297_27511",
+          "shard_05463_32340",
+          "shard_00023_79367",
+          "shard_04054_1657"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02738_62757",
+            "score": 0.032258
+          },
+          {
+            "docid": "shard_00100_16648",
+            "score": 0.02886
+          },
+          {
+            "docid": "shard_02297_27511",
+            "score": 0.028298
+          },
+          {
+            "docid": "shard_05463_32340",
+            "score": 0.027973
+          },
+          {
+            "docid": "shard_00023_79367",
+            "score": 0.024802
+          },
+          {
+            "docid": "shard_04054_1657",
+            "score": 0.024481
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_BlLgWPNg9but1Ulutqja1UD3",
+        "id": "step-0008",
+        "t_start": "2026-07-17T17:39:12.053+10:00",
+        "t_end": "2026-07-17T17:39:13.381+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 1327.671,
+          "context_tokens": 13282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14239,
+          "cumulative_tokens": {
+            "input": 70790,
+            "input_uncached": 64344,
+            "output": 756,
+            "cache_read": 6446,
+            "cache_write": 0,
+            "total": 71546,
+            "processed_input": 64344,
+            "processed": 65100
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02738_62757",
+            "shard_00100_16648",
+            "shard_02297_27511",
+            "shard_05463_32340",
+            "shard_00023_79367",
+            "shard_04054_1657"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "QLoRA NF4 double quantization paged optimizers derivation 2023 paper",
+          "k": 6,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "QLoRA NF4 double quantization paged optimizers derivation 2023 paper",
+          "k": 6,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05319_13195",
+              "docid": "shard_05319_13195",
+              "kind": "document",
+              "rrf_score": 0.032018,
+              "truncated": false,
+              "original_chars": 2848,
+              "returned_chars": 2848
+            },
+            {
+              "rank": 2,
+              "id": "shard_04246_38475",
+              "docid": "shard_04246_38475",
+              "kind": "document",
+              "rrf_score": 0.030415,
+              "truncated": false,
+              "original_chars": 2473,
+              "returned_chars": 2473
+            },
+            {
+              "rank": 3,
+              "id": "shard_02429_75068",
+              "docid": "shard_02429_75068",
+              "kind": "document",
+              "rrf_score": 0.030159,
+              "truncated": false,
+              "original_chars": 2213,
+              "returned_chars": 2213
+            },
+            {
+              "rank": 4,
+              "id": "shard_01068_15111",
+              "docid": "shard_01068_15111",
+              "kind": "document",
+              "rrf_score": 0.028986,
+              "truncated": false,
+              "original_chars": 3893,
+              "returned_chars": 3893
+            },
+            {
+              "rank": 5,
+              "id": "shard_04199_71755",
+              "docid": "shard_04199_71755",
+              "kind": "document",
+              "rrf_score": 0.028169,
+              "truncated": false,
+              "original_chars": 2374,
+              "returned_chars": 2374
+            },
+            {
+              "rank": 6,
+              "id": "shard_00708_37874",
+              "docid": "shard_00708_37874",
+              "kind": "document",
+              "rrf_score": 0.027047,
+              "truncated": false,
+              "original_chars": 3465,
+              "returned_chars": 3465
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05319_13195",
+          "shard_04246_38475",
+          "shard_02429_75068",
+          "shard_01068_15111",
+          "shard_04199_71755",
+          "shard_00708_37874"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05319_13195",
+            "score": 0.032018
+          },
+          {
+            "docid": "shard_04246_38475",
+            "score": 0.030415
+          },
+          {
+            "docid": "shard_02429_75068",
+            "score": 0.030159
+          },
+          {
+            "docid": "shard_01068_15111",
+            "score": 0.028986
+          },
+          {
+            "docid": "shard_04199_71755",
+            "score": 0.028169
+          },
+          {
+            "docid": "shard_00708_37874",
+            "score": 0.027047
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_depH7C6Ye3n6S0TKrYN0bzgD",
+        "id": "step-0009",
+        "t_start": "2026-07-17T17:39:12.054+10:00",
+        "t_end": "2026-07-17T17:39:12.574+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 520.232,
+          "context_tokens": 13282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14239,
+          "cumulative_tokens": {
+            "input": 70790,
+            "input_uncached": 64344,
+            "output": 756,
+            "cache_read": 6446,
+            "cache_write": 0,
+            "total": 71546,
+            "processed_input": 64344,
+            "processed": 65100
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05319_13195",
+            "shard_04246_38475",
+            "shard_02429_75068",
+            "shard_01068_15111",
+            "shard_04199_71755",
+            "shard_00708_37874"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2025 large language model training reasoning reinforcement learning technical report methodology",
+          "k": 8,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "2025 large language model training reasoning reinforcement learning technical report methodology",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00428_29328",
+              "docid": "shard_00428_29328",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 144,
+              "returned_chars": 144
+            },
+            {
+              "rank": 2,
+              "id": "shard_03870_24949",
+              "docid": "shard_03870_24949",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 12670,
+              "returned_chars": 12670
+            },
+            {
+              "rank": 3,
+              "id": "shard_04297_20660",
+              "docid": "shard_04297_20660",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 144,
+              "returned_chars": 144
+            },
+            {
+              "rank": 4,
+              "id": "shard_04649_7429",
+              "docid": "shard_04649_7429",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3622,
+              "returned_chars": 3622
+            },
+            {
+              "rank": 5,
+              "id": "shard_03907_69286",
+              "docid": "shard_03907_69286",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 25654,
+              "returned_chars": 25654
+            },
+            {
+              "rank": 6,
+              "id": "shard_03525_36834",
+              "docid": "shard_03525_36834",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2952,
+              "returned_chars": 2952
+            },
+            {
+              "rank": 7,
+              "id": "shard_00284_53231",
+              "docid": "shard_00284_53231",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3238,
+              "returned_chars": 3238
+            },
+            {
+              "rank": 8,
+              "id": "shard_03719_53409",
+              "docid": "shard_03719_53409",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4376,
+              "returned_chars": 4376
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00428_29328",
+          "shard_03870_24949",
+          "shard_04297_20660",
+          "shard_04649_7429",
+          "shard_03907_69286",
+          "shard_03525_36834",
+          "shard_00284_53231",
+          "shard_03719_53409"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00428_29328",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03870_24949",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04297_20660",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04649_7429",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03907_69286",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03525_36834",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00284_53231",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_03719_53409",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_VxTp8rOgFbo2oO6OpyRIQC4y",
+        "id": "step-0010",
+        "t_start": "2026-07-17T17:39:12.054+10:00",
+        "t_end": "2026-07-17T17:39:13.318+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 1264.886,
+          "context_tokens": 13282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14239,
+          "cumulative_tokens": {
+            "input": 70790,
+            "input_uncached": 64344,
+            "output": 756,
+            "cache_read": 6446,
+            "cache_write": 0,
+            "total": 71546,
+            "processed_input": 64344,
+            "processed": 65100
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00428_29328",
+            "shard_03870_24949",
+            "shard_04297_20660",
+            "shard_04649_7429",
+            "shard_03907_69286",
+            "shard_03525_36834",
+            "shard_00284_53231",
+            "shard_03719_53409"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2024 large language model long context training fine tuning methodology technical report",
+          "k": 8,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "2024 large language model long context training fine tuning methodology technical report",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02436_51576",
+              "docid": "shard_02436_51576",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3640,
+              "returned_chars": 3640
+            },
+            {
+              "rank": 2,
+              "id": "shard_00917_54587",
+              "docid": "shard_00917_54587",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 6364,
+              "returned_chars": 6364
+            },
+            {
+              "rank": 3,
+              "id": "shard_03522_4698",
+              "docid": "shard_03522_4698",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1080,
+              "returned_chars": 1080
+            },
+            {
+              "rank": 4,
+              "id": "shard_04041_15641",
+              "docid": "shard_04041_15641",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 5660,
+              "returned_chars": 5660
+            },
+            {
+              "rank": 5,
+              "id": "shard_01359_72319",
+              "docid": "shard_01359_72319",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3797,
+              "returned_chars": 3797
+            },
+            {
+              "rank": 6,
+              "id": "shard_02008_33147",
+              "docid": "shard_02008_33147",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 13430,
+              "returned_chars": 13430
+            },
+            {
+              "rank": 7,
+              "id": "shard_03670_48733",
+              "docid": "shard_03670_48733",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3377,
+              "returned_chars": 3377
+            },
+            {
+              "rank": 8,
+              "id": "shard_01341_79935",
+              "docid": "shard_01341_79935",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 11463,
+              "returned_chars": 11463
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02436_51576",
+          "shard_00917_54587",
+          "shard_03522_4698",
+          "shard_04041_15641",
+          "shard_01359_72319",
+          "shard_02008_33147",
+          "shard_03670_48733",
+          "shard_01341_79935"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02436_51576",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00917_54587",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03522_4698",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04041_15641",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01359_72319",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02008_33147",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03670_48733",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_01341_79935",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_UEoNHjg3w45fSvD5OzT8xfEx",
+        "id": "step-0011",
+        "t_start": "2026-07-17T17:39:12.054+10:00",
+        "t_end": "2026-07-17T17:39:13.236+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 1182.037,
+          "context_tokens": 13282,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14240,
+          "cumulative_tokens": {
+            "input": 70790,
+            "input_uncached": 64344,
+            "output": 756,
+            "cache_read": 6446,
+            "cache_write": 0,
+            "total": 71546,
+            "processed_input": 64344,
+            "processed": 65100
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02436_51576",
+            "shard_00917_54587",
+            "shard_03522_4698",
+            "shard_04041_15641",
+            "shard_01359_72319",
+            "shard_02008_33147",
+            "shard_03670_48733",
+            "shard_01341_79935"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_BlLgWPNg9but1Ulutqja1UD3",
+            "call_depH7C6Ye3n6S0TKrYN0bzgD",
+            "call_VxTp8rOgFbo2oO6OpyRIQC4y",
+            "call_UEoNHjg3w45fSvD5OzT8xfEx"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_18J7uYCWBIeC7EsHSjhzgGpg",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_02738_62757",
+                    "reason": "Provides the DPO derivation bridge from KL-regularized optimal policy to reward reparameterization, Bradley–Terry cancellation, and operational pipeline."
+                  },
+                  {
+                    "docid": "shard_01068_15111",
+                    "reason": "Adds concrete QLoRA operating details and limitations-oriented evaluation evidence: 65B on one 48GB GPU, double-quantization savings, unified-memory paging, data-quality finding, and evaluation disagreement."
+                  },
+                  {
+                    "docid": "shard_02436_51576",
+                    "reason": "Documents continual-pretraining long-context method, RoPE angle modification, synthetic long instruction data, data quality finding, and evaluation design."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0012",
+        "t_start": "2026-07-17T17:39:13.382+10:00",
+        "t_end": "2026-07-17T17:39:18.889+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 5507.845,
+          "context_tokens": 45837,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19747,
+          "tokens": {
+            "input": 45837,
+            "input_uncached": 32558,
+            "output": 288,
+            "cache_read": 13279,
+            "cache_write": 0,
+            "total": 46125,
+            "processed_input": 32558,
+            "processed": 32846,
+            "context": 45837
+          },
+          "provider_usage": {
+            "input_tokens": 32558,
+            "cache_read_input_tokens": 13279,
+            "output_tokens": 288
+          },
+          "cumulative_tokens": {
+            "input": 116627,
+            "input_uncached": 96902,
+            "output": 1044,
+            "cache_read": 19725,
+            "cache_write": 0,
+            "total": 117671,
+            "processed_input": 96902,
+            "processed": 97946
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02738_62757",
+            "shard_00100_16648",
+            "shard_02297_27511",
+            "shard_05463_32340",
+            "shard_00023_79367",
+            "shard_04054_1657",
+            "shard_05319_13195",
+            "shard_04246_38475",
+            "shard_02429_75068",
+            "shard_01068_15111",
+            "shard_04199_71755",
+            "shard_00708_37874",
+            "shard_00428_29328",
+            "shard_03870_24949",
+            "shard_04297_20660",
+            "shard_04649_7429",
+            "shard_03907_69286",
+            "shard_03525_36834",
+            "shard_00284_53231",
+            "shard_03719_53409",
+            "shard_02436_51576",
+            "shard_00917_54587",
+            "shard_03522_4698",
+            "shard_04041_15641",
+            "shard_01359_72319",
+            "shard_02008_33147",
+            "shard_03670_48733",
+            "shard_01341_79935"
+          ],
+          "committed": [
+            "shard_03293_14943",
+            "shard_03876_64641",
+            "shard_05598_29465"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_02738_62757",
+              "reason": "Provides the DPO derivation bridge from KL-regularized optimal policy to reward reparameterization, Bradley–Terry cancellation, and operational pipeline."
+            },
+            {
+              "docid": "shard_01068_15111",
+              "reason": "Adds concrete QLoRA operating details and limitations-oriented evaluation evidence: 65B on one 48GB GPU, double-quantization savings, unified-memory paging, data-quality finding, and evaluation disagreement."
+            },
+            {
+              "docid": "shard_02436_51576",
+              "reason": "Documents continual-pretraining long-context method, RoPE angle modification, synthetic long instruction data, data quality finding, and evaluation design."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_02738_62757\", \"shard_01068_15111\", \"shard_02436_51576\"], \"rejected\": [{\"docid\": \"shard_00100_16648\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02297_27511\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05463_32340\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00023_79367\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04054_1657\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05319_13195\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04246_38475\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02429_75068\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04199_71755\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00708_37874\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00428_29328\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03870_24949\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04297_20660\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04649_7429\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03907_69286\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03525_36834\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00284_53231\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03719_53409\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00917_54587\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03522_4698\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04041_15641\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01359_72319\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02008_33147\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03670_48733\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01341_79935\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 45,837 / 500,000 tokens (9.2%) · elapsed: 0m 19s]",
+        "failed": false,
+        "tool_call_id": "call_18J7uYCWBIeC7EsHSjhzgGpg",
+        "id": "step-0013",
+        "t_start": "2026-07-17T17:39:18.893+10:00",
+        "t_end": "2026-07-17T17:39:18.894+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 1.607,
+          "context_tokens": 45837,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19752,
+          "cumulative_tokens": {
+            "input": 116627,
+            "input_uncached": 96902,
+            "output": 1044,
+            "cache_read": 19725,
+            "cache_write": 0,
+            "total": 117671,
+            "processed_input": 96902,
+            "processed": 97946
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02738_62757",
+            "shard_00100_16648",
+            "shard_02297_27511",
+            "shard_05463_32340",
+            "shard_00023_79367",
+            "shard_04054_1657",
+            "shard_05319_13195",
+            "shard_04246_38475",
+            "shard_02429_75068",
+            "shard_01068_15111",
+            "shard_04199_71755",
+            "shard_00708_37874",
+            "shard_00428_29328",
+            "shard_03870_24949",
+            "shard_04297_20660",
+            "shard_04649_7429",
+            "shard_03907_69286",
+            "shard_03525_36834",
+            "shard_00284_53231",
+            "shard_03719_53409",
+            "shard_02436_51576",
+            "shard_00917_54587",
+            "shard_03522_4698",
+            "shard_04041_15641",
+            "shard_01359_72319",
+            "shard_02008_33147",
+            "shard_03670_48733",
+            "shard_01341_79935"
+          ],
+          "committed": [
+            "shard_02738_62757",
+            "shard_01068_15111",
+            "shard_02436_51576"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_00100_16648",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02297_27511",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05463_32340",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00023_79367",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04054_1657",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05319_13195",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04246_38475",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02429_75068",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04199_71755",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00708_37874",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00428_29328",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03870_24949",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04297_20660",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04649_7429",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03907_69286",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03525_36834",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00284_53231",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03719_53409",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00917_54587",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03522_4698",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04041_15641",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01359_72319",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02008_33147",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03670_48733",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01341_79935",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_18J7uYCWBIeC7EsHSjhzgGpg"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_hA4yF8XUNEp5Wi7zjpQQw8v9",
+              "name": "search",
+              "arguments": {
+                "query": "Group Relative Policy Optimization 2025 large language model training methodology loss",
+                "k": 8,
+                "budget_tokens_per_result": 7000
+              }
+            },
+            {
+              "id": "call_8g7MVOvBkeCt2HhmzhUIINQ7",
+              "name": "search",
+              "arguments": {
+                "query": "DeepSeek R1 2025 reinforcement learning training group relative policy optimization technical report",
+                "k": 8,
+                "budget_tokens_per_result": 7000
+              }
+            },
+            {
+              "id": "call_2r4uX702cjdTuVjYMlaYrUxs",
+              "name": "search",
+              "arguments": {
+                "query": "2025 test time reinforcement learning large language model fine tuning verifiable rewards methodology",
+                "k": 8,
+                "budget_tokens_per_result": 7000
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-17T17:39:18.894+10:00",
+        "t_end": "2026-07-17T17:39:23.086+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 4191.807,
+          "context_tokens": 20501,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 23944,
+          "tokens": {
+            "input": 20501,
+            "input_uncached": 7222,
+            "output": 136,
+            "cache_read": 13279,
+            "cache_write": 0,
+            "total": 20637,
+            "processed_input": 7222,
+            "processed": 7358,
+            "context": 20501
+          },
+          "provider_usage": {
+            "input_tokens": 7222,
+            "cache_read_input_tokens": 13279,
+            "output_tokens": 136
+          },
+          "cumulative_tokens": {
+            "input": 137128,
+            "input_uncached": 104124,
+            "output": 1180,
+            "cache_read": 33004,
+            "cache_write": 0,
+            "total": 138308,
+            "processed_input": 104124,
+            "processed": 105304
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_01068_15111",
+            "shard_02436_51576",
+            "shard_02738_62757",
+            "shard_03293_14943",
+            "shard_03876_64641",
+            "shard_05598_29465"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Group Relative Policy Optimization 2025 large language model training methodology loss",
+          "k": 8,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "Group Relative Policy Optimization 2025 large language model training methodology loss",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02738_62757",
+              "docid": "shard_02738_62757",
+              "kind": "document",
+              "rrf_score": 0.025504,
+              "truncated": false,
+              "original_chars": 8709,
+              "returned_chars": 8709
+            },
+            {
+              "rank": 2,
+              "id": "shard_02090_70478",
+              "docid": "shard_02090_70478",
+              "kind": "document",
+              "rrf_score": 0.025397,
+              "truncated": false,
+              "original_chars": 3474,
+              "returned_chars": 3474
+            },
+            {
+              "rank": 3,
+              "id": "shard_02297_27511",
+              "docid": "shard_02297_27511",
+              "kind": "document",
+              "rrf_score": 0.024752,
+              "truncated": false,
+              "original_chars": 3726,
+              "returned_chars": 3726
+            },
+            {
+              "rank": 4,
+              "id": "shard_01335_36211",
+              "docid": "shard_01335_36211",
+              "kind": "document",
+              "rrf_score": 0.023985,
+              "truncated": false,
+              "original_chars": 3678,
+              "returned_chars": 3678
+            },
+            {
+              "rank": 5,
+              "id": "shard_00189_50225",
+              "docid": "shard_00189_50225",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4012,
+              "returned_chars": 4012
+            },
+            {
+              "rank": 6,
+              "id": "shard_04539_80726",
+              "docid": "shard_04539_80726",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 20132,
+              "returned_chars": 20132
+            },
+            {
+              "rank": 7,
+              "id": "shard_03359_81585",
+              "docid": "shard_03359_81585",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1323,
+              "returned_chars": 1323
+            },
+            {
+              "rank": 8,
+              "id": "shard_05657_45587",
+              "docid": "shard_05657_45587",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": true,
+              "original_chars": 76261,
+              "returned_chars": 34701
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02738_62757",
+          "shard_02090_70478",
+          "shard_02297_27511",
+          "shard_01335_36211",
+          "shard_00189_50225",
+          "shard_04539_80726",
+          "shard_03359_81585",
+          "shard_05657_45587"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02738_62757",
+            "score": 0.025504
+          },
+          {
+            "docid": "shard_02090_70478",
+            "score": 0.025397
+          },
+          {
+            "docid": "shard_02297_27511",
+            "score": 0.024752
+          },
+          {
+            "docid": "shard_01335_36211",
+            "score": 0.023985
+          },
+          {
+            "docid": "shard_00189_50225",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04539_80726",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03359_81585",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05657_45587",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_hA4yF8XUNEp5Wi7zjpQQw8v9",
+        "id": "step-0015",
+        "t_start": "2026-07-17T17:39:23.088+10:00",
+        "t_end": "2026-07-17T17:39:24.963+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 1874.776,
+          "context_tokens": 20501,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 25821,
+          "cumulative_tokens": {
+            "input": 137128,
+            "input_uncached": 104124,
+            "output": 1180,
+            "cache_read": 33004,
+            "cache_write": 0,
+            "total": 138308,
+            "processed_input": 104124,
+            "processed": 105304
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02738_62757",
+            "shard_02090_70478",
+            "shard_02297_27511",
+            "shard_01335_36211",
+            "shard_00189_50225",
+            "shard_04539_80726",
+            "shard_03359_81585",
+            "shard_05657_45587"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "DeepSeek R1 2025 reinforcement learning training group relative policy optimization technical report",
+          "k": 8,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "DeepSeek R1 2025 reinforcement learning training group relative policy optimization technical report",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05381_75364",
+              "docid": "shard_05381_75364",
+              "kind": "document",
+              "rrf_score": 0.032787,
+              "truncated": false,
+              "original_chars": 2939,
+              "returned_chars": 2939
+            },
+            {
+              "rank": 2,
+              "id": "shard_01751_80083",
+              "docid": "shard_01751_80083",
+              "kind": "document",
+              "rrf_score": 0.02886,
+              "truncated": false,
+              "original_chars": 3340,
+              "returned_chars": 3340
+            },
+            {
+              "rank": 3,
+              "id": "shard_00320_38396",
+              "docid": "shard_00320_38396",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 676,
+              "returned_chars": 676
+            },
+            {
+              "rank": 4,
+              "id": "shard_01478_23814",
+              "docid": "shard_01478_23814",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": true,
+              "original_chars": 100049,
+              "returned_chars": 34973
+            },
+            {
+              "rank": 5,
+              "id": "shard_01307_57811",
+              "docid": "shard_01307_57811",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 11278,
+              "returned_chars": 11278
+            },
+            {
+              "rank": 6,
+              "id": "shard_00302_62186",
+              "docid": "shard_00302_62186",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4731,
+              "returned_chars": 4731
+            },
+            {
+              "rank": 7,
+              "id": "shard_03321_60174",
+              "docid": "shard_03321_60174",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 2817,
+              "returned_chars": 2817
+            },
+            {
+              "rank": 8,
+              "id": "shard_01283_83638",
+              "docid": "shard_01283_83638",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 3100,
+              "returned_chars": 3100
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05381_75364",
+          "shard_01751_80083",
+          "shard_00320_38396",
+          "shard_01478_23814",
+          "shard_01307_57811",
+          "shard_00302_62186",
+          "shard_03321_60174",
+          "shard_01283_83638"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05381_75364",
+            "score": 0.032787
+          },
+          {
+            "docid": "shard_01751_80083",
+            "score": 0.02886
+          },
+          {
+            "docid": "shard_00320_38396",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01478_23814",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01307_57811",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00302_62186",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_03321_60174",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_01283_83638",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_8g7MVOvBkeCt2HhmzhUIINQ7",
+        "id": "step-0016",
+        "t_start": "2026-07-17T17:39:23.088+10:00",
+        "t_end": "2026-07-17T17:39:24.665+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 1576.646,
+          "context_tokens": 20501,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 25821,
+          "cumulative_tokens": {
+            "input": 137128,
+            "input_uncached": 104124,
+            "output": 1180,
+            "cache_read": 33004,
+            "cache_write": 0,
+            "total": 138308,
+            "processed_input": 104124,
+            "processed": 105304
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05381_75364",
+            "shard_01751_80083",
+            "shard_00320_38396",
+            "shard_01478_23814",
+            "shard_01307_57811",
+            "shard_00302_62186",
+            "shard_03321_60174",
+            "shard_01283_83638"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "2025 test time reinforcement learning large language model fine tuning verifiable rewards methodology",
+          "k": 8,
+          "budget_tokens_per_result": 7000
+        },
+        "output": {
+          "query": "2025 test time reinforcement learning large language model fine tuning verifiable rewards methodology",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00107_19064",
+              "docid": "shard_00107_19064",
+              "kind": "document",
+              "rrf_score": 0.026398,
+              "truncated": false,
+              "original_chars": 8295,
+              "returned_chars": 8295
+            },
+            {
+              "rank": 2,
+              "id": "shard_01450_50560",
+              "docid": "shard_01450_50560",
+              "kind": "document",
+              "rrf_score": 0.025275,
+              "truncated": false,
+              "original_chars": 8022,
+              "returned_chars": 8022
+            },
+            {
+              "rank": 3,
+              "id": "shard_02748_79148",
+              "docid": "shard_02748_79148",
+              "kind": "document",
+              "rrf_score": 0.024225,
+              "truncated": false,
+              "original_chars": 3435,
+              "returned_chars": 3435
+            },
+            {
+              "rank": 4,
+              "id": "shard_00428_29328",
+              "docid": "shard_00428_29328",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 144,
+              "returned_chars": 144
+            },
+            {
+              "rank": 5,
+              "id": "shard_03870_24949",
+              "docid": "shard_03870_24949",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 12670,
+              "returned_chars": 12670
+            },
+            {
+              "rank": 6,
+              "id": "shard_04297_20660",
+              "docid": "shard_04297_20660",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 144,
+              "returned_chars": 144
+            },
+            {
+              "rank": 7,
+              "id": "shard_01315_63220",
+              "docid": "shard_01315_63220",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 27610,
+              "returned_chars": 27610
+            },
+            {
+              "rank": 8,
+              "id": "shard_05712_77683",
+              "docid": "shard_05712_77683",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1317,
+              "returned_chars": 1317
+            }
+          ],
+          "budget_tokens_per_result": 7000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00107_19064",
+          "shard_01450_50560",
+          "shard_02748_79148",
+          "shard_00428_29328",
+          "shard_03870_24949",
+          "shard_04297_20660",
+          "shard_01315_63220",
+          "shard_05712_77683"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00107_19064",
+            "score": 0.026398
+          },
+          {
+            "docid": "shard_01450_50560",
+            "score": 0.025275
+          },
+          {
+            "docid": "shard_02748_79148",
+            "score": 0.024225
+          },
+          {
+            "docid": "shard_00428_29328",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03870_24949",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04297_20660",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01315_63220",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05712_77683",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_2r4uX702cjdTuVjYMlaYrUxs",
+        "id": "step-0017",
+        "t_start": "2026-07-17T17:39:23.088+10:00",
+        "t_end": "2026-07-17T17:39:24.669+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 1580.445,
+          "context_tokens": 20501,
+          "peak_context_tokens": 54282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 25821,
+          "cumulative_tokens": {
+            "input": 137128,
+            "input_uncached": 104124,
+            "output": 1180,
+            "cache_read": 33004,
+            "cache_write": 0,
+            "total": 138308,
+            "processed_input": 104124,
+            "processed": 105304
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00107_19064",
+            "shard_01450_50560",
+            "shard_02748_79148",
+            "shard_00428_29328",
+            "shard_03870_24949",
+            "shard_04297_20660",
+            "shard_01315_63220",
+            "shard_05712_77683"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_hA4yF8XUNEp5Wi7zjpQQw8v9",
+            "call_8g7MVOvBkeCt2HhmzhUIINQ7",
+            "call_2r4uX702cjdTuVjYMlaYrUxs"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_acD99RuZvFGl6E6HkY1xD6gI",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_05381_75364",
+                    "reason": "Explains GRPO’s purpose of avoiding a critic/value model, group sampling, relative-reward advantage normalization, and outcome versus process supervision."
+                  },
+                  {
+                    "docid": "shard_00107_19064",
+                    "reason": "Provides a complementary verifiable-reward reasoning fine-tuning pipeline, empirical use cases, contrast with SFT/self-training, and explicit reward-hacking limitation."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0018",
+        "t_start": "2026-07-17T17:39:24.963+10:00",
+        "t_end": "2026-07-17T17:39:28.802+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3838.77,
+          "context_tokens": 64062,
+          "peak_context_tokens": 64062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 29660,
+          "tokens": {
+            "input": 64062,
+            "input_uncached": 43564,
+            "output": 282,
+            "cache_read": 20498,
+            "cache_write": 0,
+            "total": 64344,
+            "processed_input": 43564,
+            "processed": 43846,
+            "context": 64062
+          },
+          "provider_usage": {
+            "input_tokens": 43564,
+            "cache_read_input_tokens": 20498,
+            "output_tokens": 282
+          },
+          "cumulative_tokens": {
+            "input": 201190,
+            "input_uncached": 147688,
+            "output": 1462,
+            "cache_read": 53502,
+            "cache_write": 0,
+            "total": 202652,
+            "processed_input": 147688,
+            "processed": 149150
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02738_62757",
+            "shard_02090_70478",
+            "shard_02297_27511",
+            "shard_01335_36211",
+            "shard_00189_50225",
+            "shard_04539_80726",
+            "shard_03359_81585",
+            "shard_05657_45587",
+            "shard_05381_75364",
+            "shard_01751_80083",
+            "shard_00320_38396",
+            "shard_01478_23814",
+            "shard_01307_57811",
+            "shard_00302_62186",
+            "shard_03321_60174",
+            "shard_01283_83638",
+            "shard_00107_19064",
+            "shard_01450_50560",
+            "shard_02748_79148",
+            "shard_00428_29328",
+            "shard_03870_24949",
+            "shard_04297_20660",
+            "shard_01315_63220",
+            "shard_05712_77683"
+          ],
+          "committed": [
+            "shard_01068_15111",
+            "shard_02436_51576",
+            "shard_02738_62757",
+            "shard_03293_14943",
+            "shard_03876_64641",
+            "shard_05598_29465"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_05381_75364",
+              "reason": "Explains GRPO’s purpose of avoiding a critic/value model, group sampling, relative-reward advantage normalization, and outcome versus process supervision."
+            },
+            {
+              "docid": "shard_00107_19064",
+              "reason": "Provides a complementary verifiable-reward reasoning fine-tuning pipeline, empirical use cases, contrast with SFT/self-training, and explicit reward-hacking limitation."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_05381_75364\", \"shard_00107_19064\"], \"rejected\": [{\"docid\": \"shard_02738_62757\", \"reason\": \"duplicate/already committed; later occurrence compacted\"}, {\"docid\": \"shard_02090_70478\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02297_27511\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01335_36211\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00189_50225\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04539_80726\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03359_81585\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05657_45587\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01751_80083\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00320_38396\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01478_23814\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01307_57811\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00302_62186\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03321_60174\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01283_83638\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01450_50560\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02748_79148\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00428_29328\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03870_24949\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04297_20660\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01315_63220\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05712_77683\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 64,062 / 500,000 tokens (12.8%) · elapsed: 0m 29s]",
+        "failed": false,
+        "tool_call_id": "call_acD99RuZvFGl6E6HkY1xD6gI",
+        "id": "step-0019",
+        "t_start": "2026-07-17T17:39:28.803+10:00",
+        "t_end": "2026-07-17T17:39:28.804+10:00",
+        "turn": 5,
+        "parent_id": "step-0018",
+        "stats": {
+          "duration_ms": 0.647,
+          "context_tokens": 64062,
+          "peak_context_tokens": 64062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 29662,
+          "cumulative_tokens": {
+            "input": 201190,
+            "input_uncached": 147688,
+            "output": 1462,
+            "cache_read": 53502,
+            "cache_write": 0,
+            "total": 202652,
+            "processed_input": 147688,
+            "processed": 149150
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02738_62757",
+            "shard_02090_70478",
+            "shard_02297_27511",
+            "shard_01335_36211",
+            "shard_00189_50225",
+            "shard_04539_80726",
+            "shard_03359_81585",
+            "shard_05657_45587",
+            "shard_05381_75364",
+            "shard_01751_80083",
+            "shard_00320_38396",
+            "shard_01478_23814",
+            "shard_01307_57811",
+            "shard_00302_62186",
+            "shard_03321_60174",
+            "shard_01283_83638",
+            "shard_00107_19064",
+            "shard_01450_50560",
+            "shard_02748_79148",
+            "shard_00428_29328",
+            "shard_03870_24949",
+            "shard_04297_20660",
+            "shard_01315_63220",
+            "shard_05712_77683"
+          ],
+          "committed": [
+            "shard_05381_75364",
+            "shard_00107_19064"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_02738_62757",
+              "reason": "duplicate/already committed; later occurrence compacted"
+            },
+            {
+              "docid": "shard_02090_70478",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02297_27511",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01335_36211",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00189_50225",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04539_80726",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03359_81585",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05657_45587",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01751_80083",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00320_38396",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01478_23814",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01307_57811",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00302_62186",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03321_60174",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01283_83638",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01450_50560",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02748_79148",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00428_29328",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03870_24949",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04297_20660",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01315_63220",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05712_77683",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_acD99RuZvFGl6E6HkY1xD6gI"
+          ]
+        },
+        "output": {
+          "text": "Post 1: QLoRA made instruction tuning of very large models feasible on constrained hardware by freezing a 4-bit quantized backbone and learning a small low-rank correction rather than maintaining trainable full-precision copies of every base weight. [shard_03876_64641] [shard_01068_15111]\nFor a dense weight matrix W ∈ R^(d×d), LoRA writes the adapted map as W′ = W + BA, where B ∈ R^(d×r), A ∈ R^(r×d), and r ≪ d, reducing the trainable parameter count from d² to 2dr. [shard_03876_64641]\nQLoRA backpropagates through quantized frozen W into A and B, so the optimizer need retain gradients and optimizer state principally for the adapters rather than the entire model. [shard_01068_15111]\nIts NF4 representation is designed for normally distributed weights, blockwise quantization assigns each block its own scale, double quantization compresses those scales too, and paged optimizers use unified memory to manage transient GPU-memory spikes. [shard_01068_15111]\nThis combination enabled reported fine-tuning of a 65B-parameter model on one 48GB GPU, making domain adaptation, private-data instruction tuning, and rapid task-specific iteration substantially more accessible. [shard_01068_15111]\nThe central engineering trade-off is that quantization and the rank constraint restrict the update space, so rank, target modules, data quality, and downstream evaluation matter more than treating low-memory tuning as a drop-in substitute for unrestricted full fine-tuning. [shard_03876_64641] [shard_01068_15111]\nA particularly useful lesson is that a 9,000-example instruction dataset outperformed a 450,000-example alternative in one evaluation, while disagreement between GPT-4 and human judges cautions against optimizing solely for an automated preference metric. [shard_01068_15111]\n\nPost 2: Direct Preference Optimization reframed preference alignment as supervised classification, motivated by the cost and instability of the conventional sequence of reward-model fitting followed by online reinforcement learning. [shard_05598_29465] [shard_02738_62757]\nStart from the KL-regularized RLHF objective J(π) = E_(y∼π(·|x))[r(x,y)] − β KL(π(·|x) || π_ref(·|x)), where π_ref anchors the adapted policy and β sets the reward-versus-deviation trade-off. [shard_02738_62757]\nThe optimizer has Boltzmann form π_r(y|x) = π_ref(y|x) exp(r(x,y)/β)/Z(x), with Z(x) the prompt-dependent normalizer, which rearranges to r(x,y) = β log[π_r(y|x)/π_ref(y|x)] + β log Z(x). [shard_02738_62757]\nUnder a Bradley–Terry preference model, substituting that expression into P(y_w ≻ y_l|x) = σ(r_w − r_l) cancels log Z(x), yielding the DPO loss −log σ(β[(log π_θ(y_w|x) − log π_ref(y_w|x)) − (log π_θ(y_l|x) − log π_ref(y_l|x))]). [shard_02738_62757]\nThus, each labeled winner–loser pair directly increases the winner’s reference-relative log probability and decreases the loser’s, without learning a separate scalar reward model or sampling fresh completions during fine-tuning. [shard_05598_29465] [shard_02738_62757]\nDPO is well suited to offline preference datasets for assistants, summarizers, style control, and single-turn dialogue, where an organization can define preferred behavior through comparisons rather than deploy an online RL stack. [shard_05598_29465]\nIts open challenge is distribution shift: the preference pairs are finite and usually drawn from an earlier policy, so the reference choice, β, label coverage, and robustness of the comparison data still govern behavior outside the observed distribution. [shard_02738_62757]\n\nPost 3: Long-context training changed the question from “can the model accept more tokens?” to “can it still retrieve and reason over them while preserving short-context competence?” [shard_02436_51576]\nA practical recipe continued pretraining from a Llama 2 checkpoint with 400 billion additional tokens arranged in long sequences while retaining the core architecture and modifying only positional encoding. [shard_02436_51576]\nFor RoPE, a position p rotates a query or key component by an angle proportional to pω, so reducing the effective rotation angle slows phase change across distant positions and makes long-range attention less prone to positional decay. [shard_02436_51576]\nInstruction tuning then combines a broad short-prompt dataset with synthetic long self-instruction data, transferring instruction-following skills into settings such as document analysis, long conversations, and multi-document question answering. [shard_02436_51576]\nThe important empirical warning is that data quality during continual pretraining mattered more than merely making contexts longer, so indiscriminately packing documents is unlikely to create reliable long-range reasoning. [shard_02436_51576]\nEvaluation must therefore combine language-model loss and synthetic retrieval probes with ordinary short-context benchmarks, because a model can appear competent on a needle-style test while regressing on the everyday tasks users still need. [shard_02436_51576]\n\nPost 4: Data-centric post-training treats a small model’s limited capacity as a reason to improve the educational density of its tokens rather than merely increase parameter count or scrape more web text. [shard_03293_14943]\nPhi-3 exemplified this approach with heavily filtered web material plus reviewed textbook-like synthetic data for mathematics, coding, commonsense reasoning, and general knowledge, trained in phases from broad foundations toward specialized reasoning. [shard_03293_14943]\nThe methodology is a curriculum in distribution space: early, diverse data estimates general linguistic and factual structure, while later high-signal examples shift the learned conditional distribution toward the capabilities that a deployment actually values. [shard_03293_14943]\nSupervised fine-tuning across reasoning, coding, conversation, identity, and safety is followed by DPO on chat and responsible-AI preference data, then automated and manual red-team testing to identify behaviors requiring further refinement. [shard_03293_14943]\nThis makes compact local assistants attractive where latency, cost, or on-device deployment dominate, while retrieval can compensate when the model lacks capacity to retain extensive factual knowledge. [shard_03293_14943]\nThe unresolved problem is that “optimal” curation is model- and objective-dependent: a mixture effective for a 3.8B model may not transfer unchanged to a larger model, a new domain, another language, or adversarial inputs. [shard_03293_14943]\n\nPost 5: Reinforced fine-tuning for reasoning recognizes that a single demonstrated chain of thought is only one path to a correct answer, whereas online reinforcement learning can explore many paths and reward the ones whose final answers verify. [shard_00107_19064]\nA typical pipeline first warms up with supervised question–chain-of-thought pairs, then repeatedly samples responses to question–answer pairs and applies PPO using correctness against ground truth as the reward. [shard_00107_19064]\nGroup Relative Policy Optimization removes the separate value model by drawing G completions for a prompt, scoring them, and assigning each completion the normalized group-relative advantage Â_i = (r_i − mean(r))/std(r). [shard_05381_75364]\nThe policy update therefore increases probability for trajectories that are better than their sibling samples and decreases it for worse ones, while retaining PPO’s clipped policy-ratio machinery to constrain destructive updates. [shard_05381_75364]\nThis is especially natural for mathematics, code, and other domains with executable or exact outcome checks, where rewards do not require a human preference labeler or a separately trained reward model. [shard_00107_19064]\nOutcome rewards remain a weak proxy for reasoning quality, however, because reward hacking can produce apparently rewarded but invalid chains of thought, as observed for multiple-choice formatting in reinforced fine-tuning experiments. [shard_00107_19064]\nThe open challenge is process supervision that rewards valid intermediate reasoning without making the system dependent on costly, brittle annotations of every acceptable solution path. [shard_05381_75364]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "completed"
+        },
+        "id": "step-0020",
+        "t_start": "2026-07-17T17:39:28.804+10:00",
+        "t_end": "2026-07-17T17:39:53.449+10:00",
+        "turn": 6,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 24645.166,
+          "context_tokens": 26164,
+          "peak_context_tokens": 64062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 54307,
+          "tokens": {
+            "input": 26164,
+            "input_uncached": 5666,
+            "output": 2343,
+            "cache_read": 20498,
+            "cache_write": 0,
+            "total": 28507,
+            "processed_input": 5666,
+            "processed": 8009,
+            "context": 26164
+          },
+          "provider_usage": {
+            "input_tokens": 5666,
+            "cache_read_input_tokens": 20498,
+            "output_tokens": 2343
+          },
+          "cumulative_tokens": {
+            "input": 227354,
+            "input_uncached": 153354,
+            "output": 3805,
+            "cache_read": 74000,
+            "cache_write": 0,
+            "total": 231159,
+            "processed_input": 153354,
+            "processed": 157159
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00107_19064",
+            "shard_01068_15111",
+            "shard_02436_51576",
+            "shard_02738_62757",
+            "shard_03293_14943",
+            "shard_03876_64641",
+            "shard_05381_75364",
+            "shard_05598_29465"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "user_message",
+          "text": "Your attempted final response did not satisfy the final-report contract already defined in the system instructions.\nProblems:\n- report is 1027 words; the hard maximum is 1024 — rewrite it at about 950 words, cutting the least load-bearing material rather than trimming a few words\nCorrect it in the next turn in this same conversation. Emit tool calls only if more evidence is genuinely needed; otherwise write only the corrected report: plain prose, one sentence per line, with [docid] citation markers.\n[context budget: 26,164 / 500,000 tokens (5.2%) · elapsed: 0m 54s]"
+        },
+        "output": {
+          "text": "Post 1: QLoRA made instruction tuning of very large models feasible on limited hardware by freezing a 4-bit quantized backbone and learning a low-rank correction rather than maintaining trainable full-precision copies of every base weight. [shard_03876_64641] [shard_01068_15111]\nFor a dense weight W ∈ R^(d×d), LoRA writes W′ = W + BA, where B ∈ R^(d×r), A ∈ R^(r×d), and r ≪ d, reducing trainable parameters from d² to 2dr. [shard_03876_64641]\nQLoRA backpropagates through frozen quantized W into A and B, so gradients and optimizer state are required principally for the adapters. [shard_01068_15111]\nNF4 targets normally distributed weights, blockwise quantization supplies a scale per block, double quantization compresses those scales, and paged optimizers use unified memory to manage transient GPU-memory spikes. [shard_01068_15111]\nThis enabled reported fine-tuning of a 65B model on one 48GB GPU, supporting private domain adaptation and rapid task-specific iteration. [shard_01068_15111]\nThe trade-off is a restricted update space, so adapter rank, target modules, data quality, and downstream evaluation determine whether memory savings are worth the loss of full-parameter flexibility. [shard_03876_64641] [shard_01068_15111]\nA 9,000-example instruction dataset outperformed a 450,000-example alternative in one study, while disagreement between GPT-4 and human judges warns against optimizing only an automated preference metric. [shard_01068_15111]\n\nPost 2: Direct Preference Optimization recast preference alignment as supervised classification, avoiding the conventional sequence of reward-model fitting followed by online reinforcement learning. [shard_05598_29465] [shard_02738_62757]\nBegin with J(π) = E_(y∼π(·|x))[r(x,y)] − β KL(π(·|x) || π_ref(·|x)), where π_ref anchors the policy and β trades reward against deviation. [shard_02738_62757]\nThe optimum is π_r(y|x) = π_ref(y|x)exp(r(x,y)/β)/Z(x), which rearranges to r(x,y) = βlog[π_r(y|x)/π_ref(y|x)] + βlog Z(x). [shard_02738_62757]\nSubstitution into P(y_w ≻ y_l|x) = σ(r_w − r_l) cancels the prompt normalizer, giving the DPO loss −log σ(β[(log π_θ(y_w|x) − log π_ref(y_w|x)) − (log π_θ(y_l|x) − log π_ref(y_l|x))]). [shard_02738_62757]\nEach pair therefore raises the preferred completion’s reference-relative log probability and lowers the rejected completion’s without an explicit reward model or fresh on-policy samples. [shard_05598_29465] [shard_02738_62757]\nDPO fits offline comparison data for assistants, summarizers, style control, and single-turn dialogue, but the reference model, β, and coverage of a finite preference dataset still govern out-of-distribution behavior. [shard_05598_29465] [shard_02738_62757]\n\nPost 3: Long-context training asks not merely whether a model accepts more tokens, but whether it retrieves and reasons over them without sacrificing short-context competence. [shard_02436_51576]\nOne recipe continued pretraining from Llama 2 with 400 billion extra tokens in long sequences while preserving its core architecture and modifying positional encoding. [shard_02436_51576]\nIn RoPE, position p rotates a query or key component by an angle proportional to pω, so reducing the effective angle slows phase change across distant positions and mitigates positional decay. [shard_02436_51576]\nInstruction tuning can then combine diverse short prompts with synthetic long self-instruction data, extending skills to document analysis, long conversations, and multi-document question answering. [shard_02436_51576]\nData quality during continual pretraining mattered more than context length alone, so indiscriminate document packing is unlikely to yield dependable long-range reasoning. [shard_02436_51576]\nEvaluation should combine language-model loss and synthetic retrieval probes with normal short-context benchmarks, because a model can succeed on a retrieval probe while regressing on ordinary tasks. [shard_02436_51576]\n\nPost 4: Data-centric post-training treats a small model’s capacity constraint as a reason to raise the educational density of tokens rather than simply increase scale or collect more web text. [shard_03293_14943]\nPhi-3 used heavily filtered web data plus reviewed textbook-like synthetic material for mathematics, coding, commonsense reasoning, and general knowledge, progressing from broad foundations toward specialized reasoning. [shard_03293_14943]\nThis is a curriculum in distribution space: early diverse data builds general linguistic structure, while later high-signal examples bias the conditional distribution toward valued capabilities. [shard_03293_14943]\nSupervised fine-tuning over reasoning, coding, conversation, identity, and safety can be followed by DPO for chat and responsible-AI preferences, then automated and manual red-team testing. [shard_03293_14943]\nCompact models are attractive for local deployment where latency or cost dominates, while retrieval can address limited capacity for extensive factual knowledge. [shard_03293_14943]\nThe open problem is transferability, since an empirically effective data mixture may change with model size, domain, language, and adversarial conditions. [shard_03293_14943]\n\nPost 5: Reinforced fine-tuning for reasoning recognizes that one demonstrated chain of thought is only one correct path, whereas online reinforcement learning can explore multiple paths and reward verifiable answers. [shard_00107_19064]\nA typical pipeline warms up on supervised question–chain-of-thought pairs, samples responses to question–answer pairs, and applies PPO using correctness against ground truth as reward. [shard_00107_19064]\nGroup Relative Policy Optimization avoids a separate value model by sampling G completions per prompt, scoring them, and assigning normalized relative advantage Â_i = (r_i − mean(r))/std(r). [shard_05381_75364]\nThe update raises probability for completions better than their siblings and lowers it for worse ones while preserving PPO’s constrained policy-update mechanism. [shard_05381_75364]\nThis is especially useful for mathematics and code with exact or executable checks, where rewards need neither human preference labels nor a separately trained reward model. [shard_00107_19064]\nOutcome rewards are nevertheless imperfect proxies for reasoning quality, because reward hacking produced invalid but rewarded chains of thought in multiple-choice reinforced-fine-tuning experiments. [shard_00107_19064]\nThe open challenge is process supervision that rewards valid intermediate reasoning without relying on costly and brittle annotation of every acceptable solution path. [shard_05381_75364]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "completed"
+        },
+        "id": "step-0021",
+        "t_start": "2026-07-17T17:39:53.452+10:00",
+        "t_end": "2026-07-17T17:40:15.356+10:00",
+        "turn": 7,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 21903.183,
+          "context_tokens": 28644,
+          "peak_context_tokens": 64062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 76214,
+          "tokens": {
+            "input": 28644,
+            "input_uncached": 2483,
+            "output": 1596,
+            "cache_read": 26161,
+            "cache_write": 0,
+            "total": 30240,
+            "processed_input": 2483,
+            "processed": 4079,
+            "context": 28644
+          },
+          "provider_usage": {
+            "input_tokens": 2483,
+            "cache_read_input_tokens": 26161,
+            "output_tokens": 1596
+          },
+          "cumulative_tokens": {
+            "input": 255998,
+            "input_uncached": 155837,
+            "output": 5401,
+            "cache_read": 100161,
+            "cache_write": 0,
+            "total": 261399,
+            "processed_input": 155837,
+            "processed": 161238
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00107_19064",
+            "shard_01068_15111",
+            "shard_02436_51576",
+            "shard_02738_62757",
+            "shard_03293_14943",
+            "shard_03876_64641",
+            "shard_05381_75364",
+            "shard_05598_29465"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_03876_64641",
+        "shard_01068_15111",
+        "shard_05598_29465",
+        "shard_02738_62757",
+        "shard_02436_51576",
+        "shard_03293_14943",
+        "shard_00107_19064",
+        "shard_05381_75364"
+      ],
+      "answer": [
+        {
+          "text": "Post 1: QLoRA made instruction tuning of very large models feasible on limited hardware by freezing a 4-bit quantized backbone and learning a low-rank correction rather than maintaining trainable full-precision copies of every base weight.",
+          "citations": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "For a dense weight W ∈ R^(d×d), LoRA writes W′ = W + BA, where B ∈ R^(d×r), A ∈ R^(r×d), and r ≪ d, reducing trainable parameters from d² to 2dr.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "QLoRA backpropagates through frozen quantized W into A and B, so gradients and optimizer state are required principally for the adapters.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "NF4 targets normally distributed weights, blockwise quantization supplies a scale per block, double quantization compresses those scales, and paged optimizers use unified memory to manage transient GPU-memory spikes.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "This enabled reported fine-tuning of a 65B model on one 48GB GPU, supporting private domain adaptation and rapid task-specific iteration.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "The trade-off is a restricted update space, so adapter rank, target modules, data quality, and downstream evaluation determine whether memory savings are worth the loss of full-parameter flexibility.",
+          "citations": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "A 9,000-example instruction dataset outperformed a 450,000-example alternative in one study, while disagreement between GPT-4 and human judges warns against optimizing only an automated preference metric.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Post 2: Direct Preference Optimization recast preference alignment as supervised classification, avoiding the conventional sequence of reward-model fitting followed by online reinforcement learning.",
+          "citations": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "Begin with J(π) = E_(y∼π(·|x)) − β KL(π(·|x) || π_ref(·|x)), where π_ref anchors the policy and β trades reward against deviation.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "The optimum is π_r(y|x) = π_ref(y|x)exp(r(x,y)/β)/Z(x), which rearranges to r(x,y) = βlog + βlog Z(x).",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Substitution into P(y_w ≻ y_l|x) = σ(r_w − r_l) cancels the prompt normalizer, giving the DPO loss −log σ(β ).",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Each pair therefore raises the preferred completion’s reference-relative log probability and lowers the rejected completion’s without an explicit reward model or fresh on-policy samples.",
+          "citations": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "DPO fits offline comparison data for assistants, summarizers, style control, and single-turn dialogue, but the reference model, β, and coverage of a finite preference dataset still govern out-of-distribution behavior.",
+          "citations": [
+            2,
+            3
+          ]
+        },
+        {
+          "text": "Post 3: Long-context training asks not merely whether a model accepts more tokens, but whether it retrieves and reasons over them without sacrificing short-context competence.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "One recipe continued pretraining from Llama 2 with 400 billion extra tokens in long sequences while preserving its core architecture and modifying positional encoding.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "In RoPE, position p rotates a query or key component by an angle proportional to pω, so reducing the effective angle slows phase change across distant positions and mitigates positional decay.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Instruction tuning can then combine diverse short prompts with synthetic long self-instruction data, extending skills to document analysis, long conversations, and multi-document question answering.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Data quality during continual pretraining mattered more than context length alone, so indiscriminate document packing is unlikely to yield dependable long-range reasoning.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Evaluation should combine language-model loss and synthetic retrieval probes with normal short-context benchmarks, because a model can succeed on a retrieval probe while regressing on ordinary tasks.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Post 4: Data-centric post-training treats a small model’s capacity constraint as a reason to raise the educational density of tokens rather than simply increase scale or collect more web text.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Phi-3 used heavily filtered web data plus reviewed textbook-like synthetic material for mathematics, coding, commonsense reasoning, and general knowledge, progressing from broad foundations toward specialized reasoning.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "This is a curriculum in distribution space: early diverse data builds general linguistic structure, while later high-signal examples bias the conditional distribution toward valued capabilities.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Supervised fine-tuning over reasoning, coding, conversation, identity, and safety can be followed by DPO for chat and responsible-AI preferences, then automated and manual red-team testing.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Compact models are attractive for local deployment where latency or cost dominates, while retrieval can address limited capacity for extensive factual knowledge.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "The open problem is transferability, since an empirically effective data mixture may change with model size, domain, language, and adversarial conditions.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Post 5: Reinforced fine-tuning for reasoning recognizes that one demonstrated chain of thought is only one correct path, whereas online reinforcement learning can explore multiple paths and reward verifiable answers.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "A typical pipeline warms up on supervised question–chain-of-thought pairs, samples responses to question–answer pairs, and applies PPO using correctness against ground truth as reward.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Group Relative Policy Optimization avoids a separate value model by sampling G completions per prompt, scoring them, and assigning normalized relative advantage Â_i = (r_i − mean(r))/std(r).",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "The update raises probability for completions better than their siblings and lowers it for worse ones while preserving PPO’s constrained policy-update mechanism.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "This is especially useful for mathematics and code with exact or executable checks, where rewards need neither human preference labels nor a separately trained reward model.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Outcome rewards are nevertheless imperfect proxies for reasoning quality, because reward hacking produced invalid but rewarded chains of thought in multiple-choice reinforced-fine-tuning experiments.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "The open challenge is process supervision that rewards valid intermediate reasoning without relying on costly and brittle annotation of every acceptable solution path.",
+          "citations": [
+            7
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-17T17:38:59.142+10:00",
+    "ended_at": "2026-07-17T17:40:15.361+10:00",
+    "duration_ms": 76219,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}

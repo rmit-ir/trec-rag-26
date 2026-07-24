@@ -1,3 +1,4109 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:49c7ca2774f404f4e9a01c489a7a31ef27cd6a76f2187059b67e6cef724274ed
-size 176734
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "6847465956a0f6376a605360",
+    "narrative": "i'm trying to outline my final paper for this history of tech seminar and i'm a bit stuck on the scope. it's supposed to be a big 'comprehensive expository analysis' on two key AI architectures: LSTMs and the encoder-decoder architecture (eg seq2seq for translation). i have to trace the whole historical development of LSTMs, e.g. go back to Hochreiter and Schmidhuber, the vanishing gradient problem in RNNs, and all the key milestones. then i have to do the exact same thing for the encoder-decoder models, from their origins (eg. Sutskever, Bahdanau, and Cho) up to how they dominate NLP now I also need to talk about the societal implications. For example how they made machine translation, speech recognition, and predictive text practical, and what that means for globalization, accessibility and jobs. this also has to cover the ethical side, like biases from training data, who can access this stuff, and the risks of misuse like surveillance or spreading disinformation. i also need a section that directly compares LSTMs and encoder-decoders historically, technically, and their different societal impacts. I also need to find 10 case studies and then synthesize them to develop some broader conclusions about how these advancements shape responsible technology and maybe strategies for ethical innovation. all claims have to be backed up by peer-reviewed literature, historical accounts, or formal ethical frameworks, like the IEEE guidelines",
+    "run_id": "aus-agent-sat-go",
+    "run_desc": "aus_agent research harness (openai/gpt-5.6-luna): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_04567_17979",
+    "shard_02040_42986",
+    "shard_04958_73606",
+    "shard_02530_77628",
+    "shard_01655_32764",
+    "shard_01205_10962",
+    "shard_01355_60537",
+    "shard_04122_44205",
+    "shard_03819_58433",
+    "shard_00565_65833",
+    "shard_01293_39815",
+    "shard_03503_28582",
+    "shard_04629_69823",
+    "shard_05722_41319",
+    "shard_03197_12565",
+    "shard_03237_56383",
+    "shard_00376_81838",
+    "shard_04555_59717",
+    "shard_01504_14612"
+  ],
+  "answer": [
+    {
+      "text": "Frame the paper around the thesis that LSTMs solved a problem of retaining information through recurrent time, while encoder-decoder systems solved a problem of mapping one variable-length sequence into another, and that their social importance came from making sequence technologies usable at scale rather than from architecture alone.",
+      "citations": []
+    },
+    {
+      "text": "Organize the paper as a chronological comparison, because encoder-decoder models initially used LSTM or related recurrent units, making the two histories intertwined rather than independent.",
+      "citations": []
+    },
+    {
+      "text": "Begin with the prehistory of recurrent neural networks and explain that unrolled RNNs become effectively deep when sequences are long, so repeated nonlinear transformations can make gradients shrink toward zero and prevent early inputs from influencing later predictions.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "Treat Hochreiter’s 1991 analysis of vanishing gradients as the conceptual starting point, followed by Hochreiter and Schmidhuber’s 1997 Long Short-Term Memory paper, which introduced a memory cell and gates controlling what information is written, retained, forgotten, and exposed.",
+      "citations": [
+        1,
+        0
+      ]
+    },
+    {
+      "text": "Explain technically that the LSTM cell state provides a comparatively direct path for forward information and backward error signals, while the input, forget, and output gates regulate memory rather than overwriting the recurrent state at every step.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "Use the subsequent forget-gate refinement, bidirectional LSTMs, multidimensional and stacked LSTMs, connectionist temporal classification, and deep recurrent speech systems as the principal LSTM milestones rather than attempting to list every variant.",
+      "citations": [
+        1,
+        2
+      ]
+    },
+    {
+      "text": "Make CTC and bidirectional LSTM speech recognition an important middle section, since they show how LSTMs moved from an abstract solution to long-range dependency problems into systems that could label unsegmented audio and model large-vocabulary speech.",
+      "citations": [
+        1,
+        3
+      ]
+    },
+    {
+      "text": "Then introduce the encoder-decoder idea as a system in which an encoder reads a source sequence into a representation and a decoder generates a target sequence token by token, conditioning each prediction on the encoded information and previous outputs.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Place Cho, van Merriënboer, Bahdanau, and Bengio’s 2014 recurrent encoder-decoder work alongside Sutskever, Vinyals, and Le’s 2014 sequence-to-sequence paper, emphasizing that both applied recurrent sequence mapping to English–French translation while differing in implementation details and training design.",
+      "citations": [
+        5,
+        1
+      ]
+    },
+    {
+      "text": "Explain the original encoder-decoder bottleneck clearly: compressing a long source sentence into one fixed-length vector can cause performance to deteriorate as sentence length increases.",
+      "citations": [
+        6,
+        5
+      ]
+    },
+    {
+      "text": "Make Bahdanau, Cho, and Bengio’s 2014–2015 alignment-and-translation work the decisive encoder-decoder milestone, because attention replaced the single-vector bottleneck with a sequence of encoder annotations from which the decoder could select task-relevant information at each output step.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Follow attention with bidirectional encoders, Luong-style attention, image captioning, end-to-end speech recognition, and neural machine translation, but distinguish architectural principles from individual products and avoid presenting every attention model as an encoder-decoder model.",
+      "citations": [
+        6,
+        3
+      ]
+    },
+    {
+      "text": "End the technical history by explaining that Transformers retain the encoder-decoder logic but replace recurrent processing with attention-based parallel processing, while some influential language models use decoder-only rather than full encoder-decoder designs.",
+      "citations": [
+        7,
+        8
+      ]
+    },
+    {
+      "text": "Revise the phrase “encoder-decoders dominate NLP now” to the more defensible claim that encoder-decoder design remains foundational for sequence transduction, whereas contemporary NLP also includes encoder-only and decoder-only Transformer families.",
+      "citations": [
+        7,
+        8
+      ]
+    },
+    {
+      "text": "For the direct comparison, argue that an LSTM is primarily a recurrent computational unit with gated memory, whereas an encoder-decoder is a composition of roles that may use LSTMs, GRUs, convolutions, or attention-based Transformer blocks.",
+      "citations": [
+        4,
+        7
+      ]
+    },
+    {
+      "text": "Compare their historical problems by showing that LSTMs addressed temporal credit assignment and vanishing gradients, while attention-based encoder-decoders addressed information compression, alignment, and variable-length input-output mapping.",
+      "citations": [
+        0,
+        6
+      ]
+    },
+    {
+      "text": "Compare their computational behavior by noting that LSTMs process sequence steps recurrently, whereas self-attention permits much more parallel processing, which helped Transformers surpass recurrent encoder-decoder systems on major translation benchmarks.",
+      "citations": [
+        7,
+        8
+      ]
+    },
+    {
+      "text": "Use ten case studies, each with the same template of technical mechanism, affected users, benefit, failure mode, governance question, and evidence: Google Translate’s large-scale translation service, Google Neural Machine Translation, Skype live speech translation, YouTube multilingual captions, Netflix subtitle localization, automatic speech recognition in virtual assistants, medical speech transcription, text-to-speech for visually impaired users, predictive text and autocomplete as assistive communication, and Microsoft’s Tay chatbot as a data-governance failure.",
+      "citations": [
+        9,
+        10,
+        11
+      ]
+    },
+    {
+      "text": "Synthesize the first nine cases as evidence that sequence models can reduce language barriers, expand access to information, support hands-free interaction, and create new translation and localization workflows rather than simply eliminate human work.",
+      "citations": [
+        10,
+        12,
+        13
+      ]
+    },
+    {
+      "text": "Treat the tenth case, Tay, as evidence that systems trained through interaction can rapidly reproduce hostile or extremist behavior when deployment incentives, data controls, and safety monitoring are inadequate.",
+      "citations": [
+        14
+      ]
+    },
+    {
+      "text": "Balance claims about globalization with the limits of translation systems, since machine output can mishandle context, nuance, accents, background noise, low-resource languages, and culturally or gendered meanings.",
+      "citations": [
+        15,
+        11
+      ]
+    },
+    {
+      "text": "Make labor analysis more nuanced than “AI replaces translators” by examining how automation can reduce routine work while increasing demand for review, localization, quality assurance, data curation, and specialized human judgment.",
+      "citations": [
+        13
+      ]
+    },
+    {
+      "text": "Build the ethics section around four risks: biased training data, unequal access to computational infrastructure and language resources, privacy and surveillance, and scalable generation of misleading or manipulative content.",
+      "citations": [
+        16,
+        17
+      ]
+    },
+    {
+      "text": "Use gendered translation and uneven speech-recognition performance as concrete demonstrations that a model can reproduce social inequalities embedded in its data even when its objective function is formally neutral.",
+      "citations": [
+        15,
+        11
+      ]
+    },
+    {
+      "text": "Use the IEEE Ethically Aligned Design framework as the normative spine of the recommendations, especially its principles of human benefit, responsibility, transparency, and education and awareness.",
+      "citations": [
+        18
+      ]
+    },
+    {
+      "text": "Translate those principles into practice through representative dataset documentation, subgroup performance testing, privacy-preserving data collection, disclosure of model limitations, human review for high-stakes outputs, incident reporting, independent audits, and meaningful participation by affected communities.",
+      "citations": [
+        18,
+        17
+      ]
+    },
+    {
+      "text": "Conclude that responsible innovation requires treating architecture, datasets, interfaces, institutions, and labor arrangements as one sociotechnical system, because improving the memory mechanism or attention mechanism cannot by itself correct biased data, unequal access, or harmful deployment incentives.",
+      "citations": [
+        18,
+        17
+      ]
+    },
+    {
+      "text": "For the final bibliography, prioritize the original Hochreiter and Schmidhuber, Gers, Graves, Cho, Sutskever, Bahdanau, and Transformer papers and peer-reviewed social-impact research, using the web explainers and product accounts located here only as leads or supplementary case evidence rather than as substitutes for scholarly sources.",
+      "citations": [
+        1,
+        6
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "6847465956a0f6376a605360",
+    "status": "completed",
+    "metadata": {
+      "model": "gpt-5.6-luna",
+      "backend": "openai",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-sat-go",
+      "query_source": "i'm trying to outline my final paper for this history of tech seminar and i'm a bit stuck on the scope. it's supposed to be a big 'comprehensive expository analysis' on two key AI architectures: LSTMs and the encoder-decoder architecture (eg seq2seq for translation). i have to trace the whole historical development of LSTMs, e.g. go back to Hochreiter and Schmidhuber, the vanishing gradient problem in RNNs, and all the key milestones. then i have to do the exact same thing for the encoder-decoder models, from their origins (eg. Sutskever, Bahdanau, and Cho) up to how they dominate NLP now I also need to talk about the societal implications. For example how they made machine translation, speech recognition, and predictive text practical, and what that means for globalization, accessibility and jobs. this also has to cover the ethical side, like biases from training data, who can access this stuff, and the risks of misuse like surveillance or spreading disinformation. i also need a section that directly compares LSTMs and encoder-decoders historically, technically, and their different societal impacts. I also need to find 10 case studies and then synthesize them to develop some broader conclusions about how these advancements shape responsible technology and maybe strategies for ethical innovation. all claims have to be backed up by peer-reviewed literature, historical accounts, or formal ethical frameworks, like the IEEE guidelines"
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 11,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 11,
+        "commit_context": 3
+      },
+      "retrieved_docids": [
+        "shard_00023_47329",
+        "shard_00112_27042",
+        "shard_00165_32007",
+        "shard_00176_69370",
+        "shard_00310_73337",
+        "shard_00376_81838",
+        "shard_00526_70095",
+        "shard_00526_8280",
+        "shard_00555_49697",
+        "shard_00565_65833",
+        "shard_00589_75523",
+        "shard_00646_35280",
+        "shard_00647_45881",
+        "shard_00755_49624",
+        "shard_00771_57115",
+        "shard_00834_62697",
+        "shard_00906_9819",
+        "shard_00928_19439",
+        "shard_01031_6498",
+        "shard_01101_1622",
+        "shard_01130_71281",
+        "shard_01167_27836",
+        "shard_01205_10962",
+        "shard_01293_39815",
+        "shard_01355_60537",
+        "shard_01401_28562",
+        "shard_01467_78546",
+        "shard_01504_14612",
+        "shard_01655_32764",
+        "shard_01710_31785",
+        "shard_01725_76",
+        "shard_01740_29902",
+        "shard_01865_208",
+        "shard_01874_49479",
+        "shard_01906_19127",
+        "shard_01943_82301",
+        "shard_01944_10024",
+        "shard_02040_42986",
+        "shard_02046_54912",
+        "shard_02088_24455",
+        "shard_02185_15249",
+        "shard_02190_22295",
+        "shard_02228_43628",
+        "shard_02411_38721",
+        "shard_02530_77628",
+        "shard_02565_46204",
+        "shard_02705_39419",
+        "shard_02793_54422",
+        "shard_02808_33786",
+        "shard_03090_39022",
+        "shard_03197_12565",
+        "shard_03237_56383",
+        "shard_03262_36673",
+        "shard_03282_58177",
+        "shard_03306_35529",
+        "shard_03495_65654",
+        "shard_03503_28582",
+        "shard_03534_84208",
+        "shard_03586_8006",
+        "shard_03605_72406",
+        "shard_03819_58433",
+        "shard_03862_70111",
+        "shard_04013_40998",
+        "shard_04048_26907",
+        "shard_04087_69276",
+        "shard_04122_44205",
+        "shard_04132_34275",
+        "shard_04258_56505",
+        "shard_04555_59717",
+        "shard_04567_17979",
+        "shard_04583_29184",
+        "shard_04629_69823",
+        "shard_04918_40223",
+        "shard_04958_73606",
+        "shard_05071_76781",
+        "shard_05329_8419",
+        "shard_05507_7451",
+        "shard_05595_14871",
+        "shard_05598_23932",
+        "shard_05672_50489",
+        "shard_05722_41319",
+        "shard_05783_29955",
+        "shard_05812_76651",
+        "shard_05965_67276",
+        "shard_06184_53738",
+        "shard_06299_46223",
+        "shard_06437_55812",
+        "shard_06452_52883"
+      ],
+      "tokens": {
+        "input": 272621,
+        "input_uncached": 180973,
+        "output": 3629,
+        "cache_read": 91648,
+        "cache_write": 0,
+        "total": 276250,
+        "processed_input": 180973,
+        "processed": 184602,
+        "context_tokens": 40959,
+        "peak_context_tokens": 67022,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00376_81838",
+          "shard_00565_65833",
+          "shard_00906_9819",
+          "shard_01205_10962",
+          "shard_01293_39815",
+          "shard_01355_60537",
+          "shard_01504_14612",
+          "shard_01655_32764",
+          "shard_02040_42986",
+          "shard_02530_77628",
+          "shard_03197_12565",
+          "shard_03237_56383",
+          "shard_03503_28582",
+          "shard_03819_58433",
+          "shard_04122_44205",
+          "shard_04555_59717",
+          "shard_04567_17979",
+          "shard_04629_69823",
+          "shard_04958_73606",
+          "shard_05722_41319"
+        ],
+        "rejected": [
+          "shard_00023_47329",
+          "shard_00112_27042",
+          "shard_00165_32007",
+          "shard_00176_69370",
+          "shard_00310_73337",
+          "shard_00526_70095",
+          "shard_00526_8280",
+          "shard_00555_49697",
+          "shard_00589_75523",
+          "shard_00646_35280",
+          "shard_00647_45881",
+          "shard_00755_49624",
+          "shard_00771_57115",
+          "shard_00834_62697",
+          "shard_00928_19439",
+          "shard_01031_6498",
+          "shard_01101_1622",
+          "shard_01130_71281",
+          "shard_01167_27836",
+          "shard_01401_28562",
+          "shard_01467_78546",
+          "shard_01710_31785",
+          "shard_01725_76",
+          "shard_01740_29902",
+          "shard_01865_208",
+          "shard_01874_49479",
+          "shard_01906_19127",
+          "shard_01943_82301",
+          "shard_01944_10024",
+          "shard_02046_54912",
+          "shard_02088_24455",
+          "shard_02185_15249",
+          "shard_02190_22295",
+          "shard_02228_43628",
+          "shard_02411_38721",
+          "shard_02565_46204",
+          "shard_02705_39419",
+          "shard_02793_54422",
+          "shard_02808_33786",
+          "shard_03090_39022",
+          "shard_03262_36673",
+          "shard_03282_58177",
+          "shard_03306_35529",
+          "shard_03495_65654",
+          "shard_03534_84208",
+          "shard_03586_8006",
+          "shard_03605_72406",
+          "shard_03862_70111",
+          "shard_04013_40998",
+          "shard_04048_26907",
+          "shard_04087_69276",
+          "shard_04132_34275",
+          "shard_04258_56505",
+          "shard_04583_29184",
+          "shard_04918_40223",
+          "shard_05071_76781",
+          "shard_05329_8419",
+          "shard_05507_7451",
+          "shard_05595_14871",
+          "shard_05598_23932",
+          "shard_05672_50489",
+          "shard_05783_29955",
+          "shard_05812_76651",
+          "shard_05965_67276",
+          "shard_06184_53738",
+          "shard_06299_46223",
+          "shard_06437_55812",
+          "shard_06452_52883"
+        ]
+      },
+      "report_repairs": [
+        "sentence 18: dropped citations beyond the first 3 shard_04629_69823, shard_03197_12565"
+      ]
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nphrase searches and read results, but it is not evidence and must not support\nfactual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the argument, connections, and voice of the answer are\nyours to build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. Which of\n   these the corpus can actually support is unknown until it answers; the\n   opening searches exist to find that out before the answer's structure is\n   fixed. This list is provisional: searching reveals what the request\n   actually needs, and the plan is revised as it does.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\nResearch is one loop — search, commit, decide — repeated until the internal\nsuccess plan is satisfied:\n\n1. **Search.** Round one's queries come from the question: build them only\n   from the question's own wording and plain paraphrases of it. Do not seed\n   a query with candidate answers — specific names, techniques, causes,\n   examples — that the question itself does not mention: you do not know\n   what this corpus holds until it answers, no matter how well you know the\n   subject. In every later round, each new content-bearing query term must\n   be traceable to a document retrieved in an earlier round; prior knowledge\n   may rephrase, disambiguate, and supply synonyms — it may never introduce\n   a candidate the corpus has not yet surfaced.\n2. **Commit.** Read what came back and commit the documents whose distinct\n   contributions the answer will need. Committing nothing is the right call\n   for a batch with nothing worth keeping.\n3. **Decide.** Reflect before judging: searching teaches you what the\n   request actually needs, so first revise the plan against what retrieval\n   has shown. An aspect that retrieved material has revealed as important to\n   the request joins the coverage areas even though the opening plan missed\n   it; a planned area whose reformulated searches keep coming back empty is\n   recorded as unsupportable, not retried forever. Then compare committed\n   material against the revised plan. If a coverage area still lacks support\n   — or is supported only thinly where the request deserves depth — loop\n   again with queries aimed at that gap. The loop ends when every coverage\n   area of the current plan is resolved: committed material behind it, or\n   searches that failed to support it. Then write the report — only after\n   committing everything it will cite.\n\nNotes on the loop:\n\n- If reformulated question-term queries keep returning nothing useful, probe\n  candidates from prior knowledge, one query each. A candidate the corpus\n  then returns has been surfaced like any other retrieved material; one it\n  does not return stays out of the answer.\n- The answer's structure follows what was retrieved. Fix the outline — which\n  items, sections, comparisons — only after the rounds that surfaced those\n  items, so that every part of it traces to a committed document.\n- Size the search to the question. Several independent coverage areas call\n  for multiple complementary queries in parallel across them; a single fact,\n  name, date, or definition needs one or two queries, then the answer. Small\n  is not shallow: even the shortest answer rests on the strongest support\n  the corpus offers.\n- Move from broad discovery to targeted follow-ups on what earlier rounds\n  surfaced: specific names, dates, mechanisms, examples, definitions, causal\n  claims, and disputed points.\n- Reformulate weak queries instead of accepting poor coverage: synonyms,\n  alternative terminology, different phrasings.\n- Actively search for counter-evidence, contradictions, limitations, and\n  missing perspectives when they matter to the request.\n- Every tool call must have a concrete purpose tied to an unmet requirement\n  or evidence gap; never call a tool solely to create another model turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `10` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching — but quality does: after satisfying the\nconcrete minimum, keep improving toward the target/excellence requirements\nwhile you can name a specific weakness whose resolution would materially\nimprove the answer. An unresolved or thinly supported coverage area in the\ncurrent plan is always such a weakness.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write the report only after committing everything it will cite. A report\n  turn issues no tool calls, so a batch still staged when you start writing\n  lapses uncommitted and everything you meant to cite from it becomes\n  invalid — commit first, and write the report on the following turn.\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Saturday, 18 July 2026, 21:46:27 +1000 (Australia/Melbourne)\n\nResearch request:\n\ni'm trying to outline my final paper for this history of tech seminar and i'm a bit stuck on the scope. it's supposed to be a big 'comprehensive expository analysis' on two key AI architectures: LSTMs and the encoder-decoder architecture (eg seq2seq for translation). i have to trace the whole historical development of LSTMs, e.g. go back to Hochreiter and Schmidhuber, the vanishing gradient problem in RNNs, and all the key milestones. then i have to do the exact same thing for the encoder-decoder models, from their origins (eg. Sutskever, Bahdanau, and Cho) up to how they dominate NLP now I also need to talk about the societal implications. For example how they made machine translation, speech recognition, and predictive text practical, and what that means for globalization, accessibility and jobs. this also has to cover the ethical side, like biases from training data, who can access this stuff, and the risks of misuse like surveillance or spreading disinformation. i also need a section that directly compares LSTMs and encoder-decoders historically, technically, and their different societal impacts. I also need to find 10 case studies and then synthesize them to develop some broader conclusions about how these advancements shape responsible technology and maybe strategies for ethical innovation. all claims have to be backed up by peer-reviewed literature, historical accounts, or formal ethical frameworks, like the IEEE guidelines\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged. Match query style to engine: exact names and rare strings favor keyword; concepts and questions favor semantic. The engines rank differently, and extra queries are cheap — cover an important facet with both engines, one styled query each.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "One information need as a short, specific phrase: a few distinctive content words (names, technical terms, the core concept) or a natural question phrased like a webpage title or FAQ. Include at least one rare or specific term — never a single common word — and attach one disambiguating qualifier to any proper name. Omit audience, format, and task words from the request and query a single facet at a time. For numeric or statistical facts, query the topic and entity, not the number."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "search_engine": {
+                "type": "string",
+                "enum": [
+                  "semantic",
+                  "keyword"
+                ],
+                "default": "semantic",
+                "description": "Retrieval engine. semantic (dense embedding match): conceptual, definitional, or broad-topic queries, natural-question phrasing, and well-known product or concept names; style the query as a natural phrase or question. keyword (exact BM25 match): rare proper names, surnames, IDs, codes, and verbatim technical strings, where semantic may drift to a similar-sounding topic; style the query as bare distinctive terms without stopwords. The engines rank differently — cover an important facet with both, one styled query each; duplicate results are deduplicated downstream."
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query",
+              "search_engine"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_r7uP496NIlL8aGECVKzTaNxt",
+              "name": "search",
+              "arguments": {
+                "query": "LSTM historical development Hochreiter Schmidhuber vanishing gradient recurrent neural networks",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_xb50ZODxlaIP03uZzZaODx4d",
+              "name": "search",
+              "arguments": {
+                "query": "encoder decoder sequence to sequence historical development Sutskever Bahdanau Cho machine translation",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_cQsXR6Lw0THJNZVmpKLQuiQr",
+              "name": "search",
+              "arguments": {
+                "query": "LSTM encoder decoder comparison technical history",
+                "k": 8,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_dFL6wFleJGvo8zBnIxYXPrwm",
+              "name": "search",
+              "arguments": {
+                "query": "machine translation speech recognition predictive text societal impacts globalization accessibility jobs",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            },
+            {
+              "id": "call_AmLdxZ5eZLNHlj7isgMDTCyI",
+              "name": "search",
+              "arguments": {
+                "query": "AI training data bias access surveillance disinformation ethical framework IEEE guidelines",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 3000
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-18T21:46:27.240+10:00",
+        "t_end": "2026-07-18T21:46:30.553+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3312.576,
+          "context_tokens": 3896,
+          "peak_context_tokens": 3896,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3314,
+          "tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601,
+            "context": 3896
+          },
+          "provider_usage": {
+            "input_tokens": 1336,
+            "cache_read_input_tokens": 2560,
+            "output_tokens": 265
+          },
+          "cumulative_tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "LSTM historical development Hochreiter Schmidhuber vanishing gradient recurrent neural networks",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "LSTM historical development Hochreiter Schmidhuber vanishing gradient recurrent neural networks",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04132_34275",
+              "docid": "shard_04132_34275",
+              "kind": "document",
+              "score": 0.343594,
+              "truncated": false,
+              "original_chars": 3492,
+              "returned_chars": 3492
+            },
+            {
+              "rank": 2,
+              "id": "shard_05965_67276",
+              "docid": "shard_05965_67276",
+              "kind": "document",
+              "score": 0.337223,
+              "truncated": false,
+              "original_chars": 3813,
+              "returned_chars": 3813
+            },
+            {
+              "rank": 3,
+              "id": "shard_00928_19439",
+              "docid": "shard_00928_19439",
+              "kind": "document",
+              "score": 0.334872,
+              "truncated": false,
+              "original_chars": 1751,
+              "returned_chars": 1751
+            },
+            {
+              "rank": 4,
+              "id": "shard_04567_17979",
+              "docid": "shard_04567_17979",
+              "kind": "document",
+              "score": 0.3326,
+              "truncated": false,
+              "original_chars": 3759,
+              "returned_chars": 3759
+            },
+            {
+              "rank": 5,
+              "id": "shard_05812_76651",
+              "docid": "shard_05812_76651",
+              "kind": "document",
+              "score": 0.3326,
+              "truncated": false,
+              "original_chars": 3478,
+              "returned_chars": 3478
+            },
+            {
+              "rank": 6,
+              "id": "shard_00834_62697",
+              "docid": "shard_00834_62697",
+              "kind": "document",
+              "score": 0.330951,
+              "truncated": false,
+              "original_chars": 3289,
+              "returned_chars": 3289
+            },
+            {
+              "rank": 7,
+              "id": "shard_00647_45881",
+              "docid": "shard_00647_45881",
+              "kind": "document",
+              "score": 0.330524,
+              "truncated": false,
+              "original_chars": 3066,
+              "returned_chars": 3066
+            },
+            {
+              "rank": 8,
+              "id": "shard_00555_49697",
+              "docid": "shard_00555_49697",
+              "kind": "document",
+              "score": 0.329726,
+              "truncated": false,
+              "original_chars": 3399,
+              "returned_chars": 3399
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04132_34275",
+          "shard_05965_67276",
+          "shard_00928_19439",
+          "shard_04567_17979",
+          "shard_05812_76651",
+          "shard_00834_62697",
+          "shard_00647_45881",
+          "shard_00555_49697"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04132_34275",
+            "score": 0.343594
+          },
+          {
+            "docid": "shard_05965_67276",
+            "score": 0.337223
+          },
+          {
+            "docid": "shard_00928_19439",
+            "score": 0.334872
+          },
+          {
+            "docid": "shard_04567_17979",
+            "score": 0.3326
+          },
+          {
+            "docid": "shard_05812_76651",
+            "score": 0.3326
+          },
+          {
+            "docid": "shard_00834_62697",
+            "score": 0.330951
+          },
+          {
+            "docid": "shard_00647_45881",
+            "score": 0.330524
+          },
+          {
+            "docid": "shard_00555_49697",
+            "score": 0.329726
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_r7uP496NIlL8aGECVKzTaNxt",
+        "id": "step-0001",
+        "t_start": "2026-07-18T21:46:30.555+10:00",
+        "t_end": "2026-07-18T21:46:30.917+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 361.752,
+          "context_tokens": 3896,
+          "peak_context_tokens": 3896,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3810,
+          "cumulative_tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04132_34275",
+            "shard_05965_67276",
+            "shard_00928_19439",
+            "shard_04567_17979",
+            "shard_05812_76651",
+            "shard_00834_62697",
+            "shard_00647_45881",
+            "shard_00555_49697"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "encoder decoder sequence to sequence historical development Sutskever Bahdanau Cho machine translation",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "encoder decoder sequence to sequence historical development Sutskever Bahdanau Cho machine translation",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01655_32764",
+              "docid": "shard_01655_32764",
+              "kind": "document",
+              "score": 0.293053,
+              "truncated": true,
+              "original_chars": 16677,
+              "returned_chars": 14964
+            },
+            {
+              "rank": 2,
+              "id": "shard_05598_23932",
+              "docid": "shard_05598_23932",
+              "kind": "document",
+              "score": 0.289147,
+              "truncated": false,
+              "original_chars": 397,
+              "returned_chars": 397
+            },
+            {
+              "rank": 3,
+              "id": "shard_00023_47329",
+              "docid": "shard_00023_47329",
+              "kind": "document",
+              "score": 0.288472,
+              "truncated": false,
+              "original_chars": 3327,
+              "returned_chars": 3327
+            },
+            {
+              "rank": 4,
+              "id": "shard_01167_27836",
+              "docid": "shard_01167_27836",
+              "kind": "document",
+              "score": 0.286982,
+              "truncated": false,
+              "original_chars": 9128,
+              "returned_chars": 9128
+            },
+            {
+              "rank": 5,
+              "id": "shard_02185_15249",
+              "docid": "shard_02185_15249",
+              "kind": "document",
+              "score": 0.286287,
+              "truncated": false,
+              "original_chars": 5667,
+              "returned_chars": 5667
+            },
+            {
+              "rank": 6,
+              "id": "shard_01943_82301",
+              "docid": "shard_01943_82301",
+              "kind": "document",
+              "score": 0.28455,
+              "truncated": false,
+              "original_chars": 3133,
+              "returned_chars": 3133
+            },
+            {
+              "rank": 7,
+              "id": "shard_01205_10962",
+              "docid": "shard_01205_10962",
+              "kind": "document",
+              "score": 0.283644,
+              "truncated": false,
+              "original_chars": 3115,
+              "returned_chars": 3115
+            },
+            {
+              "rank": 8,
+              "id": "shard_01710_31785",
+              "docid": "shard_01710_31785",
+              "kind": "document",
+              "score": 0.283579,
+              "truncated": false,
+              "original_chars": 2940,
+              "returned_chars": 2940
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01655_32764",
+          "shard_05598_23932",
+          "shard_00023_47329",
+          "shard_01167_27836",
+          "shard_02185_15249",
+          "shard_01943_82301",
+          "shard_01205_10962",
+          "shard_01710_31785"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01655_32764",
+            "score": 0.293053
+          },
+          {
+            "docid": "shard_05598_23932",
+            "score": 0.289147
+          },
+          {
+            "docid": "shard_00023_47329",
+            "score": 0.288472
+          },
+          {
+            "docid": "shard_01167_27836",
+            "score": 0.286982
+          },
+          {
+            "docid": "shard_02185_15249",
+            "score": 0.286287
+          },
+          {
+            "docid": "shard_01943_82301",
+            "score": 0.28455
+          },
+          {
+            "docid": "shard_01205_10962",
+            "score": 0.283644
+          },
+          {
+            "docid": "shard_01710_31785",
+            "score": 0.283579
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_xb50ZODxlaIP03uZzZaODx4d",
+        "id": "step-0002",
+        "t_start": "2026-07-18T21:46:30.556+10:00",
+        "t_end": "2026-07-18T21:46:30.906+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 350.288,
+          "context_tokens": 3896,
+          "peak_context_tokens": 3896,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3810,
+          "cumulative_tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01655_32764",
+            "shard_05598_23932",
+            "shard_00023_47329",
+            "shard_01167_27836",
+            "shard_02185_15249",
+            "shard_01943_82301",
+            "shard_01205_10962",
+            "shard_01710_31785"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "LSTM encoder decoder comparison technical history",
+          "k": 8,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "LSTM encoder decoder comparison technical history",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05071_76781",
+              "docid": "shard_05071_76781",
+              "kind": "document",
+              "score": 20.763454,
+              "truncated": true,
+              "original_chars": 29851,
+              "returned_chars": 14891
+            },
+            {
+              "rank": 2,
+              "id": "shard_01740_29902",
+              "docid": "shard_01740_29902",
+              "kind": "document",
+              "score": 20.673843,
+              "truncated": true,
+              "original_chars": 34083,
+              "returned_chars": 14851
+            },
+            {
+              "rank": 3,
+              "id": "shard_01725_76",
+              "docid": "shard_01725_76",
+              "kind": "document",
+              "score": 20.503216,
+              "truncated": true,
+              "original_chars": 30372,
+              "returned_chars": 14813
+            },
+            {
+              "rank": 4,
+              "id": "shard_02530_77628",
+              "docid": "shard_02530_77628",
+              "kind": "document",
+              "score": 20.427282,
+              "truncated": false,
+              "original_chars": 13174,
+              "returned_chars": 13174
+            },
+            {
+              "rank": 5,
+              "id": "shard_01467_78546",
+              "docid": "shard_01467_78546",
+              "kind": "document",
+              "score": 20.278542,
+              "truncated": false,
+              "original_chars": 10409,
+              "returned_chars": 10409
+            },
+            {
+              "rank": 6,
+              "id": "shard_02088_24455",
+              "docid": "shard_02088_24455",
+              "kind": "document",
+              "score": 20.137363,
+              "truncated": false,
+              "original_chars": 2794,
+              "returned_chars": 2794
+            },
+            {
+              "rank": 7,
+              "id": "shard_03090_39022",
+              "docid": "shard_03090_39022",
+              "kind": "document",
+              "score": 20.0173,
+              "truncated": true,
+              "original_chars": 49339,
+              "returned_chars": 14971
+            },
+            {
+              "rank": 8,
+              "id": "shard_03282_58177",
+              "docid": "shard_03282_58177",
+              "kind": "document",
+              "score": 19.97048,
+              "truncated": true,
+              "original_chars": 31569,
+              "returned_chars": 14612
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05071_76781",
+          "shard_01740_29902",
+          "shard_01725_76",
+          "shard_02530_77628",
+          "shard_01467_78546",
+          "shard_02088_24455",
+          "shard_03090_39022",
+          "shard_03282_58177"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05071_76781",
+            "score": 20.763454
+          },
+          {
+            "docid": "shard_01740_29902",
+            "score": 20.673843
+          },
+          {
+            "docid": "shard_01725_76",
+            "score": 20.503216
+          },
+          {
+            "docid": "shard_02530_77628",
+            "score": 20.427282
+          },
+          {
+            "docid": "shard_01467_78546",
+            "score": 20.278542
+          },
+          {
+            "docid": "shard_02088_24455",
+            "score": 20.137363
+          },
+          {
+            "docid": "shard_03090_39022",
+            "score": 20.0173
+          },
+          {
+            "docid": "shard_03282_58177",
+            "score": 19.97048
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_cQsXR6Lw0THJNZVmpKLQuiQr",
+        "id": "step-0003",
+        "t_start": "2026-07-18T21:46:30.556+10:00",
+        "t_end": "2026-07-18T21:46:31.049+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 492.538,
+          "context_tokens": 3896,
+          "peak_context_tokens": 3896,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3810,
+          "cumulative_tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05071_76781",
+            "shard_01740_29902",
+            "shard_01725_76",
+            "shard_02530_77628",
+            "shard_01467_78546",
+            "shard_02088_24455",
+            "shard_03090_39022",
+            "shard_03282_58177"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "machine translation speech recognition predictive text societal impacts globalization accessibility jobs",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "machine translation speech recognition predictive text societal impacts globalization accessibility jobs",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01293_39815",
+              "docid": "shard_01293_39815",
+              "kind": "document",
+              "score": 0.316133,
+              "truncated": false,
+              "original_chars": 3139,
+              "returned_chars": 3139
+            },
+            {
+              "rank": 2,
+              "id": "shard_05672_50489",
+              "docid": "shard_05672_50489",
+              "kind": "document",
+              "score": 0.312812,
+              "truncated": false,
+              "original_chars": 3960,
+              "returned_chars": 3960
+            },
+            {
+              "rank": 3,
+              "id": "shard_04087_69276",
+              "docid": "shard_04087_69276",
+              "kind": "document",
+              "score": 0.307039,
+              "truncated": false,
+              "original_chars": 2986,
+              "returned_chars": 2986
+            },
+            {
+              "rank": 4,
+              "id": "shard_01874_49479",
+              "docid": "shard_01874_49479",
+              "kind": "document",
+              "score": 0.304063,
+              "truncated": false,
+              "original_chars": 2888,
+              "returned_chars": 2888
+            },
+            {
+              "rank": 5,
+              "id": "shard_02565_46204",
+              "docid": "shard_02565_46204",
+              "kind": "document",
+              "score": 0.300507,
+              "truncated": false,
+              "original_chars": 3474,
+              "returned_chars": 3474
+            },
+            {
+              "rank": 6,
+              "id": "shard_05722_41319",
+              "docid": "shard_05722_41319",
+              "kind": "document",
+              "score": 0.29623,
+              "truncated": false,
+              "original_chars": 6829,
+              "returned_chars": 6829
+            },
+            {
+              "rank": 7,
+              "id": "shard_06452_52883",
+              "docid": "shard_06452_52883",
+              "kind": "document",
+              "score": 0.295071,
+              "truncated": false,
+              "original_chars": 3997,
+              "returned_chars": 3997
+            },
+            {
+              "rank": 8,
+              "id": "shard_00310_73337",
+              "docid": "shard_00310_73337",
+              "kind": "document",
+              "score": 0.294516,
+              "truncated": false,
+              "original_chars": 2740,
+              "returned_chars": 2740
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01293_39815",
+          "shard_05672_50489",
+          "shard_04087_69276",
+          "shard_01874_49479",
+          "shard_02565_46204",
+          "shard_05722_41319",
+          "shard_06452_52883",
+          "shard_00310_73337"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01293_39815",
+            "score": 0.316133
+          },
+          {
+            "docid": "shard_05672_50489",
+            "score": 0.312812
+          },
+          {
+            "docid": "shard_04087_69276",
+            "score": 0.307039
+          },
+          {
+            "docid": "shard_01874_49479",
+            "score": 0.304063
+          },
+          {
+            "docid": "shard_02565_46204",
+            "score": 0.300507
+          },
+          {
+            "docid": "shard_05722_41319",
+            "score": 0.29623
+          },
+          {
+            "docid": "shard_06452_52883",
+            "score": 0.295071
+          },
+          {
+            "docid": "shard_00310_73337",
+            "score": 0.294516
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_dFL6wFleJGvo8zBnIxYXPrwm",
+        "id": "step-0004",
+        "t_start": "2026-07-18T21:46:30.556+10:00",
+        "t_end": "2026-07-18T21:46:30.770+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 213.511,
+          "context_tokens": 3896,
+          "peak_context_tokens": 3896,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3810,
+          "cumulative_tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01293_39815",
+            "shard_05672_50489",
+            "shard_04087_69276",
+            "shard_01874_49479",
+            "shard_02565_46204",
+            "shard_05722_41319",
+            "shard_06452_52883",
+            "shard_00310_73337"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AI training data bias access surveillance disinformation ethical framework IEEE guidelines",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 3000
+        },
+        "output": {
+          "query": "AI training data bias access surveillance disinformation ethical framework IEEE guidelines",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04555_59717",
+              "docid": "shard_04555_59717",
+              "kind": "document",
+              "score": 0.347481,
+              "truncated": false,
+              "original_chars": 3261,
+              "returned_chars": 3261
+            },
+            {
+              "rank": 2,
+              "id": "shard_02046_54912",
+              "docid": "shard_02046_54912",
+              "kind": "document",
+              "score": 0.346179,
+              "truncated": false,
+              "original_chars": 3086,
+              "returned_chars": 3086
+            },
+            {
+              "rank": 3,
+              "id": "shard_00376_81838",
+              "docid": "shard_00376_81838",
+              "kind": "document",
+              "score": 0.345867,
+              "truncated": false,
+              "original_chars": 4413,
+              "returned_chars": 4413
+            },
+            {
+              "rank": 4,
+              "id": "shard_02411_38721",
+              "docid": "shard_02411_38721",
+              "kind": "document",
+              "score": 0.344254,
+              "truncated": false,
+              "original_chars": 3136,
+              "returned_chars": 3136
+            },
+            {
+              "rank": 5,
+              "id": "shard_05507_7451",
+              "docid": "shard_05507_7451",
+              "kind": "document",
+              "score": 0.34397,
+              "truncated": false,
+              "original_chars": 1225,
+              "returned_chars": 1225
+            },
+            {
+              "rank": 6,
+              "id": "shard_03586_8006",
+              "docid": "shard_03586_8006",
+              "kind": "document",
+              "score": 0.343439,
+              "truncated": false,
+              "original_chars": 3584,
+              "returned_chars": 3584
+            },
+            {
+              "rank": 7,
+              "id": "shard_00526_8280",
+              "docid": "shard_00526_8280",
+              "kind": "document",
+              "score": 0.339693,
+              "truncated": false,
+              "original_chars": 3245,
+              "returned_chars": 3245
+            },
+            {
+              "rank": 8,
+              "id": "shard_00165_32007",
+              "docid": "shard_00165_32007",
+              "kind": "document",
+              "score": 0.339309,
+              "truncated": false,
+              "original_chars": 5248,
+              "returned_chars": 5248
+            }
+          ],
+          "budget_tokens_per_result": 3000,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04555_59717",
+          "shard_02046_54912",
+          "shard_00376_81838",
+          "shard_02411_38721",
+          "shard_05507_7451",
+          "shard_03586_8006",
+          "shard_00526_8280",
+          "shard_00165_32007"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04555_59717",
+            "score": 0.347481
+          },
+          {
+            "docid": "shard_02046_54912",
+            "score": 0.346179
+          },
+          {
+            "docid": "shard_00376_81838",
+            "score": 0.345867
+          },
+          {
+            "docid": "shard_02411_38721",
+            "score": 0.344254
+          },
+          {
+            "docid": "shard_05507_7451",
+            "score": 0.34397
+          },
+          {
+            "docid": "shard_03586_8006",
+            "score": 0.343439
+          },
+          {
+            "docid": "shard_00526_8280",
+            "score": 0.339693
+          },
+          {
+            "docid": "shard_00165_32007",
+            "score": 0.339309
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_AmLdxZ5eZLNHlj7isgMDTCyI",
+        "id": "step-0005",
+        "t_start": "2026-07-18T21:46:30.557+10:00",
+        "t_end": "2026-07-18T21:46:30.783+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 226.636,
+          "context_tokens": 3896,
+          "peak_context_tokens": 3896,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 3810,
+          "cumulative_tokens": {
+            "input": 3896,
+            "input_uncached": 1336,
+            "output": 265,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 4161,
+            "processed_input": 1336,
+            "processed": 1601
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04555_59717",
+            "shard_02046_54912",
+            "shard_00376_81838",
+            "shard_02411_38721",
+            "shard_05507_7451",
+            "shard_03586_8006",
+            "shard_00526_8280",
+            "shard_00165_32007"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_r7uP496NIlL8aGECVKzTaNxt",
+            "call_xb50ZODxlaIP03uZzZaODx4d",
+            "call_cQsXR6Lw0THJNZVmpKLQuiQr",
+            "call_dFL6wFleJGvo8zBnIxYXPrwm",
+            "call_AmLdxZ5eZLNHlj7isgMDTCyI"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_Cd6zUnrxydxkQNnDuZkZRw29",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_04567_17979",
+                    "reason": "Historical and technical account of vanishing gradients, Hochreiter's thesis, LSTM memory cell and gating, and early NLP/speech applications."
+                  },
+                  {
+                    "docid": "shard_01655_32764",
+                    "reason": "Detailed encoder-decoder mechanics, variable-length sequences, Sutskever and Cho designs, training and inference."
+                  },
+                  {
+                    "docid": "shard_01205_10962",
+                    "reason": "Concise milestone account connecting Sutskever/Cho seq2seq to Bahdanau attention and the fixed-vector limitation."
+                  },
+                  {
+                    "docid": "shard_02530_77628",
+                    "reason": "Evidence for LSTM in speech recognition, deep acoustic modeling, and attention-based encoder-decoder ASR limitations."
+                  },
+                  {
+                    "docid": "shard_01293_39815",
+                    "reason": "Concrete accessibility and deployment examples for transcription, translation, and large-scale language access."
+                  },
+                  {
+                    "docid": "shard_00376_81838",
+                    "reason": "Ethical risk coverage: surveillance, privacy, disinformation, bias, labor displacement, opacity, and governance."
+                  },
+                  {
+                    "docid": "shard_04555_59717",
+                    "reason": "Evidence on dataset bias, historical unfairness, privacy, and the need for testing and values-based governance."
+                  },
+                  {
+                    "docid": "shard_05722_41319",
+                    "reason": "Evidence on translation labor effects, human-machine complementarity, localization, and productivity."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0006",
+        "t_start": "2026-07-18T21:46:31.049+10:00",
+        "t_end": "2026-07-18T21:46:35.014+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3964.768,
+          "context_tokens": 55348,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7775,
+          "tokens": {
+            "input": 55348,
+            "input_uncached": 51764,
+            "output": 365,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 55713,
+            "processed_input": 51764,
+            "processed": 52129,
+            "context": 55348
+          },
+          "provider_usage": {
+            "input_tokens": 51764,
+            "cache_read_input_tokens": 3584,
+            "output_tokens": 365
+          },
+          "cumulative_tokens": {
+            "input": 59244,
+            "input_uncached": 53100,
+            "output": 630,
+            "cache_read": 6144,
+            "cache_write": 0,
+            "total": 59874,
+            "processed_input": 53100,
+            "processed": 53730
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04132_34275",
+            "shard_05965_67276",
+            "shard_00928_19439",
+            "shard_04567_17979",
+            "shard_05812_76651",
+            "shard_00834_62697",
+            "shard_00647_45881",
+            "shard_00555_49697",
+            "shard_01655_32764",
+            "shard_05598_23932",
+            "shard_00023_47329",
+            "shard_01167_27836",
+            "shard_02185_15249",
+            "shard_01943_82301",
+            "shard_01205_10962",
+            "shard_01710_31785",
+            "shard_05071_76781",
+            "shard_01740_29902",
+            "shard_01725_76",
+            "shard_02530_77628",
+            "shard_01467_78546",
+            "shard_02088_24455",
+            "shard_03090_39022",
+            "shard_03282_58177",
+            "shard_01293_39815",
+            "shard_05672_50489",
+            "shard_04087_69276",
+            "shard_01874_49479",
+            "shard_02565_46204",
+            "shard_05722_41319",
+            "shard_06452_52883",
+            "shard_00310_73337",
+            "shard_04555_59717",
+            "shard_02046_54912",
+            "shard_00376_81838",
+            "shard_02411_38721",
+            "shard_05507_7451",
+            "shard_03586_8006",
+            "shard_00526_8280",
+            "shard_00165_32007"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_04567_17979",
+              "reason": "Historical and technical account of vanishing gradients, Hochreiter's thesis, LSTM memory cell and gating, and early NLP/speech applications."
+            },
+            {
+              "docid": "shard_01655_32764",
+              "reason": "Detailed encoder-decoder mechanics, variable-length sequences, Sutskever and Cho designs, training and inference."
+            },
+            {
+              "docid": "shard_01205_10962",
+              "reason": "Concise milestone account connecting Sutskever/Cho seq2seq to Bahdanau attention and the fixed-vector limitation."
+            },
+            {
+              "docid": "shard_02530_77628",
+              "reason": "Evidence for LSTM in speech recognition, deep acoustic modeling, and attention-based encoder-decoder ASR limitations."
+            },
+            {
+              "docid": "shard_01293_39815",
+              "reason": "Concrete accessibility and deployment examples for transcription, translation, and large-scale language access."
+            },
+            {
+              "docid": "shard_00376_81838",
+              "reason": "Ethical risk coverage: surveillance, privacy, disinformation, bias, labor displacement, opacity, and governance."
+            },
+            {
+              "docid": "shard_04555_59717",
+              "reason": "Evidence on dataset bias, historical unfairness, privacy, and the need for testing and values-based governance."
+            },
+            {
+              "docid": "shard_05722_41319",
+              "reason": "Evidence on translation labor effects, human-machine complementarity, localization, and productivity."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_04567_17979\", \"shard_01655_32764\", \"shard_01205_10962\", \"shard_02530_77628\", \"shard_01293_39815\", \"shard_05722_41319\", \"shard_04555_59717\", \"shard_00376_81838\"], \"rejected\": [{\"docid\": \"shard_04132_34275\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05965_67276\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00928_19439\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05812_76651\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00834_62697\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00647_45881\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00555_49697\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05598_23932\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00023_47329\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01167_27836\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02185_15249\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01943_82301\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01710_31785\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05071_76781\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01740_29902\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01725_76\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01467_78546\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02088_24455\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03090_39022\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03282_58177\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05672_50489\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04087_69276\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01874_49479\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02565_46204\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06452_52883\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00310_73337\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02046_54912\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02411_38721\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05507_7451\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03586_8006\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00526_8280\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00165_32007\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 55,348 / 500,000 tokens (11.1%) · elapsed: 0m 7s]",
+        "failed": false,
+        "tool_call_id": "call_Cd6zUnrxydxkQNnDuZkZRw29",
+        "id": "step-0007",
+        "t_start": "2026-07-18T21:46:35.017+10:00",
+        "t_end": "2026-07-18T21:46:35.020+10:00",
+        "turn": 1,
+        "parent_id": "step-0006",
+        "stats": {
+          "duration_ms": 2.919,
+          "context_tokens": 55348,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7781,
+          "cumulative_tokens": {
+            "input": 59244,
+            "input_uncached": 53100,
+            "output": 630,
+            "cache_read": 6144,
+            "cache_write": 0,
+            "total": 59874,
+            "processed_input": 53100,
+            "processed": 53730
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04132_34275",
+            "shard_05965_67276",
+            "shard_00928_19439",
+            "shard_04567_17979",
+            "shard_05812_76651",
+            "shard_00834_62697",
+            "shard_00647_45881",
+            "shard_00555_49697",
+            "shard_01655_32764",
+            "shard_05598_23932",
+            "shard_00023_47329",
+            "shard_01167_27836",
+            "shard_02185_15249",
+            "shard_01943_82301",
+            "shard_01205_10962",
+            "shard_01710_31785",
+            "shard_05071_76781",
+            "shard_01740_29902",
+            "shard_01725_76",
+            "shard_02530_77628",
+            "shard_01467_78546",
+            "shard_02088_24455",
+            "shard_03090_39022",
+            "shard_03282_58177",
+            "shard_01293_39815",
+            "shard_05672_50489",
+            "shard_04087_69276",
+            "shard_01874_49479",
+            "shard_02565_46204",
+            "shard_05722_41319",
+            "shard_06452_52883",
+            "shard_00310_73337",
+            "shard_04555_59717",
+            "shard_02046_54912",
+            "shard_00376_81838",
+            "shard_02411_38721",
+            "shard_05507_7451",
+            "shard_03586_8006",
+            "shard_00526_8280",
+            "shard_00165_32007"
+          ],
+          "committed": [
+            "shard_04567_17979",
+            "shard_01655_32764",
+            "shard_01205_10962",
+            "shard_02530_77628",
+            "shard_01293_39815",
+            "shard_05722_41319",
+            "shard_04555_59717",
+            "shard_00376_81838"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_04132_34275",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05965_67276",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00928_19439",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05812_76651",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00834_62697",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00647_45881",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00555_49697",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05598_23932",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00023_47329",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01167_27836",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02185_15249",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01943_82301",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01710_31785",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05071_76781",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01740_29902",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01725_76",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01467_78546",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02088_24455",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03090_39022",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03282_58177",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05672_50489",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04087_69276",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01874_49479",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02565_46204",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06452_52883",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00310_73337",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02046_54912",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02411_38721",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05507_7451",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03586_8006",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00526_8280",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00165_32007",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_Cd6zUnrxydxkQNnDuZkZRw29"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_3tR8jAS1hmjtbLRmiCimSnTS",
+              "name": "search",
+              "arguments": {
+                "query": "IEEE ethically aligned design principles human well-being accountability transparency AI",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_zCycj41lbPfYzKTtVIZnPr7c",
+              "name": "search",
+              "arguments": {
+                "query": "LSTM milestones Graves CTC speech recognition Sak Hochreiter Schmidhuber history",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_znwva8g35YvdMzupEMD6iXW0",
+              "name": "search",
+              "arguments": {
+                "query": "Bahdanau attention encoder decoder machine translation long sentences 2015",
+                "k": 8,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_JXZrRT6uktRr8KgnakPhCOTe",
+              "name": "search",
+              "arguments": {
+                "query": "neural machine translation Sutskever Vinyals Le 2014 Cho 2014 LSTM milestones",
+                "k": 8,
+                "search_engine": "keyword",
+                "budget_tokens_per_result": 2500
+              }
+            },
+            {
+              "id": "call_SnH1AqGLSVqsbzAH1s12xgn4",
+              "name": "search",
+              "arguments": {
+                "query": "AI case studies translation speech recognition predictive text accessibility bias surveillance disinformation labor",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0008",
+        "t_start": "2026-07-18T21:46:35.020+10:00",
+        "t_end": "2026-07-18T21:46:37.688+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 2667.689,
+          "context_tokens": 20528,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10449,
+          "tokens": {
+            "input": 20528,
+            "input_uncached": 16944,
+            "output": 285,
+            "cache_read": 3584,
+            "cache_write": 0,
+            "total": 20813,
+            "processed_input": 16944,
+            "processed": 17229,
+            "context": 20528
+          },
+          "provider_usage": {
+            "input_tokens": 16944,
+            "cache_read_input_tokens": 3584,
+            "output_tokens": 285
+          },
+          "cumulative_tokens": {
+            "input": 79772,
+            "input_uncached": 70044,
+            "output": 915,
+            "cache_read": 9728,
+            "cache_write": 0,
+            "total": 80687,
+            "processed_input": 70044,
+            "processed": 70959
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00376_81838",
+            "shard_01205_10962",
+            "shard_01293_39815",
+            "shard_01655_32764",
+            "shard_02530_77628",
+            "shard_04555_59717",
+            "shard_04567_17979",
+            "shard_05722_41319"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "IEEE ethically aligned design principles human well-being accountability transparency AI",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "IEEE ethically aligned design principles human well-being accountability transparency AI",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00906_9819",
+              "docid": "shard_00906_9819",
+              "kind": "document",
+              "score": 0.354721,
+              "truncated": false,
+              "original_chars": 2093,
+              "returned_chars": 2093
+            },
+            {
+              "rank": 2,
+              "id": "shard_02228_43628",
+              "docid": "shard_02228_43628",
+              "kind": "document",
+              "score": 0.348388,
+              "truncated": false,
+              "original_chars": 3063,
+              "returned_chars": 3063
+            },
+            {
+              "rank": 3,
+              "id": "shard_02808_33786",
+              "docid": "shard_02808_33786",
+              "kind": "document",
+              "score": 0.348388,
+              "truncated": false,
+              "original_chars": 3055,
+              "returned_chars": 3055
+            },
+            {
+              "rank": 4,
+              "id": "shard_01504_14612",
+              "docid": "shard_01504_14612",
+              "kind": "document",
+              "score": 0.344635,
+              "truncated": false,
+              "original_chars": 3970,
+              "returned_chars": 3970
+            },
+            {
+              "rank": 5,
+              "id": "shard_01031_6498",
+              "docid": "shard_01031_6498",
+              "kind": "document",
+              "score": 0.341307,
+              "truncated": false,
+              "original_chars": 3250,
+              "returned_chars": 3250
+            },
+            {
+              "rank": 6,
+              "id": "shard_00646_35280",
+              "docid": "shard_00646_35280",
+              "kind": "document",
+              "score": 0.339759,
+              "truncated": false,
+              "original_chars": 3145,
+              "returned_chars": 3145
+            },
+            {
+              "rank": 7,
+              "id": "shard_06184_53738",
+              "docid": "shard_06184_53738",
+              "kind": "document",
+              "score": 0.339759,
+              "truncated": false,
+              "original_chars": 3478,
+              "returned_chars": 3478
+            },
+            {
+              "rank": 8,
+              "id": "shard_02793_54422",
+              "docid": "shard_02793_54422",
+              "kind": "document",
+              "score": 0.339722,
+              "truncated": false,
+              "original_chars": 3523,
+              "returned_chars": 3523
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00906_9819",
+          "shard_02228_43628",
+          "shard_02808_33786",
+          "shard_01504_14612",
+          "shard_01031_6498",
+          "shard_00646_35280",
+          "shard_06184_53738",
+          "shard_02793_54422"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00906_9819",
+            "score": 0.354721
+          },
+          {
+            "docid": "shard_02228_43628",
+            "score": 0.348388
+          },
+          {
+            "docid": "shard_02808_33786",
+            "score": 0.348388
+          },
+          {
+            "docid": "shard_01504_14612",
+            "score": 0.344635
+          },
+          {
+            "docid": "shard_01031_6498",
+            "score": 0.341307
+          },
+          {
+            "docid": "shard_00646_35280",
+            "score": 0.339759
+          },
+          {
+            "docid": "shard_06184_53738",
+            "score": 0.339759
+          },
+          {
+            "docid": "shard_02793_54422",
+            "score": 0.339722
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_3tR8jAS1hmjtbLRmiCimSnTS",
+        "id": "step-0009",
+        "t_start": "2026-07-18T21:46:37.691+10:00",
+        "t_end": "2026-07-18T21:46:37.906+10:00",
+        "turn": 2,
+        "parent_id": "step-0008",
+        "stats": {
+          "duration_ms": 215.125,
+          "context_tokens": 20528,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10734,
+          "cumulative_tokens": {
+            "input": 79772,
+            "input_uncached": 70044,
+            "output": 915,
+            "cache_read": 9728,
+            "cache_write": 0,
+            "total": 80687,
+            "processed_input": 70044,
+            "processed": 70959
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00906_9819",
+            "shard_02228_43628",
+            "shard_02808_33786",
+            "shard_01504_14612",
+            "shard_01031_6498",
+            "shard_00646_35280",
+            "shard_06184_53738",
+            "shard_02793_54422"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "LSTM milestones Graves CTC speech recognition Sak Hochreiter Schmidhuber history",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "LSTM milestones Graves CTC speech recognition Sak Hochreiter Schmidhuber history",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06437_55812",
+              "docid": "shard_06437_55812",
+              "kind": "document",
+              "score": 0.304472,
+              "truncated": false,
+              "original_chars": 2963,
+              "returned_chars": 2963
+            },
+            {
+              "rank": 2,
+              "id": "shard_00526_70095",
+              "docid": "shard_00526_70095",
+              "kind": "document",
+              "score": 0.299794,
+              "truncated": false,
+              "original_chars": 857,
+              "returned_chars": 857
+            },
+            {
+              "rank": 3,
+              "id": "shard_03605_72406",
+              "docid": "shard_03605_72406",
+              "kind": "document",
+              "score": 0.299041,
+              "truncated": false,
+              "original_chars": 1969,
+              "returned_chars": 1969
+            },
+            {
+              "rank": 4,
+              "id": "shard_00755_49624",
+              "docid": "shard_00755_49624",
+              "kind": "document",
+              "score": 0.297545,
+              "truncated": false,
+              "original_chars": 2820,
+              "returned_chars": 2820
+            },
+            {
+              "rank": 5,
+              "id": "shard_04013_40998",
+              "docid": "shard_04013_40998",
+              "kind": "document",
+              "score": 0.297506,
+              "truncated": true,
+              "original_chars": 13437,
+              "returned_chars": 12493
+            },
+            {
+              "rank": 6,
+              "id": "shard_03534_84208",
+              "docid": "shard_03534_84208",
+              "kind": "document",
+              "score": 0.294719,
+              "truncated": false,
+              "original_chars": 2644,
+              "returned_chars": 2644
+            },
+            {
+              "rank": 7,
+              "id": "shard_01130_71281",
+              "docid": "shard_01130_71281",
+              "kind": "document",
+              "score": 0.294654,
+              "truncated": false,
+              "original_chars": 2253,
+              "returned_chars": 2253
+            },
+            {
+              "rank": 8,
+              "id": "shard_03262_36673",
+              "docid": "shard_03262_36673",
+              "kind": "document",
+              "score": 0.293303,
+              "truncated": false,
+              "original_chars": 3340,
+              "returned_chars": 3340
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06437_55812",
+          "shard_00526_70095",
+          "shard_03605_72406",
+          "shard_00755_49624",
+          "shard_04013_40998",
+          "shard_03534_84208",
+          "shard_01130_71281",
+          "shard_03262_36673"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06437_55812",
+            "score": 0.304472
+          },
+          {
+            "docid": "shard_00526_70095",
+            "score": 0.299794
+          },
+          {
+            "docid": "shard_03605_72406",
+            "score": 0.299041
+          },
+          {
+            "docid": "shard_00755_49624",
+            "score": 0.297545
+          },
+          {
+            "docid": "shard_04013_40998",
+            "score": 0.297506
+          },
+          {
+            "docid": "shard_03534_84208",
+            "score": 0.294719
+          },
+          {
+            "docid": "shard_01130_71281",
+            "score": 0.294654
+          },
+          {
+            "docid": "shard_03262_36673",
+            "score": 0.293303
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_zCycj41lbPfYzKTtVIZnPr7c",
+        "id": "step-0010",
+        "t_start": "2026-07-18T21:46:37.691+10:00",
+        "t_end": "2026-07-18T21:46:37.893+10:00",
+        "turn": 2,
+        "parent_id": "step-0008",
+        "stats": {
+          "duration_ms": 202.093,
+          "context_tokens": 20528,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10734,
+          "cumulative_tokens": {
+            "input": 79772,
+            "input_uncached": 70044,
+            "output": 915,
+            "cache_read": 9728,
+            "cache_write": 0,
+            "total": 80687,
+            "processed_input": 70044,
+            "processed": 70959
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06437_55812",
+            "shard_00526_70095",
+            "shard_03605_72406",
+            "shard_00755_49624",
+            "shard_04013_40998",
+            "shard_03534_84208",
+            "shard_01130_71281",
+            "shard_03262_36673"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Bahdanau attention encoder decoder machine translation long sentences 2015",
+          "k": 8,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "Bahdanau attention encoder decoder machine translation long sentences 2015",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00176_69370",
+              "docid": "shard_00176_69370",
+              "kind": "document",
+              "score": 37.179928,
+              "truncated": true,
+              "original_chars": 36211,
+              "returned_chars": 29
+            },
+            {
+              "rank": 2,
+              "id": "shard_02190_22295",
+              "docid": "shard_02190_22295",
+              "kind": "document",
+              "score": 37.125473,
+              "truncated": true,
+              "original_chars": 15707,
+              "returned_chars": 50
+            },
+            {
+              "rank": 3,
+              "id": "shard_00771_57115",
+              "docid": "shard_00771_57115",
+              "kind": "document",
+              "score": 36.33458,
+              "truncated": false,
+              "original_chars": 7719,
+              "returned_chars": 7719
+            },
+            {
+              "rank": 4,
+              "id": "shard_05783_29955",
+              "docid": "shard_05783_29955",
+              "kind": "document",
+              "score": 36.31235,
+              "truncated": true,
+              "original_chars": 31635,
+              "returned_chars": 29
+            },
+            {
+              "rank": 5,
+              "id": "shard_01101_1622",
+              "docid": "shard_01101_1622",
+              "kind": "document",
+              "score": 36.20583,
+              "truncated": true,
+              "original_chars": 22444,
+              "returned_chars": 12500
+            },
+            {
+              "rank": 6,
+              "id": "shard_03306_35529",
+              "docid": "shard_03306_35529",
+              "kind": "document",
+              "score": 36.062435,
+              "truncated": false,
+              "original_chars": 7708,
+              "returned_chars": 7708
+            },
+            {
+              "rank": 7,
+              "id": "shard_01355_60537",
+              "docid": "shard_01355_60537",
+              "kind": "document",
+              "score": 35.920464,
+              "truncated": true,
+              "original_chars": 18132,
+              "returned_chars": 12226
+            },
+            {
+              "rank": 8,
+              "id": "shard_01865_208",
+              "docid": "shard_01865_208",
+              "kind": "document",
+              "score": 35.907562,
+              "truncated": false,
+              "original_chars": 7703,
+              "returned_chars": 7703
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00176_69370",
+          "shard_02190_22295",
+          "shard_00771_57115",
+          "shard_05783_29955",
+          "shard_01101_1622",
+          "shard_03306_35529",
+          "shard_01355_60537",
+          "shard_01865_208"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00176_69370",
+            "score": 37.179928
+          },
+          {
+            "docid": "shard_02190_22295",
+            "score": 37.125473
+          },
+          {
+            "docid": "shard_00771_57115",
+            "score": 36.33458
+          },
+          {
+            "docid": "shard_05783_29955",
+            "score": 36.31235
+          },
+          {
+            "docid": "shard_01101_1622",
+            "score": 36.20583
+          },
+          {
+            "docid": "shard_03306_35529",
+            "score": 36.062435
+          },
+          {
+            "docid": "shard_01355_60537",
+            "score": 35.920464
+          },
+          {
+            "docid": "shard_01865_208",
+            "score": 35.907562
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_znwva8g35YvdMzupEMD6iXW0",
+        "id": "step-0011",
+        "t_start": "2026-07-18T21:46:37.691+10:00",
+        "t_end": "2026-07-18T21:46:37.972+10:00",
+        "turn": 2,
+        "parent_id": "step-0008",
+        "stats": {
+          "duration_ms": 280.979,
+          "context_tokens": 20528,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10734,
+          "cumulative_tokens": {
+            "input": 79772,
+            "input_uncached": 70044,
+            "output": 915,
+            "cache_read": 9728,
+            "cache_write": 0,
+            "total": 80687,
+            "processed_input": 70044,
+            "processed": 70959
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00176_69370",
+            "shard_02190_22295",
+            "shard_00771_57115",
+            "shard_05783_29955",
+            "shard_01101_1622",
+            "shard_03306_35529",
+            "shard_01355_60537",
+            "shard_01865_208"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "neural machine translation Sutskever Vinyals Le 2014 Cho 2014 LSTM milestones",
+          "k": 8,
+          "search_engine": "keyword",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "neural machine translation Sutskever Vinyals Le 2014 Cho 2014 LSTM milestones",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04583_29184",
+              "docid": "shard_04583_29184",
+              "kind": "document",
+              "score": 48.870968,
+              "truncated": false,
+              "original_chars": 4850,
+              "returned_chars": 4850
+            },
+            {
+              "rank": 2,
+              "id": "shard_02040_42986",
+              "docid": "shard_02040_42986",
+              "kind": "document",
+              "score": 48.277607,
+              "truncated": false,
+              "original_chars": 8263,
+              "returned_chars": 8263
+            },
+            {
+              "rank": 3,
+              "id": "shard_03862_70111",
+              "docid": "shard_03862_70111",
+              "kind": "document",
+              "score": 45.504738,
+              "truncated": true,
+              "original_chars": 15138,
+              "returned_chars": 12500
+            },
+            {
+              "rank": 4,
+              "id": "shard_05595_14871",
+              "docid": "shard_05595_14871",
+              "kind": "document",
+              "score": 44.78575,
+              "truncated": true,
+              "original_chars": 34066,
+              "returned_chars": 12323
+            },
+            {
+              "rank": 5,
+              "id": "shard_01944_10024",
+              "docid": "shard_01944_10024",
+              "kind": "document",
+              "score": 42.845596,
+              "truncated": false,
+              "original_chars": 3618,
+              "returned_chars": 3618
+            },
+            {
+              "rank": 6,
+              "id": "shard_04958_73606",
+              "docid": "shard_04958_73606",
+              "kind": "document",
+              "score": 42.48874,
+              "truncated": true,
+              "original_chars": 42151,
+              "returned_chars": 12149
+            },
+            {
+              "rank": 7,
+              "id": "shard_04048_26907",
+              "docid": "shard_04048_26907",
+              "kind": "document",
+              "score": 41.86524,
+              "truncated": true,
+              "original_chars": 34822,
+              "returned_chars": 12467
+            },
+            {
+              "rank": 8,
+              "id": "shard_01906_19127",
+              "docid": "shard_01906_19127",
+              "kind": "document",
+              "score": 41.797512,
+              "truncated": false,
+              "original_chars": 3265,
+              "returned_chars": 3265
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04583_29184",
+          "shard_02040_42986",
+          "shard_03862_70111",
+          "shard_05595_14871",
+          "shard_01944_10024",
+          "shard_04958_73606",
+          "shard_04048_26907",
+          "shard_01906_19127"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04583_29184",
+            "score": 48.870968
+          },
+          {
+            "docid": "shard_02040_42986",
+            "score": 48.277607
+          },
+          {
+            "docid": "shard_03862_70111",
+            "score": 45.504738
+          },
+          {
+            "docid": "shard_05595_14871",
+            "score": 44.78575
+          },
+          {
+            "docid": "shard_01944_10024",
+            "score": 42.845596
+          },
+          {
+            "docid": "shard_04958_73606",
+            "score": 42.48874
+          },
+          {
+            "docid": "shard_04048_26907",
+            "score": 41.86524
+          },
+          {
+            "docid": "shard_01906_19127",
+            "score": 41.797512
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_JXZrRT6uktRr8KgnakPhCOTe",
+        "id": "step-0012",
+        "t_start": "2026-07-18T21:46:37.692+10:00",
+        "t_end": "2026-07-18T21:46:37.936+10:00",
+        "turn": 2,
+        "parent_id": "step-0008",
+        "stats": {
+          "duration_ms": 244.005,
+          "context_tokens": 20528,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10734,
+          "cumulative_tokens": {
+            "input": 79772,
+            "input_uncached": 70044,
+            "output": 915,
+            "cache_read": 9728,
+            "cache_write": 0,
+            "total": 80687,
+            "processed_input": 70044,
+            "processed": 70959
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04583_29184",
+            "shard_02040_42986",
+            "shard_03862_70111",
+            "shard_05595_14871",
+            "shard_01944_10024",
+            "shard_04958_73606",
+            "shard_04048_26907",
+            "shard_01906_19127"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AI case studies translation speech recognition predictive text accessibility bias surveillance disinformation labor",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "AI case studies translation speech recognition predictive text accessibility bias surveillance disinformation labor",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05329_8419",
+              "docid": "shard_05329_8419",
+              "kind": "document",
+              "score": 0.352827,
+              "truncated": false,
+              "original_chars": 2377,
+              "returned_chars": 2377
+            },
+            {
+              "rank": 2,
+              "id": "shard_02705_39419",
+              "docid": "shard_02705_39419",
+              "kind": "document",
+              "score": 0.32159,
+              "truncated": false,
+              "original_chars": 1342,
+              "returned_chars": 1342
+            },
+            {
+              "rank": 3,
+              "id": "shard_03503_28582",
+              "docid": "shard_03503_28582",
+              "kind": "document",
+              "score": 0.321117,
+              "truncated": false,
+              "original_chars": 3900,
+              "returned_chars": 3900
+            },
+            {
+              "rank": 4,
+              "id": "shard_03237_56383",
+              "docid": "shard_03237_56383",
+              "kind": "document",
+              "score": 0.319292,
+              "truncated": false,
+              "original_chars": 2907,
+              "returned_chars": 2907
+            },
+            {
+              "rank": 5,
+              "id": "shard_04629_69823",
+              "docid": "shard_04629_69823",
+              "kind": "document",
+              "score": 0.317861,
+              "truncated": false,
+              "original_chars": 2672,
+              "returned_chars": 2672
+            },
+            {
+              "rank": 6,
+              "id": "shard_03197_12565",
+              "docid": "shard_03197_12565",
+              "kind": "document",
+              "score": 0.317648,
+              "truncated": false,
+              "original_chars": 2457,
+              "returned_chars": 2457
+            },
+            {
+              "rank": 7,
+              "id": "shard_03495_65654",
+              "docid": "shard_03495_65654",
+              "kind": "document",
+              "score": 0.316425,
+              "truncated": false,
+              "original_chars": 2770,
+              "returned_chars": 2770
+            },
+            {
+              "rank": 8,
+              "id": "shard_00565_65833",
+              "docid": "shard_00565_65833",
+              "kind": "document",
+              "score": 0.314397,
+              "truncated": true,
+              "original_chars": 14114,
+              "returned_chars": 11707
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05329_8419",
+          "shard_02705_39419",
+          "shard_03503_28582",
+          "shard_03237_56383",
+          "shard_04629_69823",
+          "shard_03197_12565",
+          "shard_03495_65654",
+          "shard_00565_65833"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05329_8419",
+            "score": 0.352827
+          },
+          {
+            "docid": "shard_02705_39419",
+            "score": 0.32159
+          },
+          {
+            "docid": "shard_03503_28582",
+            "score": 0.321117
+          },
+          {
+            "docid": "shard_03237_56383",
+            "score": 0.319292
+          },
+          {
+            "docid": "shard_04629_69823",
+            "score": 0.317861
+          },
+          {
+            "docid": "shard_03197_12565",
+            "score": 0.317648
+          },
+          {
+            "docid": "shard_03495_65654",
+            "score": 0.316425
+          },
+          {
+            "docid": "shard_00565_65833",
+            "score": 0.314397
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_SnH1AqGLSVqsbzAH1s12xgn4",
+        "id": "step-0013",
+        "t_start": "2026-07-18T21:46:37.692+10:00",
+        "t_end": "2026-07-18T21:46:37.937+10:00",
+        "turn": 2,
+        "parent_id": "step-0008",
+        "stats": {
+          "duration_ms": 244.925,
+          "context_tokens": 20528,
+          "peak_context_tokens": 55348,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 10734,
+          "cumulative_tokens": {
+            "input": 79772,
+            "input_uncached": 70044,
+            "output": 915,
+            "cache_read": 9728,
+            "cache_write": 0,
+            "total": 80687,
+            "processed_input": 70044,
+            "processed": 70959
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05329_8419",
+            "shard_02705_39419",
+            "shard_03503_28582",
+            "shard_03237_56383",
+            "shard_04629_69823",
+            "shard_03197_12565",
+            "shard_03495_65654",
+            "shard_00565_65833"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_3tR8jAS1hmjtbLRmiCimSnTS",
+            "call_zCycj41lbPfYzKTtVIZnPr7c",
+            "call_znwva8g35YvdMzupEMD6iXW0",
+            "call_JXZrRT6uktRr8KgnakPhCOTe",
+            "call_SnH1AqGLSVqsbzAH1s12xgn4"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_znEx0asvxTRLZ86b5rRC3qHv",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_02040_42986",
+                    "reason": "Bibliographic and technical milestone evidence for Hochreiter-Schmidhuber LSTM, Gers forget-gate work, Graves/CTC, speech recognition, Sutskever seq2seq, Cho and Bahdanau papers."
+                  },
+                  {
+                    "docid": "shard_04958_73606",
+                    "reason": "Peer-literature-style technical explanation of LSTM gates, memory/error flow, stacked and multidimensional variants, and applications."
+                  },
+                  {
+                    "docid": "shard_01355_60537",
+                    "reason": "Technical and historical explanation of neural machine translation, fixed-vector bottleneck, attention alignment, and bidirectional encoder."
+                  },
+                  {
+                    "docid": "shard_00906_9819",
+                    "reason": "IEEE Ethically Aligned Design history and principle of embedding human rights and transparency from the design stage."
+                  },
+                  {
+                    "docid": "shard_01504_14612",
+                    "reason": "Specific ethical framework details: Human Benefit, Responsibility, Transparency, Education/Awareness, stakeholder inclusion, documentation, and independent review."
+                  },
+                  {
+                    "docid": "shard_04629_69823",
+                    "reason": "Concrete accessibility case for speech recognition and predictive text helping disabled users, plus warning about representation bias."
+                  },
+                  {
+                    "docid": "shard_03237_56383",
+                    "reason": "Concrete machine-translation case covering access across languages and gender/data bias in Google Translate."
+                  },
+                  {
+                    "docid": "shard_03197_12565",
+                    "reason": "Concrete bias and misuse case studies including gendered translation and Microsoft's Tay failure."
+                  },
+                  {
+                    "docid": "shard_00565_65833",
+                    "reason": "Deployment examples: Google NMT, Skype live translation, YouTube captions, Netflix localization, zero-shot translation, and privacy notice."
+                  },
+                  {
+                    "docid": "shard_03503_28582",
+                    "reason": "Speech recognition and text-to-speech use cases for assistants, accessibility, healthcare transcription, and limitations from accents/noise."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-18T21:46:37.973+10:00",
+        "t_end": "2026-07-18T21:46:42.007+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 4034.518,
+          "context_tokens": 67022,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14768,
+          "tokens": {
+            "input": 67022,
+            "input_uncached": 64462,
+            "output": 416,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 67438,
+            "processed_input": 64462,
+            "processed": 64878,
+            "context": 67022
+          },
+          "provider_usage": {
+            "input_tokens": 64462,
+            "cache_read_input_tokens": 2560,
+            "output_tokens": 416
+          },
+          "cumulative_tokens": {
+            "input": 146794,
+            "input_uncached": 134506,
+            "output": 1331,
+            "cache_read": 12288,
+            "cache_write": 0,
+            "total": 148125,
+            "processed_input": 134506,
+            "processed": 135837
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00906_9819",
+            "shard_02228_43628",
+            "shard_02808_33786",
+            "shard_01504_14612",
+            "shard_01031_6498",
+            "shard_00646_35280",
+            "shard_06184_53738",
+            "shard_02793_54422",
+            "shard_06437_55812",
+            "shard_00526_70095",
+            "shard_03605_72406",
+            "shard_00755_49624",
+            "shard_04013_40998",
+            "shard_03534_84208",
+            "shard_01130_71281",
+            "shard_03262_36673",
+            "shard_00176_69370",
+            "shard_02190_22295",
+            "shard_00771_57115",
+            "shard_05783_29955",
+            "shard_01101_1622",
+            "shard_03306_35529",
+            "shard_01355_60537",
+            "shard_01865_208",
+            "shard_04583_29184",
+            "shard_02040_42986",
+            "shard_03862_70111",
+            "shard_05595_14871",
+            "shard_01944_10024",
+            "shard_04958_73606",
+            "shard_04048_26907",
+            "shard_01906_19127",
+            "shard_05329_8419",
+            "shard_02705_39419",
+            "shard_03503_28582",
+            "shard_03237_56383",
+            "shard_04629_69823",
+            "shard_03197_12565",
+            "shard_03495_65654",
+            "shard_00565_65833"
+          ],
+          "committed": [
+            "shard_00376_81838",
+            "shard_01205_10962",
+            "shard_01293_39815",
+            "shard_01655_32764",
+            "shard_02530_77628",
+            "shard_04555_59717",
+            "shard_04567_17979",
+            "shard_05722_41319"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_02040_42986",
+              "reason": "Bibliographic and technical milestone evidence for Hochreiter-Schmidhuber LSTM, Gers forget-gate work, Graves/CTC, speech recognition, Sutskever seq2seq, Cho and Bahdanau papers."
+            },
+            {
+              "docid": "shard_04958_73606",
+              "reason": "Peer-literature-style technical explanation of LSTM gates, memory/error flow, stacked and multidimensional variants, and applications."
+            },
+            {
+              "docid": "shard_01355_60537",
+              "reason": "Technical and historical explanation of neural machine translation, fixed-vector bottleneck, attention alignment, and bidirectional encoder."
+            },
+            {
+              "docid": "shard_00906_9819",
+              "reason": "IEEE Ethically Aligned Design history and principle of embedding human rights and transparency from the design stage."
+            },
+            {
+              "docid": "shard_01504_14612",
+              "reason": "Specific ethical framework details: Human Benefit, Responsibility, Transparency, Education/Awareness, stakeholder inclusion, documentation, and independent review."
+            },
+            {
+              "docid": "shard_04629_69823",
+              "reason": "Concrete accessibility case for speech recognition and predictive text helping disabled users, plus warning about representation bias."
+            },
+            {
+              "docid": "shard_03237_56383",
+              "reason": "Concrete machine-translation case covering access across languages and gender/data bias in Google Translate."
+            },
+            {
+              "docid": "shard_03197_12565",
+              "reason": "Concrete bias and misuse case studies including gendered translation and Microsoft's Tay failure."
+            },
+            {
+              "docid": "shard_00565_65833",
+              "reason": "Deployment examples: Google NMT, Skype live translation, YouTube captions, Netflix localization, zero-shot translation, and privacy notice."
+            },
+            {
+              "docid": "shard_03503_28582",
+              "reason": "Speech recognition and text-to-speech use cases for assistants, accessibility, healthcare transcription, and limitations from accents/noise."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_00906_9819\", \"shard_01504_14612\", \"shard_01355_60537\", \"shard_02040_42986\", \"shard_04958_73606\", \"shard_03503_28582\", \"shard_03237_56383\", \"shard_04629_69823\", \"shard_03197_12565\", \"shard_00565_65833\"], \"rejected\": [{\"docid\": \"shard_02228_43628\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02808_33786\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01031_6498\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00646_35280\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06184_53738\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02793_54422\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06437_55812\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00526_70095\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03605_72406\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00755_49624\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04013_40998\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03534_84208\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01130_71281\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03262_36673\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00176_69370\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02190_22295\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00771_57115\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05783_29955\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01101_1622\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03306_35529\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01865_208\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04583_29184\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03862_70111\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05595_14871\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01944_10024\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04048_26907\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01906_19127\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05329_8419\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02705_39419\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03495_65654\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 67,022 / 500,000 tokens (13.4%) · elapsed: 0m 14s]",
+        "failed": false,
+        "tool_call_id": "call_znEx0asvxTRLZ86b5rRC3qHv",
+        "id": "step-0015",
+        "t_start": "2026-07-18T21:46:42.011+10:00",
+        "t_end": "2026-07-18T21:46:42.013+10:00",
+        "turn": 3,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 2.341,
+          "context_tokens": 67022,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14774,
+          "cumulative_tokens": {
+            "input": 146794,
+            "input_uncached": 134506,
+            "output": 1331,
+            "cache_read": 12288,
+            "cache_write": 0,
+            "total": 148125,
+            "processed_input": 134506,
+            "processed": 135837
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00906_9819",
+            "shard_02228_43628",
+            "shard_02808_33786",
+            "shard_01504_14612",
+            "shard_01031_6498",
+            "shard_00646_35280",
+            "shard_06184_53738",
+            "shard_02793_54422",
+            "shard_06437_55812",
+            "shard_00526_70095",
+            "shard_03605_72406",
+            "shard_00755_49624",
+            "shard_04013_40998",
+            "shard_03534_84208",
+            "shard_01130_71281",
+            "shard_03262_36673",
+            "shard_00176_69370",
+            "shard_02190_22295",
+            "shard_00771_57115",
+            "shard_05783_29955",
+            "shard_01101_1622",
+            "shard_03306_35529",
+            "shard_01355_60537",
+            "shard_01865_208",
+            "shard_04583_29184",
+            "shard_02040_42986",
+            "shard_03862_70111",
+            "shard_05595_14871",
+            "shard_01944_10024",
+            "shard_04958_73606",
+            "shard_04048_26907",
+            "shard_01906_19127",
+            "shard_05329_8419",
+            "shard_02705_39419",
+            "shard_03503_28582",
+            "shard_03237_56383",
+            "shard_04629_69823",
+            "shard_03197_12565",
+            "shard_03495_65654",
+            "shard_00565_65833"
+          ],
+          "committed": [
+            "shard_00906_9819",
+            "shard_01504_14612",
+            "shard_01355_60537",
+            "shard_02040_42986",
+            "shard_04958_73606",
+            "shard_03503_28582",
+            "shard_03237_56383",
+            "shard_04629_69823",
+            "shard_03197_12565",
+            "shard_00565_65833"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_02228_43628",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02808_33786",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01031_6498",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00646_35280",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06184_53738",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02793_54422",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06437_55812",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00526_70095",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03605_72406",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00755_49624",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04013_40998",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03534_84208",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01130_71281",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03262_36673",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00176_69370",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02190_22295",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00771_57115",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05783_29955",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01101_1622",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03306_35529",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01865_208",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04583_29184",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03862_70111",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05595_14871",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01944_10024",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04048_26907",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01906_19127",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05329_8419",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02705_39419",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03495_65654",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_znEx0asvxTRLZ86b5rRC3qHv"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_wTZ6yJtNcAvqFSFhWO5H8AhY",
+              "name": "search",
+              "arguments": {
+                "query": "encoder decoder Transformer attention current NLP architecture dominance",
+                "k": 8,
+                "search_engine": "semantic",
+                "budget_tokens_per_result": 2500
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0016",
+        "t_start": "2026-07-18T21:46:42.013+10:00",
+        "t_end": "2026-07-18T21:46:45.169+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 3155.882,
+          "context_tokens": 38691,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 17930,
+          "tokens": {
+            "input": 38691,
+            "input_uncached": 36131,
+            "output": 229,
+            "cache_read": 2560,
+            "cache_write": 0,
+            "total": 38920,
+            "processed_input": 36131,
+            "processed": 36360,
+            "context": 38691
+          },
+          "provider_usage": {
+            "input_tokens": 36131,
+            "cache_read_input_tokens": 2560,
+            "output_tokens": 229
+          },
+          "cumulative_tokens": {
+            "input": 185485,
+            "input_uncached": 170637,
+            "output": 1560,
+            "cache_read": 14848,
+            "cache_write": 0,
+            "total": 187045,
+            "processed_input": 170637,
+            "processed": 172197
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00376_81838",
+            "shard_00565_65833",
+            "shard_00906_9819",
+            "shard_01205_10962",
+            "shard_01293_39815",
+            "shard_01355_60537",
+            "shard_01504_14612",
+            "shard_01655_32764",
+            "shard_02040_42986",
+            "shard_02530_77628",
+            "shard_03197_12565",
+            "shard_03237_56383",
+            "shard_03503_28582",
+            "shard_04555_59717",
+            "shard_04567_17979",
+            "shard_04629_69823",
+            "shard_04958_73606",
+            "shard_05722_41319"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "encoder decoder Transformer attention current NLP architecture dominance",
+          "k": 8,
+          "search_engine": "semantic",
+          "budget_tokens_per_result": 2500
+        },
+        "output": {
+          "query": "encoder decoder Transformer attention current NLP architecture dominance",
+          "k": 8,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03819_58433",
+              "docid": "shard_03819_58433",
+              "kind": "document",
+              "score": 0.331518,
+              "truncated": false,
+              "original_chars": 965,
+              "returned_chars": 965
+            },
+            {
+              "rank": 2,
+              "id": "shard_04122_44205",
+              "docid": "shard_04122_44205",
+              "kind": "document",
+              "score": 0.330591,
+              "truncated": false,
+              "original_chars": 4108,
+              "returned_chars": 4108
+            },
+            {
+              "rank": 3,
+              "id": "shard_04918_40223",
+              "docid": "shard_04918_40223",
+              "kind": "document",
+              "score": 0.327487,
+              "truncated": false,
+              "original_chars": 3485,
+              "returned_chars": 3485
+            },
+            {
+              "rank": 4,
+              "id": "shard_01401_28562",
+              "docid": "shard_01401_28562",
+              "kind": "document",
+              "score": 0.323196,
+              "truncated": false,
+              "original_chars": 3453,
+              "returned_chars": 3453
+            },
+            {
+              "rank": 5,
+              "id": "shard_04258_56505",
+              "docid": "shard_04258_56505",
+              "kind": "document",
+              "score": 0.318781,
+              "truncated": false,
+              "original_chars": 2340,
+              "returned_chars": 2340
+            },
+            {
+              "rank": 6,
+              "id": "shard_00589_75523",
+              "docid": "shard_00589_75523",
+              "kind": "document",
+              "score": 0.316465,
+              "truncated": false,
+              "original_chars": 894,
+              "returned_chars": 894
+            },
+            {
+              "rank": 7,
+              "id": "shard_00112_27042",
+              "docid": "shard_00112_27042",
+              "kind": "document",
+              "score": 0.313389,
+              "truncated": true,
+              "original_chars": 22558,
+              "returned_chars": 12232
+            },
+            {
+              "rank": 8,
+              "id": "shard_06299_46223",
+              "docid": "shard_06299_46223",
+              "kind": "document",
+              "score": 0.312147,
+              "truncated": false,
+              "original_chars": 3584,
+              "returned_chars": 3584
+            }
+          ],
+          "budget_tokens_per_result": 2500,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03819_58433",
+          "shard_04122_44205",
+          "shard_04918_40223",
+          "shard_01401_28562",
+          "shard_04258_56505",
+          "shard_00589_75523",
+          "shard_00112_27042",
+          "shard_06299_46223"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03819_58433",
+            "score": 0.331518
+          },
+          {
+            "docid": "shard_04122_44205",
+            "score": 0.330591
+          },
+          {
+            "docid": "shard_04918_40223",
+            "score": 0.327487
+          },
+          {
+            "docid": "shard_01401_28562",
+            "score": 0.323196
+          },
+          {
+            "docid": "shard_04258_56505",
+            "score": 0.318781
+          },
+          {
+            "docid": "shard_00589_75523",
+            "score": 0.316465
+          },
+          {
+            "docid": "shard_00112_27042",
+            "score": 0.313389
+          },
+          {
+            "docid": "shard_06299_46223",
+            "score": 0.312147
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "call_wTZ6yJtNcAvqFSFhWO5H8AhY",
+        "id": "step-0017",
+        "t_start": "2026-07-18T21:46:45.172+10:00",
+        "t_end": "2026-07-18T21:46:45.444+10:00",
+        "turn": 4,
+        "parent_id": "step-0016",
+        "stats": {
+          "duration_ms": 271.501,
+          "context_tokens": 38691,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 18205,
+          "cumulative_tokens": {
+            "input": 185485,
+            "input_uncached": 170637,
+            "output": 1560,
+            "cache_read": 14848,
+            "cache_write": 0,
+            "total": 187045,
+            "processed_input": 170637,
+            "processed": 172197
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03819_58433",
+            "shard_04122_44205",
+            "shard_04918_40223",
+            "shard_01401_28562",
+            "shard_04258_56505",
+            "shard_00589_75523",
+            "shard_00112_27042",
+            "shard_06299_46223"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_wTZ6yJtNcAvqFSFhWO5H8AhY"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "call_ERfzR5mXIPYYwX4iOKXv8fAi",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_03819_58433",
+                    "reason": "Evidence that the Transformer is attention-only rather than recurrent and achieved strong WMT2014 English-German results."
+                  },
+                  {
+                    "docid": "shard_04122_44205",
+                    "reason": "Historical bridge from LSTM-attention encoder-decoders to Transformer parallel self-attention and decoder-only variants."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "completed"
+        },
+        "id": "step-0018",
+        "t_start": "2026-07-18T21:46:45.444+10:00",
+        "t_end": "2026-07-18T21:46:47.255+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 1810.964,
+          "context_tokens": 46177,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 20016,
+          "tokens": {
+            "input": 46177,
+            "input_uncached": 7777,
+            "output": 106,
+            "cache_read": 38400,
+            "cache_write": 0,
+            "total": 46283,
+            "processed_input": 7777,
+            "processed": 7883,
+            "context": 46177
+          },
+          "provider_usage": {
+            "input_tokens": 7777,
+            "cache_read_input_tokens": 38400,
+            "output_tokens": 106
+          },
+          "cumulative_tokens": {
+            "input": 231662,
+            "input_uncached": 178414,
+            "output": 1666,
+            "cache_read": 53248,
+            "cache_write": 0,
+            "total": 233328,
+            "processed_input": 178414,
+            "processed": 180080
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03819_58433",
+            "shard_04122_44205",
+            "shard_04918_40223",
+            "shard_01401_28562",
+            "shard_04258_56505",
+            "shard_00589_75523",
+            "shard_00112_27042",
+            "shard_06299_46223"
+          ],
+          "committed": [
+            "shard_00376_81838",
+            "shard_00565_65833",
+            "shard_00906_9819",
+            "shard_01205_10962",
+            "shard_01293_39815",
+            "shard_01355_60537",
+            "shard_01504_14612",
+            "shard_01655_32764",
+            "shard_02040_42986",
+            "shard_02530_77628",
+            "shard_03197_12565",
+            "shard_03237_56383",
+            "shard_03503_28582",
+            "shard_04555_59717",
+            "shard_04567_17979",
+            "shard_04629_69823",
+            "shard_04958_73606",
+            "shard_05722_41319"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_03819_58433",
+              "reason": "Evidence that the Transformer is attention-only rather than recurrent and achieved strong WMT2014 English-German results."
+            },
+            {
+              "docid": "shard_04122_44205",
+              "reason": "Historical bridge from LSTM-attention encoder-decoders to Transformer parallel self-attention and decoder-only variants."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_03819_58433\", \"shard_04122_44205\"], \"rejected\": [{\"docid\": \"shard_04918_40223\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01401_28562\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04258_56505\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00589_75523\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00112_27042\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06299_46223\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 46,177 / 500,000 tokens (9.2%) · elapsed: 0m 20s]",
+        "failed": false,
+        "tool_call_id": "call_ERfzR5mXIPYYwX4iOKXv8fAi",
+        "id": "step-0019",
+        "t_start": "2026-07-18T21:46:47.259+10:00",
+        "t_end": "2026-07-18T21:46:47.259+10:00",
+        "turn": 5,
+        "parent_id": "step-0018",
+        "stats": {
+          "duration_ms": 0.55,
+          "context_tokens": 46177,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 20020,
+          "cumulative_tokens": {
+            "input": 231662,
+            "input_uncached": 178414,
+            "output": 1666,
+            "cache_read": 53248,
+            "cache_write": 0,
+            "total": 233328,
+            "processed_input": 178414,
+            "processed": 180080
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03819_58433",
+            "shard_04122_44205",
+            "shard_04918_40223",
+            "shard_01401_28562",
+            "shard_04258_56505",
+            "shard_00589_75523",
+            "shard_00112_27042",
+            "shard_06299_46223"
+          ],
+          "committed": [
+            "shard_03819_58433",
+            "shard_04122_44205"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_04918_40223",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01401_28562",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04258_56505",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00589_75523",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00112_27042",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06299_46223",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "call_ERfzR5mXIPYYwX4iOKXv8fAi"
+          ]
+        },
+        "output": {
+          "text": "Frame the paper around the thesis that LSTMs solved a problem of retaining information through recurrent time, while encoder-decoder systems solved a problem of mapping one variable-length sequence into another, and that their social importance came from making sequence technologies usable at scale rather than from architecture alone.\n\nOrganize the paper as a chronological comparison, because encoder-decoder models initially used LSTM or related recurrent units, making the two histories intertwined rather than independent.\n\nBegin with the prehistory of recurrent neural networks and explain that unrolled RNNs become effectively deep when sequences are long, so repeated nonlinear transformations can make gradients shrink toward zero and prevent early inputs from influencing later predictions. [shard_04567_17979] [shard_02040_42986]\n\nTreat Hochreiter’s 1991 analysis of vanishing gradients as the conceptual starting point, followed by Hochreiter and Schmidhuber’s 1997 Long Short-Term Memory paper, which introduced a memory cell and gates controlling what information is written, retained, forgotten, and exposed. [shard_02040_42986] [shard_04567_17979]\n\nExplain technically that the LSTM cell state provides a comparatively direct path for forward information and backward error signals, while the input, forget, and output gates regulate memory rather than overwriting the recurrent state at every step. [shard_04958_73606]\n\nUse the subsequent forget-gate refinement, bidirectional LSTMs, multidimensional and stacked LSTMs, connectionist temporal classification, and deep recurrent speech systems as the principal LSTM milestones rather than attempting to list every variant. [shard_02040_42986] [shard_04958_73606]\n\nMake CTC and bidirectional LSTM speech recognition an important middle section, since they show how LSTMs moved from an abstract solution to long-range dependency problems into systems that could label unsegmented audio and model large-vocabulary speech. [shard_02040_42986] [shard_02530_77628]\n\nThen introduce the encoder-decoder idea as a system in which an encoder reads a source sequence into a representation and a decoder generates a target sequence token by token, conditioning each prediction on the encoded information and previous outputs. [shard_01655_32764]\n\nPlace Cho, van Merriënboer, Bahdanau, and Bengio’s 2014 recurrent encoder-decoder work alongside Sutskever, Vinyals, and Le’s 2014 sequence-to-sequence paper, emphasizing that both applied recurrent sequence mapping to English–French translation while differing in implementation details and training design. [shard_01205_10962] [shard_02040_42986]\n\nExplain the original encoder-decoder bottleneck clearly: compressing a long source sentence into one fixed-length vector can cause performance to deteriorate as sentence length increases. [shard_01355_60537] [shard_01205_10962]\n\nMake Bahdanau, Cho, and Bengio’s 2014–2015 alignment-and-translation work the decisive encoder-decoder milestone, because attention replaced the single-vector bottleneck with a sequence of encoder annotations from which the decoder could select task-relevant information at each output step. [shard_01355_60537]\n\nFollow attention with bidirectional encoders, Luong-style attention, image captioning, end-to-end speech recognition, and neural machine translation, but distinguish architectural principles from individual products and avoid presenting every attention model as an encoder-decoder model. [shard_01355_60537] [shard_02530_77628]\n\nEnd the technical history by explaining that Transformers retain the encoder-decoder logic but replace recurrent processing with attention-based parallel processing, while some influential language models use decoder-only rather than full encoder-decoder designs. [shard_04122_44205] [shard_03819_58433]\n\nRevise the phrase “encoder-decoders dominate NLP now” to the more defensible claim that encoder-decoder design remains foundational for sequence transduction, whereas contemporary NLP also includes encoder-only and decoder-only Transformer families. [shard_04122_44205] [shard_03819_58433]\n\nFor the direct comparison, argue that an LSTM is primarily a recurrent computational unit with gated memory, whereas an encoder-decoder is a composition of roles that may use LSTMs, GRUs, convolutions, or attention-based Transformer blocks. [shard_01655_32764] [shard_04122_44205]\n\nCompare their historical problems by showing that LSTMs addressed temporal credit assignment and vanishing gradients, while attention-based encoder-decoders addressed information compression, alignment, and variable-length input-output mapping. [shard_04567_17979] [shard_01355_60537]\n\nCompare their computational behavior by noting that LSTMs process sequence steps recurrently, whereas self-attention permits much more parallel processing, which helped Transformers surpass recurrent encoder-decoder systems on major translation benchmarks. [shard_04122_44205] [shard_03819_58433]\n\nUse ten case studies, each with the same template of technical mechanism, affected users, benefit, failure mode, governance question, and evidence: Google Translate’s large-scale translation service, Google Neural Machine Translation, Skype live speech translation, YouTube multilingual captions, Netflix subtitle localization, automatic speech recognition in virtual assistants, medical speech transcription, text-to-speech for visually impaired users, predictive text and autocomplete as assistive communication, and Microsoft’s Tay chatbot as a data-governance failure. [shard_00565_65833] [shard_01293_39815] [shard_03503_28582] [shard_04629_69823] [shard_03197_12565]\n\nSynthesize the first nine cases as evidence that sequence models can reduce language barriers, expand access to information, support hands-free interaction, and create new translation and localization workflows rather than simply eliminate human work. [shard_01293_39815] [shard_04629_69823] [shard_05722_41319]\n\nTreat the tenth case, Tay, as evidence that systems trained through interaction can rapidly reproduce hostile or extremist behavior when deployment incentives, data controls, and safety monitoring are inadequate. [shard_03197_12565]\n\nBalance claims about globalization with the limits of translation systems, since machine output can mishandle context, nuance, accents, background noise, low-resource languages, and culturally or gendered meanings. [shard_03237_56383] [shard_03503_28582]\n\nMake labor analysis more nuanced than “AI replaces translators” by examining how automation can reduce routine work while increasing demand for review, localization, quality assurance, data curation, and specialized human judgment. [shard_05722_41319]\n\nBuild the ethics section around four risks: biased training data, unequal access to computational infrastructure and language resources, privacy and surveillance, and scalable generation of misleading or manipulative content. [shard_00376_81838] [shard_04555_59717]\n\nUse gendered translation and uneven speech-recognition performance as concrete demonstrations that a model can reproduce social inequalities embedded in its data even when its objective function is formally neutral. [shard_03237_56383] [shard_03503_28582]\n\nUse the IEEE Ethically Aligned Design framework as the normative spine of the recommendations, especially its principles of human benefit, responsibility, transparency, and education and awareness. [shard_01504_14612]\n\nTranslate those principles into practice through representative dataset documentation, subgroup performance testing, privacy-preserving data collection, disclosure of model limitations, human review for high-stakes outputs, incident reporting, independent audits, and meaningful participation by affected communities. [shard_01504_14612] [shard_04555_59717]\n\nConclude that responsible innovation requires treating architecture, datasets, interfaces, institutions, and labor arrangements as one sociotechnical system, because improving the memory mechanism or attention mechanism cannot by itself correct biased data, unequal access, or harmful deployment incentives. [shard_01504_14612] [shard_04555_59717]\n\nFor the final bibliography, prioritize the original Hochreiter and Schmidhuber, Gers, Graves, Cho, Sutskever, Bahdanau, and Transformer papers and peer-reviewed social-impact research, using the web explainers and product accounts located here only as leads or supplementary case evidence rather than as substitutes for scholarly sources. [shard_02040_42986] [shard_01355_60537]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "completed"
+        },
+        "id": "step-0020",
+        "t_start": "2026-07-18T21:46:47.259+10:00",
+        "t_end": "2026-07-18T21:47:00.874+10:00",
+        "turn": 6,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 13614.573,
+          "context_tokens": 40959,
+          "peak_context_tokens": 67022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 33635,
+          "tokens": {
+            "input": 40959,
+            "input_uncached": 2559,
+            "output": 1963,
+            "cache_read": 38400,
+            "cache_write": 0,
+            "total": 42922,
+            "processed_input": 2559,
+            "processed": 4522,
+            "context": 40959
+          },
+          "provider_usage": {
+            "input_tokens": 2559,
+            "cache_read_input_tokens": 38400,
+            "output_tokens": 1963
+          },
+          "cumulative_tokens": {
+            "input": 272621,
+            "input_uncached": 180973,
+            "output": 3629,
+            "cache_read": 91648,
+            "cache_write": 0,
+            "total": 276250,
+            "processed_input": 180973,
+            "processed": 184602
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00376_81838",
+            "shard_00565_65833",
+            "shard_00906_9819",
+            "shard_01205_10962",
+            "shard_01293_39815",
+            "shard_01355_60537",
+            "shard_01504_14612",
+            "shard_01655_32764",
+            "shard_02040_42986",
+            "shard_02530_77628",
+            "shard_03197_12565",
+            "shard_03237_56383",
+            "shard_03503_28582",
+            "shard_03819_58433",
+            "shard_04122_44205",
+            "shard_04555_59717",
+            "shard_04567_17979",
+            "shard_04629_69823",
+            "shard_04958_73606",
+            "shard_05722_41319"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_04567_17979",
+        "shard_02040_42986",
+        "shard_04958_73606",
+        "shard_02530_77628",
+        "shard_01655_32764",
+        "shard_01205_10962",
+        "shard_01355_60537",
+        "shard_04122_44205",
+        "shard_03819_58433",
+        "shard_00565_65833",
+        "shard_01293_39815",
+        "shard_03503_28582",
+        "shard_04629_69823",
+        "shard_05722_41319",
+        "shard_03197_12565",
+        "shard_03237_56383",
+        "shard_00376_81838",
+        "shard_04555_59717",
+        "shard_01504_14612"
+      ],
+      "answer": [
+        {
+          "text": "Frame the paper around the thesis that LSTMs solved a problem of retaining information through recurrent time, while encoder-decoder systems solved a problem of mapping one variable-length sequence into another, and that their social importance came from making sequence technologies usable at scale rather than from architecture alone.",
+          "citations": []
+        },
+        {
+          "text": "Organize the paper as a chronological comparison, because encoder-decoder models initially used LSTM or related recurrent units, making the two histories intertwined rather than independent.",
+          "citations": []
+        },
+        {
+          "text": "Begin with the prehistory of recurrent neural networks and explain that unrolled RNNs become effectively deep when sequences are long, so repeated nonlinear transformations can make gradients shrink toward zero and prevent early inputs from influencing later predictions.",
+          "citations": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "Treat Hochreiter’s 1991 analysis of vanishing gradients as the conceptual starting point, followed by Hochreiter and Schmidhuber’s 1997 Long Short-Term Memory paper, which introduced a memory cell and gates controlling what information is written, retained, forgotten, and exposed.",
+          "citations": [
+            1,
+            0
+          ]
+        },
+        {
+          "text": "Explain technically that the LSTM cell state provides a comparatively direct path for forward information and backward error signals, while the input, forget, and output gates regulate memory rather than overwriting the recurrent state at every step.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "Use the subsequent forget-gate refinement, bidirectional LSTMs, multidimensional and stacked LSTMs, connectionist temporal classification, and deep recurrent speech systems as the principal LSTM milestones rather than attempting to list every variant.",
+          "citations": [
+            1,
+            2
+          ]
+        },
+        {
+          "text": "Make CTC and bidirectional LSTM speech recognition an important middle section, since they show how LSTMs moved from an abstract solution to long-range dependency problems into systems that could label unsegmented audio and model large-vocabulary speech.",
+          "citations": [
+            1,
+            3
+          ]
+        },
+        {
+          "text": "Then introduce the encoder-decoder idea as a system in which an encoder reads a source sequence into a representation and a decoder generates a target sequence token by token, conditioning each prediction on the encoded information and previous outputs.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Place Cho, van Merriënboer, Bahdanau, and Bengio’s 2014 recurrent encoder-decoder work alongside Sutskever, Vinyals, and Le’s 2014 sequence-to-sequence paper, emphasizing that both applied recurrent sequence mapping to English–French translation while differing in implementation details and training design.",
+          "citations": [
+            5,
+            1
+          ]
+        },
+        {
+          "text": "Explain the original encoder-decoder bottleneck clearly: compressing a long source sentence into one fixed-length vector can cause performance to deteriorate as sentence length increases.",
+          "citations": [
+            6,
+            5
+          ]
+        },
+        {
+          "text": "Make Bahdanau, Cho, and Bengio’s 2014–2015 alignment-and-translation work the decisive encoder-decoder milestone, because attention replaced the single-vector bottleneck with a sequence of encoder annotations from which the decoder could select task-relevant information at each output step.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Follow attention with bidirectional encoders, Luong-style attention, image captioning, end-to-end speech recognition, and neural machine translation, but distinguish architectural principles from individual products and avoid presenting every attention model as an encoder-decoder model.",
+          "citations": [
+            6,
+            3
+          ]
+        },
+        {
+          "text": "End the technical history by explaining that Transformers retain the encoder-decoder logic but replace recurrent processing with attention-based parallel processing, while some influential language models use decoder-only rather than full encoder-decoder designs.",
+          "citations": [
+            7,
+            8
+          ]
+        },
+        {
+          "text": "Revise the phrase “encoder-decoders dominate NLP now” to the more defensible claim that encoder-decoder design remains foundational for sequence transduction, whereas contemporary NLP also includes encoder-only and decoder-only Transformer families.",
+          "citations": [
+            7,
+            8
+          ]
+        },
+        {
+          "text": "For the direct comparison, argue that an LSTM is primarily a recurrent computational unit with gated memory, whereas an encoder-decoder is a composition of roles that may use LSTMs, GRUs, convolutions, or attention-based Transformer blocks.",
+          "citations": [
+            4,
+            7
+          ]
+        },
+        {
+          "text": "Compare their historical problems by showing that LSTMs addressed temporal credit assignment and vanishing gradients, while attention-based encoder-decoders addressed information compression, alignment, and variable-length input-output mapping.",
+          "citations": [
+            0,
+            6
+          ]
+        },
+        {
+          "text": "Compare their computational behavior by noting that LSTMs process sequence steps recurrently, whereas self-attention permits much more parallel processing, which helped Transformers surpass recurrent encoder-decoder systems on major translation benchmarks.",
+          "citations": [
+            7,
+            8
+          ]
+        },
+        {
+          "text": "Use ten case studies, each with the same template of technical mechanism, affected users, benefit, failure mode, governance question, and evidence: Google Translate’s large-scale translation service, Google Neural Machine Translation, Skype live speech translation, YouTube multilingual captions, Netflix subtitle localization, automatic speech recognition in virtual assistants, medical speech transcription, text-to-speech for visually impaired users, predictive text and autocomplete as assistive communication, and Microsoft’s Tay chatbot as a data-governance failure.",
+          "citations": [
+            9,
+            10,
+            11
+          ]
+        },
+        {
+          "text": "Synthesize the first nine cases as evidence that sequence models can reduce language barriers, expand access to information, support hands-free interaction, and create new translation and localization workflows rather than simply eliminate human work.",
+          "citations": [
+            10,
+            12,
+            13
+          ]
+        },
+        {
+          "text": "Treat the tenth case, Tay, as evidence that systems trained through interaction can rapidly reproduce hostile or extremist behavior when deployment incentives, data controls, and safety monitoring are inadequate.",
+          "citations": [
+            14
+          ]
+        },
+        {
+          "text": "Balance claims about globalization with the limits of translation systems, since machine output can mishandle context, nuance, accents, background noise, low-resource languages, and culturally or gendered meanings.",
+          "citations": [
+            15,
+            11
+          ]
+        },
+        {
+          "text": "Make labor analysis more nuanced than “AI replaces translators” by examining how automation can reduce routine work while increasing demand for review, localization, quality assurance, data curation, and specialized human judgment.",
+          "citations": [
+            13
+          ]
+        },
+        {
+          "text": "Build the ethics section around four risks: biased training data, unequal access to computational infrastructure and language resources, privacy and surveillance, and scalable generation of misleading or manipulative content.",
+          "citations": [
+            16,
+            17
+          ]
+        },
+        {
+          "text": "Use gendered translation and uneven speech-recognition performance as concrete demonstrations that a model can reproduce social inequalities embedded in its data even when its objective function is formally neutral.",
+          "citations": [
+            15,
+            11
+          ]
+        },
+        {
+          "text": "Use the IEEE Ethically Aligned Design framework as the normative spine of the recommendations, especially its principles of human benefit, responsibility, transparency, and education and awareness.",
+          "citations": [
+            18
+          ]
+        },
+        {
+          "text": "Translate those principles into practice through representative dataset documentation, subgroup performance testing, privacy-preserving data collection, disclosure of model limitations, human review for high-stakes outputs, incident reporting, independent audits, and meaningful participation by affected communities.",
+          "citations": [
+            18,
+            17
+          ]
+        },
+        {
+          "text": "Conclude that responsible innovation requires treating architecture, datasets, interfaces, institutions, and labor arrangements as one sociotechnical system, because improving the memory mechanism or attention mechanism cannot by itself correct biased data, unequal access, or harmful deployment incentives.",
+          "citations": [
+            18,
+            17
+          ]
+        },
+        {
+          "text": "For the final bibliography, prioritize the original Hochreiter and Schmidhuber, Gers, Graves, Cho, Sutskever, Bahdanau, and Transformer papers and peer-reviewed social-impact research, using the web explainers and product accounts located here only as leads or supplementary case evidence rather than as substitutes for scholarly sources.",
+          "citations": [
+            1,
+            6
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-18T21:46:27.239+10:00",
+    "ended_at": "2026-07-18T21:47:00.877+10:00",
+    "duration_ms": 33638,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 10
+    }
+  }
+}

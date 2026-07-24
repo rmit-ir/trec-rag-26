@@ -1,3 +1,3413 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:4d9fda40190980fb24f39cbad7a5db61b4d357fd85688c6ad90f2f40bd4d0ba3
-size 151676
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-72",
+    "narrative": "Write a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background.",
+    "run_id": "aus-agent-opus-check",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-opus-4-8): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_01596_3197",
+    "shard_00700_46123",
+    "shard_03950_8339",
+    "shard_00983_1614",
+    "shard_05232_62940",
+    "shard_00526_79904",
+    "shard_03041_64253",
+    "shard_01053_19050",
+    "shard_00529_18372",
+    "shard_06208_26022",
+    "shard_06255_80329"
+  ],
+  "answer": [
+    {
+      "text": "Parameter-efficient fine-tuning, alignment, sparse scaling, faster attention, and longer context were the levers that reshaped how large language models were trained and adapted between 2023 and 2025, and this series takes each in turn for a reader comfortable with transformers and gradient-based optimization.",
+      "citations": []
+    },
+    {
+      "text": "The first post covers Low-Rank Adaptation, whose motivation is that fully retraining a 175-billion-parameter model like GPT-3 is prohibitively expensive, yet task adaptation seems to need only a small change to the weights.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "LoRA freezes the pretrained weight matrix W and learns an additive update W_new = W + BA, where B has shape (d, r), A has shape (r, k), and the rank r is chosen far smaller than d and k.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Because only B and A are trained, the count of trainable parameters falls from d·k to r(d + k), which is the source of the reported ten-thousand-fold reduction and the drop from terabytes to gigabytes of GPU memory.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Freezing W also preserves pretrained knowledge and guards against catastrophic forgetting, while the main open problems are principled selection of the rank r and scaling behavior at ever-larger model sizes.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "QLoRA extends this idea by quantizing the frozen base model to 4-bit precision while keeping the trainable low-rank adapters in higher precision.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "Its 4-bit NormalFloat (NF4) data type is information-theoretically matched to normally distributed weights, and double quantization further compresses the quantization constants themselves, while paged optimizers absorb gradient memory spikes.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "The residual challenges are that NF4 cannot represent an exact zero without an asymmetric variant, that outlier counts grow with model size, and that fair evaluation still lacks standardized benchmarks.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "The second post is Reinforcement Learning from Human Feedback, motivated by the fact that qualities like helpfulness and safety have no differentiable loss, so we learn a reward from human comparisons instead.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "The pipeline runs in three stages: supervised fine-tuning of a base model, training a reward model that maps a (prompt, response) pair to a scalar from ranked human preferences, then optimizing the policy with Proximal Policy Optimization.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "The RL objective maximizes the expected reward while a Kullback–Leibler penalty against the reference policy keeps the fine-tuned model from drifting too far from its starting distribution.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "This is how ChatGPT and InstructGPT were aligned, but the method is bottlenecked by the cost and inconsistency of human labels, and it is prone to reward hacking and to mode collapse that shrinks output diversity.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Reinforcement Learning from AI Feedback and Constitutional AI address the labeling bottleneck by having a model critique itself against a set of written principles rather than relying wholly on human raters.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "The third post is Direct Preference Optimization, whose insight is that the RL loop is unnecessary because the KL-regularized optimal policy can be written in closed form in terms of the reward.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "That optimum is π_r(y|x) proportional to π_ref(y|x)·exp(r(x,y)/β), where β is the regularization temperature, which we invert to r(x,y) = β·log(π_r(y|x)/π_ref(y|x)) + β·log Z(x).",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Substituting this into the Bradley-Terry preference loss, the intractable partition function Z(x) cancels because only reward differences between the winning y_w and losing y_l completions matter.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "What remains is a simple binary cross-entropy objective over preference pairs that trains the policy directly, needs no sampling from the model, and matches or beats PPO-based RLHF on sentiment, summarization, and dialogue.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "DPO produces a more favorable reward/KL frontier and was adopted in models such as Mixtral, though it still requires paired preference data and a fixed reference policy.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "The fourth post is the Mixture of Experts, whose motivation is conditional computation: decouple a model's parameter count from its per-token cost so capacity can grow without proportional compute.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Each MoE layer replaces the feed-forward block with n experts and a router, and the output for input x is the gated sum over experts, sum_i G(x)_i·E_i(x), where a softmax over the top-K logits selects and weights only a few experts.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "Mixtral 8x7B makes this concrete with 47 billion total parameters but only about 13 billion active per token, routing each token through 2 of 8 experts.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "The idea dates to 1991, but its limitations remain sharp: all expert weights must sit in VRAM, MoEs overfit and are hard to fine-tune, and stable training needs load-balancing tricks such as expert capacity in GShard and the routing simplifications of Switch Transformers.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "The fifth post is FlashAttention, whose premise is that exact attention is memory-bound rather than compute-bound, so materializing the N×N score matrix is the true bottleneck.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "Standard attention forms S = QK^T, applies a row-wise softmax to get P = softmax(S), and returns O = PV, and storing S and P costs memory quadratic in sequence length N.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "FlashAttention tiles Q, K, V into SRAM, uses an online softmax that tracks a running maximum and sum of exponentials so blocks never assemble the full matrix, and recomputes S and P in the backward pass instead of storing them.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "This makes memory linear in N with no approximation, yielding 2–4x speedups and 10–20x memory savings, while FlashAttention-2 adds finer parallelism to reach up to 187 TFLOPs/s on an A100, its main cost being hand-tuned hardware-specific kernels.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "The final post covers extending context length by reinterpolating Rotary Position Embeddings, which encode position through frequencies θ_i = θ^(−2i/d) and are limited to their pretraining length L.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "Position Interpolation rescales positions with g(m) = m/s for extension ratio s = L'/L, which is cheap but makes neighboring positions nearly indistinguishable as s grows.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "NTK-aware interpolation instead applies a base change b' = b·s^(|D|/(|D|−2)) to spread the pressure across dimensions, NTK-by-parts uses a ramp to protect high-frequency dimensions, and YaRN adds an attention temperature that follows sqrt(1/t) ≈ 0.1·ln(s) + 1.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "Building on these, LongRoPE reaches a 2048k-token window with as few as 1k fine-tuning steps by exploiting non-uniformities in the interpolation and extending progressively, though every method trades some short-context perplexity and needs per-model tuning.",
+      "citations": [
+        9
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-72",
+    "status": "completed",
+    "metadata": {
+      "model": "au.anthropic.claude-opus-4-8",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-opus-check",
+      "query_source": "Write a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 8,
+        "commit_context": 2
+      },
+      "tool_call_counts_all": {
+        "search": 8,
+        "commit_context": 2
+      },
+      "retrieved_docids": [
+        "shard_00016_3497",
+        "shard_00066_35082",
+        "shard_00126_3271",
+        "shard_00231_45656",
+        "shard_00304_74427",
+        "shard_00380_66834",
+        "shard_00511_4499",
+        "shard_00526_79904",
+        "shard_00529_18372",
+        "shard_00667_71292",
+        "shard_00700_46123",
+        "shard_00813_47904",
+        "shard_00907_70898",
+        "shard_00948_79889",
+        "shard_00983_1614",
+        "shard_01043_31209",
+        "shard_01044_60677",
+        "shard_01053_19050",
+        "shard_01056_66751",
+        "shard_01163_27372",
+        "shard_01292_30875",
+        "shard_01299_64852",
+        "shard_01335_36211",
+        "shard_01596_3197",
+        "shard_01597_44490",
+        "shard_01788_39779",
+        "shard_01895_11012",
+        "shard_01952_41890",
+        "shard_02090_70478",
+        "shard_02109_44704",
+        "shard_02133_16956",
+        "shard_02198_68580",
+        "shard_02272_68684",
+        "shard_02297_27511",
+        "shard_02374_15070",
+        "shard_02415_74331",
+        "shard_02439_62873",
+        "shard_02479_3327",
+        "shard_02535_4909",
+        "shard_02561_62863",
+        "shard_02640_26799",
+        "shard_02758_69483",
+        "shard_02931_53153",
+        "shard_03041_64253",
+        "shard_03087_26951",
+        "shard_03514_26883",
+        "shard_03533_77101",
+        "shard_03589_32368",
+        "shard_03647_45735",
+        "shard_03647_50024",
+        "shard_03874_19379",
+        "shard_03899_54875",
+        "shard_03950_8339",
+        "shard_04028_5047",
+        "shard_04125_34745",
+        "shard_04312_55746",
+        "shard_04369_78991",
+        "shard_04631_32972",
+        "shard_04738_37311",
+        "shard_04790_9963",
+        "shard_04841_24912",
+        "shard_05008_2873",
+        "shard_05127_761",
+        "shard_05232_62940",
+        "shard_05294_41968",
+        "shard_05308_52168",
+        "shard_05371_84279",
+        "shard_05401_69020",
+        "shard_05684_60935",
+        "shard_05686_75851",
+        "shard_05916_8402",
+        "shard_06121_9268",
+        "shard_06166_2246",
+        "shard_06208_26022",
+        "shard_06216_11091",
+        "shard_06255_80329",
+        "shard_06289_1176",
+        "shard_06322_49402",
+        "shard_06347_38516",
+        "shard_06448_78565"
+      ],
+      "tokens": {
+        "input": 360246,
+        "input_uncached": 199319,
+        "output": 15625,
+        "cache_read": 100784,
+        "cache_write": 60143,
+        "total": 375871,
+        "processed_input": 259462,
+        "processed": 275087,
+        "context_tokens": 70860,
+        "peak_context_tokens": 121022,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00526_79904",
+          "shard_00529_18372",
+          "shard_00700_46123",
+          "shard_00983_1614",
+          "shard_01053_19050",
+          "shard_01596_3197",
+          "shard_02374_15070",
+          "shard_03041_64253",
+          "shard_03950_8339",
+          "shard_05232_62940",
+          "shard_06208_26022",
+          "shard_06255_80329"
+        ],
+        "rejected": [
+          "shard_00016_3497",
+          "shard_00066_35082",
+          "shard_00126_3271",
+          "shard_00231_45656",
+          "shard_00304_74427",
+          "shard_00380_66834",
+          "shard_00511_4499",
+          "shard_00667_71292",
+          "shard_00813_47904",
+          "shard_00907_70898",
+          "shard_00948_79889",
+          "shard_01043_31209",
+          "shard_01044_60677",
+          "shard_01056_66751",
+          "shard_01163_27372",
+          "shard_01292_30875",
+          "shard_01299_64852",
+          "shard_01335_36211",
+          "shard_01597_44490",
+          "shard_01788_39779",
+          "shard_01895_11012",
+          "shard_01952_41890",
+          "shard_02090_70478",
+          "shard_02109_44704",
+          "shard_02133_16956",
+          "shard_02198_68580",
+          "shard_02272_68684",
+          "shard_02297_27511",
+          "shard_02415_74331",
+          "shard_02439_62873",
+          "shard_02479_3327",
+          "shard_02535_4909",
+          "shard_02561_62863",
+          "shard_02640_26799",
+          "shard_02758_69483",
+          "shard_02931_53153",
+          "shard_03087_26951",
+          "shard_03514_26883",
+          "shard_03533_77101",
+          "shard_03589_32368",
+          "shard_03647_45735",
+          "shard_03647_50024",
+          "shard_03874_19379",
+          "shard_03899_54875",
+          "shard_04028_5047",
+          "shard_04125_34745",
+          "shard_04312_55746",
+          "shard_04369_78991",
+          "shard_04631_32972",
+          "shard_04738_37311",
+          "shard_04790_9963",
+          "shard_04841_24912",
+          "shard_05008_2873",
+          "shard_05127_761",
+          "shard_05294_41968",
+          "shard_05308_52168",
+          "shard_05371_84279",
+          "shard_05401_69020",
+          "shard_05684_60935",
+          "shard_05686_75851",
+          "shard_05916_8402",
+          "shard_06121_9268",
+          "shard_06166_2246",
+          "shard_06216_11091",
+          "shard_06289_1176",
+          "shard_06322_49402",
+          "shard_06347_38516",
+          "shard_06448_78565"
+        ]
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nchoose searches, but it is not evidence and must not support factual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the shape, argument, and voice of the answer are yours\nto build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. Which of\n   these the corpus can actually support is unknown until it answers; the\n   opening searches exist to find that out before the answer's structure is\n   fixed.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. You do not know what this corpus holds on any subject until it answers, no\n   matter how well you know the subject itself. So the first searches establish\n   what the evidence base here contains on the request's main subject, phrased\n   in the request's own terms — not in the names of the things you expect to\n   find. Only what comes back tells you which candidates, studies, and examples\n   exist here, and the targeted searches that follow dive into those. For a\n   narrow question the opening search and the answering search are the same\n   search.\n2. Size the search to the question. When it has several independent coverage\n   areas, begin with multiple complementary queries in parallel across them.\n   When it has one — a single fact, name, date, or definition — one or two\n   queries is the whole search; if they answer it, stop and write.\n3. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n4. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n5. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n6. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n7. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Friday, 17 July 2026, 14:50:53 +1000 (Australia/Melbourne)\n\nResearch request:\n\nWrite a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background.\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": "I'll research what this corpus contains on LLM training and fine-tuning techniques from 2023-2025, starting with broad discovery queries across likely coverage areas.",
+          "reasoning": [
+            "I'll research what this corpus contains on LLM training and fine-tuning techniques from 2023-2025, starting with broad discovery queries across likely coverage areas."
+          ],
+          "tool_calls": [
+            {
+              "id": "tooluse_K0qvrrwWcbr5ww3sQNchlO",
+              "name": "search",
+              "arguments": {
+                "query": "large language model fine-tuning techniques parameter efficient LoRA"
+              }
+            },
+            {
+              "id": "tooluse_SkhTs5caajRSgOTl4brOLX",
+              "name": "search",
+              "arguments": {
+                "query": "reinforcement learning from human feedback RLHF alignment training"
+              }
+            },
+            {
+              "id": "tooluse_0rAkWyh0OVZhSe3YqwPJlV",
+              "name": "search",
+              "arguments": {
+                "query": "direct preference optimization DPO language model alignment"
+              }
+            },
+            {
+              "id": "tooluse_E7RzTuJLUHi62XNcNCqr02",
+              "name": "search",
+              "arguments": {
+                "query": "quantization QLoRA low-rank adaptation memory efficient training"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T14:50:53.286+10:00",
+        "t_end": "2026-07-17T14:51:00.631+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 7344.71,
+          "context_tokens": 4787,
+          "peak_context_tokens": 4787,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7346,
+          "tokens": {
+            "input": 4787,
+            "input_uncached": 253,
+            "output": 583,
+            "cache_read": 0,
+            "cache_write": 4534,
+            "total": 5370,
+            "processed_input": 4787,
+            "processed": 5370,
+            "context": 4787
+          },
+          "provider_usage": {
+            "inputTokens": 253,
+            "outputTokens": 583,
+            "totalTokens": 5370,
+            "cacheReadInputTokens": 0,
+            "cacheWriteInputTokens": 4534,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 4534
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 4787,
+            "input_uncached": 253,
+            "output": 583,
+            "cache_read": 0,
+            "cache_write": 4534,
+            "total": 5370,
+            "processed_input": 4787,
+            "processed": 5370
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "large language model fine-tuning techniques parameter efficient LoRA"
+        },
+        "output": {
+          "query": "large language model fine-tuning techniques parameter efficient LoRA",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01597_44490",
+              "docid": "shard_01597_44490",
+              "kind": "document",
+              "rrf_score": 0.029211,
+              "truncated": true,
+              "original_chars": 24029,
+              "returned_chars": 19806
+            },
+            {
+              "rank": 2,
+              "id": "shard_04125_34745",
+              "docid": "shard_04125_34745",
+              "kind": "document",
+              "rrf_score": 0.028739,
+              "truncated": false,
+              "original_chars": 8600,
+              "returned_chars": 8600
+            },
+            {
+              "rank": 3,
+              "id": "shard_02198_68580",
+              "docid": "shard_02198_68580",
+              "kind": "document",
+              "rrf_score": 0.026743,
+              "truncated": false,
+              "original_chars": 10221,
+              "returned_chars": 10221
+            },
+            {
+              "rank": 4,
+              "id": "shard_05371_84279",
+              "docid": "shard_05371_84279",
+              "kind": "document",
+              "rrf_score": 0.026743,
+              "truncated": false,
+              "original_chars": 12924,
+              "returned_chars": 12924
+            },
+            {
+              "rank": 5,
+              "id": "shard_05008_2873",
+              "docid": "shard_05008_2873",
+              "kind": "document",
+              "rrf_score": 0.026686,
+              "truncated": true,
+              "original_chars": 26100,
+              "returned_chars": 19977
+            },
+            {
+              "rank": 6,
+              "id": "shard_06289_1176",
+              "docid": "shard_06289_1176",
+              "kind": "document",
+              "rrf_score": 0.024243,
+              "truncated": false,
+              "original_chars": 4649,
+              "returned_chars": 4649
+            },
+            {
+              "rank": 7,
+              "id": "shard_00304_74427",
+              "docid": "shard_00304_74427",
+              "kind": "document",
+              "rrf_score": 0.024225,
+              "truncated": false,
+              "original_chars": 3270,
+              "returned_chars": 3270
+            },
+            {
+              "rank": 8,
+              "id": "shard_01596_3197",
+              "docid": "shard_01596_3197",
+              "kind": "document",
+              "rrf_score": 0.02298,
+              "truncated": false,
+              "original_chars": 6126,
+              "returned_chars": 6126
+            },
+            {
+              "rank": 9,
+              "id": "shard_06448_78565",
+              "docid": "shard_06448_78565",
+              "kind": "document",
+              "rrf_score": 0.021236,
+              "truncated": false,
+              "original_chars": 3643,
+              "returned_chars": 3643
+            },
+            {
+              "rank": 10,
+              "id": "shard_05684_60935",
+              "docid": "shard_05684_60935",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2730,
+              "returned_chars": 2730
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01597_44490",
+          "shard_04125_34745",
+          "shard_02198_68580",
+          "shard_05371_84279",
+          "shard_05008_2873",
+          "shard_06289_1176",
+          "shard_00304_74427",
+          "shard_01596_3197",
+          "shard_06448_78565",
+          "shard_05684_60935"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01597_44490",
+            "score": 0.029211
+          },
+          {
+            "docid": "shard_04125_34745",
+            "score": 0.028739
+          },
+          {
+            "docid": "shard_02198_68580",
+            "score": 0.026743
+          },
+          {
+            "docid": "shard_05371_84279",
+            "score": 0.026743
+          },
+          {
+            "docid": "shard_05008_2873",
+            "score": 0.026686
+          },
+          {
+            "docid": "shard_06289_1176",
+            "score": 0.024243
+          },
+          {
+            "docid": "shard_00304_74427",
+            "score": 0.024225
+          },
+          {
+            "docid": "shard_01596_3197",
+            "score": 0.02298
+          },
+          {
+            "docid": "shard_06448_78565",
+            "score": 0.021236
+          },
+          {
+            "docid": "shard_05684_60935",
+            "score": 0.016393
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_K0qvrrwWcbr5ww3sQNchlO",
+        "id": "step-0001",
+        "t_start": "2026-07-17T14:51:00.632+10:00",
+        "t_end": "2026-07-17T14:51:01.691+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 1058.79,
+          "context_tokens": 4787,
+          "peak_context_tokens": 4787,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 8406,
+          "cumulative_tokens": {
+            "input": 4787,
+            "input_uncached": 253,
+            "output": 583,
+            "cache_read": 0,
+            "cache_write": 4534,
+            "total": 5370,
+            "processed_input": 4787,
+            "processed": 5370
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01597_44490",
+            "shard_04125_34745",
+            "shard_02198_68580",
+            "shard_05371_84279",
+            "shard_05008_2873",
+            "shard_06289_1176",
+            "shard_00304_74427",
+            "shard_01596_3197",
+            "shard_06448_78565",
+            "shard_05684_60935"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "reinforcement learning from human feedback RLHF alignment training"
+        },
+        "output": {
+          "query": "reinforcement learning from human feedback RLHF alignment training",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04631_32972",
+              "docid": "shard_04631_32972",
+              "kind": "document",
+              "rrf_score": 0.026129,
+              "truncated": false,
+              "original_chars": 14968,
+              "returned_chars": 14968
+            },
+            {
+              "rank": 2,
+              "id": "shard_03950_8339",
+              "docid": "shard_03950_8339",
+              "kind": "document",
+              "rrf_score": 0.02473,
+              "truncated": false,
+              "original_chars": 19052,
+              "returned_chars": 19052
+            },
+            {
+              "rank": 3,
+              "id": "shard_03874_19379",
+              "docid": "shard_03874_19379",
+              "kind": "document",
+              "rrf_score": 0.023976,
+              "truncated": false,
+              "original_chars": 8048,
+              "returned_chars": 8048
+            },
+            {
+              "rank": 4,
+              "id": "shard_02415_74331",
+              "docid": "shard_02415_74331",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 368,
+              "returned_chars": 368
+            },
+            {
+              "rank": 5,
+              "id": "shard_02133_16956",
+              "docid": "shard_02133_16956",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": true,
+              "original_chars": 32296,
+              "returned_chars": 20237
+            },
+            {
+              "rank": 6,
+              "id": "shard_05294_41968",
+              "docid": "shard_05294_41968",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 985,
+              "returned_chars": 985
+            },
+            {
+              "rank": 7,
+              "id": "shard_05401_69020",
+              "docid": "shard_05401_69020",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 369,
+              "returned_chars": 369
+            },
+            {
+              "rank": 8,
+              "id": "shard_05916_8402",
+              "docid": "shard_05916_8402",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 10296,
+              "returned_chars": 10296
+            },
+            {
+              "rank": 9,
+              "id": "shard_00016_3497",
+              "docid": "shard_00016_3497",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1251,
+              "returned_chars": 1251
+            },
+            {
+              "rank": 10,
+              "id": "shard_00983_1614",
+              "docid": "shard_00983_1614",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": true,
+              "original_chars": 20946,
+              "returned_chars": 20313
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04631_32972",
+          "shard_03950_8339",
+          "shard_03874_19379",
+          "shard_02415_74331",
+          "shard_02133_16956",
+          "shard_05294_41968",
+          "shard_05401_69020",
+          "shard_05916_8402",
+          "shard_00016_3497",
+          "shard_00983_1614"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04631_32972",
+            "score": 0.026129
+          },
+          {
+            "docid": "shard_03950_8339",
+            "score": 0.02473
+          },
+          {
+            "docid": "shard_03874_19379",
+            "score": 0.023976
+          },
+          {
+            "docid": "shard_02415_74331",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02133_16956",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05294_41968",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05401_69020",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05916_8402",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00016_3497",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_00983_1614",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_SkhTs5caajRSgOTl4brOLX",
+        "id": "step-0002",
+        "t_start": "2026-07-17T14:51:00.632+10:00",
+        "t_end": "2026-07-17T14:51:01.584+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 951.916,
+          "context_tokens": 4787,
+          "peak_context_tokens": 4787,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 8406,
+          "cumulative_tokens": {
+            "input": 4787,
+            "input_uncached": 253,
+            "output": 583,
+            "cache_read": 0,
+            "cache_write": 4534,
+            "total": 5370,
+            "processed_input": 4787,
+            "processed": 5370
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04631_32972",
+            "shard_03950_8339",
+            "shard_03874_19379",
+            "shard_02415_74331",
+            "shard_02133_16956",
+            "shard_05294_41968",
+            "shard_05401_69020",
+            "shard_05916_8402",
+            "shard_00016_3497",
+            "shard_00983_1614"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "direct preference optimization DPO language model alignment"
+        },
+        "output": {
+          "query": "direct preference optimization DPO language model alignment",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01056_66751",
+              "docid": "shard_01056_66751",
+              "kind": "document",
+              "rrf_score": 0.030214,
+              "truncated": false,
+              "original_chars": 3309,
+              "returned_chars": 3309
+            },
+            {
+              "rank": 2,
+              "id": "shard_00511_4499",
+              "docid": "shard_00511_4499",
+              "kind": "document",
+              "rrf_score": 0.028439,
+              "truncated": false,
+              "original_chars": 2430,
+              "returned_chars": 2430
+            },
+            {
+              "rank": 3,
+              "id": "shard_05127_761",
+              "docid": "shard_05127_761",
+              "kind": "document",
+              "rrf_score": 0.027885,
+              "truncated": false,
+              "original_chars": 2770,
+              "returned_chars": 2770
+            },
+            {
+              "rank": 4,
+              "id": "shard_04841_24912",
+              "docid": "shard_04841_24912",
+              "kind": "document",
+              "rrf_score": 0.027151,
+              "truncated": false,
+              "original_chars": 4023,
+              "returned_chars": 4023
+            },
+            {
+              "rank": 5,
+              "id": "shard_02090_70478",
+              "docid": "shard_02090_70478",
+              "kind": "document",
+              "rrf_score": 0.027052,
+              "truncated": false,
+              "original_chars": 3474,
+              "returned_chars": 3474
+            },
+            {
+              "rank": 6,
+              "id": "shard_00526_79904",
+              "docid": "shard_00526_79904",
+              "kind": "document",
+              "rrf_score": 0.026743,
+              "truncated": false,
+              "original_chars": 3400,
+              "returned_chars": 3400
+            },
+            {
+              "rank": 7,
+              "id": "shard_05232_62940",
+              "docid": "shard_05232_62940",
+              "kind": "document",
+              "rrf_score": 0.026495,
+              "truncated": false,
+              "original_chars": 9041,
+              "returned_chars": 9041
+            },
+            {
+              "rank": 8,
+              "id": "shard_01335_36211",
+              "docid": "shard_01335_36211",
+              "kind": "document",
+              "rrf_score": 0.026389,
+              "truncated": false,
+              "original_chars": 3678,
+              "returned_chars": 3678
+            },
+            {
+              "rank": 9,
+              "id": "shard_01163_27372",
+              "docid": "shard_01163_27372",
+              "kind": "document",
+              "rrf_score": 0.025873,
+              "truncated": false,
+              "original_chars": 3085,
+              "returned_chars": 3085
+            },
+            {
+              "rank": 10,
+              "id": "shard_02297_27511",
+              "docid": "shard_02297_27511",
+              "kind": "document",
+              "rrf_score": 0.025397,
+              "truncated": false,
+              "original_chars": 3726,
+              "returned_chars": 3726
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01056_66751",
+          "shard_00511_4499",
+          "shard_05127_761",
+          "shard_04841_24912",
+          "shard_02090_70478",
+          "shard_00526_79904",
+          "shard_05232_62940",
+          "shard_01335_36211",
+          "shard_01163_27372",
+          "shard_02297_27511"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01056_66751",
+            "score": 0.030214
+          },
+          {
+            "docid": "shard_00511_4499",
+            "score": 0.028439
+          },
+          {
+            "docid": "shard_05127_761",
+            "score": 0.027885
+          },
+          {
+            "docid": "shard_04841_24912",
+            "score": 0.027151
+          },
+          {
+            "docid": "shard_02090_70478",
+            "score": 0.027052
+          },
+          {
+            "docid": "shard_00526_79904",
+            "score": 0.026743
+          },
+          {
+            "docid": "shard_05232_62940",
+            "score": 0.026495
+          },
+          {
+            "docid": "shard_01335_36211",
+            "score": 0.026389
+          },
+          {
+            "docid": "shard_01163_27372",
+            "score": 0.025873
+          },
+          {
+            "docid": "shard_02297_27511",
+            "score": 0.025397
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_0rAkWyh0OVZhSe3YqwPJlV",
+        "id": "step-0003",
+        "t_start": "2026-07-17T14:51:00.632+10:00",
+        "t_end": "2026-07-17T14:51:01.586+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 954.163,
+          "context_tokens": 4787,
+          "peak_context_tokens": 4787,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 8406,
+          "cumulative_tokens": {
+            "input": 4787,
+            "input_uncached": 253,
+            "output": 583,
+            "cache_read": 0,
+            "cache_write": 4534,
+            "total": 5370,
+            "processed_input": 4787,
+            "processed": 5370
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01056_66751",
+            "shard_00511_4499",
+            "shard_05127_761",
+            "shard_04841_24912",
+            "shard_02090_70478",
+            "shard_00526_79904",
+            "shard_05232_62940",
+            "shard_01335_36211",
+            "shard_01163_27372",
+            "shard_02297_27511"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "quantization QLoRA low-rank adaptation memory efficient training"
+        },
+        "output": {
+          "query": "quantization QLoRA low-rank adaptation memory efficient training",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00380_66834",
+              "docid": "shard_00380_66834",
+              "kind": "document",
+              "rrf_score": 0.030118,
+              "truncated": false,
+              "original_chars": 4083,
+              "returned_chars": 4083
+            },
+            {
+              "rank": 2,
+              "id": "shard_03514_26883",
+              "docid": "shard_03514_26883",
+              "kind": "document",
+              "rrf_score": 0.028324,
+              "truncated": false,
+              "original_chars": 3766,
+              "returned_chars": 3766
+            },
+            {
+              "rank": 3,
+              "id": "shard_00813_47904",
+              "docid": "shard_00813_47904",
+              "kind": "document",
+              "rrf_score": 0.026626,
+              "truncated": false,
+              "original_chars": 3466,
+              "returned_chars": 3466
+            },
+            {
+              "rank": 4,
+              "id": "shard_01044_60677",
+              "docid": "shard_01044_60677",
+              "kind": "document",
+              "rrf_score": 0.026389,
+              "truncated": false,
+              "original_chars": 3621,
+              "returned_chars": 3621
+            },
+            {
+              "rank": 5,
+              "id": "shard_02535_4909",
+              "docid": "shard_02535_4909",
+              "kind": "document",
+              "rrf_score": 0.026374,
+              "truncated": false,
+              "original_chars": 3669,
+              "returned_chars": 3669
+            },
+            {
+              "rank": 6,
+              "id": "shard_02109_44704",
+              "docid": "shard_02109_44704",
+              "kind": "document",
+              "rrf_score": 0.025649,
+              "truncated": false,
+              "original_chars": 3448,
+              "returned_chars": 3448
+            },
+            {
+              "rank": 7,
+              "id": "shard_00700_46123",
+              "docid": "shard_00700_46123",
+              "kind": "document",
+              "rrf_score": 0.025488,
+              "truncated": false,
+              "original_chars": 7300,
+              "returned_chars": 7300
+            },
+            {
+              "rank": 8,
+              "id": "shard_03533_77101",
+              "docid": "shard_03533_77101",
+              "kind": "document",
+              "rrf_score": 0.024569,
+              "truncated": false,
+              "original_chars": 5840,
+              "returned_chars": 5840
+            },
+            {
+              "rank": 9,
+              "id": "shard_00667_71292",
+              "docid": "shard_00667_71292",
+              "kind": "document",
+              "rrf_score": 0.023813,
+              "truncated": false,
+              "original_chars": 5954,
+              "returned_chars": 5954
+            },
+            {
+              "rank": 10,
+              "id": "shard_02272_68684",
+              "docid": "shard_02272_68684",
+              "kind": "document",
+              "rrf_score": 0.023752,
+              "truncated": false,
+              "original_chars": 3668,
+              "returned_chars": 3668
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00380_66834",
+          "shard_03514_26883",
+          "shard_00813_47904",
+          "shard_01044_60677",
+          "shard_02535_4909",
+          "shard_02109_44704",
+          "shard_00700_46123",
+          "shard_03533_77101",
+          "shard_00667_71292",
+          "shard_02272_68684"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00380_66834",
+            "score": 0.030118
+          },
+          {
+            "docid": "shard_03514_26883",
+            "score": 0.028324
+          },
+          {
+            "docid": "shard_00813_47904",
+            "score": 0.026626
+          },
+          {
+            "docid": "shard_01044_60677",
+            "score": 0.026389
+          },
+          {
+            "docid": "shard_02535_4909",
+            "score": 0.026374
+          },
+          {
+            "docid": "shard_02109_44704",
+            "score": 0.025649
+          },
+          {
+            "docid": "shard_00700_46123",
+            "score": 0.025488
+          },
+          {
+            "docid": "shard_03533_77101",
+            "score": 0.024569
+          },
+          {
+            "docid": "shard_00667_71292",
+            "score": 0.023813
+          },
+          {
+            "docid": "shard_02272_68684",
+            "score": 0.023752
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_E7RzTuJLUHi62XNcNCqr02",
+        "id": "step-0004",
+        "t_start": "2026-07-17T14:51:00.632+10:00",
+        "t_end": "2026-07-17T14:51:01.581+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 949.023,
+          "context_tokens": 4787,
+          "peak_context_tokens": 4787,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 8406,
+          "cumulative_tokens": {
+            "input": 4787,
+            "input_uncached": 253,
+            "output": 583,
+            "cache_read": 0,
+            "cache_write": 4534,
+            "total": 5370,
+            "processed_input": 4787,
+            "processed": 5370
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00380_66834",
+            "shard_03514_26883",
+            "shard_00813_47904",
+            "shard_01044_60677",
+            "shard_02535_4909",
+            "shard_02109_44704",
+            "shard_00700_46123",
+            "shard_03533_77101",
+            "shard_00667_71292",
+            "shard_02272_68684"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_K0qvrrwWcbr5ww3sQNchlO",
+            "tooluse_SkhTs5caajRSgOTl4brOLX",
+            "tooluse_0rAkWyh0OVZhSe3YqwPJlV",
+            "tooluse_E7RzTuJLUHi62XNcNCqr02"
+          ]
+        },
+        "output": {
+          "text": "I have strong material on LoRA, QLoRA, RLHF, and DPO. Let me preserve the best evidence and search for additional advancements to round out the series.",
+          "reasoning": [
+            "I have strong material on LoRA, QLoRA, RLHF, and DPO. Let me preserve the best evidence and search for additional advancements to round out the series."
+          ],
+          "tool_calls": [
+            {
+              "id": "tooluse_TL1kRDz6PbF3Uz0VpYx7Ti",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01596_3197",
+                    "reason": "LoRA intuition, explicit math W_new=W+BA with B(d,r), A(r,k), rank r bottleneck, and challenges/open directions (optimal rank, scaling)."
+                  },
+                  {
+                    "docid": "shard_00700_46123",
+                    "reason": "Comprehensive QLoRA methodology: NF4, double quantization, quantile quantization, paged optimizers, scaling behavior, evaluation challenges and limitations."
+                  },
+                  {
+                    "docid": "shard_03950_8339",
+                    "reason": "Detailed RLHF pipeline: pretraining, reward model training, PPO fine-tuning, KL divergence, challenges."
+                  },
+                  {
+                    "docid": "shard_00983_1614",
+                    "reason": "RLHF history/evolution (InstructGPT), three core steps, RLAIF and Constitutional AI, reward hacking, mode collapse challenges."
+                  },
+                  {
+                    "docid": "shard_00526_79904",
+                    "reason": "DPO mathematical derivation with notation: Bradley-Terry reward loss, closed-form policy, partition function cancellation, KL/beta regularization."
+                  },
+                  {
+                    "docid": "shard_05232_62940",
+                    "reason": "DPO vs RLHF detailed comparison, Bradley-Terry, binary cross-entropy, reward/KL tradeoff empirics, Mixtral integration."
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_uTLPSnL3jWUm0EZTGiJD0s",
+              "name": "search",
+              "arguments": {
+                "query": "mixture of experts sparse models routing LLM scaling"
+              }
+            },
+            {
+              "id": "tooluse_Q4ZWjEguWJMswLt23Fpq1J",
+              "name": "search",
+              "arguments": {
+                "query": "FlashAttention efficient attention memory IO GPU transformer"
+              }
+            },
+            {
+              "id": "tooluse_M6X2bC4v1XYnpVf7R9BPwV",
+              "name": "search",
+              "arguments": {
+                "query": "long context window extension rotary position embeddings RoPE"
+              }
+            },
+            {
+              "id": "tooluse_eFCLtVOIPR8Sbrkv2CrpDs",
+              "name": "search",
+              "arguments": {
+                "query": "instruction tuning chain-of-thought reasoning fine-tuning LLM"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T14:51:01.691+10:00",
+        "t_end": "2026-07-17T14:51:41.106+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 39414.893,
+          "context_tokens": 99293,
+          "peak_context_tokens": 99293,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47821,
+          "tokens": {
+            "input": 99293,
+            "input_uncached": 94759,
+            "output": 3062,
+            "cache_read": 4534,
+            "cache_write": 0,
+            "total": 102355,
+            "processed_input": 94759,
+            "processed": 97821,
+            "context": 99293
+          },
+          "provider_usage": {
+            "inputTokens": 94759,
+            "outputTokens": 3062,
+            "totalTokens": 102355,
+            "cacheReadInputTokens": 4534
+          },
+          "cumulative_tokens": {
+            "input": 104080,
+            "input_uncached": 95012,
+            "output": 3645,
+            "cache_read": 4534,
+            "cache_write": 4534,
+            "total": 107725,
+            "processed_input": 99546,
+            "processed": 103191
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01597_44490",
+            "shard_04125_34745",
+            "shard_02198_68580",
+            "shard_05371_84279",
+            "shard_05008_2873",
+            "shard_06289_1176",
+            "shard_00304_74427",
+            "shard_01596_3197",
+            "shard_06448_78565",
+            "shard_05684_60935",
+            "shard_04631_32972",
+            "shard_03950_8339",
+            "shard_03874_19379",
+            "shard_02415_74331",
+            "shard_02133_16956",
+            "shard_05294_41968",
+            "shard_05401_69020",
+            "shard_05916_8402",
+            "shard_00016_3497",
+            "shard_00983_1614",
+            "shard_01056_66751",
+            "shard_00511_4499",
+            "shard_05127_761",
+            "shard_04841_24912",
+            "shard_02090_70478",
+            "shard_00526_79904",
+            "shard_05232_62940",
+            "shard_01335_36211",
+            "shard_01163_27372",
+            "shard_02297_27511",
+            "shard_00380_66834",
+            "shard_03514_26883",
+            "shard_00813_47904",
+            "shard_01044_60677",
+            "shard_02535_4909",
+            "shard_02109_44704",
+            "shard_00700_46123",
+            "shard_03533_77101",
+            "shard_00667_71292",
+            "shard_02272_68684"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01596_3197",
+              "reason": "LoRA intuition, explicit math W_new=W+BA with B(d,r), A(r,k), rank r bottleneck, and challenges/open directions (optimal rank, scaling)."
+            },
+            {
+              "docid": "shard_00700_46123",
+              "reason": "Comprehensive QLoRA methodology: NF4, double quantization, quantile quantization, paged optimizers, scaling behavior, evaluation challenges and limitations."
+            },
+            {
+              "docid": "shard_03950_8339",
+              "reason": "Detailed RLHF pipeline: pretraining, reward model training, PPO fine-tuning, KL divergence, challenges."
+            },
+            {
+              "docid": "shard_00983_1614",
+              "reason": "RLHF history/evolution (InstructGPT), three core steps, RLAIF and Constitutional AI, reward hacking, mode collapse challenges."
+            },
+            {
+              "docid": "shard_00526_79904",
+              "reason": "DPO mathematical derivation with notation: Bradley-Terry reward loss, closed-form policy, partition function cancellation, KL/beta regularization."
+            },
+            {
+              "docid": "shard_05232_62940",
+              "reason": "DPO vs RLHF detailed comparison, Bradley-Terry, binary cross-entropy, reward/KL tradeoff empirics, Mixtral integration."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01596_3197\", \"shard_03950_8339\", \"shard_00983_1614\", \"shard_00526_79904\", \"shard_05232_62940\", \"shard_00700_46123\"], \"rejected\": [{\"docid\": \"shard_01597_44490\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04125_34745\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02198_68580\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05371_84279\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05008_2873\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06289_1176\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00304_74427\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06448_78565\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05684_60935\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04631_32972\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03874_19379\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02415_74331\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02133_16956\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05294_41968\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05401_69020\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05916_8402\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00016_3497\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01056_66751\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00511_4499\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05127_761\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04841_24912\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02090_70478\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01335_36211\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01163_27372\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02297_27511\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00380_66834\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03514_26883\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00813_47904\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01044_60677\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02535_4909\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02109_44704\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03533_77101\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00667_71292\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02272_68684\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 99,293 / 500,000 tokens (19.9%) · elapsed: 0m 47s]",
+        "failed": false,
+        "tool_call_id": "tooluse_TL1kRDz6PbF3Uz0VpYx7Ti",
+        "id": "step-0006",
+        "t_start": "2026-07-17T14:51:41.107+10:00",
+        "t_end": "2026-07-17T14:51:41.109+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1.523,
+          "context_tokens": 99293,
+          "peak_context_tokens": 99293,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47824,
+          "cumulative_tokens": {
+            "input": 104080,
+            "input_uncached": 95012,
+            "output": 3645,
+            "cache_read": 4534,
+            "cache_write": 4534,
+            "total": 107725,
+            "processed_input": 99546,
+            "processed": 103191
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01597_44490",
+            "shard_04125_34745",
+            "shard_02198_68580",
+            "shard_05371_84279",
+            "shard_05008_2873",
+            "shard_06289_1176",
+            "shard_00304_74427",
+            "shard_01596_3197",
+            "shard_06448_78565",
+            "shard_05684_60935",
+            "shard_04631_32972",
+            "shard_03950_8339",
+            "shard_03874_19379",
+            "shard_02415_74331",
+            "shard_02133_16956",
+            "shard_05294_41968",
+            "shard_05401_69020",
+            "shard_05916_8402",
+            "shard_00016_3497",
+            "shard_00983_1614",
+            "shard_01056_66751",
+            "shard_00511_4499",
+            "shard_05127_761",
+            "shard_04841_24912",
+            "shard_02090_70478",
+            "shard_00526_79904",
+            "shard_05232_62940",
+            "shard_01335_36211",
+            "shard_01163_27372",
+            "shard_02297_27511",
+            "shard_00380_66834",
+            "shard_03514_26883",
+            "shard_00813_47904",
+            "shard_01044_60677",
+            "shard_02535_4909",
+            "shard_02109_44704",
+            "shard_00700_46123",
+            "shard_03533_77101",
+            "shard_00667_71292",
+            "shard_02272_68684"
+          ],
+          "committed": [
+            "shard_01596_3197",
+            "shard_03950_8339",
+            "shard_00983_1614",
+            "shard_00526_79904",
+            "shard_05232_62940",
+            "shard_00700_46123"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_01597_44490",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04125_34745",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02198_68580",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05371_84279",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05008_2873",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06289_1176",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00304_74427",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06448_78565",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05684_60935",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04631_32972",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03874_19379",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02415_74331",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02133_16956",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05294_41968",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05401_69020",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05916_8402",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00016_3497",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01056_66751",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00511_4499",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05127_761",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04841_24912",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02090_70478",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01335_36211",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01163_27372",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02297_27511",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00380_66834",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03514_26883",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00813_47904",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01044_60677",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02535_4909",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02109_44704",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03533_77101",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00667_71292",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02272_68684",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "mixture of experts sparse models routing LLM scaling"
+        },
+        "output": {
+          "query": "mixture of experts sparse models routing LLM scaling",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01895_11012",
+              "docid": "shard_01895_11012",
+              "kind": "document",
+              "rrf_score": 0.032522,
+              "truncated": false,
+              "original_chars": 12612,
+              "returned_chars": 12612
+            },
+            {
+              "rank": 2,
+              "id": "shard_01788_39779",
+              "docid": "shard_01788_39779",
+              "kind": "document",
+              "rrf_score": 0.03125,
+              "truncated": false,
+              "original_chars": 6380,
+              "returned_chars": 6380
+            },
+            {
+              "rank": 3,
+              "id": "shard_01292_30875",
+              "docid": "shard_01292_30875",
+              "kind": "document",
+              "rrf_score": 0.031054,
+              "truncated": false,
+              "original_chars": 3004,
+              "returned_chars": 3004
+            },
+            {
+              "rank": 4,
+              "id": "shard_00231_45656",
+              "docid": "shard_00231_45656",
+              "kind": "document",
+              "rrf_score": 0.030769,
+              "truncated": false,
+              "original_chars": 3241,
+              "returned_chars": 3241
+            },
+            {
+              "rank": 5,
+              "id": "shard_03041_64253",
+              "docid": "shard_03041_64253",
+              "kind": "document",
+              "rrf_score": 0.027418,
+              "truncated": false,
+              "original_chars": 6511,
+              "returned_chars": 6511
+            },
+            {
+              "rank": 6,
+              "id": "shard_01053_19050",
+              "docid": "shard_01053_19050",
+              "kind": "document",
+              "rrf_score": 0.027382,
+              "truncated": false,
+              "original_chars": 9163,
+              "returned_chars": 9163
+            },
+            {
+              "rank": 7,
+              "id": "shard_00126_3271",
+              "docid": "shard_00126_3271",
+              "kind": "document",
+              "rrf_score": 0.026611,
+              "truncated": false,
+              "original_chars": 4349,
+              "returned_chars": 4349
+            },
+            {
+              "rank": 8,
+              "id": "shard_00066_35082",
+              "docid": "shard_00066_35082",
+              "kind": "document",
+              "rrf_score": 0.025356,
+              "truncated": false,
+              "original_chars": 4026,
+              "returned_chars": 4026
+            },
+            {
+              "rank": 9,
+              "id": "shard_04028_5047",
+              "docid": "shard_04028_5047",
+              "kind": "document",
+              "rrf_score": 0.024568,
+              "truncated": false,
+              "original_chars": 3386,
+              "returned_chars": 3386
+            },
+            {
+              "rank": 10,
+              "id": "shard_06322_49402",
+              "docid": "shard_06322_49402",
+              "kind": "document",
+              "rrf_score": 0.023839,
+              "truncated": false,
+              "original_chars": 3698,
+              "returned_chars": 3698
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01895_11012",
+          "shard_01788_39779",
+          "shard_01292_30875",
+          "shard_00231_45656",
+          "shard_03041_64253",
+          "shard_01053_19050",
+          "shard_00126_3271",
+          "shard_00066_35082",
+          "shard_04028_5047",
+          "shard_06322_49402"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01895_11012",
+            "score": 0.032522
+          },
+          {
+            "docid": "shard_01788_39779",
+            "score": 0.03125
+          },
+          {
+            "docid": "shard_01292_30875",
+            "score": 0.031054
+          },
+          {
+            "docid": "shard_00231_45656",
+            "score": 0.030769
+          },
+          {
+            "docid": "shard_03041_64253",
+            "score": 0.027418
+          },
+          {
+            "docid": "shard_01053_19050",
+            "score": 0.027382
+          },
+          {
+            "docid": "shard_00126_3271",
+            "score": 0.026611
+          },
+          {
+            "docid": "shard_00066_35082",
+            "score": 0.025356
+          },
+          {
+            "docid": "shard_04028_5047",
+            "score": 0.024568
+          },
+          {
+            "docid": "shard_06322_49402",
+            "score": 0.023839
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_uTLPSnL3jWUm0EZTGiJD0s",
+        "id": "step-0007",
+        "t_start": "2026-07-17T14:51:41.109+10:00",
+        "t_end": "2026-07-17T14:51:41.621+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 512.156,
+          "context_tokens": 99293,
+          "peak_context_tokens": 99293,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 48540,
+          "cumulative_tokens": {
+            "input": 104080,
+            "input_uncached": 95012,
+            "output": 3645,
+            "cache_read": 4534,
+            "cache_write": 4534,
+            "total": 107725,
+            "processed_input": 99546,
+            "processed": 103191
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01895_11012",
+            "shard_01788_39779",
+            "shard_01292_30875",
+            "shard_00231_45656",
+            "shard_03041_64253",
+            "shard_01053_19050",
+            "shard_00126_3271",
+            "shard_00066_35082",
+            "shard_04028_5047",
+            "shard_06322_49402"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "FlashAttention efficient attention memory IO GPU transformer"
+        },
+        "output": {
+          "query": "FlashAttention efficient attention memory IO GPU transformer",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06216_11091",
+              "docid": "shard_06216_11091",
+              "kind": "document",
+              "rrf_score": 0.032522,
+              "truncated": false,
+              "original_chars": 8277,
+              "returned_chars": 8277
+            },
+            {
+              "rank": 2,
+              "id": "shard_04738_37311",
+              "docid": "shard_04738_37311",
+              "kind": "document",
+              "rrf_score": 0.030579,
+              "truncated": false,
+              "original_chars": 1538,
+              "returned_chars": 1538
+            },
+            {
+              "rank": 3,
+              "id": "shard_03647_45735",
+              "docid": "shard_03647_45735",
+              "kind": "document",
+              "rrf_score": 0.029877,
+              "truncated": false,
+              "original_chars": 9280,
+              "returned_chars": 9280
+            },
+            {
+              "rank": 4,
+              "id": "shard_02439_62873",
+              "docid": "shard_02439_62873",
+              "kind": "document",
+              "rrf_score": 0.028485,
+              "truncated": false,
+              "original_chars": 3028,
+              "returned_chars": 3028
+            },
+            {
+              "rank": 5,
+              "id": "shard_00529_18372",
+              "docid": "shard_00529_18372",
+              "kind": "document",
+              "rrf_score": 0.028439,
+              "truncated": true,
+              "original_chars": 22404,
+              "returned_chars": 20425
+            },
+            {
+              "rank": 6,
+              "id": "shard_03589_32368",
+              "docid": "shard_03589_32368",
+              "kind": "document",
+              "rrf_score": 0.028083,
+              "truncated": false,
+              "original_chars": 1636,
+              "returned_chars": 1636
+            },
+            {
+              "rank": 7,
+              "id": "shard_01043_31209",
+              "docid": "shard_01043_31209",
+              "kind": "document",
+              "rrf_score": 0.028043,
+              "truncated": false,
+              "original_chars": 2894,
+              "returned_chars": 2894
+            },
+            {
+              "rank": 8,
+              "id": "shard_04312_55746",
+              "docid": "shard_04312_55746",
+              "kind": "document",
+              "rrf_score": 0.02782,
+              "truncated": false,
+              "original_chars": 3414,
+              "returned_chars": 3414
+            },
+            {
+              "rank": 9,
+              "id": "shard_04790_9963",
+              "docid": "shard_04790_9963",
+              "kind": "document",
+              "rrf_score": 0.027588,
+              "truncated": false,
+              "original_chars": 3915,
+              "returned_chars": 3915
+            },
+            {
+              "rank": 10,
+              "id": "shard_03647_50024",
+              "docid": "shard_03647_50024",
+              "kind": "document",
+              "rrf_score": 0.027056,
+              "truncated": false,
+              "original_chars": 661,
+              "returned_chars": 661
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06216_11091",
+          "shard_04738_37311",
+          "shard_03647_45735",
+          "shard_02439_62873",
+          "shard_00529_18372",
+          "shard_03589_32368",
+          "shard_01043_31209",
+          "shard_04312_55746",
+          "shard_04790_9963",
+          "shard_03647_50024"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06216_11091",
+            "score": 0.032522
+          },
+          {
+            "docid": "shard_04738_37311",
+            "score": 0.030579
+          },
+          {
+            "docid": "shard_03647_45735",
+            "score": 0.029877
+          },
+          {
+            "docid": "shard_02439_62873",
+            "score": 0.028485
+          },
+          {
+            "docid": "shard_00529_18372",
+            "score": 0.028439
+          },
+          {
+            "docid": "shard_03589_32368",
+            "score": 0.028083
+          },
+          {
+            "docid": "shard_01043_31209",
+            "score": 0.028043
+          },
+          {
+            "docid": "shard_04312_55746",
+            "score": 0.02782
+          },
+          {
+            "docid": "shard_04790_9963",
+            "score": 0.027588
+          },
+          {
+            "docid": "shard_03647_50024",
+            "score": 0.027056
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_Q4ZWjEguWJMswLt23Fpq1J",
+        "id": "step-0008",
+        "t_start": "2026-07-17T14:51:41.109+10:00",
+        "t_end": "2026-07-17T14:51:41.620+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 510.509,
+          "context_tokens": 99293,
+          "peak_context_tokens": 99293,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 48540,
+          "cumulative_tokens": {
+            "input": 104080,
+            "input_uncached": 95012,
+            "output": 3645,
+            "cache_read": 4534,
+            "cache_write": 4534,
+            "total": 107725,
+            "processed_input": 99546,
+            "processed": 103191
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06216_11091",
+            "shard_04738_37311",
+            "shard_03647_45735",
+            "shard_02439_62873",
+            "shard_00529_18372",
+            "shard_03589_32368",
+            "shard_01043_31209",
+            "shard_04312_55746",
+            "shard_04790_9963",
+            "shard_03647_50024"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "long context window extension rotary position embeddings RoPE"
+        },
+        "output": {
+          "query": "long context window extension rotary position embeddings RoPE",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05308_52168",
+              "docid": "shard_05308_52168",
+              "kind": "document",
+              "rrf_score": 0.031281,
+              "truncated": false,
+              "original_chars": 3479,
+              "returned_chars": 3479
+            },
+            {
+              "rank": 2,
+              "id": "shard_02640_26799",
+              "docid": "shard_02640_26799",
+              "kind": "document",
+              "rrf_score": 0.028629,
+              "truncated": false,
+              "original_chars": 4589,
+              "returned_chars": 4589
+            },
+            {
+              "rank": 3,
+              "id": "shard_04369_78991",
+              "docid": "shard_04369_78991",
+              "kind": "document",
+              "rrf_score": 0.027629,
+              "truncated": false,
+              "original_chars": 3136,
+              "returned_chars": 3136
+            },
+            {
+              "rank": 4,
+              "id": "shard_02479_3327",
+              "docid": "shard_02479_3327",
+              "kind": "document",
+              "rrf_score": 0.027501,
+              "truncated": false,
+              "original_chars": 3604,
+              "returned_chars": 3604
+            },
+            {
+              "rank": 5,
+              "id": "shard_06208_26022",
+              "docid": "shard_06208_26022",
+              "kind": "document",
+              "rrf_score": 0.027253,
+              "truncated": false,
+              "original_chars": 3382,
+              "returned_chars": 3382
+            },
+            {
+              "rank": 6,
+              "id": "shard_00907_70898",
+              "docid": "shard_00907_70898",
+              "kind": "document",
+              "rrf_score": 0.02683,
+              "truncated": false,
+              "original_chars": 4579,
+              "returned_chars": 4579
+            },
+            {
+              "rank": 7,
+              "id": "shard_02561_62863",
+              "docid": "shard_02561_62863",
+              "kind": "document",
+              "rrf_score": 0.0262,
+              "truncated": true,
+              "original_chars": 28618,
+              "returned_chars": 19801
+            },
+            {
+              "rank": 8,
+              "id": "shard_05686_75851",
+              "docid": "shard_05686_75851",
+              "kind": "document",
+              "rrf_score": 0.025942,
+              "truncated": false,
+              "original_chars": 7637,
+              "returned_chars": 7637
+            },
+            {
+              "rank": 9,
+              "id": "shard_06255_80329",
+              "docid": "shard_06255_80329",
+              "kind": "document",
+              "rrf_score": 0.025562,
+              "truncated": false,
+              "original_chars": 11664,
+              "returned_chars": 11664
+            },
+            {
+              "rank": 10,
+              "id": "shard_06121_9268",
+              "docid": "shard_06121_9268",
+              "kind": "document",
+              "rrf_score": 0.025362,
+              "truncated": false,
+              "original_chars": 3533,
+              "returned_chars": 3533
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05308_52168",
+          "shard_02640_26799",
+          "shard_04369_78991",
+          "shard_02479_3327",
+          "shard_06208_26022",
+          "shard_00907_70898",
+          "shard_02561_62863",
+          "shard_05686_75851",
+          "shard_06255_80329",
+          "shard_06121_9268"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05308_52168",
+            "score": 0.031281
+          },
+          {
+            "docid": "shard_02640_26799",
+            "score": 0.028629
+          },
+          {
+            "docid": "shard_04369_78991",
+            "score": 0.027629
+          },
+          {
+            "docid": "shard_02479_3327",
+            "score": 0.027501
+          },
+          {
+            "docid": "shard_06208_26022",
+            "score": 0.027253
+          },
+          {
+            "docid": "shard_00907_70898",
+            "score": 0.02683
+          },
+          {
+            "docid": "shard_02561_62863",
+            "score": 0.0262
+          },
+          {
+            "docid": "shard_05686_75851",
+            "score": 0.025942
+          },
+          {
+            "docid": "shard_06255_80329",
+            "score": 0.025562
+          },
+          {
+            "docid": "shard_06121_9268",
+            "score": 0.025362
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_M6X2bC4v1XYnpVf7R9BPwV",
+        "id": "step-0009",
+        "t_start": "2026-07-17T14:51:41.109+10:00",
+        "t_end": "2026-07-17T14:51:41.826+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 716.286,
+          "context_tokens": 99293,
+          "peak_context_tokens": 99293,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 48540,
+          "cumulative_tokens": {
+            "input": 104080,
+            "input_uncached": 95012,
+            "output": 3645,
+            "cache_read": 4534,
+            "cache_write": 4534,
+            "total": 107725,
+            "processed_input": 99546,
+            "processed": 103191
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05308_52168",
+            "shard_02640_26799",
+            "shard_04369_78991",
+            "shard_02479_3327",
+            "shard_06208_26022",
+            "shard_00907_70898",
+            "shard_02561_62863",
+            "shard_05686_75851",
+            "shard_06255_80329",
+            "shard_06121_9268"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "instruction tuning chain-of-thought reasoning fine-tuning LLM"
+        },
+        "output": {
+          "query": "instruction tuning chain-of-thought reasoning fine-tuning LLM",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06347_38516",
+              "docid": "shard_06347_38516",
+              "kind": "document",
+              "rrf_score": 0.028814,
+              "truncated": false,
+              "original_chars": 3582,
+              "returned_chars": 3582
+            },
+            {
+              "rank": 2,
+              "id": "shard_02931_53153",
+              "docid": "shard_02931_53153",
+              "kind": "document",
+              "rrf_score": 0.028612,
+              "truncated": false,
+              "original_chars": 4476,
+              "returned_chars": 4476
+            },
+            {
+              "rank": 3,
+              "id": "shard_02374_15070",
+              "docid": "shard_02374_15070",
+              "kind": "document",
+              "rrf_score": 0.024955,
+              "truncated": false,
+              "original_chars": 3307,
+              "returned_chars": 3307
+            },
+            {
+              "rank": 4,
+              "id": "shard_01952_41890",
+              "docid": "shard_01952_41890",
+              "kind": "document",
+              "rrf_score": 0.02381,
+              "truncated": false,
+              "original_chars": 3456,
+              "returned_chars": 3456
+            },
+            {
+              "rank": 5,
+              "id": "shard_06166_2246",
+              "docid": "shard_06166_2246",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 7588,
+              "returned_chars": 7588
+            },
+            {
+              "rank": 6,
+              "id": "shard_01299_64852",
+              "docid": "shard_01299_64852",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 8356,
+              "returned_chars": 8356
+            },
+            {
+              "rank": 7,
+              "id": "shard_02758_69483",
+              "docid": "shard_02758_69483",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3984,
+              "returned_chars": 3984
+            },
+            {
+              "rank": 8,
+              "id": "shard_03087_26951",
+              "docid": "shard_03087_26951",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 11484,
+              "returned_chars": 11484
+            },
+            {
+              "rank": 9,
+              "id": "shard_03899_54875",
+              "docid": "shard_03899_54875",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2655,
+              "returned_chars": 2655
+            },
+            {
+              "rank": 10,
+              "id": "shard_00948_79889",
+              "docid": "shard_00948_79889",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 10007,
+              "returned_chars": 10007
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06347_38516",
+          "shard_02931_53153",
+          "shard_02374_15070",
+          "shard_01952_41890",
+          "shard_06166_2246",
+          "shard_01299_64852",
+          "shard_02758_69483",
+          "shard_03087_26951",
+          "shard_03899_54875",
+          "shard_00948_79889"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06347_38516",
+            "score": 0.028814
+          },
+          {
+            "docid": "shard_02931_53153",
+            "score": 0.028612
+          },
+          {
+            "docid": "shard_02374_15070",
+            "score": 0.024955
+          },
+          {
+            "docid": "shard_01952_41890",
+            "score": 0.02381
+          },
+          {
+            "docid": "shard_06166_2246",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01299_64852",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02758_69483",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03087_26951",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03899_54875",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00948_79889",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_eFCLtVOIPR8Sbrkv2CrpDs",
+        "id": "step-0010",
+        "t_start": "2026-07-17T14:51:41.109+10:00",
+        "t_end": "2026-07-17T14:51:41.589+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 479.521,
+          "context_tokens": 99293,
+          "peak_context_tokens": 99293,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 48540,
+          "cumulative_tokens": {
+            "input": 104080,
+            "input_uncached": 95012,
+            "output": 3645,
+            "cache_read": 4534,
+            "cache_write": 4534,
+            "total": 107725,
+            "processed_input": 99546,
+            "processed": 103191
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06347_38516",
+            "shard_02931_53153",
+            "shard_02374_15070",
+            "shard_01952_41890",
+            "shard_06166_2246",
+            "shard_01299_64852",
+            "shard_02758_69483",
+            "shard_03087_26951",
+            "shard_03899_54875",
+            "shard_00948_79889"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_TL1kRDz6PbF3Uz0VpYx7Ti",
+            "tooluse_uTLPSnL3jWUm0EZTGiJD0s",
+            "tooluse_Q4ZWjEguWJMswLt23Fpq1J",
+            "tooluse_M6X2bC4v1XYnpVf7R9BPwV",
+            "tooluse_eFCLtVOIPR8Sbrkv2CrpDs"
+          ]
+        },
+        "output": {
+          "text": "I now have rich coverage across MoE, FlashAttention, long-context extension, and instruction/CoT fine-tuning. Let me preserve the strongest math-bearing evidence for these and then write the series.",
+          "reasoning": [
+            "I now have rich coverage across MoE, FlashAttention, long-context extension, and instruction/CoT fine-tuning. Let me preserve the strongest math-bearing evidence for these and then write the series."
+          ],
+          "tool_calls": [
+            {
+              "id": "tooluse_BlbH3WsIGZYwh7LYQ46FhD",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01053_19050",
+                    "reason": "MoE mathematical formulation: gating vector G(x), top-K softmax gating, weighted sum of experts, Mixtral 47B total/13B active, expert parallelism, load balancing."
+                  },
+                  {
+                    "docid": "shard_03041_64253",
+                    "reason": "MoE history (1991 Adaptive Mixture of Local Experts), fine-tuning difficulty/overfitting, GShard, Switch Transformers, QMoE, distillation—limitations and open challenges."
+                  },
+                  {
+                    "docid": "shard_00529_18372",
+                    "reason": "FlashAttention/FlashAttention-2 detailed methodology and math: GEMM, S=QK^T, softmax P, O=PV, online softmax, recomputation, GPU hierarchy (A100 HBM/SRAM), 2-4x/10-20x memory, TFLOPs."
+                  },
+                  {
+                    "docid": "shard_06255_80329",
+                    "reason": "Explicit derivations for long-context: RoPE relative-distance property, PI g(m)=m/s, NTK-aware base change b'=b·s^(|D|/(|D|-2)), NTK-by-parts ramp, YaRN temperature scaling."
+                  },
+                  {
+                    "docid": "shard_06208_26022",
+                    "reason": "LongRoPE: RoPE frequencies θ_i=θ^{-2i/d}, extension ratio s=L'/L, why linear PI is suboptimal, progressive extension to 2048k, ~1k fine-tuning steps."
+                  },
+                  {
+                    "docid": "shard_02374_15070",
+                    "reason": "Instruction tuning (FLAN) ablation with +18% accuracy, Chain-of-Thought fine-tuning findings, instruction-tuning datasets."
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0011",
+        "t_start": "2026-07-17T14:51:41.826+10:00",
+        "t_end": "2026-07-17T14:52:23.477+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 41650.528,
+          "context_tokens": 121022,
+          "peak_context_tokens": 121022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 90191,
+          "tokens": {
+            "input": 121022,
+            "input_uncached": 89449,
+            "output": 2988,
+            "cache_read": 4534,
+            "cache_write": 27039,
+            "total": 124010,
+            "processed_input": 116488,
+            "processed": 119476,
+            "context": 121022
+          },
+          "provider_usage": {
+            "inputTokens": 89449,
+            "outputTokens": 2988,
+            "totalTokens": 124010,
+            "cacheReadInputTokens": 4534,
+            "cacheWriteInputTokens": 27039,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 27039
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 225102,
+            "input_uncached": 184461,
+            "output": 6633,
+            "cache_read": 9068,
+            "cache_write": 31573,
+            "total": 231735,
+            "processed_input": 216034,
+            "processed": 222667
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01895_11012",
+            "shard_01788_39779",
+            "shard_01292_30875",
+            "shard_00231_45656",
+            "shard_03041_64253",
+            "shard_01053_19050",
+            "shard_00126_3271",
+            "shard_00066_35082",
+            "shard_04028_5047",
+            "shard_06322_49402",
+            "shard_06216_11091",
+            "shard_04738_37311",
+            "shard_03647_45735",
+            "shard_02439_62873",
+            "shard_00529_18372",
+            "shard_03589_32368",
+            "shard_01043_31209",
+            "shard_04312_55746",
+            "shard_04790_9963",
+            "shard_03647_50024",
+            "shard_05308_52168",
+            "shard_02640_26799",
+            "shard_04369_78991",
+            "shard_02479_3327",
+            "shard_06208_26022",
+            "shard_00907_70898",
+            "shard_02561_62863",
+            "shard_05686_75851",
+            "shard_06255_80329",
+            "shard_06121_9268",
+            "shard_06347_38516",
+            "shard_02931_53153",
+            "shard_02374_15070",
+            "shard_01952_41890",
+            "shard_06166_2246",
+            "shard_01299_64852",
+            "shard_02758_69483",
+            "shard_03087_26951",
+            "shard_03899_54875",
+            "shard_00948_79889"
+          ],
+          "committed": [
+            "shard_00526_79904",
+            "shard_00700_46123",
+            "shard_00983_1614",
+            "shard_01596_3197",
+            "shard_03950_8339",
+            "shard_05232_62940"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01053_19050",
+              "reason": "MoE mathematical formulation: gating vector G(x), top-K softmax gating, weighted sum of experts, Mixtral 47B total/13B active, expert parallelism, load balancing."
+            },
+            {
+              "docid": "shard_03041_64253",
+              "reason": "MoE history (1991 Adaptive Mixture of Local Experts), fine-tuning difficulty/overfitting, GShard, Switch Transformers, QMoE, distillation—limitations and open challenges."
+            },
+            {
+              "docid": "shard_00529_18372",
+              "reason": "FlashAttention/FlashAttention-2 detailed methodology and math: GEMM, S=QK^T, softmax P, O=PV, online softmax, recomputation, GPU hierarchy (A100 HBM/SRAM), 2-4x/10-20x memory, TFLOPs."
+            },
+            {
+              "docid": "shard_06255_80329",
+              "reason": "Explicit derivations for long-context: RoPE relative-distance property, PI g(m)=m/s, NTK-aware base change b'=b·s^(|D|/(|D|-2)), NTK-by-parts ramp, YaRN temperature scaling."
+            },
+            {
+              "docid": "shard_06208_26022",
+              "reason": "LongRoPE: RoPE frequencies θ_i=θ^{-2i/d}, extension ratio s=L'/L, why linear PI is suboptimal, progressive extension to 2048k, ~1k fine-tuning steps."
+            },
+            {
+              "docid": "shard_02374_15070",
+              "reason": "Instruction tuning (FLAN) ablation with +18% accuracy, Chain-of-Thought fine-tuning findings, instruction-tuning datasets."
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_03041_64253\", \"shard_01053_19050\", \"shard_00529_18372\", \"shard_06208_26022\", \"shard_06255_80329\", \"shard_02374_15070\"], \"rejected\": [{\"docid\": \"shard_01895_11012\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01788_39779\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01292_30875\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00231_45656\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00126_3271\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00066_35082\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04028_5047\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06322_49402\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06216_11091\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04738_37311\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03647_45735\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02439_62873\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03589_32368\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01043_31209\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04312_55746\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04790_9963\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03647_50024\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05308_52168\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02640_26799\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04369_78991\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02479_3327\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00907_70898\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02561_62863\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05686_75851\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06121_9268\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06347_38516\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02931_53153\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01952_41890\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06166_2246\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01299_64852\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02758_69483\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03087_26951\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03899_54875\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00948_79889\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 121,022 / 500,000 tokens (24.2%) · elapsed: 1m 30s]",
+        "failed": false,
+        "tool_call_id": "tooluse_BlbH3WsIGZYwh7LYQ46FhD",
+        "id": "step-0012",
+        "t_start": "2026-07-17T14:52:23.478+10:00",
+        "t_end": "2026-07-17T14:52:23.479+10:00",
+        "turn": 2,
+        "parent_id": "step-0011",
+        "stats": {
+          "duration_ms": 1.152,
+          "context_tokens": 121022,
+          "peak_context_tokens": 121022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 90194,
+          "cumulative_tokens": {
+            "input": 225102,
+            "input_uncached": 184461,
+            "output": 6633,
+            "cache_read": 9068,
+            "cache_write": 31573,
+            "total": 231735,
+            "processed_input": 216034,
+            "processed": 222667
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01895_11012",
+            "shard_01788_39779",
+            "shard_01292_30875",
+            "shard_00231_45656",
+            "shard_03041_64253",
+            "shard_01053_19050",
+            "shard_00126_3271",
+            "shard_00066_35082",
+            "shard_04028_5047",
+            "shard_06322_49402",
+            "shard_06216_11091",
+            "shard_04738_37311",
+            "shard_03647_45735",
+            "shard_02439_62873",
+            "shard_00529_18372",
+            "shard_03589_32368",
+            "shard_01043_31209",
+            "shard_04312_55746",
+            "shard_04790_9963",
+            "shard_03647_50024",
+            "shard_05308_52168",
+            "shard_02640_26799",
+            "shard_04369_78991",
+            "shard_02479_3327",
+            "shard_06208_26022",
+            "shard_00907_70898",
+            "shard_02561_62863",
+            "shard_05686_75851",
+            "shard_06255_80329",
+            "shard_06121_9268",
+            "shard_06347_38516",
+            "shard_02931_53153",
+            "shard_02374_15070",
+            "shard_01952_41890",
+            "shard_06166_2246",
+            "shard_01299_64852",
+            "shard_02758_69483",
+            "shard_03087_26951",
+            "shard_03899_54875",
+            "shard_00948_79889"
+          ],
+          "committed": [
+            "shard_03041_64253",
+            "shard_01053_19050",
+            "shard_00529_18372",
+            "shard_06208_26022",
+            "shard_06255_80329",
+            "shard_02374_15070"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_01895_11012",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01788_39779",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01292_30875",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00231_45656",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00126_3271",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00066_35082",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04028_5047",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06322_49402",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06216_11091",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04738_37311",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03647_45735",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02439_62873",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03589_32368",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01043_31209",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04312_55746",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04790_9963",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03647_50024",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05308_52168",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02640_26799",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04369_78991",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02479_3327",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00907_70898",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02561_62863",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05686_75851",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06121_9268",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06347_38516",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02931_53153",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01952_41890",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06166_2246",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01299_64852",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02758_69483",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03087_26951",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03899_54875",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00948_79889",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_BlbH3WsIGZYwh7LYQ46FhD"
+          ]
+        },
+        "output": {
+          "text": "Parameter-efficient fine-tuning, alignment, sparse scaling, faster attention, and longer context were the levers that reshaped how large language models were trained and adapted between 2023 and 2025, and this series takes each in turn for a reader comfortable with transformers and gradient-based optimization.\nA useful frame before the techniques: instruction tuning on (instruction, output) pairs is what turns a raw next-token predictor into a model that follows requests, and an ablation on the FLAN data showed that training on the instructions themselves beat a no-template baseline by over 18% zero-shot accuracy. [shard_02374_15070]\nAdding chain-of-thought examples to that instruction mixture, so the model is fine-tuned to reason in steps rather than leap to a linguistically plausible answer, improves its zero-shot reasoning across arithmetic and symbolic tasks. [shard_02374_15070]\n\nThe first post covers Low-Rank Adaptation, whose motivation is that fully retraining a 175-billion-parameter model like GPT-3 is prohibitively expensive, yet task adaptation seems to need only a small change to the weights. [shard_01596_3197]\nLoRA freezes the pretrained weight matrix W and learns an additive update W_new = W + BA, where B has shape (d, r), A has shape (r, k), and the rank r is chosen far smaller than d and k. [shard_01596_3197]\nBecause only B and A are trained, the count of trainable parameters falls from d·k to r(d + k), which is the source of the reported ten-thousand-fold reduction and the drop from terabytes to gigabytes of GPU memory. [shard_01596_3197]\nFreezing W also preserves pretrained knowledge and guards against catastrophic forgetting, while the main open problems are principled selection of the rank r and scaling behavior at ever-larger model sizes. [shard_01596_3197]\n\nQLoRA extends this idea by quantizing the frozen base model to 4-bit precision while keeping the trainable low-rank adapters in higher precision. [shard_00700_46123]\nIts 4-bit NormalFloat (NF4) data type is information-theoretically matched to normally distributed weights, and double quantization further compresses the quantization constants themselves, while paged optimizers absorb gradient memory spikes. [shard_00700_46123]\nThe residual challenges are that NF4 cannot represent an exact zero without an asymmetric variant, that outlier counts grow with model size, and that fair evaluation still lacks standardized benchmarks. [shard_00700_46123]\n\nThe second post is Reinforcement Learning from Human Feedback, motivated by the fact that qualities like helpfulness and safety have no differentiable loss, so we learn a reward from human comparisons instead. [shard_03950_8339]\nThe pipeline runs in three stages: supervised fine-tuning of a base model, training a reward model that maps a (prompt, response) pair to a scalar from ranked human preferences, then optimizing the policy with Proximal Policy Optimization. [shard_00983_1614]\nThe RL objective maximizes the expected reward while a Kullback–Leibler penalty against the reference policy keeps the fine-tuned model from drifting too far from its starting distribution. [shard_03950_8339]\nThis is how ChatGPT and InstructGPT were aligned, but the method is bottlenecked by the cost and inconsistency of human labels, and it is prone to reward hacking and to mode collapse that shrinks output diversity. [shard_00983_1614]\nReinforcement Learning from AI Feedback and Constitutional AI address the labeling bottleneck by having a model critique itself against a set of written principles rather than relying wholly on human raters. [shard_00983_1614]\n\nThe third post is Direct Preference Optimization, whose insight is that the RL loop is unnecessary because the KL-regularized optimal policy can be written in closed form in terms of the reward. [shard_05232_62940]\nThat optimum is π_r(y|x) proportional to π_ref(y|x)·exp(r(x,y)/β), where β is the regularization temperature, which we invert to r(x,y) = β·log(π_r(y|x)/π_ref(y|x)) + β·log Z(x). [shard_00526_79904]\nSubstituting this into the Bradley-Terry preference loss, the intractable partition function Z(x) cancels because only reward differences between the winning y_w and losing y_l completions matter. [shard_00526_79904]\nWhat remains is a simple binary cross-entropy objective over preference pairs that trains the policy directly, needs no sampling from the model, and matches or beats PPO-based RLHF on sentiment, summarization, and dialogue. [shard_05232_62940]\nDPO produces a more favorable reward/KL frontier and was adopted in models such as Mixtral, though it still requires paired preference data and a fixed reference policy. [shard_05232_62940]\n\nThe fourth post is the Mixture of Experts, whose motivation is conditional computation: decouple a model's parameter count from its per-token cost so capacity can grow without proportional compute. [shard_03041_64253]\nEach MoE layer replaces the feed-forward block with n experts and a router, and the output for input x is the gated sum over experts, sum_i G(x)_i·E_i(x), where a softmax over the top-K logits selects and weights only a few experts. [shard_01053_19050]\nMixtral 8x7B makes this concrete with 47 billion total parameters but only about 13 billion active per token, routing each token through 2 of 8 experts. [shard_01053_19050]\nThe idea dates to 1991, but its limitations remain sharp: all expert weights must sit in VRAM, MoEs overfit and are hard to fine-tune, and stable training needs load-balancing tricks such as expert capacity in GShard and the routing simplifications of Switch Transformers. [shard_03041_64253]\n\nThe fifth post is FlashAttention, whose premise is that exact attention is memory-bound rather than compute-bound, so materializing the N×N score matrix is the true bottleneck. [shard_00529_18372]\nStandard attention forms S = QK^T, applies a row-wise softmax to get P = softmax(S), and returns O = PV, and storing S and P costs memory quadratic in sequence length N. [shard_00529_18372]\nFlashAttention tiles Q, K, V into SRAM, uses an online softmax that tracks a running maximum and sum of exponentials so blocks never assemble the full matrix, and recomputes S and P in the backward pass instead of storing them. [shard_00529_18372]\nThis makes memory linear in N with no approximation, yielding 2–4x speedups and 10–20x memory savings, while FlashAttention-2 adds finer parallelism to reach up to 187 TFLOPs/s on an A100, its main cost being hand-tuned hardware-specific kernels. [shard_00529_18372]\n\nThe final post covers extending context length by reinterpolating Rotary Position Embeddings, which encode position through frequencies θ_i = θ^(−2i/d) and are limited to their pretraining length L. [shard_06208_26022]\nPosition Interpolation rescales positions with g(m) = m/s for extension ratio s = L'/L, which is cheap but makes neighboring positions nearly indistinguishable as s grows. [shard_06208_26022]\nNTK-aware interpolation instead applies a base change b' = b·s^(|D|/(|D|−2)) to spread the pressure across dimensions, NTK-by-parts uses a ramp to protect high-frequency dimensions, and YaRN adds an attention temperature that follows sqrt(1/t) ≈ 0.1·ln(s) + 1. [shard_06255_80329]\nBuilding on these, LongRoPE reaches a 2048k-token window with as few as 1k fine-tuning steps by exploiting non-uniformities in the interpolation and extending progressively, though every method trades some short-context perplexity and needs per-model tuning. [shard_06208_26022]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0013",
+        "t_start": "2026-07-17T14:52:23.479+10:00",
+        "t_end": "2026-07-17T14:53:45.770+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 82290.383,
+          "context_tokens": 64284,
+          "peak_context_tokens": 121022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 172484,
+          "tokens": {
+            "input": 64284,
+            "input_uncached": 4141,
+            "output": 6375,
+            "cache_read": 31573,
+            "cache_write": 28570,
+            "total": 70659,
+            "processed_input": 32711,
+            "processed": 39086,
+            "context": 64284
+          },
+          "provider_usage": {
+            "inputTokens": 4141,
+            "outputTokens": 6375,
+            "totalTokens": 70659,
+            "cacheReadInputTokens": 31573,
+            "cacheWriteInputTokens": 28570,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 28570
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 289386,
+            "input_uncached": 188602,
+            "output": 13008,
+            "cache_read": 40641,
+            "cache_write": 60143,
+            "total": 302394,
+            "processed_input": 248745,
+            "processed": 261753
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00526_79904",
+            "shard_00529_18372",
+            "shard_00700_46123",
+            "shard_00983_1614",
+            "shard_01053_19050",
+            "shard_01596_3197",
+            "shard_02374_15070",
+            "shard_03041_64253",
+            "shard_03950_8339",
+            "shard_05232_62940",
+            "shard_06208_26022",
+            "shard_06255_80329"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "user_message",
+          "text": "Your attempted final response did not satisfy the final-report contract already defined in the system instructions.\nProblems:\n- report is 1050 words; the hard maximum is 1024 — rewrite it at about 950 words, cutting the least load-bearing material rather than trimming a few words\nCorrect it in the next turn in this same conversation. Emit tool calls only if more evidence is genuinely needed; otherwise write only the corrected report: plain prose, one sentence per line, with [docid] citation markers.\n[context budget: 64,284 / 500,000 tokens (12.9%) · elapsed: 2m 52s]"
+        },
+        "output": {
+          "text": "Parameter-efficient fine-tuning, alignment, sparse scaling, faster attention, and longer context were the levers that reshaped how large language models were trained and adapted between 2023 and 2025, and this series takes each in turn for a reader comfortable with transformers and gradient-based optimization.\n\nThe first post covers Low-Rank Adaptation, whose motivation is that fully retraining a 175-billion-parameter model like GPT-3 is prohibitively expensive, yet task adaptation seems to need only a small change to the weights. [shard_01596_3197]\nLoRA freezes the pretrained weight matrix W and learns an additive update W_new = W + BA, where B has shape (d, r), A has shape (r, k), and the rank r is chosen far smaller than d and k. [shard_01596_3197]\nBecause only B and A are trained, the count of trainable parameters falls from d·k to r(d + k), which is the source of the reported ten-thousand-fold reduction and the drop from terabytes to gigabytes of GPU memory. [shard_01596_3197]\nFreezing W also preserves pretrained knowledge and guards against catastrophic forgetting, while the main open problems are principled selection of the rank r and scaling behavior at ever-larger model sizes. [shard_01596_3197]\n\nQLoRA extends this idea by quantizing the frozen base model to 4-bit precision while keeping the trainable low-rank adapters in higher precision. [shard_00700_46123]\nIts 4-bit NormalFloat (NF4) data type is information-theoretically matched to normally distributed weights, and double quantization further compresses the quantization constants themselves, while paged optimizers absorb gradient memory spikes. [shard_00700_46123]\nThe residual challenges are that NF4 cannot represent an exact zero without an asymmetric variant, that outlier counts grow with model size, and that fair evaluation still lacks standardized benchmarks. [shard_00700_46123]\n\nThe second post is Reinforcement Learning from Human Feedback, motivated by the fact that qualities like helpfulness and safety have no differentiable loss, so we learn a reward from human comparisons instead. [shard_03950_8339]\nThe pipeline runs in three stages: supervised fine-tuning of a base model, training a reward model that maps a (prompt, response) pair to a scalar from ranked human preferences, then optimizing the policy with Proximal Policy Optimization. [shard_00983_1614]\nThe RL objective maximizes the expected reward while a Kullback–Leibler penalty against the reference policy keeps the fine-tuned model from drifting too far from its starting distribution. [shard_03950_8339]\nThis is how ChatGPT and InstructGPT were aligned, but the method is bottlenecked by the cost and inconsistency of human labels, and it is prone to reward hacking and to mode collapse that shrinks output diversity. [shard_00983_1614]\nReinforcement Learning from AI Feedback and Constitutional AI address the labeling bottleneck by having a model critique itself against a set of written principles rather than relying wholly on human raters. [shard_00983_1614]\n\nThe third post is Direct Preference Optimization, whose insight is that the RL loop is unnecessary because the KL-regularized optimal policy can be written in closed form in terms of the reward. [shard_05232_62940]\nThat optimum is π_r(y|x) proportional to π_ref(y|x)·exp(r(x,y)/β), where β is the regularization temperature, which we invert to r(x,y) = β·log(π_r(y|x)/π_ref(y|x)) + β·log Z(x). [shard_00526_79904]\nSubstituting this into the Bradley-Terry preference loss, the intractable partition function Z(x) cancels because only reward differences between the winning y_w and losing y_l completions matter. [shard_00526_79904]\nWhat remains is a simple binary cross-entropy objective over preference pairs that trains the policy directly, needs no sampling from the model, and matches or beats PPO-based RLHF on sentiment, summarization, and dialogue. [shard_05232_62940]\nDPO produces a more favorable reward/KL frontier and was adopted in models such as Mixtral, though it still requires paired preference data and a fixed reference policy. [shard_05232_62940]\n\nThe fourth post is the Mixture of Experts, whose motivation is conditional computation: decouple a model's parameter count from its per-token cost so capacity can grow without proportional compute. [shard_03041_64253]\nEach MoE layer replaces the feed-forward block with n experts and a router, and the output for input x is the gated sum over experts, sum_i G(x)_i·E_i(x), where a softmax over the top-K logits selects and weights only a few experts. [shard_01053_19050]\nMixtral 8x7B makes this concrete with 47 billion total parameters but only about 13 billion active per token, routing each token through 2 of 8 experts. [shard_01053_19050]\nThe idea dates to 1991, but its limitations remain sharp: all expert weights must sit in VRAM, MoEs overfit and are hard to fine-tune, and stable training needs load-balancing tricks such as expert capacity in GShard and the routing simplifications of Switch Transformers. [shard_03041_64253]\n\nThe fifth post is FlashAttention, whose premise is that exact attention is memory-bound rather than compute-bound, so materializing the N×N score matrix is the true bottleneck. [shard_00529_18372]\nStandard attention forms S = QK^T, applies a row-wise softmax to get P = softmax(S), and returns O = PV, and storing S and P costs memory quadratic in sequence length N. [shard_00529_18372]\nFlashAttention tiles Q, K, V into SRAM, uses an online softmax that tracks a running maximum and sum of exponentials so blocks never assemble the full matrix, and recomputes S and P in the backward pass instead of storing them. [shard_00529_18372]\nThis makes memory linear in N with no approximation, yielding 2–4x speedups and 10–20x memory savings, while FlashAttention-2 adds finer parallelism to reach up to 187 TFLOPs/s on an A100, its main cost being hand-tuned hardware-specific kernels. [shard_00529_18372]\n\nThe final post covers extending context length by reinterpolating Rotary Position Embeddings, which encode position through frequencies θ_i = θ^(−2i/d) and are limited to their pretraining length L. [shard_06208_26022]\nPosition Interpolation rescales positions with g(m) = m/s for extension ratio s = L'/L, which is cheap but makes neighboring positions nearly indistinguishable as s grows. [shard_06208_26022]\nNTK-aware interpolation instead applies a base change b' = b·s^(|D|/(|D|−2)) to spread the pressure across dimensions, NTK-by-parts uses a ramp to protect high-frequency dimensions, and YaRN adds an attention temperature that follows sqrt(1/t) ≈ 0.1·ln(s) + 1. [shard_06255_80329]\nBuilding on these, LongRoPE reaches a 2048k-token window with as few as 1k fine-tuning steps by exploiting non-uniformities in the interpolation and extending progressively, though every method trades some short-context perplexity and needs per-model tuning. [shard_06208_26022]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-17T14:53:45.776+10:00",
+        "t_end": "2026-07-17T14:54:08.968+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 23190.99,
+          "context_tokens": 70860,
+          "peak_context_tokens": 121022,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 195682,
+          "tokens": {
+            "input": 70860,
+            "input_uncached": 10717,
+            "output": 2617,
+            "cache_read": 60143,
+            "cache_write": 0,
+            "total": 73477,
+            "processed_input": 10717,
+            "processed": 13334,
+            "context": 70860
+          },
+          "provider_usage": {
+            "inputTokens": 10717,
+            "outputTokens": 2617,
+            "totalTokens": 73477,
+            "cacheReadInputTokens": 60143
+          },
+          "cumulative_tokens": {
+            "input": 360246,
+            "input_uncached": 199319,
+            "output": 15625,
+            "cache_read": 100784,
+            "cache_write": 60143,
+            "total": 375871,
+            "processed_input": 259462,
+            "processed": 275087
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00526_79904",
+            "shard_00529_18372",
+            "shard_00700_46123",
+            "shard_00983_1614",
+            "shard_01053_19050",
+            "shard_01596_3197",
+            "shard_02374_15070",
+            "shard_03041_64253",
+            "shard_03950_8339",
+            "shard_05232_62940",
+            "shard_06208_26022",
+            "shard_06255_80329"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_01596_3197",
+        "shard_00700_46123",
+        "shard_03950_8339",
+        "shard_00983_1614",
+        "shard_05232_62940",
+        "shard_00526_79904",
+        "shard_03041_64253",
+        "shard_01053_19050",
+        "shard_00529_18372",
+        "shard_06208_26022",
+        "shard_06255_80329"
+      ],
+      "answer": [
+        {
+          "text": "Parameter-efficient fine-tuning, alignment, sparse scaling, faster attention, and longer context were the levers that reshaped how large language models were trained and adapted between 2023 and 2025, and this series takes each in turn for a reader comfortable with transformers and gradient-based optimization.",
+          "citations": []
+        },
+        {
+          "text": "The first post covers Low-Rank Adaptation, whose motivation is that fully retraining a 175-billion-parameter model like GPT-3 is prohibitively expensive, yet task adaptation seems to need only a small change to the weights.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "LoRA freezes the pretrained weight matrix W and learns an additive update W_new = W + BA, where B has shape (d, r), A has shape (r, k), and the rank r is chosen far smaller than d and k.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Because only B and A are trained, the count of trainable parameters falls from d·k to r(d + k), which is the source of the reported ten-thousand-fold reduction and the drop from terabytes to gigabytes of GPU memory.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Freezing W also preserves pretrained knowledge and guards against catastrophic forgetting, while the main open problems are principled selection of the rank r and scaling behavior at ever-larger model sizes.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "QLoRA extends this idea by quantizing the frozen base model to 4-bit precision while keeping the trainable low-rank adapters in higher precision.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Its 4-bit NormalFloat (NF4) data type is information-theoretically matched to normally distributed weights, and double quantization further compresses the quantization constants themselves, while paged optimizers absorb gradient memory spikes.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "The residual challenges are that NF4 cannot represent an exact zero without an asymmetric variant, that outlier counts grow with model size, and that fair evaluation still lacks standardized benchmarks.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "The second post is Reinforcement Learning from Human Feedback, motivated by the fact that qualities like helpfulness and safety have no differentiable loss, so we learn a reward from human comparisons instead.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "The pipeline runs in three stages: supervised fine-tuning of a base model, training a reward model that maps a (prompt, response) pair to a scalar from ranked human preferences, then optimizing the policy with Proximal Policy Optimization.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "The RL objective maximizes the expected reward while a Kullback–Leibler penalty against the reference policy keeps the fine-tuned model from drifting too far from its starting distribution.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "This is how ChatGPT and InstructGPT were aligned, but the method is bottlenecked by the cost and inconsistency of human labels, and it is prone to reward hacking and to mode collapse that shrinks output diversity.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Reinforcement Learning from AI Feedback and Constitutional AI address the labeling bottleneck by having a model critique itself against a set of written principles rather than relying wholly on human raters.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "The third post is Direct Preference Optimization, whose insight is that the RL loop is unnecessary because the KL-regularized optimal policy can be written in closed form in terms of the reward.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "That optimum is π_r(y|x) proportional to π_ref(y|x)·exp(r(x,y)/β), where β is the regularization temperature, which we invert to r(x,y) = β·log(π_r(y|x)/π_ref(y|x)) + β·log Z(x).",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Substituting this into the Bradley-Terry preference loss, the intractable partition function Z(x) cancels because only reward differences between the winning y_w and losing y_l completions matter.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "What remains is a simple binary cross-entropy objective over preference pairs that trains the policy directly, needs no sampling from the model, and matches or beats PPO-based RLHF on sentiment, summarization, and dialogue.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "DPO produces a more favorable reward/KL frontier and was adopted in models such as Mixtral, though it still requires paired preference data and a fixed reference policy.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "The fourth post is the Mixture of Experts, whose motivation is conditional computation: decouple a model's parameter count from its per-token cost so capacity can grow without proportional compute.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Each MoE layer replaces the feed-forward block with n experts and a router, and the output for input x is the gated sum over experts, sum_i G(x)_i·E_i(x), where a softmax over the top-K logits selects and weights only a few experts.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "Mixtral 8x7B makes this concrete with 47 billion total parameters but only about 13 billion active per token, routing each token through 2 of 8 experts.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "The idea dates to 1991, but its limitations remain sharp: all expert weights must sit in VRAM, MoEs overfit and are hard to fine-tune, and stable training needs load-balancing tricks such as expert capacity in GShard and the routing simplifications of Switch Transformers.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "The fifth post is FlashAttention, whose premise is that exact attention is memory-bound rather than compute-bound, so materializing the N×N score matrix is the true bottleneck.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "Standard attention forms S = QK^T, applies a row-wise softmax to get P = softmax(S), and returns O = PV, and storing S and P costs memory quadratic in sequence length N.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "FlashAttention tiles Q, K, V into SRAM, uses an online softmax that tracks a running maximum and sum of exponentials so blocks never assemble the full matrix, and recomputes S and P in the backward pass instead of storing them.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "This makes memory linear in N with no approximation, yielding 2–4x speedups and 10–20x memory savings, while FlashAttention-2 adds finer parallelism to reach up to 187 TFLOPs/s on an A100, its main cost being hand-tuned hardware-specific kernels.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "The final post covers extending context length by reinterpolating Rotary Position Embeddings, which encode position through frequencies θ_i = θ^(−2i/d) and are limited to their pretraining length L.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "Position Interpolation rescales positions with g(m) = m/s for extension ratio s = L'/L, which is cheap but makes neighboring positions nearly indistinguishable as s grows.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "NTK-aware interpolation instead applies a base change b' = b·s^(|D|/(|D|−2)) to spread the pressure across dimensions, NTK-by-parts uses a ramp to protect high-frequency dimensions, and YaRN adds an attention temperature that follows sqrt(1/t) ≈ 0.1·ln(s) + 1.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "Building on these, LongRoPE reaches a 2048k-token window with as few as 1k fine-tuning steps by exploiting non-uniformities in the interpolation and extending progressively, though every method trades some short-context perplexity and needs per-model tuning.",
+          "citations": [
+            9
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-17T14:50:53.285+10:00",
+    "ended_at": "2026-07-17T14:54:08.972+10:00",
+    "duration_ms": 195687,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}

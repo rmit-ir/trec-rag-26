@@ -2,6 +2,49 @@
 
 *Same `aus_agent` deep-research loop (OpenAI `gpt-5.6-luna`, full 500k-token budget), each topic run four times restricted to ONE retrieval backend via `--search-backends`, over the full 3.5 TB corpus. All 40 runs completed.*
 
+---
+
+## UPDATE 2026-07-23 — SSR re-run on the UWaterloo Cottontail fork (`cmp-ssr-fork`)
+
+The original SSR arm (`cmp-ssr`) ran on the old Hazel `ssr-server`. We retired it and
+re-served the full corpus from the **fork** (26 stemmed SimpleWarren group-burrows +
+`MultiShardSearchEngine` fan-out on :8099; see `worklogs/2026-07-23-fork-ssr-serving-and-recompare.md`).
+Two backend changes vs the original SSR arm: **porter stemming** and (after a bug fix)
+**case-folded queries** — the fork's bare-term GCL path was case-*sensitive* over a
+case-*folded* index, so `Russia`→0 but `russia`→3.3M; every capitalized entity zeroed.
+
+**Result — BOTH documented SSR weaknesses (over-constraint zeros AND thin evidence) are now fixed.**
+Two iterations: `cmp-ssr-fork` (shim-side case-fold, thin cover snippets) then
+`cmp-ssr-fork-v2` (both fixes moved INTO the fork C++: server-side case-fold +
+paragraph-aware min/target/max evidence bands).
+
+| metric (sum over 10 topics) | old `cmp-ssr` | `cmp-ssr-fork` | **`cmp-ssr-fork-v2`** |
+|---|---|---|---|
+| searches | 132 | 163 | 136 |
+| **zero-result searches** | **36 (27%)** | 9 (5.5%) | **7 (5.1%)** |
+| unique docs retrieved | 840 | 1368 | 1125 (+34%) |
+| **mean evidence chars/hit** | 1272 | 901 | **3838 (3.0× old)** |
+
+- **Zeros fixed** (36 → 7). Worst old cases: de-minimis **11→4**, investment **7→0**,
+  nuclear-fuel **6→0**, election **4→1**. Residual zeros are *genuine* multi-quoted-phrase
+  over-constraint with correct drop-on-zero recovery — not the case bug. **Finding #3's
+  over-constraint verdict no longer holds.**
+- **Thin evidence fixed** (finding #3b): the fork now returns **paragraph-aware bands**
+  (grown from the cover to whole-paragraph boundaries, sized to a 200/500/700-token
+  min/target/max band like our chunker). Evidence went 1272 → **3838 chars/hit** — richer
+  than the original Hazel SSR and on clean paragraph boundaries. **The thin-evidence verdict
+  is reversed.**
+- Fewer searches (136) yet strong reports (10–18 citations/topic): richer per-hit evidence
+  means the agent grounds more per search.
+- Both fixes are fork C++ (branch `claude/query-casefold-and-paragraph-hydration`, tests
+  green + 2 new regression tests); the shim carries no query workaround.
+- Caveat for query authoring: **quoted phrases are exact and UNSTEMMED** (`"supply chains"`
+  ≠ "supply chain").
+
+*(The original 4-backend findings below are unchanged and describe the retired Hazel SSR.)*
+
+---
+
 ## Findings
 
 **Winner tally (best fit per topic, graded by reading queries + committed evidence + final answer):** dense ~5, keyword ~3, lucene ~2, **SSR 0**.

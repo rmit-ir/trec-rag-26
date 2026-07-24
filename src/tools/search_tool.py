@@ -76,29 +76,39 @@ _NL_GUIDANCE = (
     "keyword, use bare distinctive terms without stopwords."
 )
 
-# Baked from measured SSR probes on the full corpus (see the ssr_search worklog).
+# Baked from measured SSR probes AND a 10-topic agentic sweep on the full corpus
+# (see the ssr_search worklog + data/outputs/engine-comparison). The arity cap
+# and the drop-on-zero rule are the sweep's key corrections: agents that stacked
+# 5-7 required terms hit empty sets on 7/10 topics (11 zeros/19 searches on one).
 _GCL_GUIDANCE = (
     "Write a GCL Boolean query, NOT natural language. Operators: "
-    "`(^ a b ...)` = AND (all terms co-occur in one document — the workhorse); "
+    "`(^ a b ...)` = AND (ALL terms must co-occur in one document); "
     "`(+ a b ...)` = OR (any); `\"a b\"` = exact phrase (adjacent, in order); "
     "`(<< (^ a b) (# k))` = a AND b within k tokens (proximity, k~15-60); "
     "`(>> A B)` / `(<< A B)` = A contains / is-contained-in B. Terms are "
     "Porter-stemmed and case-insensitive — use ONE form (reactor matches "
-    "reactors; russia matches Russia). TACTICS that maximise SSR: "
-    "(1) Decompose the need into facets and issue one `(^ ...)` per facet, "
-    "anchored on the rarest/most-distinctive term (a proper name, technical "
-    "term, or term-of-art) plus 1-2 qualifiers. "
-    "(2) 2-4 specific terms in an AND is the sweet spot; the corpus is huge, so "
-    "precise ANDs stay well-populated AND sharpen relevance — don't be shy. "
-    "(3) Disambiguate a polysemous word by AND-ing a context term: "
+    "reactors; russia matches Russia). RULES that maximise SSR: "
+    "(1) Keep ANDs SHORT: at most 3 required terms. More terms do NOT add "
+    "precision — they shrink the match set and usually return ZERO. Lead with "
+    "the single rarest / most-distinctive term (a proper name, technical term, "
+    "or term-of-art). "
+    "(2) On an empty result, DROP the weakest (most common) term and retry — "
+    "NEVER add another required term (adding only shrinks it further). If a "
+    "2-3 term AND is still empty, the terms genuinely don't co-occur: switch a "
+    "term or move on; do not keep piling on qualifiers. "
+    "(3) One `(^ ...)` per facet — decompose a multi-part need into several "
+    "short queries rather than one long AND. "
+    "(4) Disambiguate a polysemous word by AND-ing ONE context term: "
     "`(^ \"de minimis\" tariff)` not bare `\"de minimis\"`; "
-    "`(^ ... \"small modular reactor\")` not bare `smr`. "
-    "(4) Quote multiword names/terms-of-art, but pair a phrase with a term (a "
+    "`(^ smr \"nuclear reactor\")` not bare `smr`. "
+    "(5) Quote multiword names/terms-of-art, but pair a phrase with a term (a "
     "bare phrase pulls patents/boilerplate). "
-    "(5) Use OR inside an AND to cover synonyms of one facet: "
+    "(6) To widen WITHOUT lengthening the AND, put an OR inside it — keep one "
+    "anchor required and widen the other facet: "
     "`(^ uranium (+ enrichment conversion fabrication))`. "
-    "(6) An empty result means a REQUIRED term is absent — drop or replace the "
-    "weakest term; do not fall back to a pure OR of everything."
+    "SSR is a precision/co-occurrence instrument: use it to pin exact entities, "
+    "confirm co-mention, or get a truthful zero — not to bag-of-AND a broad "
+    "topic (widen with the `keyword`/`semantic` engines for open-ended recall)."
 )
 
 _LUCENE_GUIDANCE = (

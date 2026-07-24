@@ -1,3 +1,4242 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:44d9211389b4ce44ce010abb283b6fe40dd9aff32e56db38a28592f3b5199d4d
-size 182033
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-38",
+    "narrative": "Write a synthesis report on the applications of AI in drug discovery for a technical audience unfamiliar with biology. It should cover the main applications of AI in every stage of the drug discovery process, the latest technological advancements, challenges, and current adoption in the real world.",
+    "run_id": "aus-agent-test-v2",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_06231_35603",
+    "shard_02044_16728",
+    "shard_01778_82827",
+    "shard_06519_8313",
+    "shard_04365_72117",
+    "shard_01104_83802",
+    "shard_05943_40192",
+    "shard_00200_57883",
+    "shard_04109_57762",
+    "shard_02303_44801",
+    "shard_05470_80992",
+    "shard_00926_73826",
+    "shard_05845_27817",
+    "shard_06450_28885",
+    "shard_02151_79709",
+    "shard_05472_50470",
+    "shard_00627_61902"
+  ],
+  "answer": [
+    {
+      "text": "Artificial intelligence has become embedded across nearly every stage of the drug discovery pipeline, promising to compress a process that traditionally takes ten to twenty years and costs two to three billion dollars, reflecting an eighty-fold decline in R&D productivity over fifty years.",
+      "citations": [
+        0,
+        1
+      ]
+    },
+    {
+      "text": "In target identification, deep learning models analyze multiomics data such as genomics, transcriptomics, and proteomics to compare diseased versus healthy tissue and flag genes whose activity patterns make them attractive, sometimes previously unknown, therapeutic targets.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "A key complication is polypharmacology: a single drug may interact with thirty to three hundred proteins, many unknown in advance, and platforms like Cyclica's Ligand Express map this broader interaction landscape beyond one intended target.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Once a target is chosen, lead optimization relies on molecular dynamics simulations and generative adversarial networks that propose and refine candidate molecules matching desired physiochemical properties.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "The most advanced generative techniques for structure-based design use diffusion models and graph neural networks, such as TargetDiff, Pocket2Mol, GraphBP, DiffSBDD, and AlphaDrug, which build three-dimensional ligands atom-by-atom inside a protein pocket and are benchmarked on docking score, drug-likeness, and synthetic accessibility.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Commercial platforms such as Iktos combine similar generative modeling with AI-driven retrosynthesis planning through its Spaya engine, claiming up to a thirty percent reduction in time and cost to reach clinical trials.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "A parallel advance is Molecular Transformer, which treats chemical reactions as translation between SMILES strings using transformer attention, predicting reaction outcomes correctly over ninety percent of the time and, when trained on Pfizer's proprietary lab data, reaching ninety-seven percent accuracy with ninety-one percent retrosynthesis success.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Large language models now extend further into chemistry, editing molecular properties from natural-language prompts as in MoleculeSTM, predicting molecular properties as in Meta's Galactica, planning multi-step retrosynthesis interactively, and generating de novo molecules from text descriptions via models like MolT5.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "Protein structure prediction underpins much of this work, and DeepMind's AlphaFold illustrates both the promise and the current limits of AI in this domain.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "AlphaFold's initial version helped close a longstanding gap by predicting three-dimensional shapes for nearly all two hundred million known proteins, offering a faster, cheaper alternative to X-ray crystallography, NMR, and cryo-electron microscopy, though at its debut no new drug had yet been directly attributed to its use.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "AlphaFold 3, released in 2024, models interactions among proteins, DNA, RNA, ligands, and ions using an improved Evoformer module paired with a diffusion-based denoising process, achieving fifty percent greater accuracy on protein-ligand interactions than prior methods, though DeepMind restricted commercial drug-target predictions to protect its Isomorphic Labs spin-off.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "Beyond molecule design, AI supports ADMET prediction through quantitative structure-activity relationship models estimating absorption, distribution, metabolism, excretion, and toxicity computationally, reducing reliance on animal testing and catching liabilities like hepatotoxicity earlier.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "AI also accelerates drug repurposing by mining drug-target interaction data for new indications of approved compounds, a strategy proven during COVID-19 when BenevolentAI's repurposed candidate and AbCellera's AI-discovered antibody Bamlanivimab both received FDA Emergency Use Authorization.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "In clinical development, AI improves patient identification by predicting toxicity and efficacy from genomic profiles, addressing the fact that roughly eighty-six percent of trials miss enrollment deadlines; Tempus has cut trial activation time to about ten business days versus an eight-month industry average.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "Digital twins, AI-generated virtual patient models simulating dosing and progression, can shrink control-group sizes by roughly thirty percent, while Roche's AI-powered digital biomarkers in its prasinezumab Phase II trial ran twice as fast with a seventy-percent leaner sample.",
+      "citations": [
+        10,
+        11
+      ]
+    },
+    {
+      "text": "Real-world adoption dates to the 2012 deep-learning inflection point marked by AlexNet, after which Atomwise, Exscientia, AbCellera, and later Insilico Medicine were founded to apply neural networks to molecule design and target discovery.",
+      "citations": [
+        12
+      ]
+    },
+    {
+      "text": "Insilico Medicine reached a preclinical candidate for a known target in twenty-one days in 2019, and later achieved candidate selection for about $2.6 million and eighteen months against an industry benchmark of roughly $670 million and 4.5 years.",
+      "citations": [
+        12,
+        1
+      ]
+    },
+    {
+      "text": "Exscientia's AI-designed molecule for Sumitomo Pharma, targeting obsessive-compulsive disorder, entered human trials in early 2020 after roughly twelve months of design, compared with an expected five years.",
+      "citations": [
+        13,
+        9
+      ]
+    },
+    {
+      "text": "Despite this progress, no fully AI-discovered drug has yet received FDA approval, and Insilico's IPF candidate INS018_055 remains in Phase II trials rather than on the market.",
+      "citations": [
+        14
+      ]
+    },
+    {
+      "text": "The sector has weathered visible setbacks, including discontinuation of Exscientia's cancer candidate EXS21546, the Phase 3 failure of a Sumitomo/Otsuka schizophrenia candidate screened by an AI behavioral platform, and BenevolentAI's dermatitis candidate BEN-2293 failing against placebo, triggering layoffs and a steep valuation drop.",
+      "citations": [
+        12
+      ]
+    },
+    {
+      "text": "The industry is consolidating through acquisitions such as Roche's $1.9 billion purchase of Flatiron Health and Recursion's acquisitions of Cyclica and Valence Labs, alongside deepening involvement from big tech firms like NVIDIA's Clara Discovery, Microsoft's Azure-hosted language models, and Alphabet's Isomorphic Labs partnering with Eli Lilly and Novartis.",
+      "citations": [
+        12
+      ]
+    },
+    {
+      "text": "Persistent challenges include curating high-quality, unbiased training data, since public repositories often contain errors that limit convolutional neural network-based virtual screening performance.",
+      "citations": [
+        2,
+        0
+      ]
+    },
+    {
+      "text": "Deep learning's \"black box\" nature limits interpretability, raising concerns about overfitting and poor generalization when models trained on narrow datasets face diverse real-world patient populations.",
+      "citations": [
+        15
+      ]
+    },
+    {
+      "text": "Regulatory uncertainty compounds this, as the FDA requires clear understanding of a drug's mechanism of action and substantial trial data before approval, standards complex AI-designed candidates have not yet fully satisfied.",
+      "citations": [
+        14
+      ]
+    },
+    {
+      "text": "A more alarming challenge is dual-use risk: researchers showed that a legitimate generative model called MegaSyn, built to reward bioactivity and penalize toxicity, could be inverted in under six hours to generate over 40,000 molecules including the nerve agent VX and potentially deadlier undiscovered toxins.",
+      "citations": [
+        16
+      ]
+    },
+    {
+      "text": "Taken together, AI has demonstrably accelerated early discovery timelines and unlocked new generative and structural-modeling capabilities, but validated clinical success, regulatory clarity, and safeguards against misuse remain the field's central unresolved frontiers.",
+      "citations": [
+        12,
+        15,
+        16
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-38",
+    "status": "completed",
+    "metadata": {
+      "model": "au.anthropic.claude-sonnet-5",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-test-v2",
+      "query_source": "Write a synthesis report on the applications of AI in drug discovery for a technical audience unfamiliar with biology. It should cover the main applications of AI in every stage of the drug discovery process, the latest technological advancements, challenges, and current adoption in the real world."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 10,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 10,
+        "commit_context": 3
+      },
+      "retrieved_docids": [
+        "shard_00200_57883",
+        "shard_00330_30409",
+        "shard_00446_8204",
+        "shard_00485_13053",
+        "shard_00625_27009",
+        "shard_00627_61902",
+        "shard_00770_76281",
+        "shard_00799_10083",
+        "shard_00839_59812",
+        "shard_00926_73826",
+        "shard_00961_39192",
+        "shard_01029_74616",
+        "shard_01039_25890",
+        "shard_01071_10828",
+        "shard_01104_83802",
+        "shard_01193_45825",
+        "shard_01283_78326",
+        "shard_01296_19094",
+        "shard_01302_2840",
+        "shard_01318_13205",
+        "shard_01366_68962",
+        "shard_01459_35323",
+        "shard_01470_55054",
+        "shard_01478_7113",
+        "shard_01671_39744",
+        "shard_01696_51731",
+        "shard_01711_19266",
+        "shard_01761_70258",
+        "shard_01768_57073",
+        "shard_01778_82827",
+        "shard_01781_23625",
+        "shard_01896_8813",
+        "shard_02044_16728",
+        "shard_02119_29583",
+        "shard_02151_79709",
+        "shard_02159_74447",
+        "shard_02187_31065",
+        "shard_02225_52358",
+        "shard_02227_56786",
+        "shard_02241_80618",
+        "shard_02303_44801",
+        "shard_02387_27014",
+        "shard_02607_37642",
+        "shard_02690_20317",
+        "shard_02730_77632",
+        "shard_02772_47373",
+        "shard_02784_63979",
+        "shard_02786_29617",
+        "shard_02798_45185",
+        "shard_02801_12774",
+        "shard_03001_21455",
+        "shard_03041_81739",
+        "shard_03368_48034",
+        "shard_03462_2030",
+        "shard_03468_12837",
+        "shard_03513_40136",
+        "shard_03792_12514",
+        "shard_03795_8038",
+        "shard_04021_13538",
+        "shard_04046_76583",
+        "shard_04076_23875",
+        "shard_04097_40785",
+        "shard_04109_57762",
+        "shard_04127_28925",
+        "shard_04176_84384",
+        "shard_04352_69808",
+        "shard_04365_72117",
+        "shard_04396_78844",
+        "shard_04514_60016",
+        "shard_04526_58804",
+        "shard_04663_25595",
+        "shard_04665_14312",
+        "shard_04765_61356",
+        "shard_04771_63769",
+        "shard_04821_49193",
+        "shard_04823_25858",
+        "shard_04950_65143",
+        "shard_05008_35406",
+        "shard_05034_17891",
+        "shard_05183_36424",
+        "shard_05470_80992",
+        "shard_05472_50470",
+        "shard_05551_49829",
+        "shard_05619_40777",
+        "shard_05647_69056",
+        "shard_05802_66937",
+        "shard_05823_41832",
+        "shard_05845_27817",
+        "shard_05943_40192",
+        "shard_05978_25039",
+        "shard_06049_30862",
+        "shard_06094_15449",
+        "shard_06122_22882",
+        "shard_06137_64947",
+        "shard_06163_6715",
+        "shard_06231_35603",
+        "shard_06289_63636",
+        "shard_06450_28885",
+        "shard_06467_50685",
+        "shard_06519_8313"
+      ],
+      "tokens": {
+        "input": 443839,
+        "input_uncached": 190742,
+        "output": 12860,
+        "cache_read": 190778,
+        "cache_write": 62319,
+        "total": 456699,
+        "processed_input": 253061,
+        "processed": 265921,
+        "context_tokens": 71170,
+        "peak_context_tokens": 104935,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00200_57883",
+          "shard_00627_61902",
+          "shard_00926_73826",
+          "shard_01104_83802",
+          "shard_01778_82827",
+          "shard_02044_16728",
+          "shard_02151_79709",
+          "shard_02303_44801",
+          "shard_04109_57762",
+          "shard_04365_72117",
+          "shard_05470_80992",
+          "shard_05472_50470",
+          "shard_05845_27817",
+          "shard_05943_40192",
+          "shard_06231_35603",
+          "shard_06450_28885",
+          "shard_06519_8313"
+        ],
+        "rejected": [
+          "shard_00330_30409",
+          "shard_00446_8204",
+          "shard_00485_13053",
+          "shard_00625_27009",
+          "shard_00770_76281",
+          "shard_00799_10083",
+          "shard_00839_59812",
+          "shard_00961_39192",
+          "shard_01029_74616",
+          "shard_01039_25890",
+          "shard_01071_10828",
+          "shard_01193_45825",
+          "shard_01283_78326",
+          "shard_01296_19094",
+          "shard_01302_2840",
+          "shard_01318_13205",
+          "shard_01366_68962",
+          "shard_01459_35323",
+          "shard_01470_55054",
+          "shard_01478_7113",
+          "shard_01671_39744",
+          "shard_01696_51731",
+          "shard_01711_19266",
+          "shard_01761_70258",
+          "shard_01768_57073",
+          "shard_01781_23625",
+          "shard_01896_8813",
+          "shard_02119_29583",
+          "shard_02159_74447",
+          "shard_02187_31065",
+          "shard_02225_52358",
+          "shard_02227_56786",
+          "shard_02241_80618",
+          "shard_02387_27014",
+          "shard_02607_37642",
+          "shard_02690_20317",
+          "shard_02730_77632",
+          "shard_02772_47373",
+          "shard_02784_63979",
+          "shard_02786_29617",
+          "shard_02798_45185",
+          "shard_02801_12774",
+          "shard_03001_21455",
+          "shard_03041_81739",
+          "shard_03368_48034",
+          "shard_03462_2030",
+          "shard_03468_12837",
+          "shard_03513_40136",
+          "shard_03792_12514",
+          "shard_03795_8038",
+          "shard_04021_13538",
+          "shard_04046_76583",
+          "shard_04076_23875",
+          "shard_04097_40785",
+          "shard_04127_28925",
+          "shard_04176_84384",
+          "shard_04352_69808",
+          "shard_04396_78844",
+          "shard_04514_60016",
+          "shard_04526_58804",
+          "shard_04663_25595",
+          "shard_04665_14312",
+          "shard_04765_61356",
+          "shard_04771_63769",
+          "shard_04821_49193",
+          "shard_04823_25858",
+          "shard_04950_65143",
+          "shard_05008_35406",
+          "shard_05034_17891",
+          "shard_05183_36424",
+          "shard_05551_49829",
+          "shard_05619_40777",
+          "shard_05647_69056",
+          "shard_05802_66937",
+          "shard_05823_41832",
+          "shard_05978_25039",
+          "shard_06049_30862",
+          "shard_06094_15449",
+          "shard_06122_22882",
+          "shard_06137_64947",
+          "shard_06163_6715",
+          "shard_06289_63636",
+          "shard_06467_50685"
+        ]
+      },
+      "report_repairs": [
+        "line 2: folded a citation-only line into the preceding sentence",
+        "line 5: folded a citation-only line into the preceding sentence",
+        "line 8: folded a citation-only line into the preceding sentence",
+        "line 11: folded a citation-only line into the preceding sentence",
+        "line 14: folded a citation-only line into the preceding sentence",
+        "line 17: folded a citation-only line into the preceding sentence",
+        "line 20: folded a citation-only line into the preceding sentence",
+        "line 23: folded a citation-only line into the preceding sentence",
+        "line 26: folded a citation-only line into the preceding sentence",
+        "line 29: folded a citation-only line into the preceding sentence",
+        "line 32: folded a citation-only line into the preceding sentence",
+        "line 35: folded a citation-only line into the preceding sentence",
+        "line 38: folded a citation-only line into the preceding sentence",
+        "line 41: folded a citation-only line into the preceding sentence",
+        "line 44: folded a citation-only line into the preceding sentence",
+        "line 47: folded a citation-only line into the preceding sentence",
+        "line 50: folded a citation-only line into the preceding sentence",
+        "line 53: folded a citation-only line into the preceding sentence",
+        "line 56: folded a citation-only line into the preceding sentence",
+        "line 59: folded a citation-only line into the preceding sentence",
+        "line 62: folded a citation-only line into the preceding sentence",
+        "line 65: folded a citation-only line into the preceding sentence",
+        "line 68: folded a citation-only line into the preceding sentence",
+        "line 71: folded a citation-only line into the preceding sentence",
+        "line 74: folded a citation-only line into the preceding sentence",
+        "line 77: folded a citation-only line into the preceding sentence"
+      ]
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Produce a complete,\nwell-organized, evidence-grounded response using only the available\nsearch/retrieval tools and evidence returned by them. Prior knowledge may help\nyou choose searches, but it is not evidence and must not support factual claims.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most complete reasonable interpretation that\nstays in scope. Do not ask the user clarifying or confirming questions; proceed\non the strongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, determine internally:\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. Begin with multiple complementary queries in parallel across independent\n   coverage areas.\n2. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n4. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n5. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n6. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- On that turn, `commit_context` must be the first control action.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- New search calls may follow `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If available evidence does not support a requested\npoint, state the evidence gap rather than inventing an answer.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, produce the best answer\nthe committed evidence permits and explicitly identify the remaining evidence\ngaps.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers at the\n  end of the supporting sentence's line, e.g.\n  `Vaccination reduced hospitalizations among older adults. [docid_1] [docid_2]`\n- Citation markers are stripped from the submitted sentence, so a marker must\n  never act as a word in the sentence: write `the trial reports X [docid].`,\n  never `as [docid] reports, X.`\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or\n  any preamble, meta-commentary, or closing remarks around the report; every\n  line must be a report sentence.\n- Aim for about 950 words, excluding citation markers. 1024 words is a hard\n  limit set by the evaluation, and an over-length report costs a full rewrite,\n  so plan the report's scope to land under the target rather than writing long\n  and trimming.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Research request:\n\nWrite a synthesis report on the applications of AI in drug discovery for a technical audience unfamiliar with biology. It should cover the main applications of AI in every stage of the drug discovery process, the latest technological advancements, challenges, and current adoption in the real world.\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_zkmqBAI8qBXjBKVNjF4WOt",
+              "name": "search",
+              "arguments": {
+                "query": "AI in drug discovery stages target identification lead optimization"
+              }
+            },
+            {
+              "id": "tooluse_Z7CeMfiSyRG0oX1WHp3zaj",
+              "name": "search",
+              "arguments": {
+                "query": "AlphaFold protein structure prediction drug discovery impact"
+              }
+            },
+            {
+              "id": "tooluse_FV1ixlvWCO8zPTRJcr7jxZ",
+              "name": "search",
+              "arguments": {
+                "query": "generative AI de novo molecule design drug discovery diffusion models"
+              }
+            },
+            {
+              "id": "tooluse_uvTsmFr0vDWSQoM8WeDVHt",
+              "name": "search",
+              "arguments": {
+                "query": "AI clinical trial design patient recruitment drug development"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T12:11:42.164+10:00",
+        "t_end": "2026-07-17T12:11:47.743+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 5579.293,
+          "context_tokens": 3210,
+          "peak_context_tokens": 3210,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5580,
+          "tokens": {
+            "input": 3210,
+            "input_uncached": 162,
+            "output": 538,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3748,
+            "processed_input": 162,
+            "processed": 700,
+            "context": 3210
+          },
+          "provider_usage": {
+            "inputTokens": 162,
+            "outputTokens": 538,
+            "totalTokens": 3748,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 3210,
+            "input_uncached": 162,
+            "output": 538,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3748,
+            "processed_input": 162,
+            "processed": 700
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AI in drug discovery stages target identification lead optimization"
+        },
+        "output": {
+          "query": "AI in drug discovery stages target identification lead optimization",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04526_58804",
+              "docid": "shard_04526_58804",
+              "kind": "document",
+              "rrf_score": 0.02522,
+              "truncated": false,
+              "original_chars": 4085,
+              "returned_chars": 4085
+            },
+            {
+              "rank": 2,
+              "id": "shard_01778_82827",
+              "docid": "shard_01778_82827",
+              "kind": "document",
+              "rrf_score": 0.024115,
+              "truncated": false,
+              "original_chars": 8043,
+              "returned_chars": 8043
+            },
+            {
+              "rank": 3,
+              "id": "shard_01029_74616",
+              "docid": "shard_01029_74616",
+              "kind": "document",
+              "rrf_score": 0.023972,
+              "truncated": false,
+              "original_chars": 3559,
+              "returned_chars": 3559
+            },
+            {
+              "rank": 4,
+              "id": "shard_02187_31065",
+              "docid": "shard_02187_31065",
+              "kind": "document",
+              "rrf_score": 0.022791,
+              "truncated": false,
+              "original_chars": 4304,
+              "returned_chars": 4304
+            },
+            {
+              "rank": 5,
+              "id": "shard_03001_21455",
+              "docid": "shard_03001_21455",
+              "kind": "document",
+              "rrf_score": 0.021394,
+              "truncated": false,
+              "original_chars": 2798,
+              "returned_chars": 2798
+            },
+            {
+              "rank": 6,
+              "id": "shard_02772_47373",
+              "docid": "shard_02772_47373",
+              "kind": "document",
+              "rrf_score": 0.020669,
+              "truncated": false,
+              "original_chars": 4233,
+              "returned_chars": 4233
+            },
+            {
+              "rank": 7,
+              "id": "shard_01781_23625",
+              "docid": "shard_01781_23625",
+              "kind": "document",
+              "rrf_score": 0.020101,
+              "truncated": false,
+              "original_chars": 3854,
+              "returned_chars": 3854
+            },
+            {
+              "rank": 8,
+              "id": "shard_03795_8038",
+              "docid": "shard_03795_8038",
+              "kind": "document",
+              "rrf_score": 0.019139,
+              "truncated": false,
+              "original_chars": 3710,
+              "returned_chars": 3710
+            },
+            {
+              "rank": 9,
+              "id": "shard_04396_78844",
+              "docid": "shard_04396_78844",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 905,
+              "returned_chars": 905
+            },
+            {
+              "rank": 10,
+              "id": "shard_02387_27014",
+              "docid": "shard_02387_27014",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3856,
+              "returned_chars": 3856
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04526_58804",
+          "shard_01778_82827",
+          "shard_01029_74616",
+          "shard_02187_31065",
+          "shard_03001_21455",
+          "shard_02772_47373",
+          "shard_01781_23625",
+          "shard_03795_8038",
+          "shard_04396_78844",
+          "shard_02387_27014"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04526_58804",
+            "score": 0.02522
+          },
+          {
+            "docid": "shard_01778_82827",
+            "score": 0.024115
+          },
+          {
+            "docid": "shard_01029_74616",
+            "score": 0.023972
+          },
+          {
+            "docid": "shard_02187_31065",
+            "score": 0.022791
+          },
+          {
+            "docid": "shard_03001_21455",
+            "score": 0.021394
+          },
+          {
+            "docid": "shard_02772_47373",
+            "score": 0.020669
+          },
+          {
+            "docid": "shard_01781_23625",
+            "score": 0.020101
+          },
+          {
+            "docid": "shard_03795_8038",
+            "score": 0.019139
+          },
+          {
+            "docid": "shard_04396_78844",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02387_27014",
+            "score": 0.016393
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_zkmqBAI8qBXjBKVNjF4WOt",
+        "id": "step-0001",
+        "t_start": "2026-07-17T12:11:47.743+10:00",
+        "t_end": "2026-07-17T12:11:48.464+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 720.535,
+          "context_tokens": 3210,
+          "peak_context_tokens": 3210,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6301,
+          "cumulative_tokens": {
+            "input": 3210,
+            "input_uncached": 162,
+            "output": 538,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3748,
+            "processed_input": 162,
+            "processed": 700
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04526_58804",
+            "shard_01778_82827",
+            "shard_01029_74616",
+            "shard_02187_31065",
+            "shard_03001_21455",
+            "shard_02772_47373",
+            "shard_01781_23625",
+            "shard_03795_8038",
+            "shard_04396_78844",
+            "shard_02387_27014"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AlphaFold protein structure prediction drug discovery impact"
+        },
+        "output": {
+          "query": "AlphaFold protein structure prediction drug discovery impact",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03368_48034",
+              "docid": "shard_03368_48034",
+              "kind": "document",
+              "rrf_score": 0.029206,
+              "truncated": false,
+              "original_chars": 9254,
+              "returned_chars": 9254
+            },
+            {
+              "rank": 2,
+              "id": "shard_06467_50685",
+              "docid": "shard_06467_50685",
+              "kind": "document",
+              "rrf_score": 0.02879,
+              "truncated": false,
+              "original_chars": 4582,
+              "returned_chars": 4582
+            },
+            {
+              "rank": 3,
+              "id": "shard_02119_29583",
+              "docid": "shard_02119_29583",
+              "kind": "document",
+              "rrf_score": 0.028205,
+              "truncated": false,
+              "original_chars": 3819,
+              "returned_chars": 3819
+            },
+            {
+              "rank": 4,
+              "id": "shard_06289_63636",
+              "docid": "shard_06289_63636",
+              "kind": "document",
+              "rrf_score": 0.02642,
+              "truncated": false,
+              "original_chars": 4187,
+              "returned_chars": 4187
+            },
+            {
+              "rank": 5,
+              "id": "shard_04046_76583",
+              "docid": "shard_04046_76583",
+              "kind": "document",
+              "rrf_score": 0.025747,
+              "truncated": false,
+              "original_chars": 2147,
+              "returned_chars": 2147
+            },
+            {
+              "rank": 6,
+              "id": "shard_00200_57883",
+              "docid": "shard_00200_57883",
+              "kind": "document",
+              "rrf_score": 0.024415,
+              "truncated": false,
+              "original_chars": 5528,
+              "returned_chars": 5528
+            },
+            {
+              "rank": 7,
+              "id": "shard_02159_74447",
+              "docid": "shard_02159_74447",
+              "kind": "document",
+              "rrf_score": 0.02381,
+              "truncated": false,
+              "original_chars": 4742,
+              "returned_chars": 4742
+            },
+            {
+              "rank": 8,
+              "id": "shard_04665_14312",
+              "docid": "shard_04665_14312",
+              "kind": "document",
+              "rrf_score": 0.022092,
+              "truncated": false,
+              "original_chars": 4269,
+              "returned_chars": 4269
+            },
+            {
+              "rank": 9,
+              "id": "shard_01071_10828",
+              "docid": "shard_01071_10828",
+              "kind": "document",
+              "rrf_score": 0.020285,
+              "truncated": false,
+              "original_chars": 3959,
+              "returned_chars": 3959
+            },
+            {
+              "rank": 10,
+              "id": "shard_04765_61356",
+              "docid": "shard_04765_61356",
+              "kind": "document",
+              "rrf_score": 0.020002,
+              "truncated": false,
+              "original_chars": 4122,
+              "returned_chars": 4122
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03368_48034",
+          "shard_06467_50685",
+          "shard_02119_29583",
+          "shard_06289_63636",
+          "shard_04046_76583",
+          "shard_00200_57883",
+          "shard_02159_74447",
+          "shard_04665_14312",
+          "shard_01071_10828",
+          "shard_04765_61356"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03368_48034",
+            "score": 0.029206
+          },
+          {
+            "docid": "shard_06467_50685",
+            "score": 0.02879
+          },
+          {
+            "docid": "shard_02119_29583",
+            "score": 0.028205
+          },
+          {
+            "docid": "shard_06289_63636",
+            "score": 0.02642
+          },
+          {
+            "docid": "shard_04046_76583",
+            "score": 0.025747
+          },
+          {
+            "docid": "shard_00200_57883",
+            "score": 0.024415
+          },
+          {
+            "docid": "shard_02159_74447",
+            "score": 0.02381
+          },
+          {
+            "docid": "shard_04665_14312",
+            "score": 0.022092
+          },
+          {
+            "docid": "shard_01071_10828",
+            "score": 0.020285
+          },
+          {
+            "docid": "shard_04765_61356",
+            "score": 0.020002
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_Z7CeMfiSyRG0oX1WHp3zaj",
+        "id": "step-0002",
+        "t_start": "2026-07-17T12:11:47.743+10:00",
+        "t_end": "2026-07-17T12:11:48.122+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 378.304,
+          "context_tokens": 3210,
+          "peak_context_tokens": 3210,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6301,
+          "cumulative_tokens": {
+            "input": 3210,
+            "input_uncached": 162,
+            "output": 538,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3748,
+            "processed_input": 162,
+            "processed": 700
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03368_48034",
+            "shard_06467_50685",
+            "shard_02119_29583",
+            "shard_06289_63636",
+            "shard_04046_76583",
+            "shard_00200_57883",
+            "shard_02159_74447",
+            "shard_04665_14312",
+            "shard_01071_10828",
+            "shard_04765_61356"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "generative AI de novo molecule design drug discovery diffusion models"
+        },
+        "output": {
+          "query": "generative AI de novo molecule design drug discovery diffusion models",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01478_7113",
+              "docid": "shard_01478_7113",
+              "kind": "document",
+              "rrf_score": 0.030214,
+              "truncated": false,
+              "original_chars": 3906,
+              "returned_chars": 3906
+            },
+            {
+              "rank": 2,
+              "id": "shard_06519_8313",
+              "docid": "shard_06519_8313",
+              "kind": "document",
+              "rrf_score": 0.029727,
+              "truncated": true,
+              "original_chars": 23040,
+              "returned_chars": 20116
+            },
+            {
+              "rank": 3,
+              "id": "shard_05551_49829",
+              "docid": "shard_05551_49829",
+              "kind": "document",
+              "rrf_score": 0.029031,
+              "truncated": false,
+              "original_chars": 4167,
+              "returned_chars": 4167
+            },
+            {
+              "rank": 4,
+              "id": "shard_02784_63979",
+              "docid": "shard_02784_63979",
+              "kind": "document",
+              "rrf_score": 0.027799,
+              "truncated": false,
+              "original_chars": 3004,
+              "returned_chars": 3004
+            },
+            {
+              "rank": 5,
+              "id": "shard_01302_2840",
+              "docid": "shard_01302_2840",
+              "kind": "document",
+              "rrf_score": 0.026974,
+              "truncated": false,
+              "original_chars": 3837,
+              "returned_chars": 3837
+            },
+            {
+              "rank": 6,
+              "id": "shard_04365_72117",
+              "docid": "shard_04365_72117",
+              "kind": "document",
+              "rrf_score": 0.026387,
+              "truncated": false,
+              "original_chars": 4211,
+              "returned_chars": 4211
+            },
+            {
+              "rank": 7,
+              "id": "shard_05008_35406",
+              "docid": "shard_05008_35406",
+              "kind": "document",
+              "rrf_score": 0.026334,
+              "truncated": false,
+              "original_chars": 2742,
+              "returned_chars": 2742
+            },
+            {
+              "rank": 8,
+              "id": "shard_04663_25595",
+              "docid": "shard_04663_25595",
+              "kind": "document",
+              "rrf_score": 0.021729,
+              "truncated": false,
+              "original_chars": 7866,
+              "returned_chars": 7866
+            },
+            {
+              "rank": 9,
+              "id": "shard_00627_61902",
+              "docid": "shard_00627_61902",
+              "kind": "document",
+              "rrf_score": 0.020739,
+              "truncated": false,
+              "original_chars": 3052,
+              "returned_chars": 3052
+            },
+            {
+              "rank": 10,
+              "id": "shard_06163_6715",
+              "docid": "shard_06163_6715",
+              "kind": "document",
+              "rrf_score": 0.020673,
+              "truncated": false,
+              "original_chars": 3179,
+              "returned_chars": 3179
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01478_7113",
+          "shard_06519_8313",
+          "shard_05551_49829",
+          "shard_02784_63979",
+          "shard_01302_2840",
+          "shard_04365_72117",
+          "shard_05008_35406",
+          "shard_04663_25595",
+          "shard_00627_61902",
+          "shard_06163_6715"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01478_7113",
+            "score": 0.030214
+          },
+          {
+            "docid": "shard_06519_8313",
+            "score": 0.029727
+          },
+          {
+            "docid": "shard_05551_49829",
+            "score": 0.029031
+          },
+          {
+            "docid": "shard_02784_63979",
+            "score": 0.027799
+          },
+          {
+            "docid": "shard_01302_2840",
+            "score": 0.026974
+          },
+          {
+            "docid": "shard_04365_72117",
+            "score": 0.026387
+          },
+          {
+            "docid": "shard_05008_35406",
+            "score": 0.026334
+          },
+          {
+            "docid": "shard_04663_25595",
+            "score": 0.021729
+          },
+          {
+            "docid": "shard_00627_61902",
+            "score": 0.020739
+          },
+          {
+            "docid": "shard_06163_6715",
+            "score": 0.020673
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_FV1ixlvWCO8zPTRJcr7jxZ",
+        "id": "step-0003",
+        "t_start": "2026-07-17T12:11:47.744+10:00",
+        "t_end": "2026-07-17T12:11:48.361+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 617.078,
+          "context_tokens": 3210,
+          "peak_context_tokens": 3210,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6301,
+          "cumulative_tokens": {
+            "input": 3210,
+            "input_uncached": 162,
+            "output": 538,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3748,
+            "processed_input": 162,
+            "processed": 700
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01478_7113",
+            "shard_06519_8313",
+            "shard_05551_49829",
+            "shard_02784_63979",
+            "shard_01302_2840",
+            "shard_04365_72117",
+            "shard_05008_35406",
+            "shard_04663_25595",
+            "shard_00627_61902",
+            "shard_06163_6715"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AI clinical trial design patient recruitment drug development"
+        },
+        "output": {
+          "query": "AI clinical trial design patient recruitment drug development",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03468_12837",
+              "docid": "shard_03468_12837",
+              "kind": "document",
+              "rrf_score": 0.030886,
+              "truncated": false,
+              "original_chars": 3708,
+              "returned_chars": 3708
+            },
+            {
+              "rank": 2,
+              "id": "shard_05978_25039",
+              "docid": "shard_05978_25039",
+              "kind": "document",
+              "rrf_score": 0.030679,
+              "truncated": false,
+              "original_chars": 4862,
+              "returned_chars": 4862
+            },
+            {
+              "rank": 3,
+              "id": "shard_05034_17891",
+              "docid": "shard_05034_17891",
+              "kind": "document",
+              "rrf_score": 0.03055,
+              "truncated": false,
+              "original_chars": 7464,
+              "returned_chars": 7464
+            },
+            {
+              "rank": 4,
+              "id": "shard_01283_78326",
+              "docid": "shard_01283_78326",
+              "kind": "document",
+              "rrf_score": 0.029387,
+              "truncated": false,
+              "original_chars": 4204,
+              "returned_chars": 4204
+            },
+            {
+              "rank": 5,
+              "id": "shard_05470_80992",
+              "docid": "shard_05470_80992",
+              "kind": "document",
+              "rrf_score": 0.027237,
+              "truncated": false,
+              "original_chars": 3621,
+              "returned_chars": 3621
+            },
+            {
+              "rank": 6,
+              "id": "shard_05802_66937",
+              "docid": "shard_05802_66937",
+              "kind": "document",
+              "rrf_score": 0.025568,
+              "truncated": false,
+              "original_chars": 4009,
+              "returned_chars": 4009
+            },
+            {
+              "rank": 7,
+              "id": "shard_00770_76281",
+              "docid": "shard_00770_76281",
+              "kind": "document",
+              "rrf_score": 0.025528,
+              "truncated": false,
+              "original_chars": 5275,
+              "returned_chars": 5275
+            },
+            {
+              "rank": 8,
+              "id": "shard_04076_23875",
+              "docid": "shard_04076_23875",
+              "kind": "document",
+              "rrf_score": 0.025004,
+              "truncated": false,
+              "original_chars": 3950,
+              "returned_chars": 3950
+            },
+            {
+              "rank": 9,
+              "id": "shard_01768_57073",
+              "docid": "shard_01768_57073",
+              "kind": "document",
+              "rrf_score": 0.024223,
+              "truncated": false,
+              "original_chars": 4043,
+              "returned_chars": 4043
+            },
+            {
+              "rank": 10,
+              "id": "shard_03792_12514",
+              "docid": "shard_03792_12514",
+              "kind": "document",
+              "rrf_score": 0.023889,
+              "truncated": false,
+              "original_chars": 5768,
+              "returned_chars": 5768
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03468_12837",
+          "shard_05978_25039",
+          "shard_05034_17891",
+          "shard_01283_78326",
+          "shard_05470_80992",
+          "shard_05802_66937",
+          "shard_00770_76281",
+          "shard_04076_23875",
+          "shard_01768_57073",
+          "shard_03792_12514"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03468_12837",
+            "score": 0.030886
+          },
+          {
+            "docid": "shard_05978_25039",
+            "score": 0.030679
+          },
+          {
+            "docid": "shard_05034_17891",
+            "score": 0.03055
+          },
+          {
+            "docid": "shard_01283_78326",
+            "score": 0.029387
+          },
+          {
+            "docid": "shard_05470_80992",
+            "score": 0.027237
+          },
+          {
+            "docid": "shard_05802_66937",
+            "score": 0.025568
+          },
+          {
+            "docid": "shard_00770_76281",
+            "score": 0.025528
+          },
+          {
+            "docid": "shard_04076_23875",
+            "score": 0.025004
+          },
+          {
+            "docid": "shard_01768_57073",
+            "score": 0.024223
+          },
+          {
+            "docid": "shard_03792_12514",
+            "score": 0.023889
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_uvTsmFr0vDWSQoM8WeDVHt",
+        "id": "step-0004",
+        "t_start": "2026-07-17T12:11:47.744+10:00",
+        "t_end": "2026-07-17T12:11:48.257+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 513.009,
+          "context_tokens": 3210,
+          "peak_context_tokens": 3210,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6301,
+          "cumulative_tokens": {
+            "input": 3210,
+            "input_uncached": 162,
+            "output": 538,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3748,
+            "processed_input": 162,
+            "processed": 700
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03468_12837",
+            "shard_05978_25039",
+            "shard_05034_17891",
+            "shard_01283_78326",
+            "shard_05470_80992",
+            "shard_05802_66937",
+            "shard_00770_76281",
+            "shard_04076_23875",
+            "shard_01768_57073",
+            "shard_03792_12514"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_zkmqBAI8qBXjBKVNjF4WOt",
+            "tooluse_Z7CeMfiSyRG0oX1WHp3zaj",
+            "tooluse_FV1ixlvWCO8zPTRJcr7jxZ",
+            "tooluse_uvTsmFr0vDWSQoM8WeDVHt"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_T9KJs2IQtlXXo7IJRMgIFg",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01778_82827",
+                    "reason": "Comprehensive overview of target identification, lead optimization, ADMET prediction (QSAR/GANs), plus challenges: data quality, interpretability, regulatory ambiguity, ethics, and future directions (RL, federated learning, explainable AI)"
+                  },
+                  {
+                    "docid": "shard_00200_57883",
+                    "reason": "Nuanced/critical perspective on AlphaFold: notes no new drugs directly attributable yet, lists competitor structure models (ESMFold, OpenFold, RoseTTAFold), explains protein-folding problem and traditional methods (X-ray crystallography, cryo-EM)"
+                  },
+                  {
+                    "docid": "shard_06519_8313",
+                    "reason": "Latest technical advancements: benchmark of six structure-based generative AI models (AlphaDrug, SBDD, Pocket2Mol, GraphBP, DiffSBDD, TargetDiff) with diffusion models, GNNs, transformers, and evaluation metrics (Vina score, QED, SA)"
+                  },
+                  {
+                    "docid": "shard_04365_72117",
+                    "reason": "Real-world industry adoption example: Iktos AI generative platform, Merck KGaA partnership, quantified 30% reduction in cost/timeline to clinical trials"
+                  },
+                  {
+                    "docid": "shard_05470_80992",
+                    "reason": "Adoption statistics: 30% of new drugs expected via AI by 2025, $50B revenue potential, Tempus AI trial enrollment acceleration, digital twins reducing control group size by 30%, $13B projected savings"
+                  },
+                  {
+                    "docid": "shard_00627_61902",
+                    "reason": "Unique dual-use/ethical challenge: MegaSyn case study showing generative AI inverted to design toxic nerve-agent-like molecules, a major safety/misuse challenge distinct from data/interpretability issues"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_jLU78cEiS6FksE8HMxha2W",
+              "name": "search",
+              "arguments": {
+                "query": "Insilico Medicine Exscientia Recursion Pharmaceuticals AI drug discovery company adoption"
+              }
+            },
+            {
+              "id": "tooluse_y3oPlTwojyCE6dG7Z817OD",
+              "name": "search",
+              "arguments": {
+                "query": "AI drug repurposing biomarker discovery machine learning"
+              }
+            },
+            {
+              "id": "tooluse_LS1qLvz8JTCuc7xJEEtQ00",
+              "name": "search",
+              "arguments": {
+                "query": "challenges AI drug discovery data quality interpretability regulatory FDA"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T12:11:48.464+10:00",
+        "t_end": "2026-07-17T12:12:12.179+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 23713.983,
+          "context_tokens": 67514,
+          "peak_context_tokens": 67514,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30015,
+          "tokens": {
+            "input": 67514,
+            "input_uncached": 64466,
+            "output": 2236,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 69750,
+            "processed_input": 64466,
+            "processed": 66702,
+            "context": 67514
+          },
+          "provider_usage": {
+            "inputTokens": 64466,
+            "outputTokens": 2236,
+            "totalTokens": 69750,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 70724,
+            "input_uncached": 64628,
+            "output": 2774,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 73498,
+            "processed_input": 64628,
+            "processed": 67402
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04526_58804",
+            "shard_01778_82827",
+            "shard_01029_74616",
+            "shard_02187_31065",
+            "shard_03001_21455",
+            "shard_02772_47373",
+            "shard_01781_23625",
+            "shard_03795_8038",
+            "shard_04396_78844",
+            "shard_02387_27014",
+            "shard_03368_48034",
+            "shard_06467_50685",
+            "shard_02119_29583",
+            "shard_06289_63636",
+            "shard_04046_76583",
+            "shard_00200_57883",
+            "shard_02159_74447",
+            "shard_04665_14312",
+            "shard_01071_10828",
+            "shard_04765_61356",
+            "shard_01478_7113",
+            "shard_06519_8313",
+            "shard_05551_49829",
+            "shard_02784_63979",
+            "shard_01302_2840",
+            "shard_04365_72117",
+            "shard_05008_35406",
+            "shard_04663_25595",
+            "shard_00627_61902",
+            "shard_06163_6715",
+            "shard_03468_12837",
+            "shard_05978_25039",
+            "shard_05034_17891",
+            "shard_01283_78326",
+            "shard_05470_80992",
+            "shard_05802_66937",
+            "shard_00770_76281",
+            "shard_04076_23875",
+            "shard_01768_57073",
+            "shard_03792_12514"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01778_82827",
+              "reason": "Comprehensive overview of target identification, lead optimization, ADMET prediction (QSAR/GANs), plus challenges: data quality, interpretability, regulatory ambiguity, ethics, and future directions (RL, federated learning, explainable AI)"
+            },
+            {
+              "docid": "shard_00200_57883",
+              "reason": "Nuanced/critical perspective on AlphaFold: notes no new drugs directly attributable yet, lists competitor structure models (ESMFold, OpenFold, RoseTTAFold), explains protein-folding problem and traditional methods (X-ray crystallography, cryo-EM)"
+            },
+            {
+              "docid": "shard_06519_8313",
+              "reason": "Latest technical advancements: benchmark of six structure-based generative AI models (AlphaDrug, SBDD, Pocket2Mol, GraphBP, DiffSBDD, TargetDiff) with diffusion models, GNNs, transformers, and evaluation metrics (Vina score, QED, SA)"
+            },
+            {
+              "docid": "shard_04365_72117",
+              "reason": "Real-world industry adoption example: Iktos AI generative platform, Merck KGaA partnership, quantified 30% reduction in cost/timeline to clinical trials"
+            },
+            {
+              "docid": "shard_05470_80992",
+              "reason": "Adoption statistics: 30% of new drugs expected via AI by 2025, $50B revenue potential, Tempus AI trial enrollment acceleration, digital twins reducing control group size by 30%, $13B projected savings"
+            },
+            {
+              "docid": "shard_00627_61902",
+              "reason": "Unique dual-use/ethical challenge: MegaSyn case study showing generative AI inverted to design toxic nerve-agent-like molecules, a major safety/misuse challenge distinct from data/interpretability issues"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01778_82827\", \"shard_00200_57883\", \"shard_06519_8313\", \"shard_04365_72117\", \"shard_00627_61902\", \"shard_05470_80992\"], \"rejected\": [{\"docid\": \"shard_04526_58804\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01029_74616\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02187_31065\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03001_21455\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02772_47373\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01781_23625\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03795_8038\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04396_78844\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02387_27014\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03368_48034\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06467_50685\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02119_29583\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06289_63636\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04046_76583\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02159_74447\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04665_14312\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01071_10828\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04765_61356\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01478_7113\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05551_49829\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02784_63979\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01302_2840\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05008_35406\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04663_25595\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06163_6715\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03468_12837\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05978_25039\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05034_17891\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01283_78326\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05802_66937\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00770_76281\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04076_23875\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01768_57073\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03792_12514\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 67,514 / 500,000 tokens (13.5%) · elapsed: 0m 30s]",
+        "failed": false,
+        "tool_call_id": "tooluse_T9KJs2IQtlXXo7IJRMgIFg",
+        "id": "step-0006",
+        "t_start": "2026-07-17T12:12:12.179+10:00",
+        "t_end": "2026-07-17T12:12:12.181+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 2.742,
+          "context_tokens": 67514,
+          "peak_context_tokens": 67514,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30018,
+          "cumulative_tokens": {
+            "input": 70724,
+            "input_uncached": 64628,
+            "output": 2774,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 73498,
+            "processed_input": 64628,
+            "processed": 67402
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04526_58804",
+            "shard_01778_82827",
+            "shard_01029_74616",
+            "shard_02187_31065",
+            "shard_03001_21455",
+            "shard_02772_47373",
+            "shard_01781_23625",
+            "shard_03795_8038",
+            "shard_04396_78844",
+            "shard_02387_27014",
+            "shard_03368_48034",
+            "shard_06467_50685",
+            "shard_02119_29583",
+            "shard_06289_63636",
+            "shard_04046_76583",
+            "shard_00200_57883",
+            "shard_02159_74447",
+            "shard_04665_14312",
+            "shard_01071_10828",
+            "shard_04765_61356",
+            "shard_01478_7113",
+            "shard_06519_8313",
+            "shard_05551_49829",
+            "shard_02784_63979",
+            "shard_01302_2840",
+            "shard_04365_72117",
+            "shard_05008_35406",
+            "shard_04663_25595",
+            "shard_00627_61902",
+            "shard_06163_6715",
+            "shard_03468_12837",
+            "shard_05978_25039",
+            "shard_05034_17891",
+            "shard_01283_78326",
+            "shard_05470_80992",
+            "shard_05802_66937",
+            "shard_00770_76281",
+            "shard_04076_23875",
+            "shard_01768_57073",
+            "shard_03792_12514"
+          ],
+          "committed": [
+            "shard_01778_82827",
+            "shard_00200_57883",
+            "shard_06519_8313",
+            "shard_04365_72117",
+            "shard_00627_61902",
+            "shard_05470_80992"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_04526_58804",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01029_74616",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02187_31065",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03001_21455",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02772_47373",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01781_23625",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03795_8038",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04396_78844",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02387_27014",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03368_48034",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06467_50685",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02119_29583",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06289_63636",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04046_76583",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02159_74447",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04665_14312",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01071_10828",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04765_61356",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01478_7113",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05551_49829",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02784_63979",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01302_2840",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05008_35406",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04663_25595",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06163_6715",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03468_12837",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05978_25039",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05034_17891",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01283_78326",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05802_66937",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00770_76281",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04076_23875",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01768_57073",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03792_12514",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Insilico Medicine Exscientia Recursion Pharmaceuticals AI drug discovery company adoption"
+        },
+        "output": {
+          "query": "Insilico Medicine Exscientia Recursion Pharmaceuticals AI drug discovery company adoption",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04771_63769",
+              "docid": "shard_04771_63769",
+              "kind": "document",
+              "rrf_score": 0.018519,
+              "truncated": false,
+              "original_chars": 3242,
+              "returned_chars": 3242
+            },
+            {
+              "rank": 2,
+              "id": "shard_01470_55054",
+              "docid": "shard_01470_55054",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 1729,
+              "returned_chars": 1729
+            },
+            {
+              "rank": 3,
+              "id": "shard_05845_27817",
+              "docid": "shard_05845_27817",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": true,
+              "original_chars": 24611,
+              "returned_chars": 20385
+            },
+            {
+              "rank": 4,
+              "id": "shard_06049_30862",
+              "docid": "shard_06049_30862",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 2224,
+              "returned_chars": 2224
+            },
+            {
+              "rank": 5,
+              "id": "shard_02303_44801",
+              "docid": "shard_02303_44801",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 11353,
+              "returned_chars": 11353
+            },
+            {
+              "rank": 6,
+              "id": "shard_00625_27009",
+              "docid": "shard_00625_27009",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 270,
+              "returned_chars": 270
+            },
+            {
+              "rank": 7,
+              "id": "shard_00485_13053",
+              "docid": "shard_00485_13053",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 4507,
+              "returned_chars": 4507
+            },
+            {
+              "rank": 8,
+              "id": "shard_01193_45825",
+              "docid": "shard_01193_45825",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 208,
+              "returned_chars": 208
+            },
+            {
+              "rank": 9,
+              "id": "shard_02607_37642",
+              "docid": "shard_02607_37642",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4015,
+              "returned_chars": 4015
+            },
+            {
+              "rank": 10,
+              "id": "shard_04127_28925",
+              "docid": "shard_04127_28925",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 313,
+              "returned_chars": 313
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04771_63769",
+          "shard_01470_55054",
+          "shard_05845_27817",
+          "shard_06049_30862",
+          "shard_02303_44801",
+          "shard_00625_27009",
+          "shard_00485_13053",
+          "shard_01193_45825",
+          "shard_02607_37642",
+          "shard_04127_28925"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04771_63769",
+            "score": 0.018519
+          },
+          {
+            "docid": "shard_01470_55054",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05845_27817",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_06049_30862",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_02303_44801",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00625_27009",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00485_13053",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01193_45825",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02607_37642",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_04127_28925",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_jLU78cEiS6FksE8HMxha2W",
+        "id": "step-0007",
+        "t_start": "2026-07-17T12:12:12.182+10:00",
+        "t_end": "2026-07-17T12:12:12.720+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 538.52,
+          "context_tokens": 67514,
+          "peak_context_tokens": 67514,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30707,
+          "cumulative_tokens": {
+            "input": 70724,
+            "input_uncached": 64628,
+            "output": 2774,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 73498,
+            "processed_input": 64628,
+            "processed": 67402
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04771_63769",
+            "shard_01470_55054",
+            "shard_05845_27817",
+            "shard_06049_30862",
+            "shard_02303_44801",
+            "shard_00625_27009",
+            "shard_00485_13053",
+            "shard_01193_45825",
+            "shard_02607_37642",
+            "shard_04127_28925"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AI drug repurposing biomarker discovery machine learning"
+        },
+        "output": {
+          "query": "AI drug repurposing biomarker discovery machine learning",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01711_19266",
+              "docid": "shard_01711_19266",
+              "kind": "document",
+              "rrf_score": 0.028543,
+              "truncated": false,
+              "original_chars": 2983,
+              "returned_chars": 2983
+            },
+            {
+              "rank": 2,
+              "id": "shard_00926_73826",
+              "docid": "shard_00926_73826",
+              "kind": "document",
+              "rrf_score": 0.023222,
+              "truncated": false,
+              "original_chars": 3152,
+              "returned_chars": 3152
+            },
+            {
+              "rank": 3,
+              "id": "shard_03462_2030",
+              "docid": "shard_03462_2030",
+              "kind": "document",
+              "rrf_score": 0.023175,
+              "truncated": false,
+              "original_chars": 1652,
+              "returned_chars": 1652
+            },
+            {
+              "rank": 4,
+              "id": "shard_01039_25890",
+              "docid": "shard_01039_25890",
+              "kind": "document",
+              "rrf_score": 0.022833,
+              "truncated": false,
+              "original_chars": 3769,
+              "returned_chars": 3769
+            },
+            {
+              "rank": 5,
+              "id": "shard_06094_15449",
+              "docid": "shard_06094_15449",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3557,
+              "returned_chars": 3557
+            },
+            {
+              "rank": 6,
+              "id": "shard_02730_77632",
+              "docid": "shard_02730_77632",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4712,
+              "returned_chars": 4712
+            },
+            {
+              "rank": 7,
+              "id": "shard_00961_39192",
+              "docid": "shard_00961_39192",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 4306,
+              "returned_chars": 4306
+            },
+            {
+              "rank": 8,
+              "id": "shard_06450_28885",
+              "docid": "shard_06450_28885",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 2898,
+              "returned_chars": 2898
+            },
+            {
+              "rank": 9,
+              "id": "shard_05647_69056",
+              "docid": "shard_05647_69056",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 4140,
+              "returned_chars": 4140
+            },
+            {
+              "rank": 10,
+              "id": "shard_06137_64947",
+              "docid": "shard_06137_64947",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 11469,
+              "returned_chars": 11469
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01711_19266",
+          "shard_00926_73826",
+          "shard_03462_2030",
+          "shard_01039_25890",
+          "shard_06094_15449",
+          "shard_02730_77632",
+          "shard_00961_39192",
+          "shard_06450_28885",
+          "shard_05647_69056",
+          "shard_06137_64947"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01711_19266",
+            "score": 0.028543
+          },
+          {
+            "docid": "shard_00926_73826",
+            "score": 0.023222
+          },
+          {
+            "docid": "shard_03462_2030",
+            "score": 0.023175
+          },
+          {
+            "docid": "shard_01039_25890",
+            "score": 0.022833
+          },
+          {
+            "docid": "shard_06094_15449",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02730_77632",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00961_39192",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_06450_28885",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05647_69056",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_06137_64947",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_y3oPlTwojyCE6dG7Z817OD",
+        "id": "step-0008",
+        "t_start": "2026-07-17T12:12:12.182+10:00",
+        "t_end": "2026-07-17T12:12:12.793+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 611.804,
+          "context_tokens": 67514,
+          "peak_context_tokens": 67514,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30707,
+          "cumulative_tokens": {
+            "input": 70724,
+            "input_uncached": 64628,
+            "output": 2774,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 73498,
+            "processed_input": 64628,
+            "processed": 67402
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01711_19266",
+            "shard_00926_73826",
+            "shard_03462_2030",
+            "shard_01039_25890",
+            "shard_06094_15449",
+            "shard_02730_77632",
+            "shard_00961_39192",
+            "shard_06450_28885",
+            "shard_05647_69056",
+            "shard_06137_64947"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "challenges AI drug discovery data quality interpretability regulatory FDA"
+        },
+        "output": {
+          "query": "challenges AI drug discovery data quality interpretability regulatory FDA",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04821_49193",
+              "docid": "shard_04821_49193",
+              "kind": "document",
+              "rrf_score": 0.032522,
+              "truncated": false,
+              "original_chars": 4062,
+              "returned_chars": 4062
+            },
+            {
+              "rank": 2,
+              "id": "shard_04823_25858",
+              "docid": "shard_04823_25858",
+              "kind": "document",
+              "rrf_score": 0.029437,
+              "truncated": false,
+              "original_chars": 4354,
+              "returned_chars": 4354
+            },
+            {
+              "rank": 3,
+              "id": "shard_01296_19094",
+              "docid": "shard_01296_19094",
+              "kind": "document",
+              "rrf_score": 0.02837,
+              "truncated": false,
+              "original_chars": 3392,
+              "returned_chars": 3392
+            },
+            {
+              "rank": 4,
+              "id": "shard_02225_52358",
+              "docid": "shard_02225_52358",
+              "kind": "document",
+              "rrf_score": 0.026614,
+              "truncated": false,
+              "original_chars": 8348,
+              "returned_chars": 8348
+            },
+            {
+              "rank": 5,
+              "id": "shard_02151_79709",
+              "docid": "shard_02151_79709",
+              "kind": "document",
+              "rrf_score": 0.026154,
+              "truncated": false,
+              "original_chars": 3634,
+              "returned_chars": 3634
+            },
+            {
+              "rank": 6,
+              "id": "shard_04950_65143",
+              "docid": "shard_04950_65143",
+              "kind": "document",
+              "rrf_score": 0.024152,
+              "truncated": false,
+              "original_chars": 3809,
+              "returned_chars": 3809
+            },
+            {
+              "rank": 7,
+              "id": "shard_01366_68962",
+              "docid": "shard_01366_68962",
+              "kind": "document",
+              "rrf_score": 0.020585,
+              "truncated": false,
+              "original_chars": 4437,
+              "returned_chars": 4437
+            },
+            {
+              "rank": 8,
+              "id": "shard_05472_50470",
+              "docid": "shard_05472_50470",
+              "kind": "document",
+              "rrf_score": 0.020455,
+              "truncated": false,
+              "original_chars": 2954,
+              "returned_chars": 2954
+            },
+            {
+              "rank": 9,
+              "id": "shard_01896_8813",
+              "docid": "shard_01896_8813",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 1578,
+              "returned_chars": 1578
+            },
+            {
+              "rank": 10,
+              "id": "shard_00799_10083",
+              "docid": "shard_00799_10083",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": true,
+              "original_chars": 21876,
+              "returned_chars": 20267
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04821_49193",
+          "shard_04823_25858",
+          "shard_01296_19094",
+          "shard_02225_52358",
+          "shard_02151_79709",
+          "shard_04950_65143",
+          "shard_01366_68962",
+          "shard_05472_50470",
+          "shard_01896_8813",
+          "shard_00799_10083"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04821_49193",
+            "score": 0.032522
+          },
+          {
+            "docid": "shard_04823_25858",
+            "score": 0.029437
+          },
+          {
+            "docid": "shard_01296_19094",
+            "score": 0.02837
+          },
+          {
+            "docid": "shard_02225_52358",
+            "score": 0.026614
+          },
+          {
+            "docid": "shard_02151_79709",
+            "score": 0.026154
+          },
+          {
+            "docid": "shard_04950_65143",
+            "score": 0.024152
+          },
+          {
+            "docid": "shard_01366_68962",
+            "score": 0.020585
+          },
+          {
+            "docid": "shard_05472_50470",
+            "score": 0.020455
+          },
+          {
+            "docid": "shard_01896_8813",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00799_10083",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_LS1qLvz8JTCuc7xJEEtQ00",
+        "id": "step-0009",
+        "t_start": "2026-07-17T12:12:12.182+10:00",
+        "t_end": "2026-07-17T12:12:12.871+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 688.922,
+          "context_tokens": 67514,
+          "peak_context_tokens": 67514,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30707,
+          "cumulative_tokens": {
+            "input": 70724,
+            "input_uncached": 64628,
+            "output": 2774,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 73498,
+            "processed_input": 64628,
+            "processed": 67402
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04821_49193",
+            "shard_04823_25858",
+            "shard_01296_19094",
+            "shard_02225_52358",
+            "shard_02151_79709",
+            "shard_04950_65143",
+            "shard_01366_68962",
+            "shard_05472_50470",
+            "shard_01896_8813",
+            "shard_00799_10083"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_T9KJs2IQtlXXo7IJRMgIFg",
+            "tooluse_jLU78cEiS6FksE8HMxha2W",
+            "tooluse_y3oPlTwojyCE6dG7Z817OD",
+            "tooluse_LS1qLvz8JTCuc7xJEEtQ00"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_BzFg2EPOM3jJQXebgiaVEz",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_05845_27817",
+                    "reason": "Comprehensive decade-long history/timeline: AlexNet 2012 deep learning origin, founding of Atomwise/Exscientia/AbCellera/Insilico Medicine, Insilico's DDR1 molecule in 21 days (2019), Deep Genomics DG12P1 for Wilson disease, clinical setbacks (Exscientia EXS21546 discontinued, Sumitomo/Otsuka schizophrenia Phase 3 failure, BenevolentAI BEN-2293 Phase 2a failure), M&A consolidation (Flatiron/Roche $1.9B, Recursion acquiring Cyclica/Valence), big tech entry (Isomorphic Labs-Eli Lilly-Novartis, NVIDIA Clara Discovery, Microsoft Azure LLMs)"
+                  },
+                  {
+                    "docid": "shard_02303_44801",
+                    "reason": "Market map and COVID-19 real-world case studies: BenevolentAI FDA Emergency Use Authorization repurposed drug, AbCellera's Bamlanivimab EUA, Insilico's COVIDomic, DeepMind AlphaFold SARS-CoV-2 protein predictions, Exscientia 12-month vs 5-year timeline, industry segmentation (AI SaaS vs AI drug discovery companies vs pharma/tech incumbents)"
+                  },
+                  {
+                    "docid": "shard_02151_79709",
+                    "reason": "Specific clinical-stage example: Insilico's INS018_055 Phase II trial for idiopathic pulmonary fibrosis (2023), explicit statement that no FDA-approved AI-created drugs exist yet, and detailed regulatory obstacles (data sufficiency, mechanism transparency, manufacturing validation)"
+                  },
+                  {
+                    "docid": "shard_00926_73826",
+                    "reason": "Concrete quantified real-world outcome: Roche's AI-powered digital biomarker trial for prasinezumab (PASADENA Ph II) ran 2x faster with 70% smaller sample size, plus digital biomarker adoption stats across 1700+ trials"
+                  },
+                  {
+                    "docid": "shard_05472_50470",
+                    "reason": "Concise articulation of technical challenges distinct from others: black-box interpretability problem, overfitting/generalization failure on biased datasets, and integration difficulty with traditional experimental methods"
+                  },
+                  {
+                    "docid": "shard_06450_28885",
+                    "reason": "Specific milestone: Exscientia's first AI-designed drug molecule (for Sumitomo, OCD indication) entered human clinical trials in early 2020 after ~12 months design time, plus AI drug repurposing/toxicity prediction mechanism"
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0010",
+        "t_start": "2026-07-17T12:12:12.871+10:00",
+        "t_end": "2026-07-17T12:12:33.668+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 20797.153,
+          "context_tokens": 80062,
+          "peak_context_tokens": 80062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 51504,
+          "tokens": {
+            "input": 80062,
+            "input_uncached": 57439,
+            "output": 1939,
+            "cache_read": 3048,
+            "cache_write": 19575,
+            "total": 82001,
+            "processed_input": 77014,
+            "processed": 78953,
+            "context": 80062
+          },
+          "provider_usage": {
+            "inputTokens": 57439,
+            "outputTokens": 1939,
+            "totalTokens": 82001,
+            "cacheReadInputTokens": 3048,
+            "cacheWriteInputTokens": 19575,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 19575
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 150786,
+            "input_uncached": 122067,
+            "output": 4713,
+            "cache_read": 9144,
+            "cache_write": 19575,
+            "total": 155499,
+            "processed_input": 141642,
+            "processed": 146355
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04771_63769",
+            "shard_01470_55054",
+            "shard_05845_27817",
+            "shard_06049_30862",
+            "shard_02303_44801",
+            "shard_00625_27009",
+            "shard_00485_13053",
+            "shard_01193_45825",
+            "shard_02607_37642",
+            "shard_04127_28925",
+            "shard_01711_19266",
+            "shard_00926_73826",
+            "shard_03462_2030",
+            "shard_01039_25890",
+            "shard_06094_15449",
+            "shard_02730_77632",
+            "shard_00961_39192",
+            "shard_06450_28885",
+            "shard_05647_69056",
+            "shard_06137_64947",
+            "shard_04821_49193",
+            "shard_04823_25858",
+            "shard_01296_19094",
+            "shard_02225_52358",
+            "shard_02151_79709",
+            "shard_04950_65143",
+            "shard_01366_68962",
+            "shard_05472_50470",
+            "shard_01896_8813",
+            "shard_00799_10083"
+          ],
+          "committed": [
+            "shard_00200_57883",
+            "shard_00627_61902",
+            "shard_01778_82827",
+            "shard_04365_72117",
+            "shard_05470_80992",
+            "shard_06519_8313"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_05845_27817",
+              "reason": "Comprehensive decade-long history/timeline: AlexNet 2012 deep learning origin, founding of Atomwise/Exscientia/AbCellera/Insilico Medicine, Insilico's DDR1 molecule in 21 days (2019), Deep Genomics DG12P1 for Wilson disease, clinical setbacks (Exscientia EXS21546 discontinued, Sumitomo/Otsuka schizophrenia Phase 3 failure, BenevolentAI BEN-2293 Phase 2a failure), M&A consolidation (Flatiron/Roche $1.9B, Recursion acquiring Cyclica/Valence), big tech entry (Isomorphic Labs-Eli Lilly-Novartis, NVIDIA Clara Discovery, Microsoft Azure LLMs)"
+            },
+            {
+              "docid": "shard_02303_44801",
+              "reason": "Market map and COVID-19 real-world case studies: BenevolentAI FDA Emergency Use Authorization repurposed drug, AbCellera's Bamlanivimab EUA, Insilico's COVIDomic, DeepMind AlphaFold SARS-CoV-2 protein predictions, Exscientia 12-month vs 5-year timeline, industry segmentation (AI SaaS vs AI drug discovery companies vs pharma/tech incumbents)"
+            },
+            {
+              "docid": "shard_02151_79709",
+              "reason": "Specific clinical-stage example: Insilico's INS018_055 Phase II trial for idiopathic pulmonary fibrosis (2023), explicit statement that no FDA-approved AI-created drugs exist yet, and detailed regulatory obstacles (data sufficiency, mechanism transparency, manufacturing validation)"
+            },
+            {
+              "docid": "shard_00926_73826",
+              "reason": "Concrete quantified real-world outcome: Roche's AI-powered digital biomarker trial for prasinezumab (PASADENA Ph II) ran 2x faster with 70% smaller sample size, plus digital biomarker adoption stats across 1700+ trials"
+            },
+            {
+              "docid": "shard_05472_50470",
+              "reason": "Concise articulation of technical challenges distinct from others: black-box interpretability problem, overfitting/generalization failure on biased datasets, and integration difficulty with traditional experimental methods"
+            },
+            {
+              "docid": "shard_06450_28885",
+              "reason": "Specific milestone: Exscientia's first AI-designed drug molecule (for Sumitomo, OCD indication) entered human clinical trials in early 2020 after ~12 months design time, plus AI drug repurposing/toxicity prediction mechanism"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_05845_27817\", \"shard_02303_44801\", \"shard_00926_73826\", \"shard_06450_28885\", \"shard_02151_79709\", \"shard_05472_50470\"], \"rejected\": [{\"docid\": \"shard_04771_63769\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01470_55054\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06049_30862\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00625_27009\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00485_13053\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01193_45825\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02607_37642\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04127_28925\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01711_19266\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03462_2030\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01039_25890\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06094_15449\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02730_77632\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00961_39192\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05647_69056\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06137_64947\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04821_49193\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04823_25858\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01296_19094\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02225_52358\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04950_65143\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01366_68962\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01896_8813\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00799_10083\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 80,062 / 500,000 tokens (16.0%) · elapsed: 0m 51s]",
+        "failed": false,
+        "tool_call_id": "tooluse_BzFg2EPOM3jJQXebgiaVEz",
+        "id": "step-0011",
+        "t_start": "2026-07-17T12:12:33.669+10:00",
+        "t_end": "2026-07-17T12:12:33.672+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 3.107,
+          "context_tokens": 80062,
+          "peak_context_tokens": 80062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 51508,
+          "cumulative_tokens": {
+            "input": 150786,
+            "input_uncached": 122067,
+            "output": 4713,
+            "cache_read": 9144,
+            "cache_write": 19575,
+            "total": 155499,
+            "processed_input": 141642,
+            "processed": 146355
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04771_63769",
+            "shard_01470_55054",
+            "shard_05845_27817",
+            "shard_06049_30862",
+            "shard_02303_44801",
+            "shard_00625_27009",
+            "shard_00485_13053",
+            "shard_01193_45825",
+            "shard_02607_37642",
+            "shard_04127_28925",
+            "shard_01711_19266",
+            "shard_00926_73826",
+            "shard_03462_2030",
+            "shard_01039_25890",
+            "shard_06094_15449",
+            "shard_02730_77632",
+            "shard_00961_39192",
+            "shard_06450_28885",
+            "shard_05647_69056",
+            "shard_06137_64947",
+            "shard_04821_49193",
+            "shard_04823_25858",
+            "shard_01296_19094",
+            "shard_02225_52358",
+            "shard_02151_79709",
+            "shard_04950_65143",
+            "shard_01366_68962",
+            "shard_05472_50470",
+            "shard_01896_8813",
+            "shard_00799_10083"
+          ],
+          "committed": [
+            "shard_05845_27817",
+            "shard_02303_44801",
+            "shard_00926_73826",
+            "shard_06450_28885",
+            "shard_02151_79709",
+            "shard_05472_50470"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_04771_63769",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01470_55054",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06049_30862",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00625_27009",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00485_13053",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01193_45825",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02607_37642",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04127_28925",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01711_19266",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03462_2030",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01039_25890",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06094_15449",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02730_77632",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00961_39192",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05647_69056",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06137_64947",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04821_49193",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04823_25858",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01296_19094",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02225_52358",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04950_65143",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01366_68962",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01896_8813",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00799_10083",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_BzFg2EPOM3jJQXebgiaVEz"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_ykqpZv2i3RyG1qhvaZK903",
+              "name": "search",
+              "arguments": {
+                "query": "traditional drug discovery cost time billion dollars 10 years attrition rate"
+              }
+            },
+            {
+              "id": "tooluse_IQz8pr4QT2gZJYsx7oKTb6",
+              "name": "search",
+              "arguments": {
+                "query": "AlphaFold 3 Isomorphic Labs 2024 protein structure prediction advancement"
+              }
+            },
+            {
+              "id": "tooluse_FZ8ApwKeE8SbzEMHYyAWza",
+              "name": "search",
+              "arguments": {
+                "query": "transformer large language model chemistry molecular property prediction"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0012",
+        "t_start": "2026-07-17T12:12:33.672+10:00",
+        "t_end": "2026-07-17T12:12:41.703+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 8031.115,
+          "context_tokens": 49601,
+          "peak_context_tokens": 80062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 59539,
+          "tokens": {
+            "input": 49601,
+            "input_uncached": 2779,
+            "output": 612,
+            "cache_read": 22623,
+            "cache_write": 24199,
+            "total": 50213,
+            "processed_input": 26978,
+            "processed": 27590,
+            "context": 49601
+          },
+          "provider_usage": {
+            "inputTokens": 2779,
+            "outputTokens": 612,
+            "totalTokens": 50213,
+            "cacheReadInputTokens": 22623,
+            "cacheWriteInputTokens": 24199,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 24199
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 200387,
+            "input_uncached": 124846,
+            "output": 5325,
+            "cache_read": 31767,
+            "cache_write": 43774,
+            "total": 205712,
+            "processed_input": 168620,
+            "processed": 173945
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00200_57883",
+            "shard_00627_61902",
+            "shard_00926_73826",
+            "shard_01778_82827",
+            "shard_02151_79709",
+            "shard_02303_44801",
+            "shard_04365_72117",
+            "shard_05470_80992",
+            "shard_05472_50470",
+            "shard_05845_27817",
+            "shard_06450_28885",
+            "shard_06519_8313"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "traditional drug discovery cost time billion dollars 10 years attrition rate"
+        },
+        "output": {
+          "query": "traditional drug discovery cost time billion dollars 10 years attrition rate",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06231_35603",
+              "docid": "shard_06231_35603",
+              "kind": "document",
+              "rrf_score": 0.023559,
+              "truncated": false,
+              "original_chars": 3338,
+              "returned_chars": 3338
+            },
+            {
+              "rank": 2,
+              "id": "shard_02801_12774",
+              "docid": "shard_02801_12774",
+              "kind": "document",
+              "rrf_score": 0.023025,
+              "truncated": false,
+              "original_chars": 3269,
+              "returned_chars": 3269
+            },
+            {
+              "rank": 3,
+              "id": "shard_03041_81739",
+              "docid": "shard_03041_81739",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 1361,
+              "returned_chars": 1361
+            },
+            {
+              "rank": 4,
+              "id": "shard_02044_16728",
+              "docid": "shard_02044_16728",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3913,
+              "returned_chars": 3913
+            },
+            {
+              "rank": 5,
+              "id": "shard_00330_30409",
+              "docid": "shard_00330_30409",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 441,
+              "returned_chars": 441
+            },
+            {
+              "rank": 6,
+              "id": "shard_01696_51731",
+              "docid": "shard_01696_51731",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3669,
+              "returned_chars": 3669
+            },
+            {
+              "rank": 7,
+              "id": "shard_05183_36424",
+              "docid": "shard_05183_36424",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1119,
+              "returned_chars": 1119
+            },
+            {
+              "rank": 8,
+              "id": "shard_05823_41832",
+              "docid": "shard_05823_41832",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 4285,
+              "returned_chars": 4285
+            },
+            {
+              "rank": 9,
+              "id": "shard_01318_13205",
+              "docid": "shard_01318_13205",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1436,
+              "returned_chars": 1436
+            },
+            {
+              "rank": 10,
+              "id": "shard_02786_29617",
+              "docid": "shard_02786_29617",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 6006,
+              "returned_chars": 6006
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06231_35603",
+          "shard_02801_12774",
+          "shard_03041_81739",
+          "shard_02044_16728",
+          "shard_00330_30409",
+          "shard_01696_51731",
+          "shard_05183_36424",
+          "shard_05823_41832",
+          "shard_01318_13205",
+          "shard_02786_29617"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06231_35603",
+            "score": 0.023559
+          },
+          {
+            "docid": "shard_02801_12774",
+            "score": 0.023025
+          },
+          {
+            "docid": "shard_03041_81739",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02044_16728",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00330_30409",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01696_51731",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05183_36424",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05823_41832",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01318_13205",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02786_29617",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_ykqpZv2i3RyG1qhvaZK903",
+        "id": "step-0013",
+        "t_start": "2026-07-17T12:12:41.703+10:00",
+        "t_end": "2026-07-17T12:12:42.760+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 1056.761,
+          "context_tokens": 49601,
+          "peak_context_tokens": 80062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 60596,
+          "cumulative_tokens": {
+            "input": 200387,
+            "input_uncached": 124846,
+            "output": 5325,
+            "cache_read": 31767,
+            "cache_write": 43774,
+            "total": 205712,
+            "processed_input": 168620,
+            "processed": 173945
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06231_35603",
+            "shard_02801_12774",
+            "shard_03041_81739",
+            "shard_02044_16728",
+            "shard_00330_30409",
+            "shard_01696_51731",
+            "shard_05183_36424",
+            "shard_05823_41832",
+            "shard_01318_13205",
+            "shard_02786_29617"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "AlphaFold 3 Isomorphic Labs 2024 protein structure prediction advancement"
+        },
+        "output": {
+          "query": "AlphaFold 3 Isomorphic Labs 2024 protein structure prediction advancement",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04109_57762",
+              "docid": "shard_04109_57762",
+              "kind": "document",
+              "rrf_score": 0.030579,
+              "truncated": false,
+              "original_chars": 4058,
+              "returned_chars": 4058
+            },
+            {
+              "rank": 2,
+              "id": "shard_04352_69808",
+              "docid": "shard_04352_69808",
+              "kind": "document",
+              "rrf_score": 0.030018,
+              "truncated": false,
+              "original_chars": 3358,
+              "returned_chars": 3358
+            },
+            {
+              "rank": 3,
+              "id": "shard_02690_20317",
+              "docid": "shard_02690_20317",
+              "kind": "document",
+              "rrf_score": 0.028283,
+              "truncated": false,
+              "original_chars": 2887,
+              "returned_chars": 2887
+            },
+            {
+              "rank": 4,
+              "id": "shard_00446_8204",
+              "docid": "shard_00446_8204",
+              "kind": "document",
+              "rrf_score": 0.026501,
+              "truncated": false,
+              "original_chars": 4153,
+              "returned_chars": 4153
+            },
+            {
+              "rank": 5,
+              "id": "shard_04514_60016",
+              "docid": "shard_04514_60016",
+              "kind": "document",
+              "rrf_score": 0.026161,
+              "truncated": false,
+              "original_chars": 3001,
+              "returned_chars": 3001
+            },
+            {
+              "rank": 6,
+              "id": "shard_06122_22882",
+              "docid": "shard_06122_22882",
+              "kind": "document",
+              "rrf_score": 0.025093,
+              "truncated": false,
+              "original_chars": 2158,
+              "returned_chars": 2158
+            },
+            {
+              "rank": 7,
+              "id": "shard_05619_40777",
+              "docid": "shard_05619_40777",
+              "kind": "document",
+              "rrf_score": 0.024411,
+              "truncated": false,
+              "original_chars": 2659,
+              "returned_chars": 2659
+            },
+            {
+              "rank": 8,
+              "id": "shard_02241_80618",
+              "docid": "shard_02241_80618",
+              "kind": "document",
+              "rrf_score": 0.023894,
+              "truncated": false,
+              "original_chars": 3376,
+              "returned_chars": 3376
+            },
+            {
+              "rank": 9,
+              "id": "shard_00839_59812",
+              "docid": "shard_00839_59812",
+              "kind": "document",
+              "rrf_score": 0.022504,
+              "truncated": false,
+              "original_chars": 3767,
+              "returned_chars": 3767
+            },
+            {
+              "rank": 10,
+              "id": "shard_04176_84384",
+              "docid": "shard_04176_84384",
+              "kind": "document",
+              "rrf_score": 0.022181,
+              "truncated": false,
+              "original_chars": 5060,
+              "returned_chars": 5060
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04109_57762",
+          "shard_04352_69808",
+          "shard_02690_20317",
+          "shard_00446_8204",
+          "shard_04514_60016",
+          "shard_06122_22882",
+          "shard_05619_40777",
+          "shard_02241_80618",
+          "shard_00839_59812",
+          "shard_04176_84384"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04109_57762",
+            "score": 0.030579
+          },
+          {
+            "docid": "shard_04352_69808",
+            "score": 0.030018
+          },
+          {
+            "docid": "shard_02690_20317",
+            "score": 0.028283
+          },
+          {
+            "docid": "shard_00446_8204",
+            "score": 0.026501
+          },
+          {
+            "docid": "shard_04514_60016",
+            "score": 0.026161
+          },
+          {
+            "docid": "shard_06122_22882",
+            "score": 0.025093
+          },
+          {
+            "docid": "shard_05619_40777",
+            "score": 0.024411
+          },
+          {
+            "docid": "shard_02241_80618",
+            "score": 0.023894
+          },
+          {
+            "docid": "shard_00839_59812",
+            "score": 0.022504
+          },
+          {
+            "docid": "shard_04176_84384",
+            "score": 0.022181
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_IQz8pr4QT2gZJYsx7oKTb6",
+        "id": "step-0014",
+        "t_start": "2026-07-17T12:12:41.703+10:00",
+        "t_end": "2026-07-17T12:12:42.258+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 554.745,
+          "context_tokens": 49601,
+          "peak_context_tokens": 80062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 60596,
+          "cumulative_tokens": {
+            "input": 200387,
+            "input_uncached": 124846,
+            "output": 5325,
+            "cache_read": 31767,
+            "cache_write": 43774,
+            "total": 205712,
+            "processed_input": 168620,
+            "processed": 173945
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04109_57762",
+            "shard_04352_69808",
+            "shard_02690_20317",
+            "shard_00446_8204",
+            "shard_04514_60016",
+            "shard_06122_22882",
+            "shard_05619_40777",
+            "shard_02241_80618",
+            "shard_00839_59812",
+            "shard_04176_84384"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "transformer large language model chemistry molecular property prediction"
+        },
+        "output": {
+          "query": "transformer large language model chemistry molecular property prediction",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01104_83802",
+              "docid": "shard_01104_83802",
+              "kind": "document",
+              "rrf_score": 0.028442,
+              "truncated": false,
+              "original_chars": 6764,
+              "returned_chars": 6764
+            },
+            {
+              "rank": 2,
+              "id": "shard_04097_40785",
+              "docid": "shard_04097_40785",
+              "kind": "document",
+              "rrf_score": 0.027894,
+              "truncated": false,
+              "original_chars": 6789,
+              "returned_chars": 6789
+            },
+            {
+              "rank": 3,
+              "id": "shard_05943_40192",
+              "docid": "shard_05943_40192",
+              "kind": "document",
+              "rrf_score": 0.027651,
+              "truncated": false,
+              "original_chars": 17621,
+              "returned_chars": 17621
+            },
+            {
+              "rank": 4,
+              "id": "shard_02227_56786",
+              "docid": "shard_02227_56786",
+              "kind": "document",
+              "rrf_score": 0.027623,
+              "truncated": false,
+              "original_chars": 4150,
+              "returned_chars": 4150
+            },
+            {
+              "rank": 5,
+              "id": "shard_01671_39744",
+              "docid": "shard_01671_39744",
+              "kind": "document",
+              "rrf_score": 0.026084,
+              "truncated": false,
+              "original_chars": 14818,
+              "returned_chars": 14818
+            },
+            {
+              "rank": 6,
+              "id": "shard_02798_45185",
+              "docid": "shard_02798_45185",
+              "kind": "document",
+              "rrf_score": 0.025774,
+              "truncated": false,
+              "original_chars": 2726,
+              "returned_chars": 2726
+            },
+            {
+              "rank": 7,
+              "id": "shard_01761_70258",
+              "docid": "shard_01761_70258",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 16504,
+              "returned_chars": 16504
+            },
+            {
+              "rank": 8,
+              "id": "shard_03513_40136",
+              "docid": "shard_03513_40136",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 20084,
+              "returned_chars": 20084
+            },
+            {
+              "rank": 9,
+              "id": "shard_01459_35323",
+              "docid": "shard_01459_35323",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3587,
+              "returned_chars": 3587
+            },
+            {
+              "rank": 10,
+              "id": "shard_04021_13538",
+              "docid": "shard_04021_13538",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4378,
+              "returned_chars": 4378
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01104_83802",
+          "shard_04097_40785",
+          "shard_05943_40192",
+          "shard_02227_56786",
+          "shard_01671_39744",
+          "shard_02798_45185",
+          "shard_01761_70258",
+          "shard_03513_40136",
+          "shard_01459_35323",
+          "shard_04021_13538"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01104_83802",
+            "score": 0.028442
+          },
+          {
+            "docid": "shard_04097_40785",
+            "score": 0.027894
+          },
+          {
+            "docid": "shard_05943_40192",
+            "score": 0.027651
+          },
+          {
+            "docid": "shard_02227_56786",
+            "score": 0.027623
+          },
+          {
+            "docid": "shard_01671_39744",
+            "score": 0.026084
+          },
+          {
+            "docid": "shard_02798_45185",
+            "score": 0.025774
+          },
+          {
+            "docid": "shard_01761_70258",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03513_40136",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01459_35323",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_04021_13538",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_FZ8ApwKeE8SbzEMHYyAWza",
+        "id": "step-0015",
+        "t_start": "2026-07-17T12:12:41.703+10:00",
+        "t_end": "2026-07-17T12:12:42.628+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 924.849,
+          "context_tokens": 49601,
+          "peak_context_tokens": 80062,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 60596,
+          "cumulative_tokens": {
+            "input": 200387,
+            "input_uncached": 124846,
+            "output": 5325,
+            "cache_read": 31767,
+            "cache_write": 43774,
+            "total": 205712,
+            "processed_input": 168620,
+            "processed": 173945
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01104_83802",
+            "shard_04097_40785",
+            "shard_05943_40192",
+            "shard_02227_56786",
+            "shard_01671_39744",
+            "shard_02798_45185",
+            "shard_01761_70258",
+            "shard_03513_40136",
+            "shard_01459_35323",
+            "shard_04021_13538"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_ykqpZv2i3RyG1qhvaZK903",
+            "tooluse_IQz8pr4QT2gZJYsx7oKTb6",
+            "tooluse_FZ8ApwKeE8SbzEMHYyAWza"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_amcaDZtLYK32MhhLwlq9qb",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_02044_16728",
+                    "reason": "Quantified real-world cost comparison: Insilico Medicine reached preclinical candidate for $2.6M/18 months vs traditional $670M/4.5 years; defines in silico trials and three AI advantages (width, speed, cost)"
+                  },
+                  {
+                    "docid": "shard_04109_57762",
+                    "reason": "Latest AlphaFold 3 (2024) technical details: diffusion network architecture, Evoformer module, 50% higher accuracy on protein-ligand interactions, and access restrictions limiting commercial drug-target predictions"
+                  },
+                  {
+                    "docid": "shard_01104_83802",
+                    "reason": "Molecular Transformer technology: treats chemistry as language translation, predicts reaction outcomes >90% accuracy and retrosynthesis steps, validated on Pfizer lab data (97%/91% accuracy), powers IBM RXN for Chemistry"
+                  },
+                  {
+                    "docid": "shard_05943_40192",
+                    "reason": "Comprehensive survey of LLM applications in chemistry/drug discovery: molecule editing (MoleculeSTM), property prediction (Galactica), retrosynthesis planning, de novo generation (MolT5), and knowledge retrieval limitations"
+                  },
+                  {
+                    "docid": "shard_06231_35603",
+                    "reason": "Polypharmacology challenge: drugs interact with 30-300 proteins unknown upfront, 13 years/$2.65B in R&D (80x productivity decline since 1950s), Cyclica's Ligand Express, and documented failure of CNN-based virtual screening on limited public data"
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0016",
+        "t_start": "2026-07-17T12:12:42.760+10:00",
+        "t_end": "2026-07-17T12:12:55.688+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 12927.313,
+          "context_tokens": 104935,
+          "peak_context_tokens": 104935,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 73523,
+          "tokens": {
+            "input": 104935,
+            "input_uncached": 58113,
+            "output": 1120,
+            "cache_read": 46822,
+            "cache_write": 0,
+            "total": 106055,
+            "processed_input": 58113,
+            "processed": 59233,
+            "context": 104935
+          },
+          "provider_usage": {
+            "inputTokens": 58113,
+            "outputTokens": 1120,
+            "totalTokens": 106055,
+            "cacheReadInputTokens": 46822
+          },
+          "cumulative_tokens": {
+            "input": 305322,
+            "input_uncached": 182959,
+            "output": 6445,
+            "cache_read": 78589,
+            "cache_write": 43774,
+            "total": 311767,
+            "processed_input": 226733,
+            "processed": 233178
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06231_35603",
+            "shard_02801_12774",
+            "shard_03041_81739",
+            "shard_02044_16728",
+            "shard_00330_30409",
+            "shard_01696_51731",
+            "shard_05183_36424",
+            "shard_05823_41832",
+            "shard_01318_13205",
+            "shard_02786_29617",
+            "shard_04109_57762",
+            "shard_04352_69808",
+            "shard_02690_20317",
+            "shard_00446_8204",
+            "shard_04514_60016",
+            "shard_06122_22882",
+            "shard_05619_40777",
+            "shard_02241_80618",
+            "shard_00839_59812",
+            "shard_04176_84384",
+            "shard_01104_83802",
+            "shard_04097_40785",
+            "shard_05943_40192",
+            "shard_02227_56786",
+            "shard_01671_39744",
+            "shard_02798_45185",
+            "shard_01761_70258",
+            "shard_03513_40136",
+            "shard_01459_35323",
+            "shard_04021_13538"
+          ],
+          "committed": [
+            "shard_00200_57883",
+            "shard_00627_61902",
+            "shard_00926_73826",
+            "shard_01778_82827",
+            "shard_02151_79709",
+            "shard_02303_44801",
+            "shard_04365_72117",
+            "shard_05470_80992",
+            "shard_05472_50470",
+            "shard_05845_27817",
+            "shard_06450_28885",
+            "shard_06519_8313"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_02044_16728",
+              "reason": "Quantified real-world cost comparison: Insilico Medicine reached preclinical candidate for $2.6M/18 months vs traditional $670M/4.5 years; defines in silico trials and three AI advantages (width, speed, cost)"
+            },
+            {
+              "docid": "shard_04109_57762",
+              "reason": "Latest AlphaFold 3 (2024) technical details: diffusion network architecture, Evoformer module, 50% higher accuracy on protein-ligand interactions, and access restrictions limiting commercial drug-target predictions"
+            },
+            {
+              "docid": "shard_01104_83802",
+              "reason": "Molecular Transformer technology: treats chemistry as language translation, predicts reaction outcomes >90% accuracy and retrosynthesis steps, validated on Pfizer lab data (97%/91% accuracy), powers IBM RXN for Chemistry"
+            },
+            {
+              "docid": "shard_05943_40192",
+              "reason": "Comprehensive survey of LLM applications in chemistry/drug discovery: molecule editing (MoleculeSTM), property prediction (Galactica), retrosynthesis planning, de novo generation (MolT5), and knowledge retrieval limitations"
+            },
+            {
+              "docid": "shard_06231_35603",
+              "reason": "Polypharmacology challenge: drugs interact with 30-300 proteins unknown upfront, 13 years/$2.65B in R&D (80x productivity decline since 1950s), Cyclica's Ligand Express, and documented failure of CNN-based virtual screening on limited public data"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_06231_35603\", \"shard_02044_16728\", \"shard_04109_57762\", \"shard_01104_83802\", \"shard_05943_40192\"], \"rejected\": [{\"docid\": \"shard_02801_12774\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03041_81739\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00330_30409\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01696_51731\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05183_36424\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05823_41832\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01318_13205\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02786_29617\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04352_69808\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02690_20317\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00446_8204\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04514_60016\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06122_22882\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05619_40777\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02241_80618\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00839_59812\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04176_84384\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04097_40785\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02227_56786\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01671_39744\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02798_45185\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01761_70258\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03513_40136\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01459_35323\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04021_13538\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 104,935 / 500,000 tokens (21.0%) · elapsed: 1m 13s]",
+        "failed": false,
+        "tool_call_id": "tooluse_amcaDZtLYK32MhhLwlq9qb",
+        "id": "step-0017",
+        "t_start": "2026-07-17T12:12:55.688+10:00",
+        "t_end": "2026-07-17T12:12:55.690+10:00",
+        "turn": 4,
+        "parent_id": "step-0016",
+        "stats": {
+          "duration_ms": 2.491,
+          "context_tokens": 104935,
+          "peak_context_tokens": 104935,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 73526,
+          "cumulative_tokens": {
+            "input": 305322,
+            "input_uncached": 182959,
+            "output": 6445,
+            "cache_read": 78589,
+            "cache_write": 43774,
+            "total": 311767,
+            "processed_input": 226733,
+            "processed": 233178
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06231_35603",
+            "shard_02801_12774",
+            "shard_03041_81739",
+            "shard_02044_16728",
+            "shard_00330_30409",
+            "shard_01696_51731",
+            "shard_05183_36424",
+            "shard_05823_41832",
+            "shard_01318_13205",
+            "shard_02786_29617",
+            "shard_04109_57762",
+            "shard_04352_69808",
+            "shard_02690_20317",
+            "shard_00446_8204",
+            "shard_04514_60016",
+            "shard_06122_22882",
+            "shard_05619_40777",
+            "shard_02241_80618",
+            "shard_00839_59812",
+            "shard_04176_84384",
+            "shard_01104_83802",
+            "shard_04097_40785",
+            "shard_05943_40192",
+            "shard_02227_56786",
+            "shard_01671_39744",
+            "shard_02798_45185",
+            "shard_01761_70258",
+            "shard_03513_40136",
+            "shard_01459_35323",
+            "shard_04021_13538"
+          ],
+          "committed": [
+            "shard_06231_35603",
+            "shard_02044_16728",
+            "shard_04109_57762",
+            "shard_01104_83802",
+            "shard_05943_40192"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_02801_12774",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03041_81739",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00330_30409",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01696_51731",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05183_36424",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05823_41832",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01318_13205",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02786_29617",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04352_69808",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02690_20317",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00446_8204",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04514_60016",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06122_22882",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05619_40777",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02241_80618",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00839_59812",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04176_84384",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04097_40785",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02227_56786",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01671_39744",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02798_45185",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01761_70258",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03513_40136",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01459_35323",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04021_13538",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_amcaDZtLYK32MhhLwlq9qb"
+          ]
+        },
+        "output": {
+          "text": "Artificial intelligence has become embedded across nearly every stage of the drug discovery pipeline, promising to compress a process that traditionally takes ten to twenty years and costs between two and three billion dollars, with roughly an eighty-fold decline in R&D productivity over the past fifty years.\n[shard_06231_35603] [shard_02044_16728]\n\nIn the target identification stage, deep learning models analyze multiomics data such as genomics, transcriptomics, and proteomics to compare diseased versus healthy tissue and flag genes whose activity patterns make them attractive, sometimes previously unknown, therapeutic targets.\n[shard_01778_82827]\n\nA major complication at this stage is polypharmacology: a single drug may interact with anywhere from thirty to three hundred proteins in the body, many unknown in advance, and AI-driven platforms like Cyclica's Ligand Express attempt to map this broader interaction landscape beyond a single intended target.\n[shard_06231_35603]\n\nOnce a target is chosen, hit discovery and lead optimization rely on molecular dynamics simulations and generative models, including generative adversarial networks, to propose and refine candidate molecules that bind the target with the desired physiochemical properties.\n[shard_01778_82827]\n\nThe most advanced generative techniques for structure-based drug design use diffusion models and graph neural networks, such as TargetDiff, Pocket2Mol, GraphBP, DiffSBDD, and AlphaDrug, which build three-dimensional ligands atom-by-atom directly inside a protein pocket and are benchmarked on metrics like docking score, drug-likeness, and synthetic accessibility.\n[shard_06519_8313]\n\nCommercial platforms such as Iktos apply similar generative deep learning, combined with AI-driven retrosynthesis planning through its Spaya engine, to multi-parametric optimization of small molecules, claiming up to a thirty percent reduction in time and cost to reach clinical trials.\n[shard_04365_72117]\n\nA parallel technological advance is Molecular Transformer, which treats chemical reactions as a translation problem between SMILES strings using transformer attention mechanisms, predicting reaction outcomes correctly over ninety percent of the time and, when trained on Pfizer's proprietary lab data, reaching ninety-seven percent accuracy alongside a ninety-one percent success rate for retrosynthesis steps.\n[shard_01104_83802]\n\nLarge language models are now being extended further into chemistry for tasks such as editing a molecule's properties from a natural-language prompt, as in the MoleculeSTM model, predicting molecular properties as in Meta's Galactica, planning multi-step retrosynthesis interactively, and generating de novo molecules from text descriptions via models like MolT5.\n[shard_05943_40192]\n\nProtein structure prediction underpins much of this work, and DeepMind's AlphaFold illustrates both the promise and the current limits of AI in this domain.\n[shard_00200_57883]\n\nAlphaFold's initial version helped close a longstanding gap by predicting three-dimensional shapes for nearly all two hundred million known proteins, offering a faster and cheaper alternative to X-ray crystallography, NMR, and cryo-electron microscopy, though as of its debut no new drug had yet been directly attributed to its use.\n[shard_00200_57883]\n\nThe 2024 release of AlphaFold 3 represents a substantial technological leap, modeling interactions among proteins, DNA, RNA, ligands, and ions using an improved Evoformer module paired with a diffusion-based denoising process, achieving fifty percent greater accuracy on protein-ligand interactions than prior methods, though DeepMind restricted commercial drug-target predictions to protect its Isomorphic Labs spin-off's business interests.\n[shard_04109_57762]\n\nBeyond molecule design, AI supports ADMET prediction through quantitative structure-activity relationship models that estimate absorption, distribution, metabolism, excretion, and toxicity computationally, reducing reliance on costly animal testing and catching liabilities like hepatotoxicity earlier.\n[shard_01778_82827]\n\nAI also accelerates drug repurposing by mining drug-target interaction datasets to find new indications for already-approved compounds, a strategy that proved valuable during the COVID-19 pandemic when BenevolentAI's repurposed candidate received FDA Emergency Use Authorization and AbCellera's AI-discovered antibody Bamlanivimab received similar authorization.\n[shard_02303_44801]\n\nIn clinical development, AI improves patient identification by predicting toxicity and efficacy from genomic profiles, addresses the fact that roughly eighty-six percent of trials miss enrollment deadlines, and companies like Tempus have cut trial activation time to about ten business days versus an eight-month industry average.\n[shard_05470_80992]\n\nDigital twins, AI-generated virtual models of patients that simulate dosing and progression, can shrink control-group sizes by roughly thirty percent, while Roche's use of AI-powered digital biomarkers in its prasinezumab Phase II trial ran twice as fast with a seventy-percent leaner sample.\n[shard_05470_80992] [shard_00926_73826]\n\nReal-world industry adoption dates back to the 2012 deep-learning inflection point marked by AlexNet, after which companies including Atomwise, Exscientia, AbCellera, and later Insilico Medicine were founded to apply neural networks to small-molecule design and target discovery.\n[shard_05845_27817]\n\nInsilico Medicine reached a preclinical candidate for a known target in just twenty-one days in 2019, and by comparing its overall pipeline economics, later achieved candidate selection for about $2.6 million and eighteen months against an industry benchmark of roughly $670 million and 4.5 years.\n[shard_05845_27817] [shard_02044_16728]\n\nExscientia's AI-designed molecule for Sumitomo Pharma, targeting obsessive-compulsive disorder, became one of the first AI-designed drugs to enter human trials in early 2020 after roughly twelve months of design, compared with an expected five years.\n[shard_06450_28885] [shard_02303_44801]\n\nDespite this progress, as of the most recent reporting, no fully AI-discovered drug has received FDA approval, and Insilico's IPF candidate INS018_055 remains in Phase II trials rather than on the market.\n[shard_02151_79709]\n\nThe sector has also weathered visible setbacks, including the discontinuation of Exscientia's cancer candidate EXS21546, the Phase 3 failure of a Sumitomo/Otsuka schizophrenia candidate screened by PsychoGenics's AI behavioral platform, and BenevolentAI's atopic dermatitis candidate BEN-2293 failing to beat placebo, which triggered layoffs and a steep valuation drop.\n[shard_05845_27817]\n\nThe industry is consolidating through acquisitions such as Roche's $1.9 billion purchase of Flatiron Health and Recursion Pharmaceuticals' acquisitions of Cyclica and Valence Labs, alongside deepening involvement from big technology firms like NVIDIA's Clara Discovery platform, Microsoft's Azure-hosted large language models, and Alphabet's Isomorphic Labs partnering with Eli Lilly and Novartis.\n[shard_05845_27817]\n\nPersistent challenges include curating high-quality, unbiased training data, since public repositories often contain errors that limit convolutional neural network-based virtual screening performance.\n[shard_01778_82827] [shard_06231_35603]\n\nDeep learning's \"black box\" nature limits interpretability, raising concerns about overfitting and poor generalization when models trained on narrow datasets are applied to diverse real-world patient populations.\n[shard_05472_50470]\n\nRegulatory uncertainty compounds this problem, as the FDA requires clear understanding of a drug's mechanism of action and substantial clinical trial data before approval, standards that complex AI-designed candidates have not yet fully satisfied.\n[shard_02151_79709]\n\nA distinct and more alarming challenge is dual-use risk: researchers demonstrated that a legitimate generative model called MegaSyn, normally built to reward bioactivity and penalize toxicity, could be inverted in under six hours to generate over 40,000 molecules including the nerve agent VX and other undiscovered, potentially deadlier toxic compounds.\n[shard_00627_61902]\n\nTaken together, AI has demonstrably accelerated early discovery timelines and unlocked new generative and structural-modeling capabilities, but validated clinical success, regulatory clarity, and safeguards against misuse remain the field's central unresolved frontiers.\n[shard_05845_27817] [shard_05472_50470] [shard_00627_61902]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0018",
+        "t_start": "2026-07-17T12:12:55.690+10:00",
+        "t_end": "2026-07-17T12:13:34.481+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 38790.675,
+          "context_tokens": 67347,
+          "peak_context_tokens": 104935,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 112317,
+          "tokens": {
+            "input": 67347,
+            "input_uncached": 1980,
+            "output": 3622,
+            "cache_read": 46822,
+            "cache_write": 18545,
+            "total": 70969,
+            "processed_input": 20525,
+            "processed": 24147,
+            "context": 67347
+          },
+          "provider_usage": {
+            "inputTokens": 1980,
+            "outputTokens": 3622,
+            "totalTokens": 70969,
+            "cacheReadInputTokens": 46822,
+            "cacheWriteInputTokens": 18545,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 18545
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 372669,
+            "input_uncached": 184939,
+            "output": 10067,
+            "cache_read": 125411,
+            "cache_write": 62319,
+            "total": 382736,
+            "processed_input": 247258,
+            "processed": 257325
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00200_57883",
+            "shard_00627_61902",
+            "shard_00926_73826",
+            "shard_01104_83802",
+            "shard_01778_82827",
+            "shard_02044_16728",
+            "shard_02151_79709",
+            "shard_02303_44801",
+            "shard_04109_57762",
+            "shard_04365_72117",
+            "shard_05470_80992",
+            "shard_05472_50470",
+            "shard_05845_27817",
+            "shard_05943_40192",
+            "shard_06231_35603",
+            "shard_06450_28885",
+            "shard_06519_8313"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "user_message",
+          "text": "Your attempted final response did not satisfy the final-report contract already defined in the system instructions.\nProblems:\n- report is 1063 words; the hard maximum is 1024 — rewrite it at about 950 words, cutting the least load-bearing material rather than trimming a few words\nCorrect it in the next turn in this same conversation. Emit tool calls only if more evidence is genuinely needed; otherwise write only the corrected report: plain prose, one sentence per line, with [docid] citation markers.\n[context budget: 67,347 / 500,000 tokens (13.5%) · elapsed: 1m 52s]"
+        },
+        "output": {
+          "text": "Artificial intelligence has become embedded across nearly every stage of the drug discovery pipeline, promising to compress a process that traditionally takes ten to twenty years and costs two to three billion dollars, reflecting an eighty-fold decline in R&D productivity over fifty years.\n[shard_06231_35603] [shard_02044_16728]\n\nIn target identification, deep learning models analyze multiomics data such as genomics, transcriptomics, and proteomics to compare diseased versus healthy tissue and flag genes whose activity patterns make them attractive, sometimes previously unknown, therapeutic targets.\n[shard_01778_82827]\n\nA key complication is polypharmacology: a single drug may interact with thirty to three hundred proteins, many unknown in advance, and platforms like Cyclica's Ligand Express map this broader interaction landscape beyond one intended target.\n[shard_06231_35603]\n\nOnce a target is chosen, lead optimization relies on molecular dynamics simulations and generative adversarial networks that propose and refine candidate molecules matching desired physiochemical properties.\n[shard_01778_82827]\n\nThe most advanced generative techniques for structure-based design use diffusion models and graph neural networks, such as TargetDiff, Pocket2Mol, GraphBP, DiffSBDD, and AlphaDrug, which build three-dimensional ligands atom-by-atom inside a protein pocket and are benchmarked on docking score, drug-likeness, and synthetic accessibility.\n[shard_06519_8313]\n\nCommercial platforms such as Iktos combine similar generative modeling with AI-driven retrosynthesis planning through its Spaya engine, claiming up to a thirty percent reduction in time and cost to reach clinical trials.\n[shard_04365_72117]\n\nA parallel advance is Molecular Transformer, which treats chemical reactions as translation between SMILES strings using transformer attention, predicting reaction outcomes correctly over ninety percent of the time and, when trained on Pfizer's proprietary lab data, reaching ninety-seven percent accuracy with ninety-one percent retrosynthesis success.\n[shard_01104_83802]\n\nLarge language models now extend further into chemistry, editing molecular properties from natural-language prompts as in MoleculeSTM, predicting molecular properties as in Meta's Galactica, planning multi-step retrosynthesis interactively, and generating de novo molecules from text descriptions via models like MolT5.\n[shard_05943_40192]\n\nProtein structure prediction underpins much of this work, and DeepMind's AlphaFold illustrates both the promise and the current limits of AI in this domain.\n[shard_00200_57883]\n\nAlphaFold's initial version helped close a longstanding gap by predicting three-dimensional shapes for nearly all two hundred million known proteins, offering a faster, cheaper alternative to X-ray crystallography, NMR, and cryo-electron microscopy, though at its debut no new drug had yet been directly attributed to its use.\n[shard_00200_57883]\n\nAlphaFold 3, released in 2024, models interactions among proteins, DNA, RNA, ligands, and ions using an improved Evoformer module paired with a diffusion-based denoising process, achieving fifty percent greater accuracy on protein-ligand interactions than prior methods, though DeepMind restricted commercial drug-target predictions to protect its Isomorphic Labs spin-off.\n[shard_04109_57762]\n\nBeyond molecule design, AI supports ADMET prediction through quantitative structure-activity relationship models estimating absorption, distribution, metabolism, excretion, and toxicity computationally, reducing reliance on animal testing and catching liabilities like hepatotoxicity earlier.\n[shard_01778_82827]\n\nAI also accelerates drug repurposing by mining drug-target interaction data for new indications of approved compounds, a strategy proven during COVID-19 when BenevolentAI's repurposed candidate and AbCellera's AI-discovered antibody Bamlanivimab both received FDA Emergency Use Authorization.\n[shard_02303_44801]\n\nIn clinical development, AI improves patient identification by predicting toxicity and efficacy from genomic profiles, addressing the fact that roughly eighty-six percent of trials miss enrollment deadlines; Tempus has cut trial activation time to about ten business days versus an eight-month industry average.\n[shard_05470_80992]\n\nDigital twins, AI-generated virtual patient models simulating dosing and progression, can shrink control-group sizes by roughly thirty percent, while Roche's AI-powered digital biomarkers in its prasinezumab Phase II trial ran twice as fast with a seventy-percent leaner sample.\n[shard_05470_80992] [shard_00926_73826]\n\nReal-world adoption dates to the 2012 deep-learning inflection point marked by AlexNet, after which Atomwise, Exscientia, AbCellera, and later Insilico Medicine were founded to apply neural networks to molecule design and target discovery.\n[shard_05845_27817]\n\nInsilico Medicine reached a preclinical candidate for a known target in twenty-one days in 2019, and later achieved candidate selection for about $2.6 million and eighteen months against an industry benchmark of roughly $670 million and 4.5 years.\n[shard_05845_27817] [shard_02044_16728]\n\nExscientia's AI-designed molecule for Sumitomo Pharma, targeting obsessive-compulsive disorder, entered human trials in early 2020 after roughly twelve months of design, compared with an expected five years.\n[shard_06450_28885] [shard_02303_44801]\n\nDespite this progress, no fully AI-discovered drug has yet received FDA approval, and Insilico's IPF candidate INS018_055 remains in Phase II trials rather than on the market.\n[shard_02151_79709]\n\nThe sector has weathered visible setbacks, including discontinuation of Exscientia's cancer candidate EXS21546, the Phase 3 failure of a Sumitomo/Otsuka schizophrenia candidate screened by an AI behavioral platform, and BenevolentAI's dermatitis candidate BEN-2293 failing against placebo, triggering layoffs and a steep valuation drop.\n[shard_05845_27817]\n\nThe industry is consolidating through acquisitions such as Roche's $1.9 billion purchase of Flatiron Health and Recursion's acquisitions of Cyclica and Valence Labs, alongside deepening involvement from big tech firms like NVIDIA's Clara Discovery, Microsoft's Azure-hosted language models, and Alphabet's Isomorphic Labs partnering with Eli Lilly and Novartis.\n[shard_05845_27817]\n\nPersistent challenges include curating high-quality, unbiased training data, since public repositories often contain errors that limit convolutional neural network-based virtual screening performance.\n[shard_01778_82827] [shard_06231_35603]\n\nDeep learning's \"black box\" nature limits interpretability, raising concerns about overfitting and poor generalization when models trained on narrow datasets face diverse real-world patient populations.\n[shard_05472_50470]\n\nRegulatory uncertainty compounds this, as the FDA requires clear understanding of a drug's mechanism of action and substantial trial data before approval, standards complex AI-designed candidates have not yet fully satisfied.\n[shard_02151_79709]\n\nA more alarming challenge is dual-use risk: researchers showed that a legitimate generative model called MegaSyn, built to reward bioactivity and penalize toxicity, could be inverted in under six hours to generate over 40,000 molecules including the nerve agent VX and potentially deadlier undiscovered toxins.\n[shard_00627_61902]\n\nTaken together, AI has demonstrably accelerated early discovery timelines and unlocked new generative and structural-modeling capabilities, but validated clinical success, regulatory clarity, and safeguards against misuse remain the field's central unresolved frontiers.\n[shard_05845_27817] [shard_05472_50470] [shard_00627_61902]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0019",
+        "t_start": "2026-07-17T12:13:34.482+10:00",
+        "t_end": "2026-07-17T12:14:00.189+10:00",
+        "turn": 6,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 25706.298,
+          "context_tokens": 71170,
+          "peak_context_tokens": 104935,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 138024,
+          "tokens": {
+            "input": 71170,
+            "input_uncached": 5803,
+            "output": 2793,
+            "cache_read": 65367,
+            "cache_write": 0,
+            "total": 73963,
+            "processed_input": 5803,
+            "processed": 8596,
+            "context": 71170
+          },
+          "provider_usage": {
+            "inputTokens": 5803,
+            "outputTokens": 2793,
+            "totalTokens": 73963,
+            "cacheReadInputTokens": 65367
+          },
+          "cumulative_tokens": {
+            "input": 443839,
+            "input_uncached": 190742,
+            "output": 12860,
+            "cache_read": 190778,
+            "cache_write": 62319,
+            "total": 456699,
+            "processed_input": 253061,
+            "processed": 265921
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00200_57883",
+            "shard_00627_61902",
+            "shard_00926_73826",
+            "shard_01104_83802",
+            "shard_01778_82827",
+            "shard_02044_16728",
+            "shard_02151_79709",
+            "shard_02303_44801",
+            "shard_04109_57762",
+            "shard_04365_72117",
+            "shard_05470_80992",
+            "shard_05472_50470",
+            "shard_05845_27817",
+            "shard_05943_40192",
+            "shard_06231_35603",
+            "shard_06450_28885",
+            "shard_06519_8313"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_06231_35603",
+        "shard_02044_16728",
+        "shard_01778_82827",
+        "shard_06519_8313",
+        "shard_04365_72117",
+        "shard_01104_83802",
+        "shard_05943_40192",
+        "shard_00200_57883",
+        "shard_04109_57762",
+        "shard_02303_44801",
+        "shard_05470_80992",
+        "shard_00926_73826",
+        "shard_05845_27817",
+        "shard_06450_28885",
+        "shard_02151_79709",
+        "shard_05472_50470",
+        "shard_00627_61902"
+      ],
+      "answer": [
+        {
+          "text": "Artificial intelligence has become embedded across nearly every stage of the drug discovery pipeline, promising to compress a process that traditionally takes ten to twenty years and costs two to three billion dollars, reflecting an eighty-fold decline in R&D productivity over fifty years.",
+          "citations": [
+            0,
+            1
+          ]
+        },
+        {
+          "text": "In target identification, deep learning models analyze multiomics data such as genomics, transcriptomics, and proteomics to compare diseased versus healthy tissue and flag genes whose activity patterns make them attractive, sometimes previously unknown, therapeutic targets.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "A key complication is polypharmacology: a single drug may interact with thirty to three hundred proteins, many unknown in advance, and platforms like Cyclica's Ligand Express map this broader interaction landscape beyond one intended target.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Once a target is chosen, lead optimization relies on molecular dynamics simulations and generative adversarial networks that propose and refine candidate molecules matching desired physiochemical properties.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "The most advanced generative techniques for structure-based design use diffusion models and graph neural networks, such as TargetDiff, Pocket2Mol, GraphBP, DiffSBDD, and AlphaDrug, which build three-dimensional ligands atom-by-atom inside a protein pocket and are benchmarked on docking score, drug-likeness, and synthetic accessibility.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Commercial platforms such as Iktos combine similar generative modeling with AI-driven retrosynthesis planning through its Spaya engine, claiming up to a thirty percent reduction in time and cost to reach clinical trials.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "A parallel advance is Molecular Transformer, which treats chemical reactions as translation between SMILES strings using transformer attention, predicting reaction outcomes correctly over ninety percent of the time and, when trained on Pfizer's proprietary lab data, reaching ninety-seven percent accuracy with ninety-one percent retrosynthesis success.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Large language models now extend further into chemistry, editing molecular properties from natural-language prompts as in MoleculeSTM, predicting molecular properties as in Meta's Galactica, planning multi-step retrosynthesis interactively, and generating de novo molecules from text descriptions via models like MolT5.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "Protein structure prediction underpins much of this work, and DeepMind's AlphaFold illustrates both the promise and the current limits of AI in this domain.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "AlphaFold's initial version helped close a longstanding gap by predicting three-dimensional shapes for nearly all two hundred million known proteins, offering a faster, cheaper alternative to X-ray crystallography, NMR, and cryo-electron microscopy, though at its debut no new drug had yet been directly attributed to its use.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "AlphaFold 3, released in 2024, models interactions among proteins, DNA, RNA, ligands, and ions using an improved Evoformer module paired with a diffusion-based denoising process, achieving fifty percent greater accuracy on protein-ligand interactions than prior methods, though DeepMind restricted commercial drug-target predictions to protect its Isomorphic Labs spin-off.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "Beyond molecule design, AI supports ADMET prediction through quantitative structure-activity relationship models estimating absorption, distribution, metabolism, excretion, and toxicity computationally, reducing reliance on animal testing and catching liabilities like hepatotoxicity earlier.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "AI also accelerates drug repurposing by mining drug-target interaction data for new indications of approved compounds, a strategy proven during COVID-19 when BenevolentAI's repurposed candidate and AbCellera's AI-discovered antibody Bamlanivimab both received FDA Emergency Use Authorization.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "In clinical development, AI improves patient identification by predicting toxicity and efficacy from genomic profiles, addressing the fact that roughly eighty-six percent of trials miss enrollment deadlines; Tempus has cut trial activation time to about ten business days versus an eight-month industry average.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "Digital twins, AI-generated virtual patient models simulating dosing and progression, can shrink control-group sizes by roughly thirty percent, while Roche's AI-powered digital biomarkers in its prasinezumab Phase II trial ran twice as fast with a seventy-percent leaner sample.",
+          "citations": [
+            10,
+            11
+          ]
+        },
+        {
+          "text": "Real-world adoption dates to the 2012 deep-learning inflection point marked by AlexNet, after which Atomwise, Exscientia, AbCellera, and later Insilico Medicine were founded to apply neural networks to molecule design and target discovery.",
+          "citations": [
+            12
+          ]
+        },
+        {
+          "text": "Insilico Medicine reached a preclinical candidate for a known target in twenty-one days in 2019, and later achieved candidate selection for about $2.6 million and eighteen months against an industry benchmark of roughly $670 million and 4.5 years.",
+          "citations": [
+            12,
+            1
+          ]
+        },
+        {
+          "text": "Exscientia's AI-designed molecule for Sumitomo Pharma, targeting obsessive-compulsive disorder, entered human trials in early 2020 after roughly twelve months of design, compared with an expected five years.",
+          "citations": [
+            13,
+            9
+          ]
+        },
+        {
+          "text": "Despite this progress, no fully AI-discovered drug has yet received FDA approval, and Insilico's IPF candidate INS018_055 remains in Phase II trials rather than on the market.",
+          "citations": [
+            14
+          ]
+        },
+        {
+          "text": "The sector has weathered visible setbacks, including discontinuation of Exscientia's cancer candidate EXS21546, the Phase 3 failure of a Sumitomo/Otsuka schizophrenia candidate screened by an AI behavioral platform, and BenevolentAI's dermatitis candidate BEN-2293 failing against placebo, triggering layoffs and a steep valuation drop.",
+          "citations": [
+            12
+          ]
+        },
+        {
+          "text": "The industry is consolidating through acquisitions such as Roche's $1.9 billion purchase of Flatiron Health and Recursion's acquisitions of Cyclica and Valence Labs, alongside deepening involvement from big tech firms like NVIDIA's Clara Discovery, Microsoft's Azure-hosted language models, and Alphabet's Isomorphic Labs partnering with Eli Lilly and Novartis.",
+          "citations": [
+            12
+          ]
+        },
+        {
+          "text": "Persistent challenges include curating high-quality, unbiased training data, since public repositories often contain errors that limit convolutional neural network-based virtual screening performance.",
+          "citations": [
+            2,
+            0
+          ]
+        },
+        {
+          "text": "Deep learning's \"black box\" nature limits interpretability, raising concerns about overfitting and poor generalization when models trained on narrow datasets face diverse real-world patient populations.",
+          "citations": [
+            15
+          ]
+        },
+        {
+          "text": "Regulatory uncertainty compounds this, as the FDA requires clear understanding of a drug's mechanism of action and substantial trial data before approval, standards complex AI-designed candidates have not yet fully satisfied.",
+          "citations": [
+            14
+          ]
+        },
+        {
+          "text": "A more alarming challenge is dual-use risk: researchers showed that a legitimate generative model called MegaSyn, built to reward bioactivity and penalize toxicity, could be inverted in under six hours to generate over 40,000 molecules including the nerve agent VX and potentially deadlier undiscovered toxins.",
+          "citations": [
+            16
+          ]
+        },
+        {
+          "text": "Taken together, AI has demonstrably accelerated early discovery timelines and unlocked new generative and structural-modeling capabilities, but validated clinical success, regulatory clarity, and safeguards against misuse remain the field's central unresolved frontiers.",
+          "citations": [
+            12,
+            15,
+            16
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-17T12:11:42.163+10:00",
+    "ended_at": "2026-07-17T12:14:00.191+10:00",
+    "duration_ms": 138028,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}

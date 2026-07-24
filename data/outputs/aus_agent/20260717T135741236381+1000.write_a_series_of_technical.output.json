@@ -1,3 +1,661 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:b022dc045fc1b0fa88b24d50c1936bf834dcf61e85393801ccec6434c165443f
-size 34454
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-72",
+    "narrative": "Write a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background.",
+    "run_id": "aus-agent-discovery-check",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [],
+  "answer": [
+    {
+      "text": "Run failed: ClientError: An error occurred (ExpiredTokenException) when calling the Converse operation: The security token included in the request is expired",
+      "citations": []
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-72",
+    "status": "failed",
+    "metadata": {
+      "model": "au.anthropic.claude-sonnet-5",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-discovery-check",
+      "query_source": "Write a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 2
+      },
+      "tool_call_counts_all": {
+        "search": 2
+      },
+      "retrieved_docids": [
+        "shard_00380_66834",
+        "shard_00407_47077",
+        "shard_00526_79904",
+        "shard_00667_71292",
+        "shard_00700_46123",
+        "shard_00708_37874",
+        "shard_00813_47904",
+        "shard_00829_56506",
+        "shard_01335_36211",
+        "shard_02090_70478",
+        "shard_02297_27511",
+        "shard_02535_4909",
+        "shard_03533_77101",
+        "shard_04037_30132",
+        "shard_04054_1657",
+        "shard_04778_57699",
+        "shard_04841_24912",
+        "shard_05087_50181",
+        "shard_06073_25191",
+        "shard_06152_27655"
+      ],
+      "tokens": {
+        "input": 4828,
+        "input_uncached": 253,
+        "output": 1253,
+        "cache_read": 0,
+        "cache_write": 4575,
+        "total": 6081,
+        "processed_input": 4828,
+        "processed": 6081,
+        "context_tokens": 4828,
+        "peak_context_tokens": 4828,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [],
+        "rejected": []
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Answer what was actually asked,\ngrounded in what you find with your search tools. Prior knowledge may help you\nchoose searches, but it is not evidence and must not support factual claims.\n\nMatch your effort to the question. A narrow factual question deserves a couple\nof searches and a couple of sentences; a broad, multi-part request deserves\nsustained research and a full report. Answering a simple question at length\ndoes not make the answer better — it makes it worse, and it wastes the\nreader's time. Let the request set the size of both the search and the answer.\n\nThe request sets the kind of answer too, not just its size. A request to make\nsomething wants that thing actually built, carrying the voice, structure, and\ninvention the brief implies — not a summary of what your sources say about it.\nSome requests state that they want creativity; more often it is implicit, in a\ntask that cannot be done well without it or one dense enough that the work lies\nin connecting things rather than listing them. When the request calls for that,\ndo the creative work: synthesise across your sources into something that is\nyours, rather than restating each source in turn. Being evidence-grounded\nconstrains what you may assert, not how well you may write — every claim still\nneeds its support, but the shape, argument, and voice of the answer are yours\nto build.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most useful reasonable reading — which for a\nnarrow question is a direct answer, not an expanded survey of the topic around\nit. Do not ask the user clarifying or confirming questions; proceed on the\nstrongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, work out — in proportion to the request; a single\nfactual question needs a moment's thought, not a plan:\n\n0. **Every requirement the request states.** Take them one at a time, in the\n   request's own terms, and say what each one demands of the finished answer.\n   A request that lists what each part must contain has given you a checklist,\n   and every item on it is a thing the answer is wrong without. A stated scope\n   — a period, a place, a population, a technical level — binds the searching\n   and the answer both: work inside it and treat today's date as a fact about\n   when you are reading, not as a licence to drift outside what was asked.\n   Before writing, check the report against the list and fix what is missing.\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence. For each\n   area, decide whether the request itself names its members or you would be\n   supplying them from memory. Any area whose members you would be recalling —\n   the major developments of a period, the leading approaches to a problem,\n   the notable examples of a kind — is a discovery area: its first search asks\n   the field what belongs, and only the results decide the candidate list.\n   Recalling the candidates and searching only for those silently scopes the\n   answer to what you already knew, so anything you had not heard of cannot\n   appear, and the selection itself rests on prior knowledge rather than\n   evidence.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. Size the search to the question. When it has several independent coverage\n   areas, begin with multiple complementary queries in parallel across them.\n   When it has one — a single fact, name, date, or definition — one or two\n   queries is the whole search; if they answer it, stop and write.\n2. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n4. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n5. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n6. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- To keep anything from a batch, call `commit_context` on that turn. It may\n  appear anywhere among the turn's actions; searches in the same turn always\n  run after it.\n- If you issue no `commit_context` on that turn, the batch is treated as your\n  decision to keep none of it: every document is dropped and the turn's other\n  actions still run. That is the correct move when nothing in the batch is\n  worth keeping — but it is irreversible, so do not let a batch you wanted\n  lapse by forgetting.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- Issue at most one `commit_context` per turn; several are ambiguous and lose\n  the batch.\n- New search calls may accompany `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If you cannot find support for a requested point,\nsay plainly in the report that you could not find it, rather than inventing an\nanswer — but say it in a searcher's voice, not in the vocabulary of this\nsection.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, give the best answer your\nevidence permits and say plainly what you could not find.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers after the\n  end of the supporting sentence, on the same line:\n  `<the sentence, ending in its full stop.> [docid_1] [docid_2]`\n- Markers are stripped before the sentence is submitted, so they must sit\n  outside its grammar: the sentence has to read correctly, and mean the same\n  thing, once every marker is deleted.\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences) or JSON.\n- That constraint is about layout, not content. Notation is not layout: when a\n  request asks for a derivation, or the point cannot be made precisely without\n  one, write the mathematics inline, in the sentence, naming each symbol as it\n  appears. A step of a derivation is a sentence like any other and carries its\n  markers. Prose is the medium here, so the work is to carry the reader through\n  the steps in sentences rather than to lay them out on separate display\n  lines — that is a reason to write the mathematics carefully, never a reason\n  to leave it out or to retreat to describing it from a distance.\n- Every line is a sentence of the report itself, read by someone who never saw\n  this conversation and who receives these lines verbatim. Open on the first\n  real sentence of the answer and close on its last. A line narrating your own\n  process — what you are about to do, how the research went, what you conclude\n  about your own conclusions — is not a report sentence and supports nothing.\n- Write in your own voice, as the researcher. Every sentence asserts something\n  about the subject the request asks about, and carries its markers. The\n  markers do the attributing, so a sentence never announces that it is\n  supported, nor what supports it, nor how far that support reaches.\n- Exactly one kind of sentence may be about you rather than the subject: that\n  you could not establish something. Say it once, plainly, in as few words as\n  the point needs — no narrating the attempt, no restating it in other words,\n  no explaining what left you unable. Everything else the reader receives is\n  about the world, dated and specific, not about the answer's own provenance.\n- Length follows the question, not the limit. Answer a narrow question in a\n  sentence or two and stop; there is nothing to be gained by surrounding a\n  one-line answer with background, and a reader who asked something simple\n  will not read an essay. Only a genuinely broad, multi-part request should\n  run long, and even then about 950 words is the practical ceiling: 1024 is a\n  hard limit set by the evaluation and going over costs a full rewrite. Never\n  pad toward a length.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Current date and time: Friday, 17 July 2026, 13:57:41 +1000 (Australia/Melbourne)\n\nResearch request:\n\nWrite a series of technical blog posts on some of the advancements in Large Language Model (LLM) training and fine-tuning in 2023-2025. Each post should at least contain: - The intuition and motivation behind the technique - Detail the methodology - Provide mathematical derivations where applicable - Discuss practical use cases, limitations, and open challenges The writing should be accessible to readers with a graduate-level ML background.\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_czJabTgDHk5yUK9T9Sgg4Y",
+              "name": "search",
+              "arguments": {
+                "query": "DPO Direct Preference Optimization 2023 methodology derivation"
+              }
+            },
+            {
+              "id": "tooluse_LbZoaITLvU56qQqIaEOLST",
+              "name": "search",
+              "arguments": {
+                "query": "QLoRA low-rank adaptation fine-tuning quantization 2023"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T13:57:41.237+10:00",
+        "t_end": "2026-07-17T13:57:56.215+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 14978.108,
+          "context_tokens": 4828,
+          "peak_context_tokens": 4828,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 14979,
+          "tokens": {
+            "input": 4828,
+            "input_uncached": 253,
+            "output": 1253,
+            "cache_read": 0,
+            "cache_write": 4575,
+            "total": 6081,
+            "processed_input": 4828,
+            "processed": 6081,
+            "context": 4828
+          },
+          "provider_usage": {
+            "inputTokens": 253,
+            "outputTokens": 1253,
+            "totalTokens": 6081,
+            "cacheReadInputTokens": 0,
+            "cacheWriteInputTokens": 4575,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 4575
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 4828,
+            "input_uncached": 253,
+            "output": 1253,
+            "cache_read": 0,
+            "cache_write": 4575,
+            "total": 6081,
+            "processed_input": 4828,
+            "processed": 6081
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "DPO Direct Preference Optimization 2023 methodology derivation"
+        },
+        "output": {
+          "query": "DPO Direct Preference Optimization 2023 methodology derivation",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04841_24912",
+              "docid": "shard_04841_24912",
+              "kind": "document",
+              "rrf_score": 0.029828,
+              "truncated": false,
+              "original_chars": 4023,
+              "returned_chars": 4023
+            },
+            {
+              "rank": 2,
+              "id": "shard_01335_36211",
+              "docid": "shard_01335_36211",
+              "kind": "document",
+              "rrf_score": 0.029469,
+              "truncated": false,
+              "original_chars": 3678,
+              "returned_chars": 3678
+            },
+            {
+              "rank": 3,
+              "id": "shard_06073_25191",
+              "docid": "shard_06073_25191",
+              "kind": "document",
+              "rrf_score": 0.029206,
+              "truncated": false,
+              "original_chars": 3407,
+              "returned_chars": 3407
+            },
+            {
+              "rank": 4,
+              "id": "shard_06152_27655",
+              "docid": "shard_06152_27655",
+              "kind": "document",
+              "rrf_score": 0.028177,
+              "truncated": false,
+              "original_chars": 3930,
+              "returned_chars": 3930
+            },
+            {
+              "rank": 5,
+              "id": "shard_05087_50181",
+              "docid": "shard_05087_50181",
+              "kind": "document",
+              "rrf_score": 0.027032,
+              "truncated": false,
+              "original_chars": 3671,
+              "returned_chars": 3671
+            },
+            {
+              "rank": 6,
+              "id": "shard_02090_70478",
+              "docid": "shard_02090_70478",
+              "kind": "document",
+              "rrf_score": 0.026614,
+              "truncated": false,
+              "original_chars": 3474,
+              "returned_chars": 3474
+            },
+            {
+              "rank": 7,
+              "id": "shard_00829_56506",
+              "docid": "shard_00829_56506",
+              "kind": "document",
+              "rrf_score": 0.026387,
+              "truncated": false,
+              "original_chars": 3829,
+              "returned_chars": 3829
+            },
+            {
+              "rank": 8,
+              "id": "shard_00526_79904",
+              "docid": "shard_00526_79904",
+              "kind": "document",
+              "rrf_score": 0.025152,
+              "truncated": false,
+              "original_chars": 3400,
+              "returned_chars": 3400
+            },
+            {
+              "rank": 9,
+              "id": "shard_02297_27511",
+              "docid": "shard_02297_27511",
+              "kind": "document",
+              "rrf_score": 0.024812,
+              "truncated": false,
+              "original_chars": 3726,
+              "returned_chars": 3726
+            },
+            {
+              "rank": 10,
+              "id": "shard_04054_1657",
+              "docid": "shard_04054_1657",
+              "kind": "document",
+              "rrf_score": 0.024697,
+              "truncated": false,
+              "original_chars": 5571,
+              "returned_chars": 5571
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04841_24912",
+          "shard_01335_36211",
+          "shard_06073_25191",
+          "shard_06152_27655",
+          "shard_05087_50181",
+          "shard_02090_70478",
+          "shard_00829_56506",
+          "shard_00526_79904",
+          "shard_02297_27511",
+          "shard_04054_1657"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04841_24912",
+            "score": 0.029828
+          },
+          {
+            "docid": "shard_01335_36211",
+            "score": 0.029469
+          },
+          {
+            "docid": "shard_06073_25191",
+            "score": 0.029206
+          },
+          {
+            "docid": "shard_06152_27655",
+            "score": 0.028177
+          },
+          {
+            "docid": "shard_05087_50181",
+            "score": 0.027032
+          },
+          {
+            "docid": "shard_02090_70478",
+            "score": 0.026614
+          },
+          {
+            "docid": "shard_00829_56506",
+            "score": 0.026387
+          },
+          {
+            "docid": "shard_00526_79904",
+            "score": 0.025152
+          },
+          {
+            "docid": "shard_02297_27511",
+            "score": 0.024812
+          },
+          {
+            "docid": "shard_04054_1657",
+            "score": 0.024697
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_czJabTgDHk5yUK9T9Sgg4Y",
+        "id": "step-0001",
+        "t_start": "2026-07-17T13:57:56.216+10:00",
+        "t_end": "2026-07-17T13:57:56.840+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 623.905,
+          "context_tokens": 4828,
+          "peak_context_tokens": 4828,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 15605,
+          "cumulative_tokens": {
+            "input": 4828,
+            "input_uncached": 253,
+            "output": 1253,
+            "cache_read": 0,
+            "cache_write": 4575,
+            "total": 6081,
+            "processed_input": 4828,
+            "processed": 6081
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04841_24912",
+            "shard_01335_36211",
+            "shard_06073_25191",
+            "shard_06152_27655",
+            "shard_05087_50181",
+            "shard_02090_70478",
+            "shard_00829_56506",
+            "shard_00526_79904",
+            "shard_02297_27511",
+            "shard_04054_1657"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "QLoRA low-rank adaptation fine-tuning quantization 2023"
+        },
+        "output": {
+          "query": "QLoRA low-rank adaptation fine-tuning quantization 2023",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00813_47904",
+              "docid": "shard_00813_47904",
+              "kind": "document",
+              "rrf_score": 0.030159,
+              "truncated": false,
+              "original_chars": 3466,
+              "returned_chars": 3466
+            },
+            {
+              "rank": 2,
+              "id": "shard_03533_77101",
+              "docid": "shard_03533_77101",
+              "kind": "document",
+              "rrf_score": 0.027526,
+              "truncated": false,
+              "original_chars": 5840,
+              "returned_chars": 5840
+            },
+            {
+              "rank": 3,
+              "id": "shard_00407_47077",
+              "docid": "shard_00407_47077",
+              "kind": "document",
+              "rrf_score": 0.026182,
+              "truncated": false,
+              "original_chars": 3441,
+              "returned_chars": 3441
+            },
+            {
+              "rank": 4,
+              "id": "shard_04037_30132",
+              "docid": "shard_04037_30132",
+              "kind": "document",
+              "rrf_score": 0.026042,
+              "truncated": false,
+              "original_chars": 3460,
+              "returned_chars": 3460
+            },
+            {
+              "rank": 5,
+              "id": "shard_00708_37874",
+              "docid": "shard_00708_37874",
+              "kind": "document",
+              "rrf_score": 0.025333,
+              "truncated": false,
+              "original_chars": 3465,
+              "returned_chars": 3465
+            },
+            {
+              "rank": 6,
+              "id": "shard_00667_71292",
+              "docid": "shard_00667_71292",
+              "kind": "document",
+              "rrf_score": 0.025193,
+              "truncated": false,
+              "original_chars": 5954,
+              "returned_chars": 5954
+            },
+            {
+              "rank": 7,
+              "id": "shard_02535_4909",
+              "docid": "shard_02535_4909",
+              "kind": "document",
+              "rrf_score": 0.024611,
+              "truncated": false,
+              "original_chars": 3669,
+              "returned_chars": 3669
+            },
+            {
+              "rank": 8,
+              "id": "shard_04778_57699",
+              "docid": "shard_04778_57699",
+              "kind": "document",
+              "rrf_score": 0.024297,
+              "truncated": false,
+              "original_chars": 3489,
+              "returned_chars": 3489
+            },
+            {
+              "rank": 9,
+              "id": "shard_00380_66834",
+              "docid": "shard_00380_66834",
+              "kind": "document",
+              "rrf_score": 0.023972,
+              "truncated": false,
+              "original_chars": 4083,
+              "returned_chars": 4083
+            },
+            {
+              "rank": 10,
+              "id": "shard_00700_46123",
+              "docid": "shard_00700_46123",
+              "kind": "document",
+              "rrf_score": 0.023889,
+              "truncated": false,
+              "original_chars": 7300,
+              "returned_chars": 7300
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00813_47904",
+          "shard_03533_77101",
+          "shard_00407_47077",
+          "shard_04037_30132",
+          "shard_00708_37874",
+          "shard_00667_71292",
+          "shard_02535_4909",
+          "shard_04778_57699",
+          "shard_00380_66834",
+          "shard_00700_46123"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00813_47904",
+            "score": 0.030159
+          },
+          {
+            "docid": "shard_03533_77101",
+            "score": 0.027526
+          },
+          {
+            "docid": "shard_00407_47077",
+            "score": 0.026182
+          },
+          {
+            "docid": "shard_04037_30132",
+            "score": 0.026042
+          },
+          {
+            "docid": "shard_00708_37874",
+            "score": 0.025333
+          },
+          {
+            "docid": "shard_00667_71292",
+            "score": 0.025193
+          },
+          {
+            "docid": "shard_02535_4909",
+            "score": 0.024611
+          },
+          {
+            "docid": "shard_04778_57699",
+            "score": 0.024297
+          },
+          {
+            "docid": "shard_00380_66834",
+            "score": 0.023972
+          },
+          {
+            "docid": "shard_00700_46123",
+            "score": 0.023889
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_LbZoaITLvU56qQqIaEOLST",
+        "id": "step-0002",
+        "t_start": "2026-07-17T13:57:56.217+10:00",
+        "t_end": "2026-07-17T13:57:56.753+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 536.539,
+          "context_tokens": 4828,
+          "peak_context_tokens": 4828,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 15605,
+          "cumulative_tokens": {
+            "input": 4828,
+            "input_uncached": 253,
+            "output": 1253,
+            "cache_read": 0,
+            "cache_write": 4575,
+            "total": 6081,
+            "processed_input": 4828,
+            "processed": 6081
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00813_47904",
+            "shard_03533_77101",
+            "shard_00407_47077",
+            "shard_04037_30132",
+            "shard_00708_37874",
+            "shard_00667_71292",
+            "shard_02535_4909",
+            "shard_04778_57699",
+            "shard_00380_66834",
+            "shard_00700_46123"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [],
+      "answer": [
+        {
+          "text": "Run failed: ClientError: An error occurred (ExpiredTokenException) when calling the Converse operation: The security token included in the request is expired",
+          "citations": []
+        }
+      ]
+    },
+    "started_at": "2026-07-17T13:57:41.236+10:00",
+    "ended_at": "2026-07-17T13:57:56.930+10:00",
+    "duration_ms": 15694,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}

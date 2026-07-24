@@ -14,8 +14,8 @@ CT=$ROOT/tmp/Cottontail                       # upstream reference checkout
 export PATH="$ENV/bin:$PATH"
 export CC="$ENV/bin/x86_64-conda-linux-gnu-gcc"
 export CXX="$ENV/bin/x86_64-conda-linux-gnu-g++"
-export BAZELISK_HOME="$ROOT/tasks/ssr_search/.bazelisk"   # bazel binary cache
-OUTPUT_USER_ROOT="$ROOT/tasks/ssr_search/.bazel"          # build output tree
+export BAZELISK_HOME="$ROOT/tmp/.bazelisk"   # bazel binary cache (build infra under tmp/)
+OUTPUT_USER_ROOT="$ROOT/tmp/.bazel"          # build output tree
 
 cd "$CT"
 # NB: ssr-client / fluffy are interactive GNU-readline shells (need

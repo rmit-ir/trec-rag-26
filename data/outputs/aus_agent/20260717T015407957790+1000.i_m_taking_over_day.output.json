@@ -1,3 +1,2783 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:585cd05addf9d4978c606fd716b484fe7382664d896ba4c18522fdd4683212b0
-size 127083
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-46",
+    "narrative": "I’m taking over day-to-day management of my family’s casual restaurant, and honestly the staff culture is a mess: servers blame the kitchen, cooks say FOH dumps tickets on them, schedules change last minute, and a couple younger employees hinted that customer comments get brushed off because that’s just restaurant life. I don’t want to write some fake values poster; I need changes that would actually make people stay and still keep service moving. What should I focus on first if I’m trying to rebuild a healthier restaurant workplace culture, reduce turnover, and handle the tipping/harassment/FOH-BOH tension without blowing up the business?",
+    "run_id": "aus-agent-test-full",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_00313_80199",
+    "shard_01690_78392",
+    "shard_02658_12983",
+    "shard_00508_66201",
+    "shard_01457_63848",
+    "shard_03618_81693"
+  ],
+  "answer": [
+    {
+      "text": "Rebuilding a healthier culture in a casual restaurant starts with treating the blame cycle between servers and cooks as a systems problem rather than a personality problem, since most front-of-house/back-of-house friction traces to ticket-stacking, slow food, and unclear expectations rather than genuine dislike between teams.",
+      "citations": []
+    },
+    {
+      "text": "Front-of-house staff often blame the kitchen for slow or wrong plates because those \"slip-ups\" directly cut into their tip income, while cooks resent servers punching in all their orders at once and disrupting the kitchen's flow, and both sides tend to feel they are under more pressure than the other.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "A concrete first move is to build teamwork expectations directly into onboarding, explicitly training new servers on how to stagger orders instead of stacking tickets and training new cooks on why front-of-house has to manage table timing, so the conflict is prevented rather than just refereed after the fact.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "A second concrete move is a short job-swap exercise, such as having a server work a cold station during a controlled shift or a cook shadow the floor on a busy night, which builds empathy for the other side's pressure without disrupting service.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Low-stakes shared time, like a regular staff or \"family\" meal, and simple technology fixes such as a kitchen display system or shared allergen information, reduce the daily friction points that turn into blame before they escalate into open conflict.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Because mismanaged conflict, not conflict itself, is what corrodes culture, it helps to treat disagreements over shifts, workload, and FOH-BOH friction as normal and expected, and to give managers explicit tools to mediate them as teaching moments rather than punishment, which is directly linked in industry conflict-management guidance to lower turnover and stronger team cohesion.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "Underneath the blame dynamic is usually a workload and scheduling problem, and the data-driven approach recommended by restaurant retention consultants is to measure how hard staff are actually working shift to shift and set realistic, consistent expectations rather than assuming everyone should simply push through busy nights.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "Creating a predictable shift experience, where servers know roughly what section and workload they will face before they arrive, measurably reduces stress and is one of the most direct levers restaurant operators have over burnout and turnover.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "Last-minute schedule changes compound this stress, and operational fixes like staggering start times and building deliberate overlap between shift crews, rather than an abrupt all-at-once handoff, keep information flowing between the outgoing and incoming teams and reduce the chaos that triggers snap schedule changes in the first place.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "Since front-of-house positions typically churn faster than back-of-house roles, and industry turnover averages around 23% with each replacement hire costing roughly $3,178 in training costs, stabilizing scheduling and workload for servers specifically will move the turnover needle fastest.",
+      "citations": [
+        2,
+        4
+      ]
+    },
+    {
+      "text": "On the customer-comments-get-brushed-off problem, the deeper risk is that most dissatisfied customers never complain to a manager at all; they simply stop coming back, so treating the absence of complaints as evidence that everything is fine, or treating the complaints that do surface as noise, means real problems go undetected until covers start dropping.",
+      "citations": []
+    },
+    {
+      "text": "The fix is not a poster about \"valuing feedback\" but a habit: designate who owns customer concerns each shift, log recurring themes, and feed them back to the kitchen and floor teams as specific, actionable adjustments rather than vague reminders to \"do better.\"",
+      "citations": []
+    },
+    {
+      "text": "On tipping, the single highest-leverage structural decision is building a written, transparent tip-out or tip-sharing structure rather than leaving distribution to informal norms, since an unfair or opaque system is a direct and common driver of staff resentment and turnover.",
+      "citations": []
+    },
+    {
+      "text": "Legally, servers can be required to tip out to support staff on a set percentage basis, and since a 2018 federal law change, owners, managers, and supervisors cannot take any share of that pool regardless of whether a tip credit is used, so codifying and communicating the exact percentages by role (kitchen, bussers, bartenders) removes a major source of the FOH/BOH \"us versus them\" dynamic.",
+      "citations": []
+    },
+    {
+      "text": "On harassment, the tipping model itself matters: workers on the standard $2.13 subminimum tipped wage are financially dependent on customers who may harass them, and a national study found that sexual harassment rates are roughly cut in half when workers are paid full minimum wage plus tips instead of the subminimum rate, so wage structure is not a side issue to harassment policy but a direct lever on it.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Beyond wage structure, a concrete, low-cost tool is a simple escalation protocol, such as one restaurant's color-coded system where staff and management have a pre-agreed, no-questions-asked response the moment a customer's behavior crosses a line, which removes the ambiguity that currently makes younger staff assume harassment is \"just how it is.\"",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Tying all of this together is whether staff believe they can actually speak up about problems without being dismissed or blamed, since organizations lacking this kind of psychological safety see employees stay quiet, disengage, and eventually leave, which is precisely the dynamic your younger staff described around customer complaints.",
+      "citations": []
+    },
+    {
+      "text": "Because psychological safety is what determines whether staff will accept operational changes instead of quietly resisting them, sequencing matters: introduce the scheduling, tip-out, and harassment-response changes as the leader modeling consistent, transparent behavior first, since resistance to any culture change drops sharply when employees see leadership follow through rather than announce values and move on.",
+      "citations": []
+    },
+    {
+      "text": "In practice, the first 90 days should focus on four things: stabilizing schedules and workload data so shifts become predictable, formalizing onboarding and a shared FOH/BOH ticket-and-communication protocol, publishing a clear written tip-out structure, and installing a specific, practiced response protocol for customer harassment, with a manager habit of logging and acting on customer feedback layered on top.",
+      "citations": [
+        2,
+        0
+      ]
+    },
+    {
+      "text": "Each of these is a concrete system change rather than a values statement, and each directly targets one of the four symptoms you described: the blame cycle, chaotic scheduling, dismissed customer feedback, and unaddressed harassment risk tied to tipping.",
+      "citations": []
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-46",
+    "status": "completed",
+    "metadata": {
+      "model": "au.anthropic.claude-sonnet-5",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-test-full",
+      "query_source": "I’m taking over day-to-day management of my family’s casual restaurant, and honestly the staff culture is a mess: servers blame the kitchen, cooks say FOH dumps tickets on them, schedules change last minute, and a couple younger employees hinted that customer comments get brushed off because that’s just restaurant life. I don’t want to write some fake values poster; I need changes that would actually make people stay and still keep service moving. What should I focus on first if I’m trying to rebuild a healthier restaurant workplace culture, reduce turnover, and handle the tipping/harassment/FOH-BOH tension without blowing up the business?"
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 7,
+        "commit_context": 1
+      },
+      "tool_call_counts_all": {
+        "search": 7,
+        "commit_context": 2
+      },
+      "retrieved_docids": [
+        "shard_00074_28211",
+        "shard_00132_67346",
+        "shard_00313_80199",
+        "shard_00320_28194",
+        "shard_00344_31382",
+        "shard_00351_57204",
+        "shard_00352_64822",
+        "shard_00508_66201",
+        "shard_00723_30305",
+        "shard_00724_84619",
+        "shard_00757_82818",
+        "shard_00923_30657",
+        "shard_01129_24333",
+        "shard_01140_61164",
+        "shard_01407_33085",
+        "shard_01457_63848",
+        "shard_01519_62631",
+        "shard_01547_75422",
+        "shard_01690_78392",
+        "shard_02063_56407",
+        "shard_02070_81282",
+        "shard_02216_34026",
+        "shard_02412_24813",
+        "shard_02565_49804",
+        "shard_02590_49486",
+        "shard_02640_61223",
+        "shard_02658_12983",
+        "shard_02722_78544",
+        "shard_02920_15050",
+        "shard_02933_16744",
+        "shard_02970_52619",
+        "shard_03076_54428",
+        "shard_03224_41410",
+        "shard_03236_50369",
+        "shard_03404_60769",
+        "shard_03461_14629",
+        "shard_03470_8882",
+        "shard_03503_34108",
+        "shard_03520_21110",
+        "shard_03601_22129",
+        "shard_03618_81693",
+        "shard_03969_5547",
+        "shard_03993_12368",
+        "shard_04034_72821",
+        "shard_04071_40923",
+        "shard_04185_15264",
+        "shard_04288_36991",
+        "shard_04407_18679",
+        "shard_04541_73936",
+        "shard_04596_23612",
+        "shard_04700_17549",
+        "shard_04954_69839",
+        "shard_04989_37788",
+        "shard_05098_63124",
+        "shard_05107_32874",
+        "shard_05116_43978",
+        "shard_05167_37235",
+        "shard_05234_43483",
+        "shard_05437_84701",
+        "shard_05454_77134",
+        "shard_05494_21808",
+        "shard_05787_72470",
+        "shard_05944_16239",
+        "shard_06139_12616",
+        "shard_06178_24276",
+        "shard_06320_6498",
+        "shard_06345_69232",
+        "shard_06356_14644",
+        "shard_06402_12078",
+        "shard_06489_8890"
+      ],
+      "tokens": {
+        "input": 147327,
+        "input_uncached": 114805,
+        "output": 4687,
+        "cache_read": 9144,
+        "cache_write": 23378,
+        "total": 152014,
+        "processed_input": 138183,
+        "processed": 142870,
+        "context_tokens": 76657,
+        "peak_context_tokens": 76657,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00313_80199",
+          "shard_00508_66201",
+          "shard_01457_63848",
+          "shard_01690_78392",
+          "shard_02658_12983",
+          "shard_03618_81693"
+        ],
+        "rejected": [
+          "shard_00074_28211",
+          "shard_00132_67346",
+          "shard_00320_28194",
+          "shard_00344_31382",
+          "shard_00351_57204",
+          "shard_00352_64822",
+          "shard_00723_30305",
+          "shard_00724_84619",
+          "shard_00757_82818",
+          "shard_00923_30657",
+          "shard_01129_24333",
+          "shard_01140_61164",
+          "shard_01407_33085",
+          "shard_01519_62631",
+          "shard_01547_75422",
+          "shard_02063_56407",
+          "shard_02070_81282",
+          "shard_02216_34026",
+          "shard_02412_24813",
+          "shard_02565_49804",
+          "shard_02590_49486",
+          "shard_02640_61223",
+          "shard_02722_78544",
+          "shard_02920_15050",
+          "shard_02933_16744",
+          "shard_02970_52619",
+          "shard_03076_54428",
+          "shard_03224_41410",
+          "shard_03236_50369",
+          "shard_03404_60769",
+          "shard_03461_14629",
+          "shard_03470_8882",
+          "shard_03503_34108",
+          "shard_03520_21110",
+          "shard_03601_22129",
+          "shard_03969_5547",
+          "shard_03993_12368",
+          "shard_04034_72821",
+          "shard_04071_40923",
+          "shard_04185_15264",
+          "shard_04288_36991",
+          "shard_04407_18679",
+          "shard_04541_73936",
+          "shard_04596_23612",
+          "shard_04700_17549",
+          "shard_04954_69839",
+          "shard_04989_37788",
+          "shard_05098_63124",
+          "shard_05107_32874",
+          "shard_05116_43978",
+          "shard_05167_37235",
+          "shard_05234_43483",
+          "shard_05437_84701",
+          "shard_05454_77134",
+          "shard_05494_21808",
+          "shard_05787_72470",
+          "shard_05944_16239",
+          "shard_06139_12616",
+          "shard_06178_24276",
+          "shard_06320_6498",
+          "shard_06345_69232",
+          "shard_06356_14644",
+          "shard_06402_12078",
+          "shard_06489_8890"
+        ]
+      },
+      "report_repairs": [
+        "line 4: folded a citation-only line into the preceding sentence",
+        "line 7: folded a citation-only line into the preceding sentence",
+        "line 10: folded a citation-only line into the preceding sentence",
+        "line 13: folded a citation-only line into the preceding sentence",
+        "line 16: folded a citation-only line into the preceding sentence",
+        "line 19: folded a citation-only line into the preceding sentence",
+        "line 22: folded a citation-only line into the preceding sentence",
+        "line 25: folded a citation-only line into the preceding sentence",
+        "line 28: folded a citation-only line into the preceding sentence",
+        "line 31: folded a citation-only line into the preceding sentence",
+        "line 34: folded a citation-only line into the preceding sentence",
+        "line 37: folded a citation-only line into the preceding sentence",
+        "line 40: folded a citation-only line into the preceding sentence",
+        "line 43: folded a citation-only line into the preceding sentence",
+        "line 46: folded a citation-only line into the preceding sentence",
+        "line 49: folded a citation-only line into the preceding sentence",
+        "line 52: folded a citation-only line into the preceding sentence",
+        "line 55: folded a citation-only line into the preceding sentence",
+        "sentence 11: dropped uncommitted docids shard_06320_6498",
+        "sentence 12: dropped uncommitted docids shard_06320_6498",
+        "sentence 13: dropped uncommitted docids shard_03601_22129",
+        "sentence 14: dropped uncommitted docids shard_02216_34026",
+        "sentence 17: dropped uncommitted docids shard_01140_61164",
+        "sentence 18: dropped uncommitted docids shard_04071_40923",
+        "sentence 19: dropped uncommitted docids shard_03601_22129"
+      ]
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Produce a complete,\nwell-organized, evidence-grounded response using only the available\nsearch/retrieval tools and evidence returned by them. Prior knowledge may help\nyou choose searches, but it is not evidence and must not support factual claims.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most complete reasonable interpretation that\nstays in scope. Do not ask the user clarifying or confirming questions; proceed\non the strongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, determine internally:\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. Begin with multiple complementary queries in parallel across independent\n   coverage areas.\n2. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n4. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n5. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n6. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- On that turn, `commit_context` must be the first control action.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- New search calls may follow `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If available evidence does not support a requested\npoint, state the evidence gap rather than inventing an answer.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, produce the best answer\nthe committed evidence permits and explicitly identify the remaining evidence\ngaps.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers at the\n  end of the supporting sentence's line, e.g.\n  `Vaccination reduced hospitalizations among older adults. [docid_1] [docid_2]`\n- Citation markers are stripped from the submitted sentence, so a marker must\n  never act as a word in the sentence: write `the trial reports X [docid].`,\n  never `as [docid] reports, X.`\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or\n  any preamble, meta-commentary, or closing remarks around the report; every\n  line must be a report sentence.\n- Aim for about 950 words, excluding citation markers. 1024 words is a hard\n  limit set by the evaluation, and an over-length report costs a full rewrite,\n  so plan the report's scope to land under the target rather than writing long\n  and trimming.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Research request:\n\nI’m taking over day-to-day management of my family’s casual restaurant, and honestly the staff culture is a mess: servers blame the kitchen, cooks say FOH dumps tickets on them, schedules change last minute, and a couple younger employees hinted that customer comments get brushed off because that’s just restaurant life. I don’t want to write some fake values poster; I need changes that would actually make people stay and still keep service moving. What should I focus on first if I’m trying to rebuild a healthier restaurant workplace culture, reduce turnover, and handle the tipping/harassment/FOH-BOH tension without blowing up the business?\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_ZR3ChZ9vWM51sRa9nmfyC1",
+              "name": "search",
+              "arguments": {
+                "query": "restaurant staff turnover causes and retention strategies"
+              }
+            },
+            {
+              "id": "tooluse_T1OMVJszbtXmP3tR8I4HbX",
+              "name": "search",
+              "arguments": {
+                "query": "front of house back of house conflict restaurant communication"
+              }
+            },
+            {
+              "id": "tooluse_99kUEqSlQ7AqR9hclfxnJP",
+              "name": "search",
+              "arguments": {
+                "query": "restaurant tipping and sexual harassment servers customers"
+              }
+            },
+            {
+              "id": "tooluse_XhVsSKLWQVZtGbEm5FE37c",
+              "name": "search",
+              "arguments": {
+                "query": "last minute schedule changes restaurant employees stress"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T01:53:06.791+10:00",
+        "t_end": "2026-07-17T01:53:11.151+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 4360.152,
+          "context_tokens": 3332,
+          "peak_context_tokens": 3332,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 4361,
+          "tokens": {
+            "input": 3332,
+            "input_uncached": 284,
+            "output": 393,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3725,
+            "processed_input": 284,
+            "processed": 677,
+            "context": 3332
+          },
+          "provider_usage": {
+            "inputTokens": 284,
+            "outputTokens": 393,
+            "totalTokens": 3725,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 3332,
+            "input_uncached": 284,
+            "output": 393,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3725,
+            "processed_input": 284,
+            "processed": 677
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "restaurant staff turnover causes and retention strategies"
+        },
+        "output": {
+          "query": "restaurant staff turnover causes and retention strategies",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02658_12983",
+              "docid": "shard_02658_12983",
+              "kind": "document",
+              "rrf_score": 0.031754,
+              "truncated": false,
+              "original_chars": 12408,
+              "returned_chars": 12408
+            },
+            {
+              "rank": 2,
+              "id": "shard_05234_43483",
+              "docid": "shard_05234_43483",
+              "kind": "document",
+              "rrf_score": 0.029727,
+              "truncated": false,
+              "original_chars": 3189,
+              "returned_chars": 3189
+            },
+            {
+              "rank": 3,
+              "id": "shard_01457_63848",
+              "docid": "shard_01457_63848",
+              "kind": "document",
+              "rrf_score": 0.029437,
+              "truncated": false,
+              "original_chars": 7582,
+              "returned_chars": 7582
+            },
+            {
+              "rank": 4,
+              "id": "shard_05098_63124",
+              "docid": "shard_05098_63124",
+              "kind": "document",
+              "rrf_score": 0.029116,
+              "truncated": false,
+              "original_chars": 3958,
+              "returned_chars": 3958
+            },
+            {
+              "rank": 5,
+              "id": "shard_06178_24276",
+              "docid": "shard_06178_24276",
+              "kind": "document",
+              "rrf_score": 0.028169,
+              "truncated": false,
+              "original_chars": 2249,
+              "returned_chars": 2249
+            },
+            {
+              "rank": 6,
+              "id": "shard_05116_43978",
+              "docid": "shard_05116_43978",
+              "kind": "document",
+              "rrf_score": 0.027526,
+              "truncated": false,
+              "original_chars": 3162,
+              "returned_chars": 3162
+            },
+            {
+              "rank": 7,
+              "id": "shard_02412_24813",
+              "docid": "shard_02412_24813",
+              "kind": "document",
+              "rrf_score": 0.027433,
+              "truncated": false,
+              "original_chars": 9355,
+              "returned_chars": 9355
+            },
+            {
+              "rank": 8,
+              "id": "shard_04288_36991",
+              "docid": "shard_04288_36991",
+              "kind": "document",
+              "rrf_score": 0.027397,
+              "truncated": false,
+              "original_chars": 4061,
+              "returned_chars": 4061
+            },
+            {
+              "rank": 9,
+              "id": "shard_03503_34108",
+              "docid": "shard_03503_34108",
+              "kind": "document",
+              "rrf_score": 0.02619,
+              "truncated": false,
+              "original_chars": 8388,
+              "returned_chars": 8388
+            },
+            {
+              "rank": 10,
+              "id": "shard_01129_24333",
+              "docid": "shard_01129_24333",
+              "kind": "document",
+              "rrf_score": 0.025817,
+              "truncated": false,
+              "original_chars": 3948,
+              "returned_chars": 3948
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02658_12983",
+          "shard_05234_43483",
+          "shard_01457_63848",
+          "shard_05098_63124",
+          "shard_06178_24276",
+          "shard_05116_43978",
+          "shard_02412_24813",
+          "shard_04288_36991",
+          "shard_03503_34108",
+          "shard_01129_24333"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02658_12983",
+            "score": 0.031754
+          },
+          {
+            "docid": "shard_05234_43483",
+            "score": 0.029727
+          },
+          {
+            "docid": "shard_01457_63848",
+            "score": 0.029437
+          },
+          {
+            "docid": "shard_05098_63124",
+            "score": 0.029116
+          },
+          {
+            "docid": "shard_06178_24276",
+            "score": 0.028169
+          },
+          {
+            "docid": "shard_05116_43978",
+            "score": 0.027526
+          },
+          {
+            "docid": "shard_02412_24813",
+            "score": 0.027433
+          },
+          {
+            "docid": "shard_04288_36991",
+            "score": 0.027397
+          },
+          {
+            "docid": "shard_03503_34108",
+            "score": 0.02619
+          },
+          {
+            "docid": "shard_01129_24333",
+            "score": 0.025817
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_ZR3ChZ9vWM51sRa9nmfyC1",
+        "id": "step-0001",
+        "t_start": "2026-07-17T01:53:11.152+10:00",
+        "t_end": "2026-07-17T01:53:11.762+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 610.329,
+          "context_tokens": 3332,
+          "peak_context_tokens": 3332,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5253,
+          "cumulative_tokens": {
+            "input": 3332,
+            "input_uncached": 284,
+            "output": 393,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3725,
+            "processed_input": 284,
+            "processed": 677
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02658_12983",
+            "shard_05234_43483",
+            "shard_01457_63848",
+            "shard_05098_63124",
+            "shard_06178_24276",
+            "shard_05116_43978",
+            "shard_02412_24813",
+            "shard_04288_36991",
+            "shard_03503_34108",
+            "shard_01129_24333"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "front of house back of house conflict restaurant communication"
+        },
+        "output": {
+          "query": "front of house back of house conflict restaurant communication",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06489_8890",
+              "docid": "shard_06489_8890",
+              "kind": "document",
+              "rrf_score": 0.030092,
+              "truncated": false,
+              "original_chars": 2934,
+              "returned_chars": 2934
+            },
+            {
+              "rank": 2,
+              "id": "shard_04407_18679",
+              "docid": "shard_04407_18679",
+              "kind": "document",
+              "rrf_score": 0.029236,
+              "truncated": false,
+              "original_chars": 4057,
+              "returned_chars": 4057
+            },
+            {
+              "rank": 3,
+              "id": "shard_00724_84619",
+              "docid": "shard_00724_84619",
+              "kind": "document",
+              "rrf_score": 0.027894,
+              "truncated": false,
+              "original_chars": 2686,
+              "returned_chars": 2686
+            },
+            {
+              "rank": 4,
+              "id": "shard_00313_80199",
+              "docid": "shard_00313_80199",
+              "kind": "document",
+              "rrf_score": 0.027505,
+              "truncated": false,
+              "original_chars": 14936,
+              "returned_chars": 14936
+            },
+            {
+              "rank": 5,
+              "id": "shard_03520_21110",
+              "docid": "shard_03520_21110",
+              "kind": "document",
+              "rrf_score": 0.027364,
+              "truncated": false,
+              "original_chars": 2166,
+              "returned_chars": 2166
+            },
+            {
+              "rank": 6,
+              "id": "shard_01690_78392",
+              "docid": "shard_01690_78392",
+              "kind": "document",
+              "rrf_score": 0.027119,
+              "truncated": false,
+              "original_chars": 13791,
+              "returned_chars": 13791
+            },
+            {
+              "rank": 7,
+              "id": "shard_00723_30305",
+              "docid": "shard_00723_30305",
+              "kind": "document",
+              "rrf_score": 0.027027,
+              "truncated": false,
+              "original_chars": 2999,
+              "returned_chars": 2999
+            },
+            {
+              "rank": 8,
+              "id": "shard_02920_15050",
+              "docid": "shard_02920_15050",
+              "kind": "document",
+              "rrf_score": 0.025873,
+              "truncated": false,
+              "original_chars": 4635,
+              "returned_chars": 4635
+            },
+            {
+              "rank": 9,
+              "id": "shard_02063_56407",
+              "docid": "shard_02063_56407",
+              "kind": "document",
+              "rrf_score": 0.024322,
+              "truncated": false,
+              "original_chars": 8427,
+              "returned_chars": 8427
+            },
+            {
+              "rank": 10,
+              "id": "shard_06345_69232",
+              "docid": "shard_06345_69232",
+              "kind": "document",
+              "rrf_score": 0.024265,
+              "truncated": false,
+              "original_chars": 2337,
+              "returned_chars": 2337
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06489_8890",
+          "shard_04407_18679",
+          "shard_00724_84619",
+          "shard_00313_80199",
+          "shard_03520_21110",
+          "shard_01690_78392",
+          "shard_00723_30305",
+          "shard_02920_15050",
+          "shard_02063_56407",
+          "shard_06345_69232"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06489_8890",
+            "score": 0.030092
+          },
+          {
+            "docid": "shard_04407_18679",
+            "score": 0.029236
+          },
+          {
+            "docid": "shard_00724_84619",
+            "score": 0.027894
+          },
+          {
+            "docid": "shard_00313_80199",
+            "score": 0.027505
+          },
+          {
+            "docid": "shard_03520_21110",
+            "score": 0.027364
+          },
+          {
+            "docid": "shard_01690_78392",
+            "score": 0.027119
+          },
+          {
+            "docid": "shard_00723_30305",
+            "score": 0.027027
+          },
+          {
+            "docid": "shard_02920_15050",
+            "score": 0.025873
+          },
+          {
+            "docid": "shard_02063_56407",
+            "score": 0.024322
+          },
+          {
+            "docid": "shard_06345_69232",
+            "score": 0.024265
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_T1OMVJszbtXmP3tR8I4HbX",
+        "id": "step-0002",
+        "t_start": "2026-07-17T01:53:11.152+10:00",
+        "t_end": "2026-07-17T01:53:12.004+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 851.934,
+          "context_tokens": 3332,
+          "peak_context_tokens": 3332,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5253,
+          "cumulative_tokens": {
+            "input": 3332,
+            "input_uncached": 284,
+            "output": 393,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3725,
+            "processed_input": 284,
+            "processed": 677
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06489_8890",
+            "shard_04407_18679",
+            "shard_00724_84619",
+            "shard_00313_80199",
+            "shard_03520_21110",
+            "shard_01690_78392",
+            "shard_00723_30305",
+            "shard_02920_15050",
+            "shard_02063_56407",
+            "shard_06345_69232"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "restaurant tipping and sexual harassment servers customers"
+        },
+        "output": {
+          "query": "restaurant tipping and sexual harassment servers customers",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03404_60769",
+              "docid": "shard_03404_60769",
+              "kind": "document",
+              "rrf_score": 0.032002,
+              "truncated": false,
+              "original_chars": 1574,
+              "returned_chars": 1574
+            },
+            {
+              "rank": 2,
+              "id": "shard_03236_50369",
+              "docid": "shard_03236_50369",
+              "kind": "document",
+              "rrf_score": 0.030092,
+              "truncated": false,
+              "original_chars": 2283,
+              "returned_chars": 2283
+            },
+            {
+              "rank": 3,
+              "id": "shard_04185_15264",
+              "docid": "shard_04185_15264",
+              "kind": "document",
+              "rrf_score": 0.03009,
+              "truncated": false,
+              "original_chars": 3128,
+              "returned_chars": 3128
+            },
+            {
+              "rank": 4,
+              "id": "shard_01547_75422",
+              "docid": "shard_01547_75422",
+              "kind": "document",
+              "rrf_score": 0.02901,
+              "truncated": false,
+              "original_chars": 1769,
+              "returned_chars": 1769
+            },
+            {
+              "rank": 5,
+              "id": "shard_04989_37788",
+              "docid": "shard_04989_37788",
+              "kind": "document",
+              "rrf_score": 0.02895,
+              "truncated": false,
+              "original_chars": 2106,
+              "returned_chars": 2106
+            },
+            {
+              "rank": 6,
+              "id": "shard_03618_81693",
+              "docid": "shard_03618_81693",
+              "kind": "document",
+              "rrf_score": 0.02837,
+              "truncated": false,
+              "original_chars": 4063,
+              "returned_chars": 4063
+            },
+            {
+              "rank": 7,
+              "id": "shard_05494_21808",
+              "docid": "shard_05494_21808",
+              "kind": "document",
+              "rrf_score": 0.02739,
+              "truncated": false,
+              "original_chars": 2913,
+              "returned_chars": 2913
+            },
+            {
+              "rank": 8,
+              "id": "shard_00320_28194",
+              "docid": "shard_00320_28194",
+              "kind": "document",
+              "rrf_score": 0.026916,
+              "truncated": false,
+              "original_chars": 2289,
+              "returned_chars": 2289
+            },
+            {
+              "rank": 9,
+              "id": "shard_05167_37235",
+              "docid": "shard_05167_37235",
+              "kind": "document",
+              "rrf_score": 0.025873,
+              "truncated": false,
+              "original_chars": 3602,
+              "returned_chars": 3602
+            },
+            {
+              "rank": 10,
+              "id": "shard_04700_17549",
+              "docid": "shard_04700_17549",
+              "kind": "document",
+              "rrf_score": 0.025747,
+              "truncated": false,
+              "original_chars": 2365,
+              "returned_chars": 2365
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03404_60769",
+          "shard_03236_50369",
+          "shard_04185_15264",
+          "shard_01547_75422",
+          "shard_04989_37788",
+          "shard_03618_81693",
+          "shard_05494_21808",
+          "shard_00320_28194",
+          "shard_05167_37235",
+          "shard_04700_17549"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03404_60769",
+            "score": 0.032002
+          },
+          {
+            "docid": "shard_03236_50369",
+            "score": 0.030092
+          },
+          {
+            "docid": "shard_04185_15264",
+            "score": 0.03009
+          },
+          {
+            "docid": "shard_01547_75422",
+            "score": 0.02901
+          },
+          {
+            "docid": "shard_04989_37788",
+            "score": 0.02895
+          },
+          {
+            "docid": "shard_03618_81693",
+            "score": 0.02837
+          },
+          {
+            "docid": "shard_05494_21808",
+            "score": 0.02739
+          },
+          {
+            "docid": "shard_00320_28194",
+            "score": 0.026916
+          },
+          {
+            "docid": "shard_05167_37235",
+            "score": 0.025873
+          },
+          {
+            "docid": "shard_04700_17549",
+            "score": 0.025747
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_99kUEqSlQ7AqR9hclfxnJP",
+        "id": "step-0003",
+        "t_start": "2026-07-17T01:53:11.153+10:00",
+        "t_end": "2026-07-17T01:53:11.797+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 643.952,
+          "context_tokens": 3332,
+          "peak_context_tokens": 3332,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5253,
+          "cumulative_tokens": {
+            "input": 3332,
+            "input_uncached": 284,
+            "output": 393,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3725,
+            "processed_input": 284,
+            "processed": 677
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03404_60769",
+            "shard_03236_50369",
+            "shard_04185_15264",
+            "shard_01547_75422",
+            "shard_04989_37788",
+            "shard_03618_81693",
+            "shard_05494_21808",
+            "shard_00320_28194",
+            "shard_05167_37235",
+            "shard_04700_17549"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "last minute schedule changes restaurant employees stress"
+        },
+        "output": {
+          "query": "last minute schedule changes restaurant employees stress",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05437_84701",
+              "docid": "shard_05437_84701",
+              "kind": "document",
+              "rrf_score": 0.030282,
+              "truncated": false,
+              "original_chars": 3175,
+              "returned_chars": 3175
+            },
+            {
+              "rank": 2,
+              "id": "shard_00508_66201",
+              "docid": "shard_00508_66201",
+              "kind": "document",
+              "rrf_score": 0.027693,
+              "truncated": false,
+              "original_chars": 3574,
+              "returned_chars": 3574
+            },
+            {
+              "rank": 3,
+              "id": "shard_03224_41410",
+              "docid": "shard_03224_41410",
+              "kind": "document",
+              "rrf_score": 0.027365,
+              "truncated": false,
+              "original_chars": 1771,
+              "returned_chars": 1771
+            },
+            {
+              "rank": 4,
+              "id": "shard_05944_16239",
+              "docid": "shard_05944_16239",
+              "kind": "document",
+              "rrf_score": 0.02619,
+              "truncated": false,
+              "original_chars": 3275,
+              "returned_chars": 3275
+            },
+            {
+              "rank": 5,
+              "id": "shard_01407_33085",
+              "docid": "shard_01407_33085",
+              "kind": "document",
+              "rrf_score": 0.02605,
+              "truncated": false,
+              "original_chars": 3598,
+              "returned_chars": 3598
+            },
+            {
+              "rank": 6,
+              "id": "shard_00344_31382",
+              "docid": "shard_00344_31382",
+              "kind": "document",
+              "rrf_score": 0.024093,
+              "truncated": false,
+              "original_chars": 4000,
+              "returned_chars": 4000
+            },
+            {
+              "rank": 7,
+              "id": "shard_05107_32874",
+              "docid": "shard_05107_32874",
+              "kind": "document",
+              "rrf_score": 0.021437,
+              "truncated": false,
+              "original_chars": 3762,
+              "returned_chars": 3762
+            },
+            {
+              "rank": 8,
+              "id": "shard_00074_28211",
+              "docid": "shard_00074_28211",
+              "kind": "document",
+              "rrf_score": 0.019872,
+              "truncated": false,
+              "original_chars": 3657,
+              "returned_chars": 3657
+            },
+            {
+              "rank": 9,
+              "id": "shard_03969_5547",
+              "docid": "shard_03969_5547",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 12529,
+              "returned_chars": 12529
+            },
+            {
+              "rank": 10,
+              "id": "shard_02933_16744",
+              "docid": "shard_02933_16744",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 4591,
+              "returned_chars": 4591
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05437_84701",
+          "shard_00508_66201",
+          "shard_03224_41410",
+          "shard_05944_16239",
+          "shard_01407_33085",
+          "shard_00344_31382",
+          "shard_05107_32874",
+          "shard_00074_28211",
+          "shard_03969_5547",
+          "shard_02933_16744"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05437_84701",
+            "score": 0.030282
+          },
+          {
+            "docid": "shard_00508_66201",
+            "score": 0.027693
+          },
+          {
+            "docid": "shard_03224_41410",
+            "score": 0.027365
+          },
+          {
+            "docid": "shard_05944_16239",
+            "score": 0.02619
+          },
+          {
+            "docid": "shard_01407_33085",
+            "score": 0.02605
+          },
+          {
+            "docid": "shard_00344_31382",
+            "score": 0.024093
+          },
+          {
+            "docid": "shard_05107_32874",
+            "score": 0.021437
+          },
+          {
+            "docid": "shard_00074_28211",
+            "score": 0.019872
+          },
+          {
+            "docid": "shard_03969_5547",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02933_16744",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_XhVsSKLWQVZtGbEm5FE37c",
+        "id": "step-0004",
+        "t_start": "2026-07-17T01:53:11.153+10:00",
+        "t_end": "2026-07-17T01:53:12.043+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 890.344,
+          "context_tokens": 3332,
+          "peak_context_tokens": 3332,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 5254,
+          "cumulative_tokens": {
+            "input": 3332,
+            "input_uncached": 284,
+            "output": 393,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3725,
+            "processed_input": 284,
+            "processed": 677
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05437_84701",
+            "shard_00508_66201",
+            "shard_03224_41410",
+            "shard_05944_16239",
+            "shard_01407_33085",
+            "shard_00344_31382",
+            "shard_05107_32874",
+            "shard_00074_28211",
+            "shard_03969_5547",
+            "shard_02933_16744"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_ZR3ChZ9vWM51sRa9nmfyC1",
+            "tooluse_T1OMVJszbtXmP3tR8I4HbX",
+            "tooluse_99kUEqSlQ7AqR9hclfxnJP",
+            "tooluse_XhVsSKLWQVZtGbEm5FE37c"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_sRxbyk1Nyg0dxsbYhhtKuJ",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_02658_12983",
+                    "reason": "Benchmark Sixty CEO Jim Taylor's data-driven retention strategies: measuring/protecting workload to prevent burnout, consistent employee experience, POS data for staffing, training investment, productivity gains; includes turnover cost stat ($3,178/hire) and 23% industry turnover rate"
+                  },
+                  {
+                    "docid": "shard_01457_63848",
+                    "reason": "7 tips for reducing turnover including transparent/inclusive culture, addressing conflict head-on, flexibility/work-life balance via scheduling systems, recognition; defines 10-20% as acceptable turnover benchmark and notes FOH churns faster than BOH"
+                  },
+                  {
+                    "docid": "shard_00313_80199",
+                    "reason": "Comprehensive FOH/BOH conflict causes (ticket stacking, blame for slow food, tip disparity) and concrete fixes: cross-training onboarding on teamwork, job-swap-for-a-day empathy exercise, staff meals, tip sharing tradeoffs, KDS/technology to eliminate gatekeeping of allergen info"
+                  },
+                  {
+                    "docid": "shard_01690_78392",
+                    "reason": "Pollack Peacebuilding conflict-management training scenarios specific to restaurants (shift/workload disputes, FOH-BOH friction, burnout) and the causal link between mismanaged conflict, toxic culture and turnover; frames conflict as inevitable but manageable via psychological safety"
+                  },
+                  {
+                    "docid": "shard_03618_81693",
+                    "reason": "One Fair Wage/ROC study data: subminimum tipped wage ($2.13) forces tolerance of harassment, 41% of workers saw harassment rise, harassment rates cut in half when workers earn full minimum wage plus tips, and example of Homeroom's color-coded system empowering staff to act decisively"
+                  },
+                  {
+                    "docid": "shard_00508_66201",
+                    "reason": "Concrete shift-change/scheduling tactics (staggered start times, overlapping shifts) to reduce chaos and last-minute disruption specific to restaurant transitions"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_gl14diAaBziAMxcELg0iiv",
+              "name": "search",
+              "arguments": {
+                "query": "restaurant manager ignoring customer feedback culture normalize complaints"
+              }
+            },
+            {
+              "id": "tooluse_qkt0e2G9idJHVlWiqZwLDV",
+              "name": "search",
+              "arguments": {
+                "query": "psychological safety workplace culture change leadership speak up"
+              }
+            },
+            {
+              "id": "tooluse_aVrN9OXejgk2OcA2DNQjf7",
+              "name": "search",
+              "arguments": {
+                "query": "tip pooling sharing between servers and cooks legal fairness"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T01:53:12.043+10:00",
+        "t_end": "2026-07-17T01:53:25.016+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 12972.417,
+          "context_tokens": 67338,
+          "peak_context_tokens": 67338,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 18226,
+          "tokens": {
+            "input": 67338,
+            "input_uncached": 64290,
+            "output": 1009,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 68347,
+            "processed_input": 64290,
+            "processed": 65299,
+            "context": 67338
+          },
+          "provider_usage": {
+            "inputTokens": 64290,
+            "outputTokens": 1009,
+            "totalTokens": 68347,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 70670,
+            "input_uncached": 64574,
+            "output": 1402,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 72072,
+            "processed_input": 64574,
+            "processed": 65976
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02658_12983",
+            "shard_05234_43483",
+            "shard_01457_63848",
+            "shard_05098_63124",
+            "shard_06178_24276",
+            "shard_05116_43978",
+            "shard_02412_24813",
+            "shard_04288_36991",
+            "shard_03503_34108",
+            "shard_01129_24333",
+            "shard_06489_8890",
+            "shard_04407_18679",
+            "shard_00724_84619",
+            "shard_00313_80199",
+            "shard_03520_21110",
+            "shard_01690_78392",
+            "shard_00723_30305",
+            "shard_02920_15050",
+            "shard_02063_56407",
+            "shard_06345_69232",
+            "shard_03404_60769",
+            "shard_03236_50369",
+            "shard_04185_15264",
+            "shard_01547_75422",
+            "shard_04989_37788",
+            "shard_03618_81693",
+            "shard_05494_21808",
+            "shard_00320_28194",
+            "shard_05167_37235",
+            "shard_04700_17549",
+            "shard_05437_84701",
+            "shard_00508_66201",
+            "shard_03224_41410",
+            "shard_05944_16239",
+            "shard_01407_33085",
+            "shard_00344_31382",
+            "shard_05107_32874",
+            "shard_00074_28211",
+            "shard_03969_5547",
+            "shard_02933_16744"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_02658_12983",
+              "reason": "Benchmark Sixty CEO Jim Taylor's data-driven retention strategies: measuring/protecting workload to prevent burnout, consistent employee experience, POS data for staffing, training investment, productivity gains; includes turnover cost stat ($3,178/hire) and 23% industry turnover rate"
+            },
+            {
+              "docid": "shard_01457_63848",
+              "reason": "7 tips for reducing turnover including transparent/inclusive culture, addressing conflict head-on, flexibility/work-life balance via scheduling systems, recognition; defines 10-20% as acceptable turnover benchmark and notes FOH churns faster than BOH"
+            },
+            {
+              "docid": "shard_00313_80199",
+              "reason": "Comprehensive FOH/BOH conflict causes (ticket stacking, blame for slow food, tip disparity) and concrete fixes: cross-training onboarding on teamwork, job-swap-for-a-day empathy exercise, staff meals, tip sharing tradeoffs, KDS/technology to eliminate gatekeeping of allergen info"
+            },
+            {
+              "docid": "shard_01690_78392",
+              "reason": "Pollack Peacebuilding conflict-management training scenarios specific to restaurants (shift/workload disputes, FOH-BOH friction, burnout) and the causal link between mismanaged conflict, toxic culture and turnover; frames conflict as inevitable but manageable via psychological safety"
+            },
+            {
+              "docid": "shard_03618_81693",
+              "reason": "One Fair Wage/ROC study data: subminimum tipped wage ($2.13) forces tolerance of harassment, 41% of workers saw harassment rise, harassment rates cut in half when workers earn full minimum wage plus tips, and example of Homeroom's color-coded system empowering staff to act decisively"
+            },
+            {
+              "docid": "shard_00508_66201",
+              "reason": "Concrete shift-change/scheduling tactics (staggered start times, overlapping shifts) to reduce chaos and last-minute disruption specific to restaurant transitions"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_02658_12983\", \"shard_01457_63848\", \"shard_00313_80199\", \"shard_01690_78392\", \"shard_03618_81693\", \"shard_00508_66201\"], \"rejected\": [{\"docid\": \"shard_05234_43483\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05098_63124\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06178_24276\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05116_43978\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02412_24813\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04288_36991\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03503_34108\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01129_24333\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06489_8890\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04407_18679\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00724_84619\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03520_21110\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00723_30305\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02920_15050\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02063_56407\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06345_69232\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03404_60769\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03236_50369\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04185_15264\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01547_75422\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04989_37788\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05494_21808\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00320_28194\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05167_37235\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04700_17549\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05437_84701\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03224_41410\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05944_16239\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01407_33085\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00344_31382\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05107_32874\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00074_28211\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03969_5547\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02933_16744\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 67,338 / 500,000 tokens (13.5%) · elapsed: 0m 18s]",
+        "failed": false,
+        "tool_call_id": "tooluse_sRxbyk1Nyg0dxsbYhhtKuJ",
+        "id": "step-0006",
+        "t_start": "2026-07-17T01:53:25.016+10:00",
+        "t_end": "2026-07-17T01:53:25.020+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 3.925,
+          "context_tokens": 67338,
+          "peak_context_tokens": 67338,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 18230,
+          "cumulative_tokens": {
+            "input": 70670,
+            "input_uncached": 64574,
+            "output": 1402,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 72072,
+            "processed_input": 64574,
+            "processed": 65976
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02658_12983",
+            "shard_05234_43483",
+            "shard_01457_63848",
+            "shard_05098_63124",
+            "shard_06178_24276",
+            "shard_05116_43978",
+            "shard_02412_24813",
+            "shard_04288_36991",
+            "shard_03503_34108",
+            "shard_01129_24333",
+            "shard_06489_8890",
+            "shard_04407_18679",
+            "shard_00724_84619",
+            "shard_00313_80199",
+            "shard_03520_21110",
+            "shard_01690_78392",
+            "shard_00723_30305",
+            "shard_02920_15050",
+            "shard_02063_56407",
+            "shard_06345_69232",
+            "shard_03404_60769",
+            "shard_03236_50369",
+            "shard_04185_15264",
+            "shard_01547_75422",
+            "shard_04989_37788",
+            "shard_03618_81693",
+            "shard_05494_21808",
+            "shard_00320_28194",
+            "shard_05167_37235",
+            "shard_04700_17549",
+            "shard_05437_84701",
+            "shard_00508_66201",
+            "shard_03224_41410",
+            "shard_05944_16239",
+            "shard_01407_33085",
+            "shard_00344_31382",
+            "shard_05107_32874",
+            "shard_00074_28211",
+            "shard_03969_5547",
+            "shard_02933_16744"
+          ],
+          "committed": [
+            "shard_02658_12983",
+            "shard_01457_63848",
+            "shard_00313_80199",
+            "shard_01690_78392",
+            "shard_03618_81693",
+            "shard_00508_66201"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_05234_43483",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05098_63124",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06178_24276",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05116_43978",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02412_24813",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04288_36991",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03503_34108",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01129_24333",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06489_8890",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04407_18679",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00724_84619",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03520_21110",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00723_30305",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02920_15050",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02063_56407",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06345_69232",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03404_60769",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03236_50369",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04185_15264",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01547_75422",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04989_37788",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05494_21808",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00320_28194",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05167_37235",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04700_17549",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05437_84701",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03224_41410",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05944_16239",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01407_33085",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00344_31382",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05107_32874",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00074_28211",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03969_5547",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02933_16744",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "restaurant manager ignoring customer feedback culture normalize complaints"
+        },
+        "output": {
+          "query": "restaurant manager ignoring customer feedback culture normalize complaints",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00132_67346",
+              "docid": "shard_00132_67346",
+              "kind": "document",
+              "rrf_score": 0.025189,
+              "truncated": false,
+              "original_chars": 2820,
+              "returned_chars": 2820
+            },
+            {
+              "rank": 2,
+              "id": "shard_06320_6498",
+              "docid": "shard_06320_6498",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3520,
+              "returned_chars": 3520
+            },
+            {
+              "rank": 3,
+              "id": "shard_00352_64822",
+              "docid": "shard_00352_64822",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3902,
+              "returned_chars": 3902
+            },
+            {
+              "rank": 4,
+              "id": "shard_00757_82818",
+              "docid": "shard_00757_82818",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1154,
+              "returned_chars": 1154
+            },
+            {
+              "rank": 5,
+              "id": "shard_03461_14629",
+              "docid": "shard_03461_14629",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 6644,
+              "returned_chars": 6644
+            },
+            {
+              "rank": 6,
+              "id": "shard_02070_81282",
+              "docid": "shard_02070_81282",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2426,
+              "returned_chars": 2426
+            },
+            {
+              "rank": 7,
+              "id": "shard_05454_77134",
+              "docid": "shard_05454_77134",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 4266,
+              "returned_chars": 4266
+            },
+            {
+              "rank": 8,
+              "id": "shard_04034_72821",
+              "docid": "shard_04034_72821",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1751,
+              "returned_chars": 1751
+            },
+            {
+              "rank": 9,
+              "id": "shard_02565_49804",
+              "docid": "shard_02565_49804",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4385,
+              "returned_chars": 4385
+            },
+            {
+              "rank": 10,
+              "id": "shard_04596_23612",
+              "docid": "shard_04596_23612",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 3935,
+              "returned_chars": 3935
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00132_67346",
+          "shard_06320_6498",
+          "shard_00352_64822",
+          "shard_00757_82818",
+          "shard_03461_14629",
+          "shard_02070_81282",
+          "shard_05454_77134",
+          "shard_04034_72821",
+          "shard_02565_49804",
+          "shard_04596_23612"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00132_67346",
+            "score": 0.025189
+          },
+          {
+            "docid": "shard_06320_6498",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00352_64822",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00757_82818",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_03461_14629",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_02070_81282",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05454_77134",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_04034_72821",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02565_49804",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_04596_23612",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_gl14diAaBziAMxcELg0iiv",
+        "id": "step-0007",
+        "t_start": "2026-07-17T01:53:25.021+10:00",
+        "t_end": "2026-07-17T01:53:25.927+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 906.116,
+          "context_tokens": 67338,
+          "peak_context_tokens": 67338,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19195,
+          "cumulative_tokens": {
+            "input": 70670,
+            "input_uncached": 64574,
+            "output": 1402,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 72072,
+            "processed_input": 64574,
+            "processed": 65976
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00132_67346",
+            "shard_06320_6498",
+            "shard_00352_64822",
+            "shard_00757_82818",
+            "shard_03461_14629",
+            "shard_02070_81282",
+            "shard_05454_77134",
+            "shard_04034_72821",
+            "shard_02565_49804",
+            "shard_04596_23612"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "psychological safety workplace culture change leadership speak up"
+        },
+        "output": {
+          "query": "psychological safety workplace culture change leadership speak up",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06356_14644",
+              "docid": "shard_06356_14644",
+              "kind": "document",
+              "rrf_score": 0.03101,
+              "truncated": false,
+              "original_chars": 3653,
+              "returned_chars": 3653
+            },
+            {
+              "rank": 2,
+              "id": "shard_04071_40923",
+              "docid": "shard_04071_40923",
+              "kind": "document",
+              "rrf_score": 0.030835,
+              "truncated": false,
+              "original_chars": 5372,
+              "returned_chars": 5372
+            },
+            {
+              "rank": 3,
+              "id": "shard_01140_61164",
+              "docid": "shard_01140_61164",
+              "kind": "document",
+              "rrf_score": 0.028259,
+              "truncated": false,
+              "original_chars": 3841,
+              "returned_chars": 3841
+            },
+            {
+              "rank": 4,
+              "id": "shard_02970_52619",
+              "docid": "shard_02970_52619",
+              "kind": "document",
+              "rrf_score": 0.027888,
+              "truncated": false,
+              "original_chars": 6100,
+              "returned_chars": 6100
+            },
+            {
+              "rank": 5,
+              "id": "shard_04954_69839",
+              "docid": "shard_04954_69839",
+              "kind": "document",
+              "rrf_score": 0.026199,
+              "truncated": false,
+              "original_chars": 3587,
+              "returned_chars": 3587
+            },
+            {
+              "rank": 6,
+              "id": "shard_04541_73936",
+              "docid": "shard_04541_73936",
+              "kind": "document",
+              "rrf_score": 0.022575,
+              "truncated": false,
+              "original_chars": 2504,
+              "returned_chars": 2504
+            },
+            {
+              "rank": 7,
+              "id": "shard_05787_72470",
+              "docid": "shard_05787_72470",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4287,
+              "returned_chars": 4287
+            },
+            {
+              "rank": 8,
+              "id": "shard_00923_30657",
+              "docid": "shard_00923_30657",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 9926,
+              "returned_chars": 9926
+            },
+            {
+              "rank": 9,
+              "id": "shard_06402_12078",
+              "docid": "shard_06402_12078",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3658,
+              "returned_chars": 3658
+            },
+            {
+              "rank": 10,
+              "id": "shard_02640_61223",
+              "docid": "shard_02640_61223",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 7201,
+              "returned_chars": 7201
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06356_14644",
+          "shard_04071_40923",
+          "shard_01140_61164",
+          "shard_02970_52619",
+          "shard_04954_69839",
+          "shard_04541_73936",
+          "shard_05787_72470",
+          "shard_00923_30657",
+          "shard_06402_12078",
+          "shard_02640_61223"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06356_14644",
+            "score": 0.03101
+          },
+          {
+            "docid": "shard_04071_40923",
+            "score": 0.030835
+          },
+          {
+            "docid": "shard_01140_61164",
+            "score": 0.028259
+          },
+          {
+            "docid": "shard_02970_52619",
+            "score": 0.027888
+          },
+          {
+            "docid": "shard_04954_69839",
+            "score": 0.026199
+          },
+          {
+            "docid": "shard_04541_73936",
+            "score": 0.022575
+          },
+          {
+            "docid": "shard_05787_72470",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00923_30657",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_06402_12078",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02640_61223",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_qkt0e2G9idJHVlWiqZwLDV",
+        "id": "step-0008",
+        "t_start": "2026-07-17T01:53:25.021+10:00",
+        "t_end": "2026-07-17T01:53:25.685+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 663.816,
+          "context_tokens": 67338,
+          "peak_context_tokens": 67338,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19195,
+          "cumulative_tokens": {
+            "input": 70670,
+            "input_uncached": 64574,
+            "output": 1402,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 72072,
+            "processed_input": 64574,
+            "processed": 65976
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06356_14644",
+            "shard_04071_40923",
+            "shard_01140_61164",
+            "shard_02970_52619",
+            "shard_04954_69839",
+            "shard_04541_73936",
+            "shard_05787_72470",
+            "shard_00923_30657",
+            "shard_06402_12078",
+            "shard_02640_61223"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "tip pooling sharing between servers and cooks legal fairness"
+        },
+        "output": {
+          "query": "tip pooling sharing between servers and cooks legal fairness",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03993_12368",
+              "docid": "shard_03993_12368",
+              "kind": "document",
+              "rrf_score": 0.028439,
+              "truncated": false,
+              "original_chars": 3054,
+              "returned_chars": 3054
+            },
+            {
+              "rank": 2,
+              "id": "shard_06139_12616",
+              "docid": "shard_06139_12616",
+              "kind": "document",
+              "rrf_score": 0.027778,
+              "truncated": false,
+              "original_chars": 3453,
+              "returned_chars": 3453
+            },
+            {
+              "rank": 3,
+              "id": "shard_02590_49486",
+              "docid": "shard_02590_49486",
+              "kind": "document",
+              "rrf_score": 0.027056,
+              "truncated": false,
+              "original_chars": 3267,
+              "returned_chars": 3267
+            },
+            {
+              "rank": 4,
+              "id": "shard_03470_8882",
+              "docid": "shard_03470_8882",
+              "kind": "document",
+              "rrf_score": 0.026655,
+              "truncated": false,
+              "original_chars": 5865,
+              "returned_chars": 5865
+            },
+            {
+              "rank": 5,
+              "id": "shard_02722_78544",
+              "docid": "shard_02722_78544",
+              "kind": "document",
+              "rrf_score": 0.02603,
+              "truncated": false,
+              "original_chars": 3384,
+              "returned_chars": 3384
+            },
+            {
+              "rank": 6,
+              "id": "shard_00351_57204",
+              "docid": "shard_00351_57204",
+              "kind": "document",
+              "rrf_score": 0.025522,
+              "truncated": true,
+              "original_chars": 20831,
+              "returned_chars": 20445
+            },
+            {
+              "rank": 7,
+              "id": "shard_02216_34026",
+              "docid": "shard_02216_34026",
+              "kind": "document",
+              "rrf_score": 0.025484,
+              "truncated": false,
+              "original_chars": 6667,
+              "returned_chars": 6667
+            },
+            {
+              "rank": 8,
+              "id": "shard_03601_22129",
+              "docid": "shard_03601_22129",
+              "kind": "document",
+              "rrf_score": 0.025059,
+              "truncated": false,
+              "original_chars": 3635,
+              "returned_chars": 3635
+            },
+            {
+              "rank": 9,
+              "id": "shard_03076_54428",
+              "docid": "shard_03076_54428",
+              "kind": "document",
+              "rrf_score": 0.024752,
+              "truncated": false,
+              "original_chars": 3116,
+              "returned_chars": 3116
+            },
+            {
+              "rank": 10,
+              "id": "shard_01519_62631",
+              "docid": "shard_01519_62631",
+              "kind": "document",
+              "rrf_score": 0.024697,
+              "truncated": false,
+              "original_chars": 3698,
+              "returned_chars": 3698
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03993_12368",
+          "shard_06139_12616",
+          "shard_02590_49486",
+          "shard_03470_8882",
+          "shard_02722_78544",
+          "shard_00351_57204",
+          "shard_02216_34026",
+          "shard_03601_22129",
+          "shard_03076_54428",
+          "shard_01519_62631"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03993_12368",
+            "score": 0.028439
+          },
+          {
+            "docid": "shard_06139_12616",
+            "score": 0.027778
+          },
+          {
+            "docid": "shard_02590_49486",
+            "score": 0.027056
+          },
+          {
+            "docid": "shard_03470_8882",
+            "score": 0.026655
+          },
+          {
+            "docid": "shard_02722_78544",
+            "score": 0.02603
+          },
+          {
+            "docid": "shard_00351_57204",
+            "score": 0.025522
+          },
+          {
+            "docid": "shard_02216_34026",
+            "score": 0.025484
+          },
+          {
+            "docid": "shard_03601_22129",
+            "score": 0.025059
+          },
+          {
+            "docid": "shard_03076_54428",
+            "score": 0.024752
+          },
+          {
+            "docid": "shard_01519_62631",
+            "score": 0.024697
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_aVrN9OXejgk2OcA2DNQjf7",
+        "id": "step-0009",
+        "t_start": "2026-07-17T01:53:25.021+10:00",
+        "t_end": "2026-07-17T01:53:25.984+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 963.199,
+          "context_tokens": 67338,
+          "peak_context_tokens": 67338,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 19195,
+          "cumulative_tokens": {
+            "input": 70670,
+            "input_uncached": 64574,
+            "output": 1402,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 72072,
+            "processed_input": 64574,
+            "processed": 65976
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03993_12368",
+            "shard_06139_12616",
+            "shard_02590_49486",
+            "shard_03470_8882",
+            "shard_02722_78544",
+            "shard_00351_57204",
+            "shard_02216_34026",
+            "shard_03601_22129",
+            "shard_03076_54428",
+            "shard_01519_62631"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_sRxbyk1Nyg0dxsbYhhtKuJ",
+            "tooluse_gl14diAaBziAMxcELg0iiv",
+            "tooluse_qkt0e2G9idJHVlWiqZwLDV",
+            "tooluse_aVrN9OXejgk2OcA2DNQjf7"
+          ]
+        },
+        "output": {
+          "text": "Rebuilding a healthier culture in a casual restaurant starts with treating the blame cycle between servers and cooks as a systems problem rather than a personality problem, since most front-of-house/back-of-house friction traces to ticket-stacking, slow food, and unclear expectations rather than genuine dislike between teams.\n\nFront-of-house staff often blame the kitchen for slow or wrong plates because those \"slip-ups\" directly cut into their tip income, while cooks resent servers punching in all their orders at once and disrupting the kitchen's flow, and both sides tend to feel they are under more pressure than the other.\n[shard_00313_80199]\n\nA concrete first move is to build teamwork expectations directly into onboarding, explicitly training new servers on how to stagger orders instead of stacking tickets and training new cooks on why front-of-house has to manage table timing, so the conflict is prevented rather than just refereed after the fact.\n[shard_00313_80199]\n\nA second concrete move is a short job-swap exercise, such as having a server work a cold station during a controlled shift or a cook shadow the floor on a busy night, which builds empathy for the other side's pressure without disrupting service.\n[shard_00313_80199]\n\nLow-stakes shared time, like a regular staff or \"family\" meal, and simple technology fixes such as a kitchen display system or shared allergen information, reduce the daily friction points that turn into blame before they escalate into open conflict.\n[shard_00313_80199]\n\nBecause mismanaged conflict, not conflict itself, is what corrodes culture, it helps to treat disagreements over shifts, workload, and FOH-BOH friction as normal and expected, and to give managers explicit tools to mediate them as teaching moments rather than punishment, which is directly linked in industry conflict-management guidance to lower turnover and stronger team cohesion.\n[shard_01690_78392]\n\nUnderneath the blame dynamic is usually a workload and scheduling problem, and the data-driven approach recommended by restaurant retention consultants is to measure how hard staff are actually working shift to shift and set realistic, consistent expectations rather than assuming everyone should simply push through busy nights.\n[shard_02658_12983]\n\nCreating a predictable shift experience, where servers know roughly what section and workload they will face before they arrive, measurably reduces stress and is one of the most direct levers restaurant operators have over burnout and turnover.\n[shard_02658_12983]\n\nLast-minute schedule changes compound this stress, and operational fixes like staggering start times and building deliberate overlap between shift crews, rather than an abrupt all-at-once handoff, keep information flowing between the outgoing and incoming teams and reduce the chaos that triggers snap schedule changes in the first place.\n[shard_00508_66201]\n\nSince front-of-house positions typically churn faster than back-of-house roles, and industry turnover averages around 23% with each replacement hire costing roughly $3,178 in training costs, stabilizing scheduling and workload for servers specifically will move the turnover needle fastest.\n[shard_02658_12983] [shard_01457_63848]\n\nOn the customer-comments-get-brushed-off problem, the deeper risk is that most dissatisfied customers never complain to a manager at all; they simply stop coming back, so treating the absence of complaints as evidence that everything is fine, or treating the complaints that do surface as noise, means real problems go undetected until covers start dropping.\n[shard_06320_6498]\n\nThe fix is not a poster about \"valuing feedback\" but a habit: designate who owns customer concerns each shift, log recurring themes, and feed them back to the kitchen and floor teams as specific, actionable adjustments rather than vague reminders to \"do better.\"\n[shard_06320_6498]\n\nOn tipping, the single highest-leverage structural decision is building a written, transparent tip-out or tip-sharing structure rather than leaving distribution to informal norms, since an unfair or opaque system is a direct and common driver of staff resentment and turnover.\n[shard_03601_22129]\n\nLegally, servers can be required to tip out to support staff on a set percentage basis, and since a 2018 federal law change, owners, managers, and supervisors cannot take any share of that pool regardless of whether a tip credit is used, so codifying and communicating the exact percentages by role (kitchen, bussers, bartenders) removes a major source of the FOH/BOH \"us versus them\" dynamic.\n[shard_02216_34026]\n\nOn harassment, the tipping model itself matters: workers on the standard $2.13 subminimum tipped wage are financially dependent on customers who may harass them, and a national study found that sexual harassment rates are roughly cut in half when workers are paid full minimum wage plus tips instead of the subminimum rate, so wage structure is not a side issue to harassment policy but a direct lever on it.\n[shard_03618_81693]\n\nBeyond wage structure, a concrete, low-cost tool is a simple escalation protocol, such as one restaurant's color-coded system where staff and management have a pre-agreed, no-questions-asked response the moment a customer's behavior crosses a line, which removes the ambiguity that currently makes younger staff assume harassment is \"just how it is.\"\n[shard_03618_81693]\n\nTying all of this together is whether staff believe they can actually speak up about problems without being dismissed or blamed, since organizations lacking this kind of psychological safety see employees stay quiet, disengage, and eventually leave, which is precisely the dynamic your younger staff described around customer complaints.\n[shard_01140_61164]\n\nBecause psychological safety is what determines whether staff will accept operational changes instead of quietly resisting them, sequencing matters: introduce the scheduling, tip-out, and harassment-response changes as the leader modeling consistent, transparent behavior first, since resistance to any culture change drops sharply when employees see leadership follow through rather than announce values and move on.\n[shard_04071_40923]\n\nIn practice, the first 90 days should focus on four things: stabilizing schedules and workload data so shifts become predictable, formalizing onboarding and a shared FOH/BOH ticket-and-communication protocol, publishing a clear written tip-out structure, and installing a specific, practiced response protocol for customer harassment, with a manager habit of logging and acting on customer feedback layered on top.\n[shard_02658_12983] [shard_00313_80199] [shard_03601_22129]\n\nEach of these is a concrete system change rather than a values statement, and each directly targets one of the four symptoms you described: the blame cycle, chaotic scheduling, dismissed customer feedback, and unaddressed harassment risk tied to tipping.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0010",
+        "t_start": "2026-07-17T01:53:25.985+10:00",
+        "t_end": "2026-07-17T01:54:07.955+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 41970.672,
+          "context_tokens": 76657,
+          "peak_context_tokens": 76657,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 61165,
+          "tokens": {
+            "input": 76657,
+            "input_uncached": 50231,
+            "output": 3285,
+            "cache_read": 3048,
+            "cache_write": 23378,
+            "total": 79942,
+            "processed_input": 73609,
+            "processed": 76894,
+            "context": 76657
+          },
+          "provider_usage": {
+            "inputTokens": 50231,
+            "outputTokens": 3285,
+            "totalTokens": 79942,
+            "cacheReadInputTokens": 3048,
+            "cacheWriteInputTokens": 23378,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 23378
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 147327,
+            "input_uncached": 114805,
+            "output": 4687,
+            "cache_read": 9144,
+            "cache_write": 23378,
+            "total": 152014,
+            "processed_input": 138183,
+            "processed": 142870
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00132_67346",
+            "shard_06320_6498",
+            "shard_00352_64822",
+            "shard_00757_82818",
+            "shard_03461_14629",
+            "shard_02070_81282",
+            "shard_05454_77134",
+            "shard_04034_72821",
+            "shard_02565_49804",
+            "shard_04596_23612",
+            "shard_06356_14644",
+            "shard_04071_40923",
+            "shard_01140_61164",
+            "shard_02970_52619",
+            "shard_04954_69839",
+            "shard_04541_73936",
+            "shard_05787_72470",
+            "shard_00923_30657",
+            "shard_06402_12078",
+            "shard_02640_61223",
+            "shard_03993_12368",
+            "shard_06139_12616",
+            "shard_02590_49486",
+            "shard_03470_8882",
+            "shard_02722_78544",
+            "shard_00351_57204",
+            "shard_02216_34026",
+            "shard_03601_22129",
+            "shard_03076_54428",
+            "shard_01519_62631"
+          ],
+          "committed": [
+            "shard_00313_80199",
+            "shard_00508_66201",
+            "shard_01457_63848",
+            "shard_01690_78392",
+            "shard_02658_12983",
+            "shard_03618_81693"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [],
+          "automatic": true
+        },
+        "output": "{\"automatic\": true, \"error\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\", \"committed\": [], \"rejected\": [{\"docid\": \"shard_00132_67346\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_06320_6498\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_00352_64822\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_00757_82818\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_03461_14629\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02070_81282\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_05454_77134\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_04034_72821\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02565_49804\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_04596_23612\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_06356_14644\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_04071_40923\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_01140_61164\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02970_52619\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_04954_69839\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_04541_73936\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_05787_72470\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_00923_30657\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_06402_12078\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02640_61223\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_03993_12368\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_06139_12616\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02590_49486\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_03470_8882\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02722_78544\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_00351_57204\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_02216_34026\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_03601_22129\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_03076_54428\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}, {\"docid\": \"shard_01519_62631\", \"reason\": \"staged batch expired because commit_context was not exactly the first action on the immediately following model turn\"}]}\n[context budget: 76,657 / 500,000 tokens (15.3%) · elapsed: 1m 1s]",
+        "failed": true,
+        "id": "step-0011",
+        "t_start": "2026-07-17T01:54:07.955+10:00",
+        "t_end": "2026-07-17T01:54:07.957+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 1.219,
+          "context_tokens": 76657,
+          "peak_context_tokens": 76657,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 61167,
+          "cumulative_tokens": {
+            "input": 147327,
+            "input_uncached": 114805,
+            "output": 4687,
+            "cache_read": 9144,
+            "cache_write": 23378,
+            "total": 152014,
+            "processed_input": 138183,
+            "processed": 142870
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00132_67346",
+            "shard_06320_6498",
+            "shard_00352_64822",
+            "shard_00757_82818",
+            "shard_03461_14629",
+            "shard_02070_81282",
+            "shard_05454_77134",
+            "shard_04034_72821",
+            "shard_02565_49804",
+            "shard_04596_23612",
+            "shard_06356_14644",
+            "shard_04071_40923",
+            "shard_01140_61164",
+            "shard_02970_52619",
+            "shard_04954_69839",
+            "shard_04541_73936",
+            "shard_05787_72470",
+            "shard_00923_30657",
+            "shard_06402_12078",
+            "shard_02640_61223",
+            "shard_03993_12368",
+            "shard_06139_12616",
+            "shard_02590_49486",
+            "shard_03470_8882",
+            "shard_02722_78544",
+            "shard_00351_57204",
+            "shard_02216_34026",
+            "shard_03601_22129",
+            "shard_03076_54428",
+            "shard_01519_62631"
+          ],
+          "committed": [],
+          "rejected": [
+            {
+              "docid": "shard_00132_67346",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_06320_6498",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_00352_64822",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_00757_82818",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_03461_14629",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02070_81282",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_05454_77134",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_04034_72821",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02565_49804",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_04596_23612",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_06356_14644",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_04071_40923",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_01140_61164",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02970_52619",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_04954_69839",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_04541_73936",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_05787_72470",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_00923_30657",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_06402_12078",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02640_61223",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_03993_12368",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_06139_12616",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02590_49486",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_03470_8882",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02722_78544",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_00351_57204",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_02216_34026",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_03601_22129",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_03076_54428",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            },
+            {
+              "docid": "shard_01519_62631",
+              "reason": "staged batch expired because commit_context was not exactly the first action on the immediately following model turn"
+            }
+          ]
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_00313_80199",
+        "shard_01690_78392",
+        "shard_02658_12983",
+        "shard_00508_66201",
+        "shard_01457_63848",
+        "shard_03618_81693"
+      ],
+      "answer": [
+        {
+          "text": "Rebuilding a healthier culture in a casual restaurant starts with treating the blame cycle between servers and cooks as a systems problem rather than a personality problem, since most front-of-house/back-of-house friction traces to ticket-stacking, slow food, and unclear expectations rather than genuine dislike between teams.",
+          "citations": []
+        },
+        {
+          "text": "Front-of-house staff often blame the kitchen for slow or wrong plates because those \"slip-ups\" directly cut into their tip income, while cooks resent servers punching in all their orders at once and disrupting the kitchen's flow, and both sides tend to feel they are under more pressure than the other.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "A concrete first move is to build teamwork expectations directly into onboarding, explicitly training new servers on how to stagger orders instead of stacking tickets and training new cooks on why front-of-house has to manage table timing, so the conflict is prevented rather than just refereed after the fact.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "A second concrete move is a short job-swap exercise, such as having a server work a cold station during a controlled shift or a cook shadow the floor on a busy night, which builds empathy for the other side's pressure without disrupting service.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Low-stakes shared time, like a regular staff or \"family\" meal, and simple technology fixes such as a kitchen display system or shared allergen information, reduce the daily friction points that turn into blame before they escalate into open conflict.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Because mismanaged conflict, not conflict itself, is what corrodes culture, it helps to treat disagreements over shifts, workload, and FOH-BOH friction as normal and expected, and to give managers explicit tools to mediate them as teaching moments rather than punishment, which is directly linked in industry conflict-management guidance to lower turnover and stronger team cohesion.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Underneath the blame dynamic is usually a workload and scheduling problem, and the data-driven approach recommended by restaurant retention consultants is to measure how hard staff are actually working shift to shift and set realistic, consistent expectations rather than assuming everyone should simply push through busy nights.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "Creating a predictable shift experience, where servers know roughly what section and workload they will face before they arrive, measurably reduces stress and is one of the most direct levers restaurant operators have over burnout and turnover.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "Last-minute schedule changes compound this stress, and operational fixes like staggering start times and building deliberate overlap between shift crews, rather than an abrupt all-at-once handoff, keep information flowing between the outgoing and incoming teams and reduce the chaos that triggers snap schedule changes in the first place.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "Since front-of-house positions typically churn faster than back-of-house roles, and industry turnover averages around 23% with each replacement hire costing roughly $3,178 in training costs, stabilizing scheduling and workload for servers specifically will move the turnover needle fastest.",
+          "citations": [
+            2,
+            4
+          ]
+        },
+        {
+          "text": "On the customer-comments-get-brushed-off problem, the deeper risk is that most dissatisfied customers never complain to a manager at all; they simply stop coming back, so treating the absence of complaints as evidence that everything is fine, or treating the complaints that do surface as noise, means real problems go undetected until covers start dropping.",
+          "citations": []
+        },
+        {
+          "text": "The fix is not a poster about \"valuing feedback\" but a habit: designate who owns customer concerns each shift, log recurring themes, and feed them back to the kitchen and floor teams as specific, actionable adjustments rather than vague reminders to \"do better.\"",
+          "citations": []
+        },
+        {
+          "text": "On tipping, the single highest-leverage structural decision is building a written, transparent tip-out or tip-sharing structure rather than leaving distribution to informal norms, since an unfair or opaque system is a direct and common driver of staff resentment and turnover.",
+          "citations": []
+        },
+        {
+          "text": "Legally, servers can be required to tip out to support staff on a set percentage basis, and since a 2018 federal law change, owners, managers, and supervisors cannot take any share of that pool regardless of whether a tip credit is used, so codifying and communicating the exact percentages by role (kitchen, bussers, bartenders) removes a major source of the FOH/BOH \"us versus them\" dynamic.",
+          "citations": []
+        },
+        {
+          "text": "On harassment, the tipping model itself matters: workers on the standard $2.13 subminimum tipped wage are financially dependent on customers who may harass them, and a national study found that sexual harassment rates are roughly cut in half when workers are paid full minimum wage plus tips instead of the subminimum rate, so wage structure is not a side issue to harassment policy but a direct lever on it.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Beyond wage structure, a concrete, low-cost tool is a simple escalation protocol, such as one restaurant's color-coded system where staff and management have a pre-agreed, no-questions-asked response the moment a customer's behavior crosses a line, which removes the ambiguity that currently makes younger staff assume harassment is \"just how it is.\"",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Tying all of this together is whether staff believe they can actually speak up about problems without being dismissed or blamed, since organizations lacking this kind of psychological safety see employees stay quiet, disengage, and eventually leave, which is precisely the dynamic your younger staff described around customer complaints.",
+          "citations": []
+        },
+        {
+          "text": "Because psychological safety is what determines whether staff will accept operational changes instead of quietly resisting them, sequencing matters: introduce the scheduling, tip-out, and harassment-response changes as the leader modeling consistent, transparent behavior first, since resistance to any culture change drops sharply when employees see leadership follow through rather than announce values and move on.",
+          "citations": []
+        },
+        {
+          "text": "In practice, the first 90 days should focus on four things: stabilizing schedules and workload data so shifts become predictable, formalizing onboarding and a shared FOH/BOH ticket-and-communication protocol, publishing a clear written tip-out structure, and installing a specific, practiced response protocol for customer harassment, with a manager habit of logging and acting on customer feedback layered on top.",
+          "citations": [
+            2,
+            0
+          ]
+        },
+        {
+          "text": "Each of these is a concrete system change rather than a values statement, and each directly targets one of the four symptoms you described: the blame cycle, chaotic scheduling, dismissed customer feedback, and unaddressed harassment risk tied to tipping.",
+          "citations": []
+        }
+      ]
+    },
+    "started_at": "2026-07-17T01:53:06.790+10:00",
+    "ended_at": "2026-07-17T01:54:07.957+10:00",
+    "duration_ms": 61167,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}

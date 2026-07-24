@@ -39,14 +39,20 @@ DEFAULT_SSR_URL = "http://127.0.0.1:8099"
 
 _GCL_GUIDE = (
     "Query language is GCL (Cottontail). Operators: "
-    "`(^ a b ...)` = AND (all terms must occur in the same document body); "
+    "`(^ a b ...)` = AND (ALL terms must co-occur in one document body); "
     "`(+ a b ...)` = OR (any); "
     "`\"a b\"` = exact phrase (= `(... a b)`, adjacent and in order); "
     "`(>> A B)` = A that CONTAINS B; `(<< A B)` = A CONTAINED IN B; "
     "`(# k)` = the set of width-k windows, so proximity 'a AND b within k "
-    "tokens' is `(<< (^ a b) (# k))`; "
-    "operators nest, e.g. `(^ \"query performance prediction\" (+ zendel culpepper))`. "
-    "Terms are Porter-stemmed and case-insensitive."
+    "tokens' is `(<< (^ a b) (# k))`. Terms are Porter-stemmed, case-insensitive. "
+    "RULES (measured on the full corpus): keep ANDs to AT MOST 3 required terms "
+    "led by the rarest one — more terms shrink the set and usually return ZERO, "
+    "not better precision; on an empty result DROP the weakest term and retry, "
+    "NEVER add another; disambiguate a polysemous word by AND-ing one context "
+    "term (`(^ \"de minimis\" tariff)`); quote multiword names but pair a phrase "
+    "with a term; widen a facet with OR INSIDE the AND rather than lengthening "
+    "it, e.g. `(^ uranium (+ enrichment conversion fabrication))`. This is a "
+    "precision/co-occurrence tool — not for broad-topic recall."
 )
 
 SEARCH_BOOLEAN_TOOL: dict[str, Any] = {

@@ -1,3 +1,4688 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:10f3ce36257059e9b59aaca9bda9de5e730b9a381d7ec80d60f22a5527b52616
-size 183899
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-3",
+    "narrative": "I am an 18 year old that currently has ten thousand dollars. Write an investment plan to guide me through investing for the future. Specifically, the timespan of this investment plan should be considered to be the rest of my life. Furthermore, this investment plan should be researched with academic and/or authoritative sources. Essentially, I want to understand how a savvy investor would invest, given that they are starting with ten thousand dollars at the age of 18.",
+    "run_id": "aus-agent-test-v2",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_03235_33574",
+    "shard_00972_10454",
+    "shard_04390_46729",
+    "shard_04237_43724",
+    "shard_01100_17176",
+    "shard_01166_43584",
+    "shard_06377_4820",
+    "shard_04420_28766",
+    "shard_02521_3506",
+    "shard_03398_74003",
+    "shard_02456_50876",
+    "shard_01949_40793",
+    "shard_05421_42716",
+    "shard_02088_43925",
+    "shard_01222_34466"
+  ],
+  "answer": [
+    {
+      "text": "A sound lifetime investment plan for an 18-year-old starting with ten thousand dollars begins not with picking stocks but with securing a cash cushion, because financial planners generally recommend holding three to six months of living expenses in a liquid emergency fund before putting money into volatile assets so that a market downturn never forces a premature sale of investments.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "Once that buffer exists, the single highest-return move available to a young worker is capturing any employer 401(k) match in full, since it functions as an immediate, guaranteed return on contributed dollars, yet nearly 60% of employees fail to claim the full match they are offered.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "For money outside an employer plan, the Roth IRA is an especially strong fit for an 18-year-old because contributions are taxed now while income (and therefore the tax rate) is typically low, and qualified withdrawals in retirement, including all decades of investment growth, come out completely tax free.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "In 2024 the IRS allows contributions of up to $7,000 per year for savers under 50, and a young investor contributing even modest amounts consistently, such as $2,000 per year invested in stock index funds starting at 25, can accumulate roughly $500,000 tax-free by retirement purely through decades of compounding.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "The Roth IRA is also self-directed and flexible: it permits penalty-free withdrawal of original contributions at any time and allows up to $10,000 of investment gains to be withdrawn tax- and penalty-free toward a first home down payment.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "The core argument for starting at 18 rather than later is time itself, since historical S&P 500 data since 1871 shows no 15-year period with a negative return, a worst-case 30-year annualized return of 4.1%, and a median 30-year return of 9.6%, meaning the probability of loss shrinks dramatically as the holding period lengthens.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Jeremy Siegel's long-run research similarly found that U.S. stocks returned about 7% real annually from 1926 to 1996, the strongest performance of any major asset class over that century.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "A rigorous academic caution is warranted, however: a broader 1841–2019 study of developed markets published in the Journal of Financial Economics found a roughly 12% chance of a real loss even over 30-year horizons internationally, with Japan's market losing 21% in real terms over its most recent 30 years, so U.S.-only historical data may overstate how \"safe\" long-horizon equities really are.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Because of this, and because a young investor's greatest asset is decades of future labor income acting like a bond, most lifecycle glide-path designs — such as Vanguard's Target Retirement funds — start investors 25+ years from retirement at roughly 90% stocks and 10% bonds, gradually shifting toward bonds as retirement nears.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "This is often summarized by Jack Bogle's old rule of thumb, \"hold your age in bonds,\" though researcher Wade Pfau has argued that increasing equity exposure again during retirement can actually reduce the risk of running out of money.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "The reason risk should not simply decline with age is sequence-of-returns risk: large stock losses matter little to very young or very old investors with long horizons on either side, but they can be devastating to someone who suffers losses in the first few years right around retirement.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "Within the equity and bond sleeve, Modern Portfolio Theory argues for further diversification across asset classes with low correlation to each other, and research compiled by the Pension Real Estate Association found that real estate has near-zero correlation to stocks and a slightly negative correlation to bonds, supporting an allocation of roughly 10-20% of a diversified portfolio to alternative assets like real estate.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "On vehicle selection, decades of evidence favor low-cost index funds over actively managed funds: the SPIVA Scorecard found that a cross-category average of 90% of active funds underperformed their benchmark index over ten years, and outperformance among the few winners rarely persists, which is consistent with the trillions of dollars that have migrated from active mutual funds into ETFs since 2008.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "Fees compound just as returns do — a fund charging a 1% expense ratio versus 0.5% would turn $10,000 into $32,071 instead of $37,387 after 20 years at a 7% return, a gap attributable entirely to cost.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "When deciding how to deploy the initial $10,000 and any future lump sums, Vanguard research covering 1976-2022 found that investing a lump sum immediately outperformed dollar-cost averaging roughly 68% of the time, with the wealth advantage growing to about 2.2% per year for all-equity portfolios, though dollar-cost averaging still limited losses during the worst-performing years.",
+      "citations": [
+        11
+      ]
+    },
+    {
+      "text": "Once invested, the plan should be maintained through periodic rebalancing rather than market timing, since Schroders research found that missing just the best 30 days in the FTSE 100 between 1989 and 2019 would have cost an investor roughly nineteen times their original £1,000 stake, underscoring that time in the market matters far more than timing it.",
+      "citations": [
+        12
+      ]
+    },
+    {
+      "text": "The biggest threat to this plan over a lifetime is not the market itself but investor behavior: JPMorgan data show that while the S&P 500 returned 7.5% annualized over two decades, the average investor captured only 2.9%, largely because MIT research found investors—especially men over 45 with larger accounts—tend to panic-sell during crashes and then wait too long to reinvest, missing the recovery.",
+      "citations": [
+        13
+      ]
+    },
+    {
+      "text": "This pattern reflects well-documented cognitive biases such as loss aversion, anchoring, and herding described in Kahneman and Tversky's prospect theory, all of which push investors toward buying high and selling low unless they commit in advance to a written plan and stick to it.",
+      "citations": [
+        14
+      ]
+    },
+    {
+      "text": "Put together, the practical lifetime path is this: build a cash emergency fund, capture any employer match, prioritize a Roth IRA and later maximize additional tax-advantaged accounts, invest the $10,000 largely in low-cost diversified stock index funds with modest bond and alternative-asset exposure that starts aggressive and gradually becomes more conservative near retirement, rebalance periodically rather than trying to time markets, and above all resist the behavioral urge to panic during downturns so that decades of compounding can do the real work.",
+      "citations": [
+        6,
+        9,
+        14
+      ]
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-3",
+    "status": "completed",
+    "metadata": {
+      "model": "au.anthropic.claude-sonnet-5",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-test-v2",
+      "query_source": "I am an 18 year old that currently has ten thousand dollars. Write an investment plan to guide me through investing for the future. Specifically, the timespan of this investment plan should be considered to be the rest of my life. Furthermore, this investment plan should be researched with academic and/or authoritative sources. Essentially, I want to understand how a savvy investor would invest, given that they are starting with ten thousand dollars at the age of 18."
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 12,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 12,
+        "commit_context": 3
+      },
+      "retrieved_docids": [
+        "shard_00147_56755",
+        "shard_00191_61850",
+        "shard_00192_16840",
+        "shard_00201_69499",
+        "shard_00203_1659",
+        "shard_00204_54612",
+        "shard_00256_80818",
+        "shard_00524_62607",
+        "shard_00638_2683",
+        "shard_00646_62689",
+        "shard_00744_40618",
+        "shard_00765_40163",
+        "shard_00816_16860",
+        "shard_00818_73848",
+        "shard_00854_72267",
+        "shard_00891_47358",
+        "shard_00972_10454",
+        "shard_00995_82996",
+        "shard_00996_12460",
+        "shard_01029_32056",
+        "shard_01039_83123",
+        "shard_01100_17176",
+        "shard_01108_11342",
+        "shard_01166_43584",
+        "shard_01222_34466",
+        "shard_01264_27941",
+        "shard_01360_50819",
+        "shard_01363_84767",
+        "shard_01428_6758",
+        "shard_01434_25444",
+        "shard_01491_53892",
+        "shard_01493_58639",
+        "shard_01511_80814",
+        "shard_01664_38089",
+        "shard_01702_62839",
+        "shard_01731_28691",
+        "shard_01731_57788",
+        "shard_01894_79238",
+        "shard_01949_40793",
+        "shard_01977_24250",
+        "shard_02088_43925",
+        "shard_02088_69603",
+        "shard_02096_70770",
+        "shard_02137_79836",
+        "shard_02143_3719",
+        "shard_02152_57299",
+        "shard_02228_7608",
+        "shard_02243_67927",
+        "shard_02270_50583",
+        "shard_02303_45239",
+        "shard_02319_57678",
+        "shard_02368_81729",
+        "shard_02402_83416",
+        "shard_02456_50876",
+        "shard_02521_3506",
+        "shard_02526_16364",
+        "shard_02570_29358",
+        "shard_02627_79270",
+        "shard_02910_51593",
+        "shard_02966_73143",
+        "shard_03105_11862",
+        "shard_03161_55205",
+        "shard_03235_33574",
+        "shard_03277_43943",
+        "shard_03298_77364",
+        "shard_03325_57064",
+        "shard_03338_4065",
+        "shard_03373_71962",
+        "shard_03387_78699",
+        "shard_03396_5871",
+        "shard_03398_74003",
+        "shard_03402_72219",
+        "shard_03426_24231",
+        "shard_03449_80304",
+        "shard_03541_48090",
+        "shard_03548_84851",
+        "shard_03621_47552",
+        "shard_03643_80156",
+        "shard_03691_25585",
+        "shard_03751_76602",
+        "shard_03768_1191",
+        "shard_03795_27478",
+        "shard_04075_58814",
+        "shard_04122_43740",
+        "shard_04185_38690",
+        "shard_04194_78767",
+        "shard_04237_43724",
+        "shard_04328_25078",
+        "shard_04390_46729",
+        "shard_04420_28766",
+        "shard_04438_45017",
+        "shard_04453_57420",
+        "shard_04529_41940",
+        "shard_04635_60267",
+        "shard_04763_9590",
+        "shard_04775_68694",
+        "shard_05123_67612",
+        "shard_05167_65978",
+        "shard_05264_24092",
+        "shard_05295_43003",
+        "shard_05302_40880",
+        "shard_05421_42716",
+        "shard_05438_64677",
+        "shard_05458_35710",
+        "shard_05564_49541",
+        "shard_05579_54106",
+        "shard_05608_1895",
+        "shard_05627_83842",
+        "shard_05641_5746",
+        "shard_05797_76246",
+        "shard_05824_74955",
+        "shard_05890_13968",
+        "shard_05917_52827",
+        "shard_05959_33416",
+        "shard_05999_24125",
+        "shard_06068_40208",
+        "shard_06149_24548",
+        "shard_06377_4820",
+        "shard_06479_18665",
+        "shard_06514_23534"
+      ],
+      "tokens": {
+        "input": 401860,
+        "input_uncached": 228886,
+        "output": 8037,
+        "cache_read": 123800,
+        "cache_write": 49174,
+        "total": 409897,
+        "processed_input": 278060,
+        "processed": 286097,
+        "context_tokens": 54910,
+        "peak_context_tokens": 102437,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00972_10454",
+          "shard_01100_17176",
+          "shard_01166_43584",
+          "shard_01222_34466",
+          "shard_01949_40793",
+          "shard_02088_43925",
+          "shard_02456_50876",
+          "shard_02521_3506",
+          "shard_03235_33574",
+          "shard_03398_74003",
+          "shard_04237_43724",
+          "shard_04390_46729",
+          "shard_04420_28766",
+          "shard_05421_42716",
+          "shard_06377_4820"
+        ],
+        "rejected": [
+          "shard_00147_56755",
+          "shard_00191_61850",
+          "shard_00192_16840",
+          "shard_00201_69499",
+          "shard_00203_1659",
+          "shard_00204_54612",
+          "shard_00256_80818",
+          "shard_00524_62607",
+          "shard_00638_2683",
+          "shard_00646_62689",
+          "shard_00744_40618",
+          "shard_00765_40163",
+          "shard_00816_16860",
+          "shard_00818_73848",
+          "shard_00854_72267",
+          "shard_00891_47358",
+          "shard_00995_82996",
+          "shard_00996_12460",
+          "shard_01029_32056",
+          "shard_01039_83123",
+          "shard_01108_11342",
+          "shard_01264_27941",
+          "shard_01360_50819",
+          "shard_01363_84767",
+          "shard_01428_6758",
+          "shard_01434_25444",
+          "shard_01491_53892",
+          "shard_01493_58639",
+          "shard_01511_80814",
+          "shard_01664_38089",
+          "shard_01702_62839",
+          "shard_01731_28691",
+          "shard_01731_57788",
+          "shard_01894_79238",
+          "shard_01977_24250",
+          "shard_02088_69603",
+          "shard_02096_70770",
+          "shard_02137_79836",
+          "shard_02143_3719",
+          "shard_02152_57299",
+          "shard_02228_7608",
+          "shard_02243_67927",
+          "shard_02270_50583",
+          "shard_02303_45239",
+          "shard_02319_57678",
+          "shard_02368_81729",
+          "shard_02402_83416",
+          "shard_02526_16364",
+          "shard_02570_29358",
+          "shard_02627_79270",
+          "shard_02910_51593",
+          "shard_02966_73143",
+          "shard_03105_11862",
+          "shard_03161_55205",
+          "shard_03277_43943",
+          "shard_03298_77364",
+          "shard_03325_57064",
+          "shard_03338_4065",
+          "shard_03373_71962",
+          "shard_03387_78699",
+          "shard_03396_5871",
+          "shard_03402_72219",
+          "shard_03426_24231",
+          "shard_03449_80304",
+          "shard_03541_48090",
+          "shard_03548_84851",
+          "shard_03621_47552",
+          "shard_03643_80156",
+          "shard_03691_25585",
+          "shard_03751_76602",
+          "shard_03768_1191",
+          "shard_03795_27478",
+          "shard_04075_58814",
+          "shard_04122_43740",
+          "shard_04185_38690",
+          "shard_04194_78767",
+          "shard_04328_25078",
+          "shard_04438_45017",
+          "shard_04453_57420",
+          "shard_04529_41940",
+          "shard_04635_60267",
+          "shard_04763_9590",
+          "shard_04775_68694",
+          "shard_05123_67612",
+          "shard_05167_65978",
+          "shard_05264_24092",
+          "shard_05295_43003",
+          "shard_05302_40880",
+          "shard_05438_64677",
+          "shard_05458_35710",
+          "shard_05564_49541",
+          "shard_05579_54106",
+          "shard_05608_1895",
+          "shard_05627_83842",
+          "shard_05641_5746",
+          "shard_05797_76246",
+          "shard_05824_74955",
+          "shard_05890_13968",
+          "shard_05917_52827",
+          "shard_05959_33416",
+          "shard_05999_24125",
+          "shard_06068_40208",
+          "shard_06149_24548",
+          "shard_06479_18665",
+          "shard_06514_23534"
+        ]
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Produce a complete,\nwell-organized, evidence-grounded response using only the available\nsearch/retrieval tools and evidence returned by them. Prior knowledge may help\nyou choose searches, but it is not evidence and must not support factual claims.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most complete reasonable interpretation that\nstays in scope. Do not ask the user clarifying or confirming questions; proceed\non the strongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, determine internally:\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. Begin with multiple complementary queries in parallel across independent\n   coverage areas.\n2. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n4. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n5. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n6. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- On that turn, `commit_context` must be the first control action.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- New search calls may follow `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If available evidence does not support a requested\npoint, state the evidence gap rather than inventing an answer.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, produce the best answer\nthe committed evidence permits and explicitly identify the remaining evidence\ngaps.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers at the\n  end of the supporting sentence's line, e.g.\n  `Vaccination reduced hospitalizations among older adults. [docid_1] [docid_2]`\n- Citation markers are stripped from the submitted sentence, so a marker must\n  never act as a word in the sentence: write `the trial reports X [docid].`,\n  never `as [docid] reports, X.`\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or\n  any preamble, meta-commentary, or closing remarks around the report; every\n  line must be a report sentence.\n- Aim for about 950 words, excluding citation markers. 1024 words is a hard\n  limit set by the evaluation, and an over-length report costs a full rewrite,\n  so plan the report's scope to land under the target rather than writing long\n  and trimming.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Research request:\n\nI am an 18 year old that currently has ten thousand dollars. Write an investment plan to guide me through investing for the future. Specifically, the timespan of this investment plan should be considered to be the rest of my life. Furthermore, this investment plan should be researched with academic and/or authoritative sources. Essentially, I want to understand how a savvy investor would invest, given that they are starting with ten thousand dollars at the age of 18.\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_DHqK8UtbILBjyodZiIwODo",
+              "name": "search",
+              "arguments": {
+                "query": "lifecycle investing asset allocation age glide path academic research"
+              }
+            },
+            {
+              "id": "tooluse_rgYOUbdy1iMbIXcNv7n5wI",
+              "name": "search",
+              "arguments": {
+                "query": "index fund investing versus active management long term returns evidence"
+              }
+            },
+            {
+              "id": "tooluse_6hegvL9mJgNmJdDlxmlAUS",
+              "name": "search",
+              "arguments": {
+                "query": "Roth IRA young investors tax advantage retirement savings rules"
+              }
+            },
+            {
+              "id": "tooluse_lQBVCjWI3QHHJ0RQwl9Kgp",
+              "name": "search",
+              "arguments": {
+                "query": "power of compounding long time horizon stock market historical returns"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T10:07:47.666+10:00",
+        "t_end": "2026-07-17T10:07:54.384+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 6718.789,
+          "context_tokens": 3264,
+          "peak_context_tokens": 3264,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6719,
+          "tokens": {
+            "input": 3264,
+            "input_uncached": 216,
+            "output": 531,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3795,
+            "processed_input": 216,
+            "processed": 747,
+            "context": 3264
+          },
+          "provider_usage": {
+            "inputTokens": 216,
+            "outputTokens": 531,
+            "totalTokens": 3795,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 3264,
+            "input_uncached": 216,
+            "output": 531,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3795,
+            "processed_input": 216,
+            "processed": 747
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "lifecycle investing asset allocation age glide path academic research"
+        },
+        "output": {
+          "query": "lifecycle investing asset allocation age glide path academic research",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06377_4820",
+              "docid": "shard_06377_4820",
+              "kind": "document",
+              "rrf_score": 0.031514,
+              "truncated": false,
+              "original_chars": 8714,
+              "returned_chars": 8714
+            },
+            {
+              "rank": 2,
+              "id": "shard_03325_57064",
+              "docid": "shard_03325_57064",
+              "kind": "document",
+              "rrf_score": 0.030282,
+              "truncated": false,
+              "original_chars": 3129,
+              "returned_chars": 3129
+            },
+            {
+              "rank": 3,
+              "id": "shard_01894_79238",
+              "docid": "shard_01894_79238",
+              "kind": "document",
+              "rrf_score": 0.029851,
+              "truncated": false,
+              "original_chars": 4336,
+              "returned_chars": 4336
+            },
+            {
+              "rank": 4,
+              "id": "shard_00995_82996",
+              "docid": "shard_00995_82996",
+              "kind": "document",
+              "rrf_score": 0.029572,
+              "truncated": false,
+              "original_chars": 3422,
+              "returned_chars": 3422
+            },
+            {
+              "rank": 5,
+              "id": "shard_03426_24231",
+              "docid": "shard_03426_24231",
+              "kind": "document",
+              "rrf_score": 0.027052,
+              "truncated": false,
+              "original_chars": 3665,
+              "returned_chars": 3665
+            },
+            {
+              "rank": 6,
+              "id": "shard_02402_83416",
+              "docid": "shard_02402_83416",
+              "kind": "document",
+              "rrf_score": 0.026779,
+              "truncated": false,
+              "original_chars": 7854,
+              "returned_chars": 7854
+            },
+            {
+              "rank": 7,
+              "id": "shard_05458_35710",
+              "docid": "shard_05458_35710",
+              "kind": "document",
+              "rrf_score": 0.026646,
+              "truncated": false,
+              "original_chars": 3452,
+              "returned_chars": 3452
+            },
+            {
+              "rank": 8,
+              "id": "shard_04420_28766",
+              "docid": "shard_04420_28766",
+              "kind": "document",
+              "rrf_score": 0.025562,
+              "truncated": false,
+              "original_chars": 3069,
+              "returned_chars": 3069
+            },
+            {
+              "rank": 9,
+              "id": "shard_03298_77364",
+              "docid": "shard_03298_77364",
+              "kind": "document",
+              "rrf_score": 0.024964,
+              "truncated": false,
+              "original_chars": 3775,
+              "returned_chars": 3775
+            },
+            {
+              "rank": 10,
+              "id": "shard_02088_69603",
+              "docid": "shard_02088_69603",
+              "kind": "document",
+              "rrf_score": 0.02451,
+              "truncated": false,
+              "original_chars": 2910,
+              "returned_chars": 2910
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06377_4820",
+          "shard_03325_57064",
+          "shard_01894_79238",
+          "shard_00995_82996",
+          "shard_03426_24231",
+          "shard_02402_83416",
+          "shard_05458_35710",
+          "shard_04420_28766",
+          "shard_03298_77364",
+          "shard_02088_69603"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06377_4820",
+            "score": 0.031514
+          },
+          {
+            "docid": "shard_03325_57064",
+            "score": 0.030282
+          },
+          {
+            "docid": "shard_01894_79238",
+            "score": 0.029851
+          },
+          {
+            "docid": "shard_00995_82996",
+            "score": 0.029572
+          },
+          {
+            "docid": "shard_03426_24231",
+            "score": 0.027052
+          },
+          {
+            "docid": "shard_02402_83416",
+            "score": 0.026779
+          },
+          {
+            "docid": "shard_05458_35710",
+            "score": 0.026646
+          },
+          {
+            "docid": "shard_04420_28766",
+            "score": 0.025562
+          },
+          {
+            "docid": "shard_03298_77364",
+            "score": 0.024964
+          },
+          {
+            "docid": "shard_02088_69603",
+            "score": 0.02451
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_DHqK8UtbILBjyodZiIwODo",
+        "id": "step-0001",
+        "t_start": "2026-07-17T10:07:54.385+10:00",
+        "t_end": "2026-07-17T10:07:55.174+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 789.051,
+          "context_tokens": 3264,
+          "peak_context_tokens": 3264,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7645,
+          "cumulative_tokens": {
+            "input": 3264,
+            "input_uncached": 216,
+            "output": 531,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3795,
+            "processed_input": 216,
+            "processed": 747
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06377_4820",
+            "shard_03325_57064",
+            "shard_01894_79238",
+            "shard_00995_82996",
+            "shard_03426_24231",
+            "shard_02402_83416",
+            "shard_05458_35710",
+            "shard_04420_28766",
+            "shard_03298_77364",
+            "shard_02088_69603"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "index fund investing versus active management long term returns evidence"
+        },
+        "output": {
+          "query": "index fund investing versus active management long term returns evidence",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02243_67927",
+              "docid": "shard_02243_67927",
+              "kind": "document",
+              "rrf_score": 0.027151,
+              "truncated": false,
+              "original_chars": 8625,
+              "returned_chars": 8625
+            },
+            {
+              "rank": 2,
+              "id": "shard_06068_40208",
+              "docid": "shard_06068_40208",
+              "kind": "document",
+              "rrf_score": 0.024008,
+              "truncated": false,
+              "original_chars": 2555,
+              "returned_chars": 2555
+            },
+            {
+              "rank": 3,
+              "id": "shard_03795_27478",
+              "docid": "shard_03795_27478",
+              "kind": "document",
+              "rrf_score": 0.023065,
+              "truncated": false,
+              "original_chars": 5604,
+              "returned_chars": 5604
+            },
+            {
+              "rank": 4,
+              "id": "shard_05999_24125",
+              "docid": "shard_05999_24125",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 5016,
+              "returned_chars": 5016
+            },
+            {
+              "rank": 5,
+              "id": "shard_01731_28691",
+              "docid": "shard_01731_28691",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3577,
+              "returned_chars": 3577
+            },
+            {
+              "rank": 6,
+              "id": "shard_02966_73143",
+              "docid": "shard_02966_73143",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3301,
+              "returned_chars": 3301
+            },
+            {
+              "rank": 7,
+              "id": "shard_05797_76246",
+              "docid": "shard_05797_76246",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 5024,
+              "returned_chars": 5024
+            },
+            {
+              "rank": 8,
+              "id": "shard_00147_56755",
+              "docid": "shard_00147_56755",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3357,
+              "returned_chars": 3357
+            },
+            {
+              "rank": 9,
+              "id": "shard_03398_74003",
+              "docid": "shard_03398_74003",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 5120,
+              "returned_chars": 5120
+            },
+            {
+              "rank": 10,
+              "id": "shard_01039_83123",
+              "docid": "shard_01039_83123",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4986,
+              "returned_chars": 4986
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02243_67927",
+          "shard_06068_40208",
+          "shard_03795_27478",
+          "shard_05999_24125",
+          "shard_01731_28691",
+          "shard_02966_73143",
+          "shard_05797_76246",
+          "shard_00147_56755",
+          "shard_03398_74003",
+          "shard_01039_83123"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02243_67927",
+            "score": 0.027151
+          },
+          {
+            "docid": "shard_06068_40208",
+            "score": 0.024008
+          },
+          {
+            "docid": "shard_03795_27478",
+            "score": 0.023065
+          },
+          {
+            "docid": "shard_05999_24125",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01731_28691",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02966_73143",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05797_76246",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00147_56755",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03398_74003",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01039_83123",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_rgYOUbdy1iMbIXcNv7n5wI",
+        "id": "step-0002",
+        "t_start": "2026-07-17T10:07:54.385+10:00",
+        "t_end": "2026-07-17T10:07:55.288+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 903.401,
+          "context_tokens": 3264,
+          "peak_context_tokens": 3264,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7645,
+          "cumulative_tokens": {
+            "input": 3264,
+            "input_uncached": 216,
+            "output": 531,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3795,
+            "processed_input": 216,
+            "processed": 747
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02243_67927",
+            "shard_06068_40208",
+            "shard_03795_27478",
+            "shard_05999_24125",
+            "shard_01731_28691",
+            "shard_02966_73143",
+            "shard_05797_76246",
+            "shard_00147_56755",
+            "shard_03398_74003",
+            "shard_01039_83123"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Roth IRA young investors tax advantage retirement savings rules"
+        },
+        "output": {
+          "query": "Roth IRA young investors tax advantage retirement savings rules",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04390_46729",
+              "docid": "shard_04390_46729",
+              "kind": "document",
+              "rrf_score": 0.030092,
+              "truncated": false,
+              "original_chars": 6202,
+              "returned_chars": 6202
+            },
+            {
+              "rank": 2,
+              "id": "shard_02627_79270",
+              "docid": "shard_02627_79270",
+              "kind": "document",
+              "rrf_score": 0.028893,
+              "truncated": false,
+              "original_chars": 6019,
+              "returned_chars": 6019
+            },
+            {
+              "rank": 3,
+              "id": "shard_03277_43943",
+              "docid": "shard_03277_43943",
+              "kind": "document",
+              "rrf_score": 0.024185,
+              "truncated": false,
+              "original_chars": 5166,
+              "returned_chars": 5166
+            },
+            {
+              "rank": 4,
+              "id": "shard_05438_64677",
+              "docid": "shard_05438_64677",
+              "kind": "document",
+              "rrf_score": 0.023994,
+              "truncated": false,
+              "original_chars": 4689,
+              "returned_chars": 4689
+            },
+            {
+              "rank": 5,
+              "id": "shard_03396_5871",
+              "docid": "shard_03396_5871",
+              "kind": "document",
+              "rrf_score": 0.023344,
+              "truncated": false,
+              "original_chars": 5037,
+              "returned_chars": 5037
+            },
+            {
+              "rank": 6,
+              "id": "shard_04635_60267",
+              "docid": "shard_04635_60267",
+              "kind": "document",
+              "rrf_score": 0.022092,
+              "truncated": false,
+              "original_chars": 4167,
+              "returned_chars": 4167
+            },
+            {
+              "rank": 7,
+              "id": "shard_00204_54612",
+              "docid": "shard_00204_54612",
+              "kind": "document",
+              "rrf_score": 0.021852,
+              "truncated": false,
+              "original_chars": 14141,
+              "returned_chars": 14141
+            },
+            {
+              "rank": 8,
+              "id": "shard_02368_81729",
+              "docid": "shard_02368_81729",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3102,
+              "returned_chars": 3102
+            },
+            {
+              "rank": 9,
+              "id": "shard_02143_3719",
+              "docid": "shard_02143_3719",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 15216,
+              "returned_chars": 15216
+            },
+            {
+              "rank": 10,
+              "id": "shard_05302_40880",
+              "docid": "shard_05302_40880",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2874,
+              "returned_chars": 2874
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04390_46729",
+          "shard_02627_79270",
+          "shard_03277_43943",
+          "shard_05438_64677",
+          "shard_03396_5871",
+          "shard_04635_60267",
+          "shard_00204_54612",
+          "shard_02368_81729",
+          "shard_02143_3719",
+          "shard_05302_40880"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04390_46729",
+            "score": 0.030092
+          },
+          {
+            "docid": "shard_02627_79270",
+            "score": 0.028893
+          },
+          {
+            "docid": "shard_03277_43943",
+            "score": 0.024185
+          },
+          {
+            "docid": "shard_05438_64677",
+            "score": 0.023994
+          },
+          {
+            "docid": "shard_03396_5871",
+            "score": 0.023344
+          },
+          {
+            "docid": "shard_04635_60267",
+            "score": 0.022092
+          },
+          {
+            "docid": "shard_00204_54612",
+            "score": 0.021852
+          },
+          {
+            "docid": "shard_02368_81729",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_02143_3719",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_05302_40880",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_6hegvL9mJgNmJdDlxmlAUS",
+        "id": "step-0003",
+        "t_start": "2026-07-17T10:07:54.385+10:00",
+        "t_end": "2026-07-17T10:07:54.953+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 568.092,
+          "context_tokens": 3264,
+          "peak_context_tokens": 3264,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7645,
+          "cumulative_tokens": {
+            "input": 3264,
+            "input_uncached": 216,
+            "output": 531,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3795,
+            "processed_input": 216,
+            "processed": 747
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04390_46729",
+            "shard_02627_79270",
+            "shard_03277_43943",
+            "shard_05438_64677",
+            "shard_03396_5871",
+            "shard_04635_60267",
+            "shard_00204_54612",
+            "shard_02368_81729",
+            "shard_02143_3719",
+            "shard_05302_40880"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "power of compounding long time horizon stock market historical returns"
+        },
+        "output": {
+          "query": "power of compounding long time horizon stock market historical returns",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01100_17176",
+              "docid": "shard_01100_17176",
+              "kind": "document",
+              "rrf_score": 0.027313,
+              "truncated": false,
+              "original_chars": 2419,
+              "returned_chars": 2419
+            },
+            {
+              "rank": 2,
+              "id": "shard_00524_62607",
+              "docid": "shard_00524_62607",
+              "kind": "document",
+              "rrf_score": 0.026133,
+              "truncated": false,
+              "original_chars": 5115,
+              "returned_chars": 5115
+            },
+            {
+              "rank": 3,
+              "id": "shard_01264_27941",
+              "docid": "shard_01264_27941",
+              "kind": "document",
+              "rrf_score": 0.024706,
+              "truncated": false,
+              "original_chars": 3339,
+              "returned_chars": 3339
+            },
+            {
+              "rank": 4,
+              "id": "shard_01360_50819",
+              "docid": "shard_01360_50819",
+              "kind": "document",
+              "rrf_score": 0.022233,
+              "truncated": false,
+              "original_chars": 3004,
+              "returned_chars": 3004
+            },
+            {
+              "rank": 5,
+              "id": "shard_03387_78699",
+              "docid": "shard_03387_78699",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 705,
+              "returned_chars": 705
+            },
+            {
+              "rank": 6,
+              "id": "shard_01166_43584",
+              "docid": "shard_01166_43584",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 15159,
+              "returned_chars": 15159
+            },
+            {
+              "rank": 7,
+              "id": "shard_02152_57299",
+              "docid": "shard_02152_57299",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 2435,
+              "returned_chars": 2435
+            },
+            {
+              "rank": 8,
+              "id": "shard_00996_12460",
+              "docid": "shard_00996_12460",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 15816,
+              "returned_chars": 15816
+            },
+            {
+              "rank": 9,
+              "id": "shard_00818_73848",
+              "docid": "shard_00818_73848",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3467,
+              "returned_chars": 3467
+            },
+            {
+              "rank": 10,
+              "id": "shard_01493_58639",
+              "docid": "shard_01493_58639",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 16593,
+              "returned_chars": 16593
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01100_17176",
+          "shard_00524_62607",
+          "shard_01264_27941",
+          "shard_01360_50819",
+          "shard_03387_78699",
+          "shard_01166_43584",
+          "shard_02152_57299",
+          "shard_00996_12460",
+          "shard_00818_73848",
+          "shard_01493_58639"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01100_17176",
+            "score": 0.027313
+          },
+          {
+            "docid": "shard_00524_62607",
+            "score": 0.026133
+          },
+          {
+            "docid": "shard_01264_27941",
+            "score": 0.024706
+          },
+          {
+            "docid": "shard_01360_50819",
+            "score": 0.022233
+          },
+          {
+            "docid": "shard_03387_78699",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01166_43584",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02152_57299",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00996_12460",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00818_73848",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01493_58639",
+            "score": 0.015873
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_lQBVCjWI3QHHJ0RQwl9Kgp",
+        "id": "step-0004",
+        "t_start": "2026-07-17T10:07:54.386+10:00",
+        "t_end": "2026-07-17T10:07:55.310+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 924.395,
+          "context_tokens": 3264,
+          "peak_context_tokens": 3264,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 7645,
+          "cumulative_tokens": {
+            "input": 3264,
+            "input_uncached": 216,
+            "output": 531,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3795,
+            "processed_input": 216,
+            "processed": 747
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01100_17176",
+            "shard_00524_62607",
+            "shard_01264_27941",
+            "shard_01360_50819",
+            "shard_03387_78699",
+            "shard_01166_43584",
+            "shard_02152_57299",
+            "shard_00996_12460",
+            "shard_00818_73848",
+            "shard_01493_58639"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_DHqK8UtbILBjyodZiIwODo",
+            "tooluse_rgYOUbdy1iMbIXcNv7n5wI",
+            "tooluse_6hegvL9mJgNmJdDlxmlAUS",
+            "tooluse_lQBVCjWI3QHHJ0RQwl9Kgp"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_XSG4k0TkouaiLdjJX6npTe",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_06377_4820",
+                    "reason": "Explains glide path concepts, Bogle's 'age in bonds' rule of thumb, and Wade Pfau's argument for increasing equity allocation during retirement to manage sequence-of-returns risk"
+                  },
+                  {
+                    "docid": "shard_04420_28766",
+                    "reason": "Explains sequence-of-returns risk mechanism and why risk tolerance shouldn't simply decline with age, relevant to lifetime allocation strategy"
+                  },
+                  {
+                    "docid": "shard_01166_43584",
+                    "reason": "Cites Jeremy Siegel's Stocks for the Long Run academic finding of ~7% real US return, plus Anarkulova et al. 2021 Journal of Financial Economics study showing higher international loss probabilities as counter-evidence/caveat"
+                  },
+                  {
+                    "docid": "shard_01100_17176",
+                    "reason": "Provides specific historical S&P500 return distribution data by holding period (5,10,15,30-year returns) demonstrating reduced probability of loss with longer horizons"
+                  },
+                  {
+                    "docid": "shard_04390_46729",
+                    "reason": "Gives concrete Roth IRA example for young investor (age 26-66, $4000/yr at 7% = $854,438) and explains first-time homebuyer withdrawal exception, tax bracket rationale"
+                  },
+                  {
+                    "docid": "shard_03398_74003",
+                    "reason": "Cites SPIVA scorecard evidence (90% of active funds underperformed benchmark over 10 years) and explains active vs passive debate mechanics, index growth stats"
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T10:07:55.310+10:00",
+        "t_end": "2026-07-17T10:08:12.938+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 17628.349,
+          "context_tokens": 81439,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 25273,
+          "tokens": {
+            "input": 81439,
+            "input_uncached": 78391,
+            "output": 1432,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 82871,
+            "processed_input": 78391,
+            "processed": 79823,
+            "context": 81439
+          },
+          "provider_usage": {
+            "inputTokens": 78391,
+            "outputTokens": 1432,
+            "totalTokens": 82871,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 84703,
+            "input_uncached": 78607,
+            "output": 1963,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 86666,
+            "processed_input": 78607,
+            "processed": 80570
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06377_4820",
+            "shard_03325_57064",
+            "shard_01894_79238",
+            "shard_00995_82996",
+            "shard_03426_24231",
+            "shard_02402_83416",
+            "shard_05458_35710",
+            "shard_04420_28766",
+            "shard_03298_77364",
+            "shard_02088_69603",
+            "shard_02243_67927",
+            "shard_06068_40208",
+            "shard_03795_27478",
+            "shard_05999_24125",
+            "shard_01731_28691",
+            "shard_02966_73143",
+            "shard_05797_76246",
+            "shard_00147_56755",
+            "shard_03398_74003",
+            "shard_01039_83123",
+            "shard_04390_46729",
+            "shard_02627_79270",
+            "shard_03277_43943",
+            "shard_05438_64677",
+            "shard_03396_5871",
+            "shard_04635_60267",
+            "shard_00204_54612",
+            "shard_02368_81729",
+            "shard_02143_3719",
+            "shard_05302_40880",
+            "shard_01100_17176",
+            "shard_00524_62607",
+            "shard_01264_27941",
+            "shard_01360_50819",
+            "shard_03387_78699",
+            "shard_01166_43584",
+            "shard_02152_57299",
+            "shard_00996_12460",
+            "shard_00818_73848",
+            "shard_01493_58639"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_06377_4820",
+              "reason": "Explains glide path concepts, Bogle's 'age in bonds' rule of thumb, and Wade Pfau's argument for increasing equity allocation during retirement to manage sequence-of-returns risk"
+            },
+            {
+              "docid": "shard_04420_28766",
+              "reason": "Explains sequence-of-returns risk mechanism and why risk tolerance shouldn't simply decline with age, relevant to lifetime allocation strategy"
+            },
+            {
+              "docid": "shard_01166_43584",
+              "reason": "Cites Jeremy Siegel's Stocks for the Long Run academic finding of ~7% real US return, plus Anarkulova et al. 2021 Journal of Financial Economics study showing higher international loss probabilities as counter-evidence/caveat"
+            },
+            {
+              "docid": "shard_01100_17176",
+              "reason": "Provides specific historical S&P500 return distribution data by holding period (5,10,15,30-year returns) demonstrating reduced probability of loss with longer horizons"
+            },
+            {
+              "docid": "shard_04390_46729",
+              "reason": "Gives concrete Roth IRA example for young investor (age 26-66, $4000/yr at 7% = $854,438) and explains first-time homebuyer withdrawal exception, tax bracket rationale"
+            },
+            {
+              "docid": "shard_03398_74003",
+              "reason": "Cites SPIVA scorecard evidence (90% of active funds underperformed benchmark over 10 years) and explains active vs passive debate mechanics, index growth stats"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_06377_4820\", \"shard_04420_28766\", \"shard_03398_74003\", \"shard_04390_46729\", \"shard_01100_17176\", \"shard_01166_43584\"], \"rejected\": [{\"docid\": \"shard_03325_57064\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01894_79238\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00995_82996\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03426_24231\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02402_83416\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05458_35710\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03298_77364\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02088_69603\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02243_67927\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06068_40208\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03795_27478\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05999_24125\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01731_28691\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02966_73143\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05797_76246\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00147_56755\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01039_83123\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02627_79270\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03277_43943\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05438_64677\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03396_5871\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04635_60267\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00204_54612\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02368_81729\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02143_3719\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05302_40880\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00524_62607\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01264_27941\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01360_50819\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03387_78699\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02152_57299\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00996_12460\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00818_73848\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01493_58639\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 81,439 / 500,000 tokens (16.3%) · elapsed: 0m 25s]",
+        "failed": false,
+        "tool_call_id": "tooluse_XSG4k0TkouaiLdjJX6npTe",
+        "id": "step-0006",
+        "t_start": "2026-07-17T10:08:12.938+10:00",
+        "t_end": "2026-07-17T10:08:12.940+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 2.454,
+          "context_tokens": 81439,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 25276,
+          "cumulative_tokens": {
+            "input": 84703,
+            "input_uncached": 78607,
+            "output": 1963,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 86666,
+            "processed_input": 78607,
+            "processed": 80570
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06377_4820",
+            "shard_03325_57064",
+            "shard_01894_79238",
+            "shard_00995_82996",
+            "shard_03426_24231",
+            "shard_02402_83416",
+            "shard_05458_35710",
+            "shard_04420_28766",
+            "shard_03298_77364",
+            "shard_02088_69603",
+            "shard_02243_67927",
+            "shard_06068_40208",
+            "shard_03795_27478",
+            "shard_05999_24125",
+            "shard_01731_28691",
+            "shard_02966_73143",
+            "shard_05797_76246",
+            "shard_00147_56755",
+            "shard_03398_74003",
+            "shard_01039_83123",
+            "shard_04390_46729",
+            "shard_02627_79270",
+            "shard_03277_43943",
+            "shard_05438_64677",
+            "shard_03396_5871",
+            "shard_04635_60267",
+            "shard_00204_54612",
+            "shard_02368_81729",
+            "shard_02143_3719",
+            "shard_05302_40880",
+            "shard_01100_17176",
+            "shard_00524_62607",
+            "shard_01264_27941",
+            "shard_01360_50819",
+            "shard_03387_78699",
+            "shard_01166_43584",
+            "shard_02152_57299",
+            "shard_00996_12460",
+            "shard_00818_73848",
+            "shard_01493_58639"
+          ],
+          "committed": [
+            "shard_06377_4820",
+            "shard_04420_28766",
+            "shard_03398_74003",
+            "shard_04390_46729",
+            "shard_01100_17176",
+            "shard_01166_43584"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_03325_57064",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01894_79238",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00995_82996",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03426_24231",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02402_83416",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05458_35710",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03298_77364",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02088_69603",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02243_67927",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06068_40208",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03795_27478",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05999_24125",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01731_28691",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02966_73143",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05797_76246",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00147_56755",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01039_83123",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02627_79270",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03277_43943",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05438_64677",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03396_5871",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04635_60267",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00204_54612",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02368_81729",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02143_3719",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05302_40880",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00524_62607",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01264_27941",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01360_50819",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03387_78699",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02152_57299",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00996_12460",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00818_73848",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01493_58639",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_XSG4k0TkouaiLdjJX6npTe"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_JhgfllzQt8ih6SclEH2jvt",
+              "name": "search",
+              "arguments": {
+                "query": "dollar cost averaging versus lump sum investing research"
+              }
+            },
+            {
+              "id": "tooluse_mNbs7St6L2wVzMJp1sNFTn",
+              "name": "search",
+              "arguments": {
+                "query": "expense ratio fees impact long term investment returns"
+              }
+            },
+            {
+              "id": "tooluse_VhR9CqoFYa7k5ZGOi1Dydh",
+              "name": "search",
+              "arguments": {
+                "query": "behavioral finance investor mistakes market timing panic selling"
+              }
+            },
+            {
+              "id": "tooluse_apoZNKDj0JEFM5ojU7FVWi",
+              "name": "search",
+              "arguments": {
+                "query": "emergency fund before investing personal finance recommendation"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0007",
+        "t_start": "2026-07-17T10:08:12.940+10:00",
+        "t_end": "2026-07-17T10:08:17.800+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 4860.033,
+          "context_tokens": 24543,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30136,
+          "tokens": {
+            "input": 24543,
+            "input_uncached": 2583,
+            "output": 322,
+            "cache_read": 3048,
+            "cache_write": 18912,
+            "total": 24865,
+            "processed_input": 21495,
+            "processed": 21817,
+            "context": 24543
+          },
+          "provider_usage": {
+            "inputTokens": 2583,
+            "outputTokens": 322,
+            "totalTokens": 24865,
+            "cacheReadInputTokens": 3048,
+            "cacheWriteInputTokens": 18912,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 18912
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 109246,
+            "input_uncached": 81190,
+            "output": 2285,
+            "cache_read": 9144,
+            "cache_write": 18912,
+            "total": 111531,
+            "processed_input": 100102,
+            "processed": 102387
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_01100_17176",
+            "shard_01166_43584",
+            "shard_03398_74003",
+            "shard_04390_46729",
+            "shard_04420_28766",
+            "shard_06377_4820"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "dollar cost averaging versus lump sum investing research"
+        },
+        "output": {
+          "query": "dollar cost averaging versus lump sum investing research",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02303_45239",
+              "docid": "shard_02303_45239",
+              "kind": "document",
+              "rrf_score": 0.030118,
+              "truncated": false,
+              "original_chars": 3541,
+              "returned_chars": 3541
+            },
+            {
+              "rank": 2,
+              "id": "shard_02137_79836",
+              "docid": "shard_02137_79836",
+              "kind": "document",
+              "rrf_score": 0.027106,
+              "truncated": false,
+              "original_chars": 3347,
+              "returned_chars": 3347
+            },
+            {
+              "rank": 3,
+              "id": "shard_01949_40793",
+              "docid": "shard_01949_40793",
+              "kind": "document",
+              "rrf_score": 0.027052,
+              "truncated": false,
+              "original_chars": 3422,
+              "returned_chars": 3422
+            },
+            {
+              "rank": 4,
+              "id": "shard_01491_53892",
+              "docid": "shard_01491_53892",
+              "kind": "document",
+              "rrf_score": 0.026703,
+              "truncated": false,
+              "original_chars": 9471,
+              "returned_chars": 9471
+            },
+            {
+              "rank": 5,
+              "id": "shard_00201_69499",
+              "docid": "shard_00201_69499",
+              "kind": "document",
+              "rrf_score": 0.026626,
+              "truncated": false,
+              "original_chars": 2462,
+              "returned_chars": 2462
+            },
+            {
+              "rank": 6,
+              "id": "shard_03449_80304",
+              "docid": "shard_03449_80304",
+              "kind": "document",
+              "rrf_score": 0.025479,
+              "truncated": false,
+              "original_chars": 2514,
+              "returned_chars": 2514
+            },
+            {
+              "rank": 7,
+              "id": "shard_00744_40618",
+              "docid": "shard_00744_40618",
+              "kind": "document",
+              "rrf_score": 0.025418,
+              "truncated": false,
+              "original_chars": 3405,
+              "returned_chars": 3405
+            },
+            {
+              "rank": 8,
+              "id": "shard_02228_7608",
+              "docid": "shard_02228_7608",
+              "kind": "document",
+              "rrf_score": 0.025397,
+              "truncated": false,
+              "original_chars": 3292,
+              "returned_chars": 3292
+            },
+            {
+              "rank": 9,
+              "id": "shard_05959_33416",
+              "docid": "shard_05959_33416",
+              "kind": "document",
+              "rrf_score": 0.025327,
+              "truncated": false,
+              "original_chars": 3457,
+              "returned_chars": 3457
+            },
+            {
+              "rank": 10,
+              "id": "shard_00191_61850",
+              "docid": "shard_00191_61850",
+              "kind": "document",
+              "rrf_score": 0.024908,
+              "truncated": false,
+              "original_chars": 4176,
+              "returned_chars": 4176
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02303_45239",
+          "shard_02137_79836",
+          "shard_01949_40793",
+          "shard_01491_53892",
+          "shard_00201_69499",
+          "shard_03449_80304",
+          "shard_00744_40618",
+          "shard_02228_7608",
+          "shard_05959_33416",
+          "shard_00191_61850"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02303_45239",
+            "score": 0.030118
+          },
+          {
+            "docid": "shard_02137_79836",
+            "score": 0.027106
+          },
+          {
+            "docid": "shard_01949_40793",
+            "score": 0.027052
+          },
+          {
+            "docid": "shard_01491_53892",
+            "score": 0.026703
+          },
+          {
+            "docid": "shard_00201_69499",
+            "score": 0.026626
+          },
+          {
+            "docid": "shard_03449_80304",
+            "score": 0.025479
+          },
+          {
+            "docid": "shard_00744_40618",
+            "score": 0.025418
+          },
+          {
+            "docid": "shard_02228_7608",
+            "score": 0.025397
+          },
+          {
+            "docid": "shard_05959_33416",
+            "score": 0.025327
+          },
+          {
+            "docid": "shard_00191_61850",
+            "score": 0.024908
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_JhgfllzQt8ih6SclEH2jvt",
+        "id": "step-0008",
+        "t_start": "2026-07-17T10:08:17.800+10:00",
+        "t_end": "2026-07-17T10:08:18.583+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 782.792,
+          "context_tokens": 24543,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30930,
+          "cumulative_tokens": {
+            "input": 109246,
+            "input_uncached": 81190,
+            "output": 2285,
+            "cache_read": 9144,
+            "cache_write": 18912,
+            "total": 111531,
+            "processed_input": 100102,
+            "processed": 102387
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02303_45239",
+            "shard_02137_79836",
+            "shard_01949_40793",
+            "shard_01491_53892",
+            "shard_00201_69499",
+            "shard_03449_80304",
+            "shard_00744_40618",
+            "shard_02228_7608",
+            "shard_05959_33416",
+            "shard_00191_61850"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "expense ratio fees impact long term investment returns"
+        },
+        "output": {
+          "query": "expense ratio fees impact long term investment returns",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02570_29358",
+              "docid": "shard_02570_29358",
+              "kind": "document",
+              "rrf_score": 0.029958,
+              "truncated": false,
+              "original_chars": 4064,
+              "returned_chars": 4064
+            },
+            {
+              "rank": 2,
+              "id": "shard_01702_62839",
+              "docid": "shard_01702_62839",
+              "kind": "document",
+              "rrf_score": 0.029514,
+              "truncated": false,
+              "original_chars": 4021,
+              "returned_chars": 4021
+            },
+            {
+              "rank": 3,
+              "id": "shard_00256_80818",
+              "docid": "shard_00256_80818",
+              "kind": "document",
+              "rrf_score": 0.02683,
+              "truncated": false,
+              "original_chars": 4070,
+              "returned_chars": 4070
+            },
+            {
+              "rank": 4,
+              "id": "shard_02456_50876",
+              "docid": "shard_02456_50876",
+              "kind": "document",
+              "rrf_score": 0.025914,
+              "truncated": false,
+              "original_chars": 3193,
+              "returned_chars": 3193
+            },
+            {
+              "rank": 5,
+              "id": "shard_01511_80814",
+              "docid": "shard_01511_80814",
+              "kind": "document",
+              "rrf_score": 0.025166,
+              "truncated": false,
+              "original_chars": 6825,
+              "returned_chars": 6825
+            },
+            {
+              "rank": 6,
+              "id": "shard_02319_57678",
+              "docid": "shard_02319_57678",
+              "kind": "document",
+              "rrf_score": 0.024908,
+              "truncated": false,
+              "original_chars": 2129,
+              "returned_chars": 2129
+            },
+            {
+              "rank": 7,
+              "id": "shard_01428_6758",
+              "docid": "shard_01428_6758",
+              "kind": "document",
+              "rrf_score": 0.024607,
+              "truncated": false,
+              "original_chars": 5233,
+              "returned_chars": 5233
+            },
+            {
+              "rank": 8,
+              "id": "shard_04529_41940",
+              "docid": "shard_04529_41940",
+              "kind": "document",
+              "rrf_score": 0.024326,
+              "truncated": false,
+              "original_chars": 4436,
+              "returned_chars": 4436
+            },
+            {
+              "rank": 9,
+              "id": "shard_05627_83842",
+              "docid": "shard_05627_83842",
+              "kind": "document",
+              "rrf_score": 0.02372,
+              "truncated": false,
+              "original_chars": 8692,
+              "returned_chars": 8692
+            },
+            {
+              "rank": 10,
+              "id": "shard_03548_84851",
+              "docid": "shard_03548_84851",
+              "kind": "document",
+              "rrf_score": 0.023184,
+              "truncated": false,
+              "original_chars": 3329,
+              "returned_chars": 3329
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02570_29358",
+          "shard_01702_62839",
+          "shard_00256_80818",
+          "shard_02456_50876",
+          "shard_01511_80814",
+          "shard_02319_57678",
+          "shard_01428_6758",
+          "shard_04529_41940",
+          "shard_05627_83842",
+          "shard_03548_84851"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02570_29358",
+            "score": 0.029958
+          },
+          {
+            "docid": "shard_01702_62839",
+            "score": 0.029514
+          },
+          {
+            "docid": "shard_00256_80818",
+            "score": 0.02683
+          },
+          {
+            "docid": "shard_02456_50876",
+            "score": 0.025914
+          },
+          {
+            "docid": "shard_01511_80814",
+            "score": 0.025166
+          },
+          {
+            "docid": "shard_02319_57678",
+            "score": 0.024908
+          },
+          {
+            "docid": "shard_01428_6758",
+            "score": 0.024607
+          },
+          {
+            "docid": "shard_04529_41940",
+            "score": 0.024326
+          },
+          {
+            "docid": "shard_05627_83842",
+            "score": 0.02372
+          },
+          {
+            "docid": "shard_03548_84851",
+            "score": 0.023184
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_mNbs7St6L2wVzMJp1sNFTn",
+        "id": "step-0009",
+        "t_start": "2026-07-17T10:08:17.801+10:00",
+        "t_end": "2026-07-17T10:08:18.559+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 758.359,
+          "context_tokens": 24543,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30931,
+          "cumulative_tokens": {
+            "input": 109246,
+            "input_uncached": 81190,
+            "output": 2285,
+            "cache_read": 9144,
+            "cache_write": 18912,
+            "total": 111531,
+            "processed_input": 100102,
+            "processed": 102387
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02570_29358",
+            "shard_01702_62839",
+            "shard_00256_80818",
+            "shard_02456_50876",
+            "shard_01511_80814",
+            "shard_02319_57678",
+            "shard_01428_6758",
+            "shard_04529_41940",
+            "shard_05627_83842",
+            "shard_03548_84851"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "behavioral finance investor mistakes market timing panic selling"
+        },
+        "output": {
+          "query": "behavioral finance investor mistakes market timing panic selling",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02088_43925",
+              "docid": "shard_02088_43925",
+              "kind": "document",
+              "rrf_score": 0.026333,
+              "truncated": false,
+              "original_chars": 2399,
+              "returned_chars": 2399
+            },
+            {
+              "rank": 2,
+              "id": "shard_01222_34466",
+              "docid": "shard_01222_34466",
+              "kind": "document",
+              "rrf_score": 0.025053,
+              "truncated": false,
+              "original_chars": 5567,
+              "returned_chars": 5567
+            },
+            {
+              "rank": 3,
+              "id": "shard_01363_84767",
+              "docid": "shard_01363_84767",
+              "kind": "document",
+              "rrf_score": 0.020423,
+              "truncated": false,
+              "original_chars": 6783,
+              "returned_chars": 6783
+            },
+            {
+              "rank": 4,
+              "id": "shard_06479_18665",
+              "docid": "shard_06479_18665",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3467,
+              "returned_chars": 3467
+            },
+            {
+              "rank": 5,
+              "id": "shard_04775_68694",
+              "docid": "shard_04775_68694",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 11027,
+              "returned_chars": 11027
+            },
+            {
+              "rank": 6,
+              "id": "shard_01029_32056",
+              "docid": "shard_01029_32056",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 4669,
+              "returned_chars": 4669
+            },
+            {
+              "rank": 7,
+              "id": "shard_04185_38690",
+              "docid": "shard_04185_38690",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 929,
+              "returned_chars": 929
+            },
+            {
+              "rank": 8,
+              "id": "shard_00203_1659",
+              "docid": "shard_00203_1659",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 12951,
+              "returned_chars": 12951
+            },
+            {
+              "rank": 9,
+              "id": "shard_02270_50583",
+              "docid": "shard_02270_50583",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 570,
+              "returned_chars": 570
+            },
+            {
+              "rank": 10,
+              "id": "shard_05608_1895",
+              "docid": "shard_05608_1895",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 16386,
+              "returned_chars": 16386
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02088_43925",
+          "shard_01222_34466",
+          "shard_01363_84767",
+          "shard_06479_18665",
+          "shard_04775_68694",
+          "shard_01029_32056",
+          "shard_04185_38690",
+          "shard_00203_1659",
+          "shard_02270_50583",
+          "shard_05608_1895"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02088_43925",
+            "score": 0.026333
+          },
+          {
+            "docid": "shard_01222_34466",
+            "score": 0.025053
+          },
+          {
+            "docid": "shard_01363_84767",
+            "score": 0.020423
+          },
+          {
+            "docid": "shard_06479_18665",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04775_68694",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01029_32056",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04185_38690",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00203_1659",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02270_50583",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_05608_1895",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_VhR9CqoFYa7k5ZGOi1Dydh",
+        "id": "step-0010",
+        "t_start": "2026-07-17T10:08:17.801+10:00",
+        "t_end": "2026-07-17T10:08:18.595+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 793.966,
+          "context_tokens": 24543,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30931,
+          "cumulative_tokens": {
+            "input": 109246,
+            "input_uncached": 81190,
+            "output": 2285,
+            "cache_read": 9144,
+            "cache_write": 18912,
+            "total": 111531,
+            "processed_input": 100102,
+            "processed": 102387
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02088_43925",
+            "shard_01222_34466",
+            "shard_01363_84767",
+            "shard_06479_18665",
+            "shard_04775_68694",
+            "shard_01029_32056",
+            "shard_04185_38690",
+            "shard_00203_1659",
+            "shard_02270_50583",
+            "shard_05608_1895"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "emergency fund before investing personal finance recommendation"
+        },
+        "output": {
+          "query": "emergency fund before investing personal finance recommendation",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03541_48090",
+              "docid": "shard_03541_48090",
+              "kind": "document",
+              "rrf_score": 0.030214,
+              "truncated": false,
+              "original_chars": 3396,
+              "returned_chars": 3396
+            },
+            {
+              "rank": 2,
+              "id": "shard_00816_16860",
+              "docid": "shard_00816_16860",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 949,
+              "returned_chars": 949
+            },
+            {
+              "rank": 3,
+              "id": "shard_01664_38089",
+              "docid": "shard_01664_38089",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2816,
+              "returned_chars": 2816
+            },
+            {
+              "rank": 4,
+              "id": "shard_05641_5746",
+              "docid": "shard_05641_5746",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 13504,
+              "returned_chars": 13504
+            },
+            {
+              "rank": 5,
+              "id": "shard_04122_43740",
+              "docid": "shard_04122_43740",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 781,
+              "returned_chars": 781
+            },
+            {
+              "rank": 6,
+              "id": "shard_05579_54106",
+              "docid": "shard_05579_54106",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 5243,
+              "returned_chars": 5243
+            },
+            {
+              "rank": 7,
+              "id": "shard_03235_33574",
+              "docid": "shard_03235_33574",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3272,
+              "returned_chars": 3272
+            },
+            {
+              "rank": 8,
+              "id": "shard_05295_43003",
+              "docid": "shard_05295_43003",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 14440,
+              "returned_chars": 14440
+            },
+            {
+              "rank": 9,
+              "id": "shard_03373_71962",
+              "docid": "shard_03373_71962",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 2073,
+              "returned_chars": 2073
+            },
+            {
+              "rank": 10,
+              "id": "shard_03643_80156",
+              "docid": "shard_03643_80156",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 14918,
+              "returned_chars": 14918
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03541_48090",
+          "shard_00816_16860",
+          "shard_01664_38089",
+          "shard_05641_5746",
+          "shard_04122_43740",
+          "shard_05579_54106",
+          "shard_03235_33574",
+          "shard_05295_43003",
+          "shard_03373_71962",
+          "shard_03643_80156"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03541_48090",
+            "score": 0.030214
+          },
+          {
+            "docid": "shard_00816_16860",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01664_38089",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05641_5746",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04122_43740",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05579_54106",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_03235_33574",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_05295_43003",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_03373_71962",
+            "score": 0.015385
+          },
+          {
+            "docid": "shard_03643_80156",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_apoZNKDj0JEFM5ojU7FVWi",
+        "id": "step-0011",
+        "t_start": "2026-07-17T10:08:17.801+10:00",
+        "t_end": "2026-07-17T10:08:18.445+10:00",
+        "turn": 2,
+        "parent_id": "step-0007",
+        "stats": {
+          "duration_ms": 644.537,
+          "context_tokens": 24543,
+          "peak_context_tokens": 81439,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 30931,
+          "cumulative_tokens": {
+            "input": 109246,
+            "input_uncached": 81190,
+            "output": 2285,
+            "cache_read": 9144,
+            "cache_write": 18912,
+            "total": 111531,
+            "processed_input": 100102,
+            "processed": 102387
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03541_48090",
+            "shard_00816_16860",
+            "shard_01664_38089",
+            "shard_05641_5746",
+            "shard_04122_43740",
+            "shard_05579_54106",
+            "shard_03235_33574",
+            "shard_05295_43003",
+            "shard_03373_71962",
+            "shard_03643_80156"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_JhgfllzQt8ih6SclEH2jvt",
+            "tooluse_mNbs7St6L2wVzMJp1sNFTn",
+            "tooluse_VhR9CqoFYa7k5ZGOi1Dydh",
+            "tooluse_apoZNKDj0JEFM5ojU7FVWi"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_guIsM6sCzptNzmb9MjAZZw",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_01949_40793",
+                    "reason": "Vanguard research (Finlay & Zorn) found lump-sum investing beat dollar-cost averaging 68% of the time from 1976-2022, with quantified wealth gaps by equity allocation (40/60, 60/40, all-equity)"
+                  },
+                  {
+                    "docid": "shard_02456_50876",
+                    "reason": "Concrete numeric example showing a 0.5% vs 1% expense ratio difference compounds to $37,387 vs $32,071 on $10,000 over 20 years at 7% return"
+                  },
+                  {
+                    "docid": "shard_02088_43925",
+                    "reason": "MIT study data plus JPMorgan statistic that average investor earned only 2.9% vs S&P500's 7.5% annualized over two decades due to panic selling and mistimed reentry"
+                  },
+                  {
+                    "docid": "shard_03235_33574",
+                    "reason": "Authoritative definition of emergency fund with 3-6 months expense guideline and rationale for holding it before investing in volatile assets like stocks"
+                  },
+                  {
+                    "docid": "shard_01222_34466",
+                    "reason": "Cites Kahneman & Tversky Prospect Theory academic research on loss aversion, anchoring, herding as behavioral biases causing investment mistakes"
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0012",
+        "t_start": "2026-07-17T10:08:18.595+10:00",
+        "t_end": "2026-07-17T10:08:28.707+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 10112.002,
+          "context_tokens": 97926,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 41043,
+          "tokens": {
+            "input": 97926,
+            "input_uncached": 75966,
+            "output": 813,
+            "cache_read": 21960,
+            "cache_write": 0,
+            "total": 98739,
+            "processed_input": 75966,
+            "processed": 76779,
+            "context": 97926
+          },
+          "provider_usage": {
+            "inputTokens": 75966,
+            "outputTokens": 813,
+            "totalTokens": 98739,
+            "cacheReadInputTokens": 21960
+          },
+          "cumulative_tokens": {
+            "input": 207172,
+            "input_uncached": 157156,
+            "output": 3098,
+            "cache_read": 31104,
+            "cache_write": 18912,
+            "total": 210270,
+            "processed_input": 176068,
+            "processed": 179166
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02303_45239",
+            "shard_02137_79836",
+            "shard_01949_40793",
+            "shard_01491_53892",
+            "shard_00201_69499",
+            "shard_03449_80304",
+            "shard_00744_40618",
+            "shard_02228_7608",
+            "shard_05959_33416",
+            "shard_00191_61850",
+            "shard_02570_29358",
+            "shard_01702_62839",
+            "shard_00256_80818",
+            "shard_02456_50876",
+            "shard_01511_80814",
+            "shard_02319_57678",
+            "shard_01428_6758",
+            "shard_04529_41940",
+            "shard_05627_83842",
+            "shard_03548_84851",
+            "shard_02088_43925",
+            "shard_01222_34466",
+            "shard_01363_84767",
+            "shard_06479_18665",
+            "shard_04775_68694",
+            "shard_01029_32056",
+            "shard_04185_38690",
+            "shard_00203_1659",
+            "shard_02270_50583",
+            "shard_05608_1895",
+            "shard_03541_48090",
+            "shard_00816_16860",
+            "shard_01664_38089",
+            "shard_05641_5746",
+            "shard_04122_43740",
+            "shard_05579_54106",
+            "shard_03235_33574",
+            "shard_05295_43003",
+            "shard_03373_71962",
+            "shard_03643_80156"
+          ],
+          "committed": [
+            "shard_01100_17176",
+            "shard_01166_43584",
+            "shard_03398_74003",
+            "shard_04390_46729",
+            "shard_04420_28766",
+            "shard_06377_4820"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_01949_40793",
+              "reason": "Vanguard research (Finlay & Zorn) found lump-sum investing beat dollar-cost averaging 68% of the time from 1976-2022, with quantified wealth gaps by equity allocation (40/60, 60/40, all-equity)"
+            },
+            {
+              "docid": "shard_02456_50876",
+              "reason": "Concrete numeric example showing a 0.5% vs 1% expense ratio difference compounds to $37,387 vs $32,071 on $10,000 over 20 years at 7% return"
+            },
+            {
+              "docid": "shard_02088_43925",
+              "reason": "MIT study data plus JPMorgan statistic that average investor earned only 2.9% vs S&P500's 7.5% annualized over two decades due to panic selling and mistimed reentry"
+            },
+            {
+              "docid": "shard_03235_33574",
+              "reason": "Authoritative definition of emergency fund with 3-6 months expense guideline and rationale for holding it before investing in volatile assets like stocks"
+            },
+            {
+              "docid": "shard_01222_34466",
+              "reason": "Cites Kahneman & Tversky Prospect Theory academic research on loss aversion, anchoring, herding as behavioral biases causing investment mistakes"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_01949_40793\", \"shard_02456_50876\", \"shard_02088_43925\", \"shard_01222_34466\", \"shard_03235_33574\"], \"rejected\": [{\"docid\": \"shard_02303_45239\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02137_79836\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01491_53892\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00201_69499\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03449_80304\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00744_40618\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02228_7608\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05959_33416\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00191_61850\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02570_29358\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01702_62839\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00256_80818\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01511_80814\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02319_57678\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01428_6758\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04529_41940\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05627_83842\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03548_84851\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01363_84767\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06479_18665\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04775_68694\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01029_32056\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04185_38690\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00203_1659\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02270_50583\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05608_1895\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03541_48090\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00816_16860\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01664_38089\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05641_5746\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04122_43740\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05579_54106\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05295_43003\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03373_71962\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03643_80156\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 97,926 / 500,000 tokens (19.6%) · elapsed: 0m 41s]",
+        "failed": false,
+        "tool_call_id": "tooluse_guIsM6sCzptNzmb9MjAZZw",
+        "id": "step-0013",
+        "t_start": "2026-07-17T10:08:28.707+10:00",
+        "t_end": "2026-07-17T10:08:28.710+10:00",
+        "turn": 3,
+        "parent_id": "step-0012",
+        "stats": {
+          "duration_ms": 2.818,
+          "context_tokens": 97926,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 41046,
+          "cumulative_tokens": {
+            "input": 207172,
+            "input_uncached": 157156,
+            "output": 3098,
+            "cache_read": 31104,
+            "cache_write": 18912,
+            "total": 210270,
+            "processed_input": 176068,
+            "processed": 179166
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02303_45239",
+            "shard_02137_79836",
+            "shard_01949_40793",
+            "shard_01491_53892",
+            "shard_00201_69499",
+            "shard_03449_80304",
+            "shard_00744_40618",
+            "shard_02228_7608",
+            "shard_05959_33416",
+            "shard_00191_61850",
+            "shard_02570_29358",
+            "shard_01702_62839",
+            "shard_00256_80818",
+            "shard_02456_50876",
+            "shard_01511_80814",
+            "shard_02319_57678",
+            "shard_01428_6758",
+            "shard_04529_41940",
+            "shard_05627_83842",
+            "shard_03548_84851",
+            "shard_02088_43925",
+            "shard_01222_34466",
+            "shard_01363_84767",
+            "shard_06479_18665",
+            "shard_04775_68694",
+            "shard_01029_32056",
+            "shard_04185_38690",
+            "shard_00203_1659",
+            "shard_02270_50583",
+            "shard_05608_1895",
+            "shard_03541_48090",
+            "shard_00816_16860",
+            "shard_01664_38089",
+            "shard_05641_5746",
+            "shard_04122_43740",
+            "shard_05579_54106",
+            "shard_03235_33574",
+            "shard_05295_43003",
+            "shard_03373_71962",
+            "shard_03643_80156"
+          ],
+          "committed": [
+            "shard_01949_40793",
+            "shard_02456_50876",
+            "shard_02088_43925",
+            "shard_01222_34466",
+            "shard_03235_33574"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_02303_45239",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02137_79836",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01491_53892",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00201_69499",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03449_80304",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00744_40618",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02228_7608",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05959_33416",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00191_61850",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02570_29358",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01702_62839",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00256_80818",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01511_80814",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02319_57678",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01428_6758",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04529_41940",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05627_83842",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03548_84851",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01363_84767",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06479_18665",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04775_68694",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01029_32056",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04185_38690",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00203_1659",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02270_50583",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05608_1895",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03541_48090",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00816_16860",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01664_38089",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05641_5746",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04122_43740",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05579_54106",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05295_43003",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03373_71962",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03643_80156",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_guIsM6sCzptNzmb9MjAZZw"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_ikj2F0vrweEFLXUwPoztjm",
+              "name": "search",
+              "arguments": {
+                "query": "401k employer match free money retirement savings advice"
+              }
+            },
+            {
+              "id": "tooluse_1f5seB4cIuHTSr8TUoFSQS",
+              "name": "search",
+              "arguments": {
+                "query": "diversification asset classes bonds real estate international stocks modern portfolio theory"
+              }
+            },
+            {
+              "id": "tooluse_TrelZ7oH51v05zxmL9NTbX",
+              "name": "search",
+              "arguments": {
+                "query": "IRA annual contribution limit 2024 income rules"
+              }
+            },
+            {
+              "id": "tooluse_ze51iRzzkBziYvbSpbFvVe",
+              "name": "search",
+              "arguments": {
+                "query": "rebalancing portfolio strategy buy low sell high"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-17T10:08:28.710+10:00",
+        "t_end": "2026-07-17T10:08:34.164+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 5454.089,
+          "context_tokens": 37341,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 46500,
+          "tokens": {
+            "input": 37341,
+            "input_uncached": 1973,
+            "output": 444,
+            "cache_read": 21960,
+            "cache_write": 13408,
+            "total": 37785,
+            "processed_input": 15381,
+            "processed": 15825,
+            "context": 37341
+          },
+          "provider_usage": {
+            "inputTokens": 1973,
+            "outputTokens": 444,
+            "totalTokens": 37785,
+            "cacheReadInputTokens": 21960,
+            "cacheWriteInputTokens": 13408,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 13408
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 244513,
+            "input_uncached": 159129,
+            "output": 3542,
+            "cache_read": 53064,
+            "cache_write": 32320,
+            "total": 248055,
+            "processed_input": 191449,
+            "processed": 194991
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_01100_17176",
+            "shard_01166_43584",
+            "shard_01222_34466",
+            "shard_01949_40793",
+            "shard_02088_43925",
+            "shard_02456_50876",
+            "shard_03235_33574",
+            "shard_03398_74003",
+            "shard_04390_46729",
+            "shard_04420_28766",
+            "shard_06377_4820"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "401k employer match free money retirement savings advice"
+        },
+        "output": {
+          "query": "401k employer match free money retirement savings advice",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_00972_10454",
+              "docid": "shard_00972_10454",
+              "kind": "document",
+              "rrf_score": 0.021111,
+              "truncated": false,
+              "original_chars": 2758,
+              "returned_chars": 2758
+            },
+            {
+              "rank": 2,
+              "id": "shard_05264_24092",
+              "docid": "shard_05264_24092",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 414,
+              "returned_chars": 414
+            },
+            {
+              "rank": 3,
+              "id": "shard_00638_2683",
+              "docid": "shard_00638_2683",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 9681,
+              "returned_chars": 9681
+            },
+            {
+              "rank": 4,
+              "id": "shard_03338_4065",
+              "docid": "shard_03338_4065",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3121,
+              "returned_chars": 3121
+            },
+            {
+              "rank": 5,
+              "id": "shard_01977_24250",
+              "docid": "shard_01977_24250",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 9674,
+              "returned_chars": 9674
+            },
+            {
+              "rank": 6,
+              "id": "shard_01108_11342",
+              "docid": "shard_01108_11342",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1259,
+              "returned_chars": 1259
+            },
+            {
+              "rank": 7,
+              "id": "shard_02910_51593",
+              "docid": "shard_02910_51593",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3254,
+              "returned_chars": 3254
+            },
+            {
+              "rank": 8,
+              "id": "shard_00765_40163",
+              "docid": "shard_00765_40163",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 415,
+              "returned_chars": 415
+            },
+            {
+              "rank": 9,
+              "id": "shard_05917_52827",
+              "docid": "shard_05917_52827",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": true,
+              "original_chars": 43259,
+              "returned_chars": 20433
+            },
+            {
+              "rank": 10,
+              "id": "shard_04763_9590",
+              "docid": "shard_04763_9590",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 1495,
+              "returned_chars": 1495
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_00972_10454",
+          "shard_05264_24092",
+          "shard_00638_2683",
+          "shard_03338_4065",
+          "shard_01977_24250",
+          "shard_01108_11342",
+          "shard_02910_51593",
+          "shard_00765_40163",
+          "shard_05917_52827",
+          "shard_04763_9590"
+        ],
+        "returned": [
+          {
+            "docid": "shard_00972_10454",
+            "score": 0.021111
+          },
+          {
+            "docid": "shard_05264_24092",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00638_2683",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03338_4065",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01977_24250",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01108_11342",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_02910_51593",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00765_40163",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_05917_52827",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_04763_9590",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_ikj2F0vrweEFLXUwPoztjm",
+        "id": "step-0015",
+        "t_start": "2026-07-17T10:08:34.164+10:00",
+        "t_end": "2026-07-17T10:08:34.707+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 543.078,
+          "context_tokens": 37341,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47107,
+          "cumulative_tokens": {
+            "input": 244513,
+            "input_uncached": 159129,
+            "output": 3542,
+            "cache_read": 53064,
+            "cache_write": 32320,
+            "total": 248055,
+            "processed_input": 191449,
+            "processed": 194991
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00972_10454",
+            "shard_05264_24092",
+            "shard_00638_2683",
+            "shard_03338_4065",
+            "shard_01977_24250",
+            "shard_01108_11342",
+            "shard_02910_51593",
+            "shard_00765_40163",
+            "shard_05917_52827",
+            "shard_04763_9590"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "diversification asset classes bonds real estate international stocks modern portfolio theory"
+        },
+        "output": {
+          "query": "diversification asset classes bonds real estate international stocks modern portfolio theory",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02521_3506",
+              "docid": "shard_02521_3506",
+              "kind": "document",
+              "rrf_score": 0.029643,
+              "truncated": false,
+              "original_chars": 3525,
+              "returned_chars": 3525
+            },
+            {
+              "rank": 2,
+              "id": "shard_01731_57788",
+              "docid": "shard_01731_57788",
+              "kind": "document",
+              "rrf_score": 0.02607,
+              "truncated": false,
+              "original_chars": 3859,
+              "returned_chars": 3859
+            },
+            {
+              "rank": 3,
+              "id": "shard_04438_45017",
+              "docid": "shard_04438_45017",
+              "kind": "document",
+              "rrf_score": 0.025645,
+              "truncated": false,
+              "original_chars": 7002,
+              "returned_chars": 7002
+            },
+            {
+              "rank": 4,
+              "id": "shard_04075_58814",
+              "docid": "shard_04075_58814",
+              "kind": "document",
+              "rrf_score": 0.025353,
+              "truncated": false,
+              "original_chars": 3304,
+              "returned_chars": 3304
+            },
+            {
+              "rank": 5,
+              "id": "shard_04453_57420",
+              "docid": "shard_04453_57420",
+              "kind": "document",
+              "rrf_score": 0.025278,
+              "truncated": false,
+              "original_chars": 3536,
+              "returned_chars": 3536
+            },
+            {
+              "rank": 6,
+              "id": "shard_03161_55205",
+              "docid": "shard_03161_55205",
+              "kind": "document",
+              "rrf_score": 0.025238,
+              "truncated": false,
+              "original_chars": 2950,
+              "returned_chars": 2950
+            },
+            {
+              "rank": 7,
+              "id": "shard_05824_74955",
+              "docid": "shard_05824_74955",
+              "kind": "document",
+              "rrf_score": 0.024799,
+              "truncated": false,
+              "original_chars": 3268,
+              "returned_chars": 3268
+            },
+            {
+              "rank": 8,
+              "id": "shard_03105_11862",
+              "docid": "shard_03105_11862",
+              "kind": "document",
+              "rrf_score": 0.022024,
+              "truncated": false,
+              "original_chars": 3270,
+              "returned_chars": 3270
+            },
+            {
+              "rank": 9,
+              "id": "shard_03691_25585",
+              "docid": "shard_03691_25585",
+              "kind": "document",
+              "rrf_score": 0.020204,
+              "truncated": false,
+              "original_chars": 4473,
+              "returned_chars": 4473
+            },
+            {
+              "rank": 10,
+              "id": "shard_05123_67612",
+              "docid": "shard_05123_67612",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3714,
+              "returned_chars": 3714
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02521_3506",
+          "shard_01731_57788",
+          "shard_04438_45017",
+          "shard_04075_58814",
+          "shard_04453_57420",
+          "shard_03161_55205",
+          "shard_05824_74955",
+          "shard_03105_11862",
+          "shard_03691_25585",
+          "shard_05123_67612"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02521_3506",
+            "score": 0.029643
+          },
+          {
+            "docid": "shard_01731_57788",
+            "score": 0.02607
+          },
+          {
+            "docid": "shard_04438_45017",
+            "score": 0.025645
+          },
+          {
+            "docid": "shard_04075_58814",
+            "score": 0.025353
+          },
+          {
+            "docid": "shard_04453_57420",
+            "score": 0.025278
+          },
+          {
+            "docid": "shard_03161_55205",
+            "score": 0.025238
+          },
+          {
+            "docid": "shard_05824_74955",
+            "score": 0.024799
+          },
+          {
+            "docid": "shard_03105_11862",
+            "score": 0.022024
+          },
+          {
+            "docid": "shard_03691_25585",
+            "score": 0.020204
+          },
+          {
+            "docid": "shard_05123_67612",
+            "score": 0.016393
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_1f5seB4cIuHTSr8TUoFSQS",
+        "id": "step-0016",
+        "t_start": "2026-07-17T10:08:34.164+10:00",
+        "t_end": "2026-07-17T10:08:34.771+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 606.422,
+          "context_tokens": 37341,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47107,
+          "cumulative_tokens": {
+            "input": 244513,
+            "input_uncached": 159129,
+            "output": 3542,
+            "cache_read": 53064,
+            "cache_write": 32320,
+            "total": 248055,
+            "processed_input": 191449,
+            "processed": 194991
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02521_3506",
+            "shard_01731_57788",
+            "shard_04438_45017",
+            "shard_04075_58814",
+            "shard_04453_57420",
+            "shard_03161_55205",
+            "shard_05824_74955",
+            "shard_03105_11862",
+            "shard_03691_25585",
+            "shard_05123_67612"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "IRA annual contribution limit 2024 income rules"
+        },
+        "output": {
+          "query": "IRA annual contribution limit 2024 income rules",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04237_43724",
+              "docid": "shard_04237_43724",
+              "kind": "document",
+              "rrf_score": 0.030159,
+              "truncated": false,
+              "original_chars": 16576,
+              "returned_chars": 16576
+            },
+            {
+              "rank": 2,
+              "id": "shard_02526_16364",
+              "docid": "shard_02526_16364",
+              "kind": "document",
+              "rrf_score": 0.029572,
+              "truncated": false,
+              "original_chars": 2986,
+              "returned_chars": 2986
+            },
+            {
+              "rank": 3,
+              "id": "shard_06149_24548",
+              "docid": "shard_06149_24548",
+              "kind": "document",
+              "rrf_score": 0.028475,
+              "truncated": false,
+              "original_chars": 2421,
+              "returned_chars": 2421
+            },
+            {
+              "rank": 4,
+              "id": "shard_01434_25444",
+              "docid": "shard_01434_25444",
+              "kind": "document",
+              "rrf_score": 0.026084,
+              "truncated": false,
+              "original_chars": 2934,
+              "returned_chars": 2934
+            },
+            {
+              "rank": 5,
+              "id": "shard_03751_76602",
+              "docid": "shard_03751_76602",
+              "kind": "document",
+              "rrf_score": 0.023864,
+              "truncated": false,
+              "original_chars": 2943,
+              "returned_chars": 2943
+            },
+            {
+              "rank": 6,
+              "id": "shard_00646_62689",
+              "docid": "shard_00646_62689",
+              "kind": "document",
+              "rrf_score": 0.023234,
+              "truncated": false,
+              "original_chars": 2789,
+              "returned_chars": 2789
+            },
+            {
+              "rank": 7,
+              "id": "shard_05167_65978",
+              "docid": "shard_05167_65978",
+              "kind": "document",
+              "rrf_score": 0.021989,
+              "truncated": false,
+              "original_chars": 3034,
+              "returned_chars": 3034
+            },
+            {
+              "rank": 8,
+              "id": "shard_03768_1191",
+              "docid": "shard_03768_1191",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 6633,
+              "returned_chars": 6633
+            },
+            {
+              "rank": 9,
+              "id": "shard_00854_72267",
+              "docid": "shard_00854_72267",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2778,
+              "returned_chars": 2778
+            },
+            {
+              "rank": 10,
+              "id": "shard_06514_23534",
+              "docid": "shard_06514_23534",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 626,
+              "returned_chars": 626
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04237_43724",
+          "shard_02526_16364",
+          "shard_06149_24548",
+          "shard_01434_25444",
+          "shard_03751_76602",
+          "shard_00646_62689",
+          "shard_05167_65978",
+          "shard_03768_1191",
+          "shard_00854_72267",
+          "shard_06514_23534"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04237_43724",
+            "score": 0.030159
+          },
+          {
+            "docid": "shard_02526_16364",
+            "score": 0.029572
+          },
+          {
+            "docid": "shard_06149_24548",
+            "score": 0.028475
+          },
+          {
+            "docid": "shard_01434_25444",
+            "score": 0.026084
+          },
+          {
+            "docid": "shard_03751_76602",
+            "score": 0.023864
+          },
+          {
+            "docid": "shard_00646_62689",
+            "score": 0.023234
+          },
+          {
+            "docid": "shard_05167_65978",
+            "score": 0.021989
+          },
+          {
+            "docid": "shard_03768_1191",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00854_72267",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_06514_23534",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_TrelZ7oH51v05zxmL9NTbX",
+        "id": "step-0017",
+        "t_start": "2026-07-17T10:08:34.165+10:00",
+        "t_end": "2026-07-17T10:08:34.667+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 502.543,
+          "context_tokens": 37341,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47107,
+          "cumulative_tokens": {
+            "input": 244513,
+            "input_uncached": 159129,
+            "output": 3542,
+            "cache_read": 53064,
+            "cache_write": 32320,
+            "total": 248055,
+            "processed_input": 191449,
+            "processed": 194991
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04237_43724",
+            "shard_02526_16364",
+            "shard_06149_24548",
+            "shard_01434_25444",
+            "shard_03751_76602",
+            "shard_00646_62689",
+            "shard_05167_65978",
+            "shard_03768_1191",
+            "shard_00854_72267",
+            "shard_06514_23534"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "rebalancing portfolio strategy buy low sell high"
+        },
+        "output": {
+          "query": "rebalancing portfolio strategy buy low sell high",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_05564_49541",
+              "docid": "shard_05564_49541",
+              "kind": "document",
+              "rrf_score": 0.026333,
+              "truncated": false,
+              "original_chars": 3807,
+              "returned_chars": 3807
+            },
+            {
+              "rank": 2,
+              "id": "shard_05890_13968",
+              "docid": "shard_05890_13968",
+              "kind": "document",
+              "rrf_score": 0.025974,
+              "truncated": false,
+              "original_chars": 4405,
+              "returned_chars": 4405
+            },
+            {
+              "rank": 3,
+              "id": "shard_05421_42716",
+              "docid": "shard_05421_42716",
+              "kind": "document",
+              "rrf_score": 0.025849,
+              "truncated": false,
+              "original_chars": 4904,
+              "returned_chars": 4904
+            },
+            {
+              "rank": 4,
+              "id": "shard_02096_70770",
+              "docid": "shard_02096_70770",
+              "kind": "document",
+              "rrf_score": 0.025182,
+              "truncated": false,
+              "original_chars": 3714,
+              "returned_chars": 3714
+            },
+            {
+              "rank": 5,
+              "id": "shard_04328_25078",
+              "docid": "shard_04328_25078",
+              "kind": "document",
+              "rrf_score": 0.023584,
+              "truncated": false,
+              "original_chars": 2490,
+              "returned_chars": 2490
+            },
+            {
+              "rank": 6,
+              "id": "shard_04194_78767",
+              "docid": "shard_04194_78767",
+              "kind": "document",
+              "rrf_score": 0.0226,
+              "truncated": false,
+              "original_chars": 10374,
+              "returned_chars": 10374
+            },
+            {
+              "rank": 7,
+              "id": "shard_03402_72219",
+              "docid": "shard_03402_72219",
+              "kind": "document",
+              "rrf_score": 0.022166,
+              "truncated": false,
+              "original_chars": 3113,
+              "returned_chars": 3113
+            },
+            {
+              "rank": 8,
+              "id": "shard_00192_16840",
+              "docid": "shard_00192_16840",
+              "kind": "document",
+              "rrf_score": 0.022154,
+              "truncated": false,
+              "original_chars": 3406,
+              "returned_chars": 3406
+            },
+            {
+              "rank": 9,
+              "id": "shard_00891_47358",
+              "docid": "shard_00891_47358",
+              "kind": "document",
+              "rrf_score": 0.021289,
+              "truncated": false,
+              "original_chars": 4242,
+              "returned_chars": 4242
+            },
+            {
+              "rank": 10,
+              "id": "shard_03621_47552",
+              "docid": "shard_03621_47552",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 7240,
+              "returned_chars": 7240
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_05564_49541",
+          "shard_05890_13968",
+          "shard_05421_42716",
+          "shard_02096_70770",
+          "shard_04328_25078",
+          "shard_04194_78767",
+          "shard_03402_72219",
+          "shard_00192_16840",
+          "shard_00891_47358",
+          "shard_03621_47552"
+        ],
+        "returned": [
+          {
+            "docid": "shard_05564_49541",
+            "score": 0.026333
+          },
+          {
+            "docid": "shard_05890_13968",
+            "score": 0.025974
+          },
+          {
+            "docid": "shard_05421_42716",
+            "score": 0.025849
+          },
+          {
+            "docid": "shard_02096_70770",
+            "score": 0.025182
+          },
+          {
+            "docid": "shard_04328_25078",
+            "score": 0.023584
+          },
+          {
+            "docid": "shard_04194_78767",
+            "score": 0.0226
+          },
+          {
+            "docid": "shard_03402_72219",
+            "score": 0.022166
+          },
+          {
+            "docid": "shard_00192_16840",
+            "score": 0.022154
+          },
+          {
+            "docid": "shard_00891_47358",
+            "score": 0.021289
+          },
+          {
+            "docid": "shard_03621_47552",
+            "score": 0.016393
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_ze51iRzzkBziYvbSpbFvVe",
+        "id": "step-0018",
+        "t_start": "2026-07-17T10:08:34.165+10:00",
+        "t_end": "2026-07-17T10:08:34.588+10:00",
+        "turn": 4,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 422.917,
+          "context_tokens": 37341,
+          "peak_context_tokens": 97926,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47107,
+          "cumulative_tokens": {
+            "input": 244513,
+            "input_uncached": 159129,
+            "output": 3542,
+            "cache_read": 53064,
+            "cache_write": 32320,
+            "total": 248055,
+            "processed_input": 191449,
+            "processed": 194991
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_05564_49541",
+            "shard_05890_13968",
+            "shard_05421_42716",
+            "shard_02096_70770",
+            "shard_04328_25078",
+            "shard_04194_78767",
+            "shard_03402_72219",
+            "shard_00192_16840",
+            "shard_00891_47358",
+            "shard_03621_47552"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_ikj2F0vrweEFLXUwPoztjm",
+            "tooluse_1f5seB4cIuHTSr8TUoFSQS",
+            "tooluse_TrelZ7oH51v05zxmL9NTbX",
+            "tooluse_ze51iRzzkBziYvbSpbFvVe"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_MoyssaOMRBPIdkoMCrpKZc",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_00972_10454",
+                    "reason": "States that nearly 60% of people fail to capture full employer 401k match, framing the match as free money and its tax/penalty-avoidance benefits"
+                  },
+                  {
+                    "docid": "shard_02521_3506",
+                    "reason": "Explains Modern Portfolio Theory and cites PREA/NCREIF research showing near-zero correlation between real estate and stocks, supporting a 10-20% alternative-asset diversification allocation"
+                  },
+                  {
+                    "docid": "shard_04237_43724",
+                    "reason": "Provides precise 2024 Roth IRA contribution limit ($7,000 under 50) and MAGI income phase-out thresholds, plus a concrete example of a 25-year-old contributing $2,000/yr growing to $500k over 40 years"
+                  },
+                  {
+                    "docid": "shard_05421_42716",
+                    "reason": "Cites Schroders research showing missing just the best 30 days between 1989-2019 would have cost £19,000 on a £1,000 investment, illustrating the danger of market timing and rationale for rebalancing instead"
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0019",
+        "t_start": "2026-07-17T10:08:34.771+10:00",
+        "t_end": "2026-07-17T10:08:52.941+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 18170.444,
+          "context_tokens": 102437,
+          "peak_context_tokens": 102437,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 65278,
+          "tokens": {
+            "input": 102437,
+            "input_uncached": 67069,
+            "output": 1508,
+            "cache_read": 35368,
+            "cache_write": 0,
+            "total": 103945,
+            "processed_input": 67069,
+            "processed": 68577,
+            "context": 102437
+          },
+          "provider_usage": {
+            "inputTokens": 67069,
+            "outputTokens": 1508,
+            "totalTokens": 103945,
+            "cacheReadInputTokens": 35368
+          },
+          "cumulative_tokens": {
+            "input": 346950,
+            "input_uncached": 226198,
+            "output": 5050,
+            "cache_read": 88432,
+            "cache_write": 32320,
+            "total": 352000,
+            "processed_input": 258518,
+            "processed": 263568
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00972_10454",
+            "shard_05264_24092",
+            "shard_00638_2683",
+            "shard_03338_4065",
+            "shard_01977_24250",
+            "shard_01108_11342",
+            "shard_02910_51593",
+            "shard_00765_40163",
+            "shard_05917_52827",
+            "shard_04763_9590",
+            "shard_02521_3506",
+            "shard_01731_57788",
+            "shard_04438_45017",
+            "shard_04075_58814",
+            "shard_04453_57420",
+            "shard_03161_55205",
+            "shard_05824_74955",
+            "shard_03105_11862",
+            "shard_03691_25585",
+            "shard_05123_67612",
+            "shard_04237_43724",
+            "shard_02526_16364",
+            "shard_06149_24548",
+            "shard_01434_25444",
+            "shard_03751_76602",
+            "shard_00646_62689",
+            "shard_05167_65978",
+            "shard_03768_1191",
+            "shard_00854_72267",
+            "shard_06514_23534",
+            "shard_05564_49541",
+            "shard_05890_13968",
+            "shard_05421_42716",
+            "shard_02096_70770",
+            "shard_04328_25078",
+            "shard_04194_78767",
+            "shard_03402_72219",
+            "shard_00192_16840",
+            "shard_00891_47358",
+            "shard_03621_47552"
+          ],
+          "committed": [
+            "shard_01100_17176",
+            "shard_01166_43584",
+            "shard_01222_34466",
+            "shard_01949_40793",
+            "shard_02088_43925",
+            "shard_02456_50876",
+            "shard_03235_33574",
+            "shard_03398_74003",
+            "shard_04390_46729",
+            "shard_04420_28766",
+            "shard_06377_4820"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_00972_10454",
+              "reason": "States that nearly 60% of people fail to capture full employer 401k match, framing the match as free money and its tax/penalty-avoidance benefits"
+            },
+            {
+              "docid": "shard_02521_3506",
+              "reason": "Explains Modern Portfolio Theory and cites PREA/NCREIF research showing near-zero correlation between real estate and stocks, supporting a 10-20% alternative-asset diversification allocation"
+            },
+            {
+              "docid": "shard_04237_43724",
+              "reason": "Provides precise 2024 Roth IRA contribution limit ($7,000 under 50) and MAGI income phase-out thresholds, plus a concrete example of a 25-year-old contributing $2,000/yr growing to $500k over 40 years"
+            },
+            {
+              "docid": "shard_05421_42716",
+              "reason": "Cites Schroders research showing missing just the best 30 days between 1989-2019 would have cost £19,000 on a £1,000 investment, illustrating the danger of market timing and rationale for rebalancing instead"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_00972_10454\", \"shard_02521_3506\", \"shard_04237_43724\", \"shard_05421_42716\"], \"rejected\": [{\"docid\": \"shard_05264_24092\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00638_2683\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03338_4065\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01977_24250\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01108_11342\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02910_51593\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00765_40163\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05917_52827\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04763_9590\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01731_57788\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04438_45017\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04075_58814\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04453_57420\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03161_55205\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05824_74955\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03105_11862\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03691_25585\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05123_67612\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02526_16364\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06149_24548\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01434_25444\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03751_76602\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00646_62689\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05167_65978\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03768_1191\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00854_72267\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06514_23534\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05564_49541\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05890_13968\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02096_70770\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04328_25078\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04194_78767\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03402_72219\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00192_16840\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00891_47358\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03621_47552\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 102,437 / 500,000 tokens (20.5%) · elapsed: 1m 5s]",
+        "failed": false,
+        "tool_call_id": "tooluse_MoyssaOMRBPIdkoMCrpKZc",
+        "id": "step-0020",
+        "t_start": "2026-07-17T10:08:52.941+10:00",
+        "t_end": "2026-07-17T10:08:52.944+10:00",
+        "turn": 5,
+        "parent_id": "step-0019",
+        "stats": {
+          "duration_ms": 2.034,
+          "context_tokens": 102437,
+          "peak_context_tokens": 102437,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 65280,
+          "cumulative_tokens": {
+            "input": 346950,
+            "input_uncached": 226198,
+            "output": 5050,
+            "cache_read": 88432,
+            "cache_write": 32320,
+            "total": 352000,
+            "processed_input": 258518,
+            "processed": 263568
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_00972_10454",
+            "shard_05264_24092",
+            "shard_00638_2683",
+            "shard_03338_4065",
+            "shard_01977_24250",
+            "shard_01108_11342",
+            "shard_02910_51593",
+            "shard_00765_40163",
+            "shard_05917_52827",
+            "shard_04763_9590",
+            "shard_02521_3506",
+            "shard_01731_57788",
+            "shard_04438_45017",
+            "shard_04075_58814",
+            "shard_04453_57420",
+            "shard_03161_55205",
+            "shard_05824_74955",
+            "shard_03105_11862",
+            "shard_03691_25585",
+            "shard_05123_67612",
+            "shard_04237_43724",
+            "shard_02526_16364",
+            "shard_06149_24548",
+            "shard_01434_25444",
+            "shard_03751_76602",
+            "shard_00646_62689",
+            "shard_05167_65978",
+            "shard_03768_1191",
+            "shard_00854_72267",
+            "shard_06514_23534",
+            "shard_05564_49541",
+            "shard_05890_13968",
+            "shard_05421_42716",
+            "shard_02096_70770",
+            "shard_04328_25078",
+            "shard_04194_78767",
+            "shard_03402_72219",
+            "shard_00192_16840",
+            "shard_00891_47358",
+            "shard_03621_47552"
+          ],
+          "committed": [
+            "shard_00972_10454",
+            "shard_02521_3506",
+            "shard_04237_43724",
+            "shard_05421_42716"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_05264_24092",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00638_2683",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03338_4065",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01977_24250",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01108_11342",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02910_51593",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00765_40163",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05917_52827",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04763_9590",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01731_57788",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04438_45017",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04075_58814",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04453_57420",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03161_55205",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05824_74955",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03105_11862",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03691_25585",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05123_67612",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02526_16364",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06149_24548",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01434_25444",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03751_76602",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00646_62689",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05167_65978",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03768_1191",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00854_72267",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06514_23534",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05564_49541",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05890_13968",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02096_70770",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04328_25078",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04194_78767",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03402_72219",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00192_16840",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00891_47358",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03621_47552",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_MoyssaOMRBPIdkoMCrpKZc"
+          ]
+        },
+        "output": {
+          "text": "A sound lifetime investment plan for an 18-year-old starting with ten thousand dollars begins not with picking stocks but with securing a cash cushion, because financial planners generally recommend holding three to six months of living expenses in a liquid emergency fund before putting money into volatile assets so that a market downturn never forces a premature sale of investments. [shard_03235_33574]\nOnce that buffer exists, the single highest-return move available to a young worker is capturing any employer 401(k) match in full, since it functions as an immediate, guaranteed return on contributed dollars, yet nearly 60% of employees fail to claim the full match they are offered. [shard_00972_10454]\nFor money outside an employer plan, the Roth IRA is an especially strong fit for an 18-year-old because contributions are taxed now while income (and therefore the tax rate) is typically low, and qualified withdrawals in retirement, including all decades of investment growth, come out completely tax free. [shard_04390_46729]\nIn 2024 the IRS allows contributions of up to $7,000 per year for savers under 50, and a young investor contributing even modest amounts consistently, such as $2,000 per year invested in stock index funds starting at 25, can accumulate roughly $500,000 tax-free by retirement purely through decades of compounding. [shard_04237_43724]\nThe Roth IRA is also self-directed and flexible: it permits penalty-free withdrawal of original contributions at any time and allows up to $10,000 of investment gains to be withdrawn tax- and penalty-free toward a first home down payment. [shard_04390_46729]\nThe core argument for starting at 18 rather than later is time itself, since historical S&P 500 data since 1871 shows no 15-year period with a negative return, a worst-case 30-year annualized return of 4.1%, and a median 30-year return of 9.6%, meaning the probability of loss shrinks dramatically as the holding period lengthens. [shard_01100_17176]\nJeremy Siegel's long-run research similarly found that U.S. stocks returned about 7% real annually from 1926 to 1996, the strongest performance of any major asset class over that century. [shard_01166_43584]\nA rigorous academic caution is warranted, however: a broader 1841–2019 study of developed markets published in the Journal of Financial Economics found a roughly 12% chance of a real loss even over 30-year horizons internationally, with Japan's market losing 21% in real terms over its most recent 30 years, so U.S.-only historical data may overstate how \"safe\" long-horizon equities really are. [shard_01166_43584]\nBecause of this, and because a young investor's greatest asset is decades of future labor income acting like a bond, most lifecycle glide-path designs — such as Vanguard's Target Retirement funds — start investors 25+ years from retirement at roughly 90% stocks and 10% bonds, gradually shifting toward bonds as retirement nears. [shard_06377_4820]\nThis is often summarized by Jack Bogle's old rule of thumb, \"hold your age in bonds,\" though researcher Wade Pfau has argued that increasing equity exposure again during retirement can actually reduce the risk of running out of money. [shard_06377_4820]\nThe reason risk should not simply decline with age is sequence-of-returns risk: large stock losses matter little to very young or very old investors with long horizons on either side, but they can be devastating to someone who suffers losses in the first few years right around retirement. [shard_04420_28766]\nWithin the equity and bond sleeve, Modern Portfolio Theory argues for further diversification across asset classes with low correlation to each other, and research compiled by the Pension Real Estate Association found that real estate has near-zero correlation to stocks and a slightly negative correlation to bonds, supporting an allocation of roughly 10-20% of a diversified portfolio to alternative assets like real estate. [shard_02521_3506]\nOn vehicle selection, decades of evidence favor low-cost index funds over actively managed funds: the SPIVA Scorecard found that a cross-category average of 90% of active funds underperformed their benchmark index over ten years, and outperformance among the few winners rarely persists, which is consistent with the trillions of dollars that have migrated from active mutual funds into ETFs since 2008. [shard_03398_74003]\nFees compound just as returns do — a fund charging a 1% expense ratio versus 0.5% would turn $10,000 into $32,071 instead of $37,387 after 20 years at a 7% return, a gap attributable entirely to cost. [shard_02456_50876]\nWhen deciding how to deploy the initial $10,000 and any future lump sums, Vanguard research covering 1976-2022 found that investing a lump sum immediately outperformed dollar-cost averaging roughly 68% of the time, with the wealth advantage growing to about 2.2% per year for all-equity portfolios, though dollar-cost averaging still limited losses during the worst-performing years. [shard_01949_40793]\nOnce invested, the plan should be maintained through periodic rebalancing rather than market timing, since Schroders research found that missing just the best 30 days in the FTSE 100 between 1989 and 2019 would have cost an investor roughly nineteen times their original £1,000 stake, underscoring that time in the market matters far more than timing it. [shard_05421_42716]\nThe biggest threat to this plan over a lifetime is not the market itself but investor behavior: JPMorgan data show that while the S&P 500 returned 7.5% annualized over two decades, the average investor captured only 2.9%, largely because MIT research found investors—especially men over 45 with larger accounts—tend to panic-sell during crashes and then wait too long to reinvest, missing the recovery. [shard_02088_43925]\nThis pattern reflects well-documented cognitive biases such as loss aversion, anchoring, and herding described in Kahneman and Tversky's prospect theory, all of which push investors toward buying high and selling low unless they commit in advance to a written plan and stick to it. [shard_01222_34466]\nPut together, the practical lifetime path is this: build a cash emergency fund, capture any employer match, prioritize a Roth IRA and later maximize additional tax-advantaged accounts, invest the $10,000 largely in low-cost diversified stock index funds with modest bond and alternative-asset exposure that starts aggressive and gradually becomes more conservative near retirement, rebalance periodically rather than trying to time markets, and above all resist the behavioral urge to panic during downturns so that decades of compounding can do the real work. [shard_06377_4820] [shard_03398_74003] [shard_01222_34466]",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0021",
+        "t_start": "2026-07-17T10:08:52.944+10:00",
+        "t_end": "2026-07-17T10:09:27.485+10:00",
+        "turn": 6,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 34541.338,
+          "context_tokens": 54910,
+          "peak_context_tokens": 102437,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 99821,
+          "tokens": {
+            "input": 54910,
+            "input_uncached": 2688,
+            "output": 2987,
+            "cache_read": 35368,
+            "cache_write": 16854,
+            "total": 57897,
+            "processed_input": 19542,
+            "processed": 22529,
+            "context": 54910
+          },
+          "provider_usage": {
+            "inputTokens": 2688,
+            "outputTokens": 2987,
+            "totalTokens": 57897,
+            "cacheReadInputTokens": 35368,
+            "cacheWriteInputTokens": 16854,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 16854
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 401860,
+            "input_uncached": 228886,
+            "output": 8037,
+            "cache_read": 123800,
+            "cache_write": 49174,
+            "total": 409897,
+            "processed_input": 278060,
+            "processed": 286097
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00972_10454",
+            "shard_01100_17176",
+            "shard_01166_43584",
+            "shard_01222_34466",
+            "shard_01949_40793",
+            "shard_02088_43925",
+            "shard_02456_50876",
+            "shard_02521_3506",
+            "shard_03235_33574",
+            "shard_03398_74003",
+            "shard_04237_43724",
+            "shard_04390_46729",
+            "shard_04420_28766",
+            "shard_05421_42716",
+            "shard_06377_4820"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_03235_33574",
+        "shard_00972_10454",
+        "shard_04390_46729",
+        "shard_04237_43724",
+        "shard_01100_17176",
+        "shard_01166_43584",
+        "shard_06377_4820",
+        "shard_04420_28766",
+        "shard_02521_3506",
+        "shard_03398_74003",
+        "shard_02456_50876",
+        "shard_01949_40793",
+        "shard_05421_42716",
+        "shard_02088_43925",
+        "shard_01222_34466"
+      ],
+      "answer": [
+        {
+          "text": "A sound lifetime investment plan for an 18-year-old starting with ten thousand dollars begins not with picking stocks but with securing a cash cushion, because financial planners generally recommend holding three to six months of living expenses in a liquid emergency fund before putting money into volatile assets so that a market downturn never forces a premature sale of investments.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "Once that buffer exists, the single highest-return move available to a young worker is capturing any employer 401(k) match in full, since it functions as an immediate, guaranteed return on contributed dollars, yet nearly 60% of employees fail to claim the full match they are offered.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "For money outside an employer plan, the Roth IRA is an especially strong fit for an 18-year-old because contributions are taxed now while income (and therefore the tax rate) is typically low, and qualified withdrawals in retirement, including all decades of investment growth, come out completely tax free.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "In 2024 the IRS allows contributions of up to $7,000 per year for savers under 50, and a young investor contributing even modest amounts consistently, such as $2,000 per year invested in stock index funds starting at 25, can accumulate roughly $500,000 tax-free by retirement purely through decades of compounding.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "The Roth IRA is also self-directed and flexible: it permits penalty-free withdrawal of original contributions at any time and allows up to $10,000 of investment gains to be withdrawn tax- and penalty-free toward a first home down payment.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "The core argument for starting at 18 rather than later is time itself, since historical S&P 500 data since 1871 shows no 15-year period with a negative return, a worst-case 30-year annualized return of 4.1%, and a median 30-year return of 9.6%, meaning the probability of loss shrinks dramatically as the holding period lengthens.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Jeremy Siegel's long-run research similarly found that U.S. stocks returned about 7% real annually from 1926 to 1996, the strongest performance of any major asset class over that century.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "A rigorous academic caution is warranted, however: a broader 1841–2019 study of developed markets published in the Journal of Financial Economics found a roughly 12% chance of a real loss even over 30-year horizons internationally, with Japan's market losing 21% in real terms over its most recent 30 years, so U.S.-only historical data may overstate how \"safe\" long-horizon equities really are.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Because of this, and because a young investor's greatest asset is decades of future labor income acting like a bond, most lifecycle glide-path designs — such as Vanguard's Target Retirement funds — start investors 25+ years from retirement at roughly 90% stocks and 10% bonds, gradually shifting toward bonds as retirement nears.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "This is often summarized by Jack Bogle's old rule of thumb, \"hold your age in bonds,\" though researcher Wade Pfau has argued that increasing equity exposure again during retirement can actually reduce the risk of running out of money.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "The reason risk should not simply decline with age is sequence-of-returns risk: large stock losses matter little to very young or very old investors with long horizons on either side, but they can be devastating to someone who suffers losses in the first few years right around retirement.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "Within the equity and bond sleeve, Modern Portfolio Theory argues for further diversification across asset classes with low correlation to each other, and research compiled by the Pension Real Estate Association found that real estate has near-zero correlation to stocks and a slightly negative correlation to bonds, supporting an allocation of roughly 10-20% of a diversified portfolio to alternative assets like real estate.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "On vehicle selection, decades of evidence favor low-cost index funds over actively managed funds: the SPIVA Scorecard found that a cross-category average of 90% of active funds underperformed their benchmark index over ten years, and outperformance among the few winners rarely persists, which is consistent with the trillions of dollars that have migrated from active mutual funds into ETFs since 2008.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "Fees compound just as returns do — a fund charging a 1% expense ratio versus 0.5% would turn $10,000 into $32,071 instead of $37,387 after 20 years at a 7% return, a gap attributable entirely to cost.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "When deciding how to deploy the initial $10,000 and any future lump sums, Vanguard research covering 1976-2022 found that investing a lump sum immediately outperformed dollar-cost averaging roughly 68% of the time, with the wealth advantage growing to about 2.2% per year for all-equity portfolios, though dollar-cost averaging still limited losses during the worst-performing years.",
+          "citations": [
+            11
+          ]
+        },
+        {
+          "text": "Once invested, the plan should be maintained through periodic rebalancing rather than market timing, since Schroders research found that missing just the best 30 days in the FTSE 100 between 1989 and 2019 would have cost an investor roughly nineteen times their original £1,000 stake, underscoring that time in the market matters far more than timing it.",
+          "citations": [
+            12
+          ]
+        },
+        {
+          "text": "The biggest threat to this plan over a lifetime is not the market itself but investor behavior: JPMorgan data show that while the S&P 500 returned 7.5% annualized over two decades, the average investor captured only 2.9%, largely because MIT research found investors—especially men over 45 with larger accounts—tend to panic-sell during crashes and then wait too long to reinvest, missing the recovery.",
+          "citations": [
+            13
+          ]
+        },
+        {
+          "text": "This pattern reflects well-documented cognitive biases such as loss aversion, anchoring, and herding described in Kahneman and Tversky's prospect theory, all of which push investors toward buying high and selling low unless they commit in advance to a written plan and stick to it.",
+          "citations": [
+            14
+          ]
+        },
+        {
+          "text": "Put together, the practical lifetime path is this: build a cash emergency fund, capture any employer match, prioritize a Roth IRA and later maximize additional tax-advantaged accounts, invest the $10,000 largely in low-cost diversified stock index funds with modest bond and alternative-asset exposure that starts aggressive and gradually becomes more conservative near retirement, rebalance periodically rather than trying to time markets, and above all resist the behavioral urge to panic during downturns so that decades of compounding can do the real work.",
+          "citations": [
+            6,
+            9,
+            14
+          ]
+        }
+      ]
+    },
+    "started_at": "2026-07-17T10:07:47.666+10:00",
+    "ended_at": "2026-07-17T10:09:27.486+10:00",
+    "duration_ms": 99820,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}

@@ -1,3 +1,3867 @@
-version https://git-lfs.github.com/spec/v1
-oid sha256:21179427736e02775aacc5efbed64c4b2707e4a927b59f06a5c704be652169c6
-size 178271
+{
+  "metadata": {
+    "team_id": "rmit-ir",
+    "narrative_id": "rag2026-14",
+    "narrative": "I help run a public library program for teens and adults, and people keep claiming that serious reading rewires empathy or that poetry is uniquely good for the brain. What should I actually believe? Can you help me understand what the research suggests about literary fiction, popular fiction, nonfiction, poetry, and group reading programs—especially which effects look short-term versus lasting, what kinds of brain responses have been observed, and what cautions I should keep in mind before designing a reading-for-wellbeing program?",
+    "run_id": "aus-agent-test-v2",
+    "run_desc": "aus_agent research harness (bedrock/au.anthropic.claude-sonnet-5): continuous single-agent full-text search with sparse committed context and line-per-sentence cited prose answers parsed into the organizer schema."
+  },
+  "references": [
+    "shard_01569_69095",
+    "shard_02470_15021",
+    "shard_03586_18014",
+    "shard_04488_25035",
+    "shard_05378_8852",
+    "shard_01863_46500",
+    "shard_04397_10949",
+    "shard_06317_80562",
+    "shard_03022_48758",
+    "shard_05933_57378",
+    "shard_01358_76630",
+    "shard_03008_83160",
+    "shard_05891_68209",
+    "shard_05419_413",
+    "shard_02389_54756",
+    "shard_02169_13387",
+    "shard_00356_970"
+  ],
+  "answer": [
+    {
+      "text": "Serious claims about reading \"rewiring\" empathy or poetry doing something uniquely powerful to the brain deserve scrutiny before they anchor a library program, because the underlying research is mixed, often short-term, and sometimes fails to replicate.",
+      "citations": []
+    },
+    {
+      "text": "The most famous claim comes from a 2013 study by David Comer Kidd and Emanuele Castano, who reported that people who read short excerpts of literary fiction scored higher immediately afterward on a Theory of Mind test than people who read popular fiction, nonfiction, or nothing at all.",
+      "citations": []
+    },
+    {
+      "text": "Kidd himself framed this as a short-term effect, saying literary fiction \"seems to improve Theory of Mind in the short-term\" and that popular fiction likely has its own unmeasured benefits.",
+      "citations": [
+        0
+      ]
+    },
+    {
+      "text": "When Maria Eugenia Panero and colleagues tried to replicate the finding in 2016, they found no significant advantage for literary-fiction readers, attributing the original result partly to very small effect sizes and to there being no strong theoretical reason literary fiction should outperform popular fiction, since both are fundamentally about other people's mental states.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "Panero also notes that the one thing that did replicate — lifetime fiction readers scoring higher on Theory of Mind — cannot establish causation, since people who already read minds well might simply be drawn to fiction in the first place.",
+      "citations": [
+        1
+      ]
+    },
+    {
+      "text": "Other reviewers likewise conclude that any empathy boost from literary fiction may be short-lived, with only speculative reason to think avid readers accumulate lasting benefit, and note several labs failed to replicate even the fleeting effect.",
+      "citations": [
+        2
+      ]
+    },
+    {
+      "text": "The literary/popular boundary itself looks softer than headlines suggest.",
+      "citations": []
+    },
+    {
+      "text": "A \"Genre Effect\" study found that relabeling an identical passage's setting as science fiction rather than realistic fiction reduced readers' reported transportation, perspective-taking, and comprehension of characters' minds, suggesting reader bias about a genre's status, not the text itself, can suppress engagement.",
+      "citations": [
+        3
+      ]
+    },
+    {
+      "text": "For general fiction, work by Bal and Veltkamp suggests empathy gains depend less on a literary label and more on whether the reader felt emotionally \"transported,\" with effects sometimes appearing as a delayed \"sleeper effect\" about a week after reading rather than immediately.",
+      "citations": [
+        4
+      ]
+    },
+    {
+      "text": "Nonfiction is typically used as the control condition precisely because it does not reliably produce these shifts: one study found reading a summary or nonfiction account of a story about a Muslim woman targeted by racist attacks did not reduce bias the way reading the full novel did, and the same review notes a documented decline in empathic concern among college students across recent decades.",
+      "citations": [
+        5
+      ]
+    },
+    {
+      "text": "Even when reading raises test scores, whether that translates into real-world kindness remains unresolved: a scholarly synthesis of narrative-empathy research concludes the case for reading fiction causing lasting altruistic behavior, as opposed to short-term shifts on lab measures, is still inconclusive.",
+      "citations": [
+        6
+      ]
+    },
+    {
+      "text": "On brain responses, a well-known Emory University fMRI study had students read a thriller novel over nine days and found heightened resting-state connectivity in language-related left temporal cortex on mornings after reading, an effect the researchers called \"shadow activity,\" alongside longer-lasting changes in somatosensory regions tied to bodily simulation of the story.",
+      "citations": [
+        7
+      ]
+    },
+    {
+      "text": "A more detailed account of that work shows the perspective-taking-related hubs decayed rapidly once the novel was finished, while the somatosensory changes persisted longer, so any brain trace of a \"good book\" mixes quickly fading and more durable components.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "For poetry, a small University of Exeter fMRI study of just thirteen English faculty and graduate students found that reading favorite poetry activated memory and introspection regions like the posterior cingulate cortex more strongly than generic \"reading network\" areas, framed as poetry functioning like a kind of recollection.",
+      "citations": [
+        9
+      ]
+    },
+    {
+      "text": "A separate study linking \"literary awareness\" to distinct brain-network activity while reading poetry versus prose drew skepticism from a commentator, who argued the interpretations were largely speculative, that literary awareness might be a proxy for general intelligence, and that neuroscience claims are outrunning the basic psychological evidence for reading's benefits.",
+      "citations": [
+        10
+      ]
+    },
+    {
+      "text": "For group reading programs aimed at wellbeing, the evidence base is more developed but still uneven.",
+      "citations": []
+    },
+    {
+      "text": "The Reading Well \"Books on Prescription\" evidence base cites a meta-analysis showing a fairly strong effect for guided self-help versus a waiting list, but a real disadvantage compared with therapist-delivered treatment, alongside survey data suggesting library reading groups boost confidence, relaxation, and social inclusion.",
+      "citations": [
+        8
+      ]
+    },
+    {
+      "text": "A separate trial comparing a positive-psychology self-help book with a standard CBT-based one found no difference between them at one-month follow-up, and a related readability analysis found several commonly prescribed self-help books require a reading age of roughly 12.6 to 15.4 years, a real accessibility concern for programs serving diverse teen and adult patrons.",
+      "citations": [
+        11
+      ]
+    },
+    {
+      "text": "A 2017 review found bibliotherapy reduced depressive symptoms with effects sustained long-term, whereas the anxiety evidence rests mainly on one small twelve-week pilot with 34 participants, illustrating how \"bibliotherapy works\" can mean different things depending on condition and timescale.",
+      "citations": [
+        12
+      ]
+    },
+    {
+      "text": "A systematic review specifically of fiction and poetry bibliotherapy found very few empirical studies overall, only three offering clear support, and concluded benefits seem strongest in a group setting led by a skilled facilitator, calling for larger randomized trials.",
+      "citations": [
+        13
+      ]
+    },
+    {
+      "text": "The Reader organisation's \"Shared Reading\" model differs from clinical bibliotherapy in choosing texts for literary depth rather than matching a diagnosis, reading aloud together so illiterate or low-vision participants can still take part, and reporting that even people with dementia respond strongly to poetry.",
+      "citations": [
+        14,
+        15
+      ]
+    },
+    {
+      "text": "A concrete pilot of that model run in a GP surgery and health drop-in center found statistically significant improvement in depression severity sustained across a twelve-month period, alongside participants reporting more confidence and better concentration.",
+      "citations": [
+        16
+      ]
+    },
+    {
+      "text": "Evaluations of these community schemes are often conducted by people already invested in running them, a real bias to weigh before treating any single program's results as proof.",
+      "citations": [
+        15
+      ]
+    },
+    {
+      "text": "Put together, the safest assumptions are that engagement and discussion quality likely matter more than any strict literary/genre label, that documented benefits are modest and rarely proven causal at the individual level, that poetry's brain-imaging findings are intriguing but based on tiny samples and speculative interpretation, and that a facilitated, socially engaged group-reading format has the most consistent evidence for durable wellbeing benefit, provided materials match your patrons' actual reading levels.",
+      "citations": []
+    }
+  ],
+  "trace": {
+    "schema_version": "trec-rag-trace/2",
+    "query_id": "rag2026-14",
+    "status": "completed",
+    "metadata": {
+      "model": "au.anthropic.claude-sonnet-5",
+      "backend": "bedrock",
+      "k": 10,
+      "temperature": null,
+      "run_id": "aus-agent-test-v2",
+      "query_source": "I help run a public library program for teens and adults, and people keep claiming that serious reading rewires empathy or that poetry is uniquely good for the brain. What should I actually believe? Can you help me understand what the research suggests about literary fiction, popular fiction, nonfiction, poetry, and group reading programs—especially which effects look short-term versus lasting, what kinds of brain responses have been observed, and what cautions I should keep in mind before designing a reading-for-wellbeing program?"
+    },
+    "summary": {
+      "tool_call_counts": {
+        "search": 9,
+        "commit_context": 3
+      },
+      "tool_call_counts_all": {
+        "search": 9,
+        "commit_context": 3
+      },
+      "retrieved_docids": [
+        "shard_00036_54358",
+        "shard_00124_44507",
+        "shard_00201_4759",
+        "shard_00356_970",
+        "shard_00436_7163",
+        "shard_00539_68191",
+        "shard_00596_44747",
+        "shard_00602_56851",
+        "shard_00619_12003",
+        "shard_00623_82896",
+        "shard_00684_77431",
+        "shard_00687_35519",
+        "shard_00918_72643",
+        "shard_00998_71538",
+        "shard_01028_12669",
+        "shard_01223_25931",
+        "shard_01259_31598",
+        "shard_01358_76630",
+        "shard_01368_7426",
+        "shard_01378_17568",
+        "shard_01448_21199",
+        "shard_01472_802",
+        "shard_01513_52743",
+        "shard_01569_69095",
+        "shard_01748_13230",
+        "shard_01863_46500",
+        "shard_02169_13255",
+        "shard_02169_13387",
+        "shard_02216_33084",
+        "shard_02280_79224",
+        "shard_02389_54756",
+        "shard_02470_15021",
+        "shard_02549_28707",
+        "shard_02556_1500",
+        "shard_02624_61072",
+        "shard_02647_22385",
+        "shard_02730_8945",
+        "shard_02766_65206",
+        "shard_02794_44343",
+        "shard_02834_63263",
+        "shard_02875_17283",
+        "shard_02997_67367",
+        "shard_03008_83160",
+        "shard_03022_48758",
+        "shard_03040_46613",
+        "shard_03133_64799",
+        "shard_03285_20295",
+        "shard_03306_34917",
+        "shard_03312_38823",
+        "shard_03448_69183",
+        "shard_03586_18014",
+        "shard_03791_6380",
+        "shard_03855_35526",
+        "shard_03906_23604",
+        "shard_04014_70153",
+        "shard_04138_32448",
+        "shard_04198_14817",
+        "shard_04242_31434",
+        "shard_04294_79526",
+        "shard_04320_10535",
+        "shard_04356_36883",
+        "shard_04397_10949",
+        "shard_04488_25035",
+        "shard_04632_18821",
+        "shard_04668_36645",
+        "shard_04730_22247",
+        "shard_04766_82646",
+        "shard_04813_27191",
+        "shard_04853_53434",
+        "shard_04854_73121",
+        "shard_04952_72774",
+        "shard_05009_61588",
+        "shard_05189_52833",
+        "shard_05350_6282",
+        "shard_05378_8852",
+        "shard_05419_413",
+        "shard_05471_76114",
+        "shard_05742_79654",
+        "shard_05891_68209",
+        "shard_05933_57378",
+        "shard_05982_46854",
+        "shard_06101_30430",
+        "shard_06148_28204",
+        "shard_06195_81511",
+        "shard_06317_80562",
+        "shard_06491_54111",
+        "shard_06508_67198",
+        "shard_06535_37064"
+      ],
+      "tokens": {
+        "input": 375442,
+        "input_uncached": 169616,
+        "output": 18437,
+        "cache_read": 158278,
+        "cache_write": 47548,
+        "total": 393879,
+        "processed_input": 217164,
+        "processed": 235601,
+        "context_tokens": 61296,
+        "peak_context_tokens": 74511,
+        "context_budget_tokens": 500000,
+        "budget": 500000
+      },
+      "context": {
+        "committed": [
+          "shard_00356_970",
+          "shard_01358_76630",
+          "shard_01569_69095",
+          "shard_01863_46500",
+          "shard_02169_13387",
+          "shard_02216_33084",
+          "shard_02389_54756",
+          "shard_02470_15021",
+          "shard_03008_83160",
+          "shard_03022_48758",
+          "shard_03586_18014",
+          "shard_04397_10949",
+          "shard_04488_25035",
+          "shard_05378_8852",
+          "shard_05419_413",
+          "shard_05891_68209",
+          "shard_05933_57378",
+          "shard_06317_80562"
+        ],
+        "rejected": [
+          "shard_00036_54358",
+          "shard_00124_44507",
+          "shard_00201_4759",
+          "shard_00436_7163",
+          "shard_00539_68191",
+          "shard_00596_44747",
+          "shard_00602_56851",
+          "shard_00619_12003",
+          "shard_00623_82896",
+          "shard_00684_77431",
+          "shard_00687_35519",
+          "shard_00918_72643",
+          "shard_00998_71538",
+          "shard_01028_12669",
+          "shard_01223_25931",
+          "shard_01259_31598",
+          "shard_01368_7426",
+          "shard_01378_17568",
+          "shard_01448_21199",
+          "shard_01472_802",
+          "shard_01513_52743",
+          "shard_01748_13230",
+          "shard_02169_13255",
+          "shard_02280_79224",
+          "shard_02549_28707",
+          "shard_02556_1500",
+          "shard_02624_61072",
+          "shard_02647_22385",
+          "shard_02730_8945",
+          "shard_02766_65206",
+          "shard_02794_44343",
+          "shard_02834_63263",
+          "shard_02875_17283",
+          "shard_02997_67367",
+          "shard_03040_46613",
+          "shard_03133_64799",
+          "shard_03285_20295",
+          "shard_03306_34917",
+          "shard_03312_38823",
+          "shard_03448_69183",
+          "shard_03791_6380",
+          "shard_03855_35526",
+          "shard_03906_23604",
+          "shard_04014_70153",
+          "shard_04138_32448",
+          "shard_04198_14817",
+          "shard_04242_31434",
+          "shard_04294_79526",
+          "shard_04320_10535",
+          "shard_04356_36883",
+          "shard_04632_18821",
+          "shard_04668_36645",
+          "shard_04730_22247",
+          "shard_04766_82646",
+          "shard_04813_27191",
+          "shard_04853_53434",
+          "shard_04854_73121",
+          "shard_04952_72774",
+          "shard_05009_61588",
+          "shard_05189_52833",
+          "shard_05350_6282",
+          "shard_05471_76114",
+          "shard_05742_79654",
+          "shard_05982_46854",
+          "shard_06101_30430",
+          "shard_06148_28204",
+          "shard_06195_81511",
+          "shard_06491_54111",
+          "shard_06508_67198",
+          "shard_06535_37064"
+        ]
+      },
+      "report_repairs": []
+    },
+    "input": {
+      "system_prompt": "# AUS research agent\n\nYou are a research agent for TREC RAG 2026. Produce a complete,\nwell-organized, evidence-grounded response using only the available\nsearch/retrieval tools and evidence returned by them. Prior knowledge may help\nyou choose searches, but it is not evidence and must not support factual claims.\n\n## Scope interpretation\n\nInfer the full deliverable from the entire request, including every concrete\nrequirement, audience constraint, comparison, example, and requested format.\nIf light framing such as \"overview\" or \"outline\" conflicts with substantial\nconcrete requirements, the concrete requirements define the real scope.\nResolve ambiguity toward the most complete reasonable interpretation that\nstays in scope. Do not ask the user clarifying or confirming questions; proceed\non the strongest reasonable reading.\n\n## Internal success plan\n\nBefore the first search, determine internally:\n\n1. **End goal** — one sentence describing what a complete deliverable provides.\n2. **Concrete minimum requirements** — the checkable floor that must be met\n   before the response is shippable.\n3. **Target/excellence requirements** — what a notably strong response adds\n   beyond the minimum without expanding scope.\n4. **Coverage areas** — the independent topics, claims, comparisons, examples,\n   dates, people, mechanisms, or perspectives that require evidence.\n\nUse these requirements to plan searches, track coverage gaps, judge evidence,\nand decide when to stop. Do not expose this internal plan unless the requested\nanswer itself calls for it.\n\n## Research workflow\n\n1. Begin with multiple complementary queries in parallel across independent\n   coverage areas.\n2. Move from broad discovery to targeted follow-ups for specific names, dates,\n   mechanisms, examples, definitions, causal claims, and disputed points.\n3. Reformulate weak queries instead of accepting poor coverage. Try synonyms,\n   alternative terminology, narrower entities, and different phrasings.\n4. Actively search for counter-evidence, contradictions, limitations, and\n   missing perspectives when they matter to the request.\n5. Continually compare gathered evidence against the minimum and target\n   requirements. Search the remaining gaps rather than repeating already\n   covered claims.\n6. Every tool call must have a concrete purpose tied to an unmet requirement\n   or evidence gap. Do not call a tool solely to create another model turn. If\n   no meaningful gap remains, write the final report in that same turn.\n\nSearch results already contain document text. Inspect that text directly; do\nnot call another tool merely to fetch the same document. The search tool\nnormally stages at most about 4,096 tokens per result; request a different\n`budget_tokens_per_result` only when a query genuinely needs a different\nper-document evidence depth.\n\n## Staged and committed evidence\n\nEvery retrieval batch is staged for exactly the immediately following model\nturn.\n\n- On that turn, `commit_context` must be the first control action.\n- List only documents whose full text should persist into later turns.\n- Commit at most `6` documents from one staged batch;\n  usually commit fewer.\n- Every selection reason must identify the document's distinct contribution:\n  the specific fact, date, name, mechanism, example, perspective,\n  counter-evidence, contradiction, or coverage gap it uniquely supports.\n- Never recommit an already committed docid.\n- Skip semantically similar documents when they support the same claim.\n  Commit both only when each contributes materially different evidence.\n- Every staged occurrence not selected is compacted/redacted before the\n  following turn. No unresolved staged batch carries forward.\n- New search calls may follow `commit_context` in the same turn.\n\nOnly committed evidence may support the final response. Track which committed\ndocids support which claims. If available evidence does not support a requested\npoint, state the evidence gap rather than inventing an answer.\n\n## Budget and stopping\n\nThe research-context budget is 500,000 tokens measured from the current\ngeneration's provider-reported input tokens. That input already represents the\naccumulated conversation: system prompt, request, retained history, committed\nfull-text evidence, and the immediately previous staged tool results. Do not\nsum input-token counts from multiple generations; that would count the same\nretained context repeatedly.\n\nThe budget is a hard ceiling, not a spending target. Unused budget creates no\nobligation to continue researching. After satisfying the concrete minimum,\nimprove toward the target/excellence requirements only when you can identify a\nspecific weakness whose resolution would materially improve the answer.\n\nStop researching when any of these is true:\n\n1. the target/excellence requirements are met;\n2. the current generation input context budget is exhausted; or\n3. further searches are unlikely to produce meaningful improvement.\n\nIf stopping before all desired coverage is supported, produce the best answer\nthe committed evidence permits and explicitly identify the remaining evidence\ngaps.\n\n## Final response contract\n\nWhen research is complete, emit no tool calls and write the final report as\nplain flowing prose in that same turn:\n\n- Write exactly one sentence per line, in reading order. Blank lines between\n  thematic groups are allowed.\n- Cite evidence by placing committed docids in square-bracket markers at the\n  end of the supporting sentence's line, e.g.\n  `Vaccination reduced hospitalizations among older adults. [docid_1] [docid_2]`\n- Citation markers are stripped from the submitted sentence, so a marker must\n  never act as a word in the sentence: write `the trial reports X [docid].`,\n  never `as [docid] reports, X.`\n- Cite at most three docids per sentence, and only docids that directly\n  support that sentence. Every factual sentence should carry at least one\n  citation. Use only committed docids; never fabricate facts or identifiers.\n- Organize the report through sentence order and clear topic sentences. Do not\n  use Markdown syntax (headings, bullets, numbering, bold, fences), JSON, or\n  any preamble, meta-commentary, or closing remarks around the report; every\n  line must be a report sentence.\n- Aim for about 950 words, excluding citation markers. 1024 words is a hard\n  limit set by the evaluation, and an over-length report costs a full rewrite,\n  so plan the report's scope to land under the target rather than writing long\n  and trimming.\n- If validation feedback identifies problems (uncommitted docids, Markdown or\n  JSON formatting, excessive citations, missing citations, or excessive\n  length), correct the report on the next turn in this same continuous\n  conversation using this same contract.\n- There is no separate finalizer, formatter, or compression phase.\n",
+      "user_message": "Research request:\n\nI help run a public library program for teens and adults, and people keep claiming that serious reading rewires empathy or that poetry is uniquely good for the brain. What should I actually believe? Can you help me understand what the research suggests about literary fiction, popular fiction, nonfiction, poetry, and group reading programs—especially which effects look short-term versus lasting, what kinds of brain responses have been observed, and what cautions I should keep in mind before designing a reading-for-wellbeing program?\n",
+      "tools": [
+        {
+          "name": "search",
+          "description": "Search the available evidence corpus. Results contain ranked document IDs and document text; inspect that text directly and cite by docid. Each result is bounded independently before it is staged.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "query": {
+                "type": "string",
+                "minLength": 1,
+                "description": "A natural-language query for evidence relevant to the research request."
+              },
+              "k": {
+                "type": "integer",
+                "description": "Number of fused passages to return (default 10).",
+                "default": 10
+              },
+              "budget_tokens_per_result": {
+                "type": "integer",
+                "minimum": 1,
+                "description": "Maximum approximate tokens staged per result. Text is bounded at tokens × 5 characters and cut at the final line break before that boundary. Default 4096.",
+                "default": 4096
+              }
+            },
+            "required": [
+              "query"
+            ]
+          }
+        },
+        {
+          "name": "commit_context",
+          "description": "Select the small subset of documents from the MOST RECENT staged search batch whose full text should persist. This MUST be the first control action on the immediately following model turn. Every staged occurrence not listed is compacted before the next turn. Do not select a docid that is already committed, or a semantically redundant document supporting the same claim, unless it adds materially different evidence.",
+          "input_schema": {
+            "type": "object",
+            "properties": {
+              "documents": {
+                "type": "array",
+                "description": "Evidence-worthy staged documents to retain. An empty array explicitly rejects the whole staged batch.",
+                "items": {
+                  "type": "object",
+                  "properties": {
+                    "docid": {
+                      "type": "string"
+                    },
+                    "reason": {
+                      "type": "string",
+                      "description": "The distinct evidence, claim, perspective, date, name, counter-evidence, or coverage area this document uniquely contributes."
+                    }
+                  },
+                  "required": [
+                    "docid",
+                    "reason"
+                  ]
+                }
+              }
+            },
+            "required": [
+              "documents"
+            ]
+          }
+        }
+      ]
+    },
+    "steps": [
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "initial",
+          "ref": "trace.input"
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_EQ6FSxHHP7eVAX1H4LsE0J",
+              "name": "search",
+              "arguments": {
+                "query": "literary fiction reading improves theory of mind empathy study"
+              }
+            },
+            {
+              "id": "tooluse_Ic5DqNyuF7KTkgXsVogQcf",
+              "name": "search",
+              "arguments": {
+                "query": "replication failure Kidd Castano literary fiction empathy"
+              }
+            },
+            {
+              "id": "tooluse_5ApH78WQpRrP1MNoFmJaay",
+              "name": "search",
+              "arguments": {
+                "query": "poetry and the brain neuroscience reading"
+              }
+            },
+            {
+              "id": "tooluse_wBzQj8f9OhDgZ7aRdWVe42",
+              "name": "search",
+              "arguments": {
+                "query": "shared reading group bibliotherapy wellbeing program library"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0000",
+        "t_start": "2026-07-17T10:33:46.269+10:00",
+        "t_end": "2026-07-17T10:33:52.286+10:00",
+        "turn": 0,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 6016.908,
+          "context_tokens": 3282,
+          "peak_context_tokens": 3282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6019,
+          "tokens": {
+            "input": 3282,
+            "input_uncached": 234,
+            "output": 471,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3753,
+            "processed_input": 234,
+            "processed": 705,
+            "context": 3282
+          },
+          "provider_usage": {
+            "inputTokens": 234,
+            "outputTokens": 471,
+            "totalTokens": 3753,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 3282,
+            "input_uncached": 234,
+            "output": 471,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3753,
+            "processed_input": 234,
+            "processed": 705
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "literary fiction reading improves theory of mind empathy study"
+        },
+        "output": {
+          "query": "literary fiction reading improves theory of mind empathy study",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06148_28204",
+              "docid": "shard_06148_28204",
+              "kind": "document",
+              "rrf_score": 0.030579,
+              "truncated": false,
+              "original_chars": 3640,
+              "returned_chars": 3640
+            },
+            {
+              "rank": 2,
+              "id": "shard_02470_15021",
+              "docid": "shard_02470_15021",
+              "kind": "document",
+              "rrf_score": 0.029437,
+              "truncated": false,
+              "original_chars": 9569,
+              "returned_chars": 9569
+            },
+            {
+              "rank": 3,
+              "id": "shard_06508_67198",
+              "docid": "shard_06508_67198",
+              "kind": "document",
+              "rrf_score": 0.028783,
+              "truncated": false,
+              "original_chars": 2766,
+              "returned_chars": 2766
+            },
+            {
+              "rank": 4,
+              "id": "shard_03586_18014",
+              "docid": "shard_03586_18014",
+              "kind": "document",
+              "rrf_score": 0.028205,
+              "truncated": false,
+              "original_chars": 3859,
+              "returned_chars": 3859
+            },
+            {
+              "rank": 5,
+              "id": "shard_05378_8852",
+              "docid": "shard_05378_8852",
+              "kind": "document",
+              "rrf_score": 0.027382,
+              "truncated": false,
+              "original_chars": 3101,
+              "returned_chars": 3101
+            },
+            {
+              "rank": 6,
+              "id": "shard_04198_14817",
+              "docid": "shard_04198_14817",
+              "kind": "document",
+              "rrf_score": 0.027109,
+              "truncated": false,
+              "original_chars": 2606,
+              "returned_chars": 2606
+            },
+            {
+              "rank": 7,
+              "id": "shard_00201_4759",
+              "docid": "shard_00201_4759",
+              "kind": "document",
+              "rrf_score": 0.027032,
+              "truncated": false,
+              "original_chars": 3074,
+              "returned_chars": 3074
+            },
+            {
+              "rank": 8,
+              "id": "shard_02997_67367",
+              "docid": "shard_02997_67367",
+              "kind": "document",
+              "rrf_score": 0.026547,
+              "truncated": false,
+              "original_chars": 9384,
+              "returned_chars": 9384
+            },
+            {
+              "rank": 9,
+              "id": "shard_01569_69095",
+              "docid": "shard_01569_69095",
+              "kind": "document",
+              "rrf_score": 0.026541,
+              "truncated": false,
+              "original_chars": 1588,
+              "returned_chars": 1588
+            },
+            {
+              "rank": 10,
+              "id": "shard_04766_82646",
+              "docid": "shard_04766_82646",
+              "kind": "document",
+              "rrf_score": 0.025098,
+              "truncated": false,
+              "original_chars": 3732,
+              "returned_chars": 3732
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06148_28204",
+          "shard_02470_15021",
+          "shard_06508_67198",
+          "shard_03586_18014",
+          "shard_05378_8852",
+          "shard_04198_14817",
+          "shard_00201_4759",
+          "shard_02997_67367",
+          "shard_01569_69095",
+          "shard_04766_82646"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06148_28204",
+            "score": 0.030579
+          },
+          {
+            "docid": "shard_02470_15021",
+            "score": 0.029437
+          },
+          {
+            "docid": "shard_06508_67198",
+            "score": 0.028783
+          },
+          {
+            "docid": "shard_03586_18014",
+            "score": 0.028205
+          },
+          {
+            "docid": "shard_05378_8852",
+            "score": 0.027382
+          },
+          {
+            "docid": "shard_04198_14817",
+            "score": 0.027109
+          },
+          {
+            "docid": "shard_00201_4759",
+            "score": 0.027032
+          },
+          {
+            "docid": "shard_02997_67367",
+            "score": 0.026547
+          },
+          {
+            "docid": "shard_01569_69095",
+            "score": 0.026541
+          },
+          {
+            "docid": "shard_04766_82646",
+            "score": 0.025098
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_EQ6FSxHHP7eVAX1H4LsE0J",
+        "id": "step-0001",
+        "t_start": "2026-07-17T10:33:52.288+10:00",
+        "t_end": "2026-07-17T10:33:52.760+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 472.176,
+          "context_tokens": 3282,
+          "peak_context_tokens": 3282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6545,
+          "cumulative_tokens": {
+            "input": 3282,
+            "input_uncached": 234,
+            "output": 471,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3753,
+            "processed_input": 234,
+            "processed": 705
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06148_28204",
+            "shard_02470_15021",
+            "shard_06508_67198",
+            "shard_03586_18014",
+            "shard_05378_8852",
+            "shard_04198_14817",
+            "shard_00201_4759",
+            "shard_02997_67367",
+            "shard_01569_69095",
+            "shard_04766_82646"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "replication failure Kidd Castano literary fiction empathy"
+        },
+        "output": {
+          "query": "replication failure Kidd Castano literary fiction empathy",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01368_7426",
+              "docid": "shard_01368_7426",
+              "kind": "document",
+              "rrf_score": 0.025856,
+              "truncated": false,
+              "original_chars": 2475,
+              "returned_chars": 2475
+            },
+            {
+              "rank": 2,
+              "id": "shard_01223_25931",
+              "docid": "shard_01223_25931",
+              "kind": "document",
+              "rrf_score": 0.025004,
+              "truncated": false,
+              "original_chars": 3251,
+              "returned_chars": 3251
+            },
+            {
+              "rank": 3,
+              "id": "shard_05378_8852",
+              "docid": "shard_05378_8852",
+              "kind": "document",
+              "rrf_score": 0.024924,
+              "truncated": false,
+              "original_chars": 3101,
+              "returned_chars": 3101
+            },
+            {
+              "rank": 4,
+              "id": "shard_02834_63263",
+              "docid": "shard_02834_63263",
+              "kind": "document",
+              "rrf_score": 0.024697,
+              "truncated": false,
+              "original_chars": 2854,
+              "returned_chars": 2854
+            },
+            {
+              "rank": 5,
+              "id": "shard_03312_38823",
+              "docid": "shard_03312_38823",
+              "kind": "document",
+              "rrf_score": 0.024644,
+              "truncated": false,
+              "original_chars": 3946,
+              "returned_chars": 3946
+            },
+            {
+              "rank": 6,
+              "id": "shard_02556_1500",
+              "docid": "shard_02556_1500",
+              "kind": "document",
+              "rrf_score": 0.023253,
+              "truncated": false,
+              "original_chars": 3836,
+              "returned_chars": 3836
+            },
+            {
+              "rank": 7,
+              "id": "shard_02794_44343",
+              "docid": "shard_02794_44343",
+              "kind": "document",
+              "rrf_score": 0.021709,
+              "truncated": false,
+              "original_chars": 5398,
+              "returned_chars": 5398
+            },
+            {
+              "rank": 8,
+              "id": "shard_05009_61588",
+              "docid": "shard_05009_61588",
+              "kind": "document",
+              "rrf_score": 0.021286,
+              "truncated": false,
+              "original_chars": 3283,
+              "returned_chars": 3283
+            },
+            {
+              "rank": 9,
+              "id": "shard_00596_44747",
+              "docid": "shard_00596_44747",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2908,
+              "returned_chars": 2908
+            },
+            {
+              "rank": 10,
+              "id": "shard_05350_6282",
+              "docid": "shard_05350_6282",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3500,
+              "returned_chars": 3500
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01368_7426",
+          "shard_01223_25931",
+          "shard_05378_8852",
+          "shard_02834_63263",
+          "shard_03312_38823",
+          "shard_02556_1500",
+          "shard_02794_44343",
+          "shard_05009_61588",
+          "shard_00596_44747",
+          "shard_05350_6282"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01368_7426",
+            "score": 0.025856
+          },
+          {
+            "docid": "shard_01223_25931",
+            "score": 0.025004
+          },
+          {
+            "docid": "shard_05378_8852",
+            "score": 0.024924
+          },
+          {
+            "docid": "shard_02834_63263",
+            "score": 0.024697
+          },
+          {
+            "docid": "shard_03312_38823",
+            "score": 0.024644
+          },
+          {
+            "docid": "shard_02556_1500",
+            "score": 0.023253
+          },
+          {
+            "docid": "shard_02794_44343",
+            "score": 0.021709
+          },
+          {
+            "docid": "shard_05009_61588",
+            "score": 0.021286
+          },
+          {
+            "docid": "shard_00596_44747",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_05350_6282",
+            "score": 0.016393
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_Ic5DqNyuF7KTkgXsVogQcf",
+        "id": "step-0002",
+        "t_start": "2026-07-17T10:33:52.288+10:00",
+        "t_end": "2026-07-17T10:33:52.813+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 524.641,
+          "context_tokens": 3282,
+          "peak_context_tokens": 3282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6545,
+          "cumulative_tokens": {
+            "input": 3282,
+            "input_uncached": 234,
+            "output": 471,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3753,
+            "processed_input": 234,
+            "processed": 705
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01368_7426",
+            "shard_01223_25931",
+            "shard_05378_8852",
+            "shard_02834_63263",
+            "shard_03312_38823",
+            "shard_02556_1500",
+            "shard_02794_44343",
+            "shard_05009_61588",
+            "shard_00596_44747",
+            "shard_05350_6282"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "poetry and the brain neuroscience reading"
+        },
+        "output": {
+          "query": "poetry and the brain neuroscience reading",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_01378_17568",
+              "docid": "shard_01378_17568",
+              "kind": "document",
+              "rrf_score": 0.02895,
+              "truncated": false,
+              "original_chars": 7051,
+              "returned_chars": 7051
+            },
+            {
+              "rank": 2,
+              "id": "shard_02875_17283",
+              "docid": "shard_02875_17283",
+              "kind": "document",
+              "rrf_score": 0.025849,
+              "truncated": false,
+              "original_chars": 3802,
+              "returned_chars": 3802
+            },
+            {
+              "rank": 3,
+              "id": "shard_00124_44507",
+              "docid": "shard_00124_44507",
+              "kind": "document",
+              "rrf_score": 0.024642,
+              "truncated": false,
+              "original_chars": 4670,
+              "returned_chars": 4670
+            },
+            {
+              "rank": 4,
+              "id": "shard_02766_65206",
+              "docid": "shard_02766_65206",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3226,
+              "returned_chars": 3226
+            },
+            {
+              "rank": 5,
+              "id": "shard_01448_21199",
+              "docid": "shard_01448_21199",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 6325,
+              "returned_chars": 6325
+            },
+            {
+              "rank": 6,
+              "id": "shard_04668_36645",
+              "docid": "shard_04668_36645",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3196,
+              "returned_chars": 3196
+            },
+            {
+              "rank": 7,
+              "id": "shard_01358_76630",
+              "docid": "shard_01358_76630",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3695,
+              "returned_chars": 3695
+            },
+            {
+              "rank": 8,
+              "id": "shard_05189_52833",
+              "docid": "shard_05189_52833",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 2989,
+              "returned_chars": 2989
+            },
+            {
+              "rank": 9,
+              "id": "shard_05933_57378",
+              "docid": "shard_05933_57378",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 1825,
+              "returned_chars": 1825
+            },
+            {
+              "rank": 10,
+              "id": "shard_06491_54111",
+              "docid": "shard_06491_54111",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4492,
+              "returned_chars": 4492
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_01378_17568",
+          "shard_02875_17283",
+          "shard_00124_44507",
+          "shard_02766_65206",
+          "shard_01448_21199",
+          "shard_04668_36645",
+          "shard_01358_76630",
+          "shard_05189_52833",
+          "shard_05933_57378",
+          "shard_06491_54111"
+        ],
+        "returned": [
+          {
+            "docid": "shard_01378_17568",
+            "score": 0.02895
+          },
+          {
+            "docid": "shard_02875_17283",
+            "score": 0.025849
+          },
+          {
+            "docid": "shard_00124_44507",
+            "score": 0.024642
+          },
+          {
+            "docid": "shard_02766_65206",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_01448_21199",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04668_36645",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01358_76630",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05189_52833",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05933_57378",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_06491_54111",
+            "score": 0.015625
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_5ApH78WQpRrP1MNoFmJaay",
+        "id": "step-0003",
+        "t_start": "2026-07-17T10:33:52.288+10:00",
+        "t_end": "2026-07-17T10:33:52.729+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 440.668,
+          "context_tokens": 3282,
+          "peak_context_tokens": 3282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6545,
+          "cumulative_tokens": {
+            "input": 3282,
+            "input_uncached": 234,
+            "output": 471,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3753,
+            "processed_input": 234,
+            "processed": 705
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_01378_17568",
+            "shard_02875_17283",
+            "shard_00124_44507",
+            "shard_02766_65206",
+            "shard_01448_21199",
+            "shard_04668_36645",
+            "shard_01358_76630",
+            "shard_05189_52833",
+            "shard_05933_57378",
+            "shard_06491_54111"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "shared reading group bibliotherapy wellbeing program library"
+        },
+        "output": {
+          "query": "shared reading group bibliotherapy wellbeing program library",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04320_10535",
+              "docid": "shard_04320_10535",
+              "kind": "document",
+              "rrf_score": 0.029031,
+              "truncated": false,
+              "original_chars": 4835,
+              "returned_chars": 4835
+            },
+            {
+              "rank": 2,
+              "id": "shard_00684_77431",
+              "docid": "shard_00684_77431",
+              "kind": "document",
+              "rrf_score": 0.028298,
+              "truncated": false,
+              "original_chars": 3829,
+              "returned_chars": 3829
+            },
+            {
+              "rank": 3,
+              "id": "shard_06535_37064",
+              "docid": "shard_06535_37064",
+              "kind": "document",
+              "rrf_score": 0.026688,
+              "truncated": false,
+              "original_chars": 2050,
+              "returned_chars": 2050
+            },
+            {
+              "rank": 4,
+              "id": "shard_01028_12669",
+              "docid": "shard_01028_12669",
+              "kind": "document",
+              "rrf_score": 0.025589,
+              "truncated": false,
+              "original_chars": 5813,
+              "returned_chars": 5813
+            },
+            {
+              "rank": 5,
+              "id": "shard_03040_46613",
+              "docid": "shard_03040_46613",
+              "kind": "document",
+              "rrf_score": 0.023323,
+              "truncated": false,
+              "original_chars": 2554,
+              "returned_chars": 2554
+            },
+            {
+              "rank": 6,
+              "id": "shard_04952_72774",
+              "docid": "shard_04952_72774",
+              "kind": "document",
+              "rrf_score": 0.023306,
+              "truncated": false,
+              "original_chars": 2278,
+              "returned_chars": 2278
+            },
+            {
+              "rank": 7,
+              "id": "shard_00539_68191",
+              "docid": "shard_00539_68191",
+              "kind": "document",
+              "rrf_score": 0.02255,
+              "truncated": false,
+              "original_chars": 6845,
+              "returned_chars": 6845
+            },
+            {
+              "rank": 8,
+              "id": "shard_01472_802",
+              "docid": "shard_01472_802",
+              "kind": "document",
+              "rrf_score": 0.020582,
+              "truncated": false,
+              "original_chars": 3039,
+              "returned_chars": 3039
+            },
+            {
+              "rank": 9,
+              "id": "shard_02389_54756",
+              "docid": "shard_02389_54756",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4283,
+              "returned_chars": 4283
+            },
+            {
+              "rank": 10,
+              "id": "shard_00436_7163",
+              "docid": "shard_00436_7163",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1945,
+              "returned_chars": 1945
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04320_10535",
+          "shard_00684_77431",
+          "shard_06535_37064",
+          "shard_01028_12669",
+          "shard_03040_46613",
+          "shard_04952_72774",
+          "shard_00539_68191",
+          "shard_01472_802",
+          "shard_02389_54756",
+          "shard_00436_7163"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04320_10535",
+            "score": 0.029031
+          },
+          {
+            "docid": "shard_00684_77431",
+            "score": 0.028298
+          },
+          {
+            "docid": "shard_06535_37064",
+            "score": 0.026688
+          },
+          {
+            "docid": "shard_01028_12669",
+            "score": 0.025589
+          },
+          {
+            "docid": "shard_03040_46613",
+            "score": 0.023323
+          },
+          {
+            "docid": "shard_04952_72774",
+            "score": 0.023306
+          },
+          {
+            "docid": "shard_00539_68191",
+            "score": 0.02255
+          },
+          {
+            "docid": "shard_01472_802",
+            "score": 0.020582
+          },
+          {
+            "docid": "shard_02389_54756",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00436_7163",
+            "score": 0.016129
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_wBzQj8f9OhDgZ7aRdWVe42",
+        "id": "step-0004",
+        "t_start": "2026-07-17T10:33:52.288+10:00",
+        "t_end": "2026-07-17T10:33:52.683+10:00",
+        "turn": 0,
+        "parent_id": "step-0000",
+        "stats": {
+          "duration_ms": 394.408,
+          "context_tokens": 3282,
+          "peak_context_tokens": 3282,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 6545,
+          "cumulative_tokens": {
+            "input": 3282,
+            "input_uncached": 234,
+            "output": 471,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 3753,
+            "processed_input": 234,
+            "processed": 705
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04320_10535",
+            "shard_00684_77431",
+            "shard_06535_37064",
+            "shard_01028_12669",
+            "shard_03040_46613",
+            "shard_04952_72774",
+            "shard_00539_68191",
+            "shard_01472_802",
+            "shard_02389_54756",
+            "shard_00436_7163"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_EQ6FSxHHP7eVAX1H4LsE0J",
+            "tooluse_Ic5DqNyuF7KTkgXsVogQcf",
+            "tooluse_5ApH78WQpRrP1MNoFmJaay",
+            "tooluse_wBzQj8f9OhDgZ7aRdWVe42"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_TVb2JmdRVaK9qv15Qrmuoy",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_02470_15021",
+                    "reason": "Panero interview explains why Kidd & Castano replication failed (tiny effect sizes, correlation vs causation, theory of mind vs empathy distinction) - key caution"
+                  },
+                  {
+                    "docid": "shard_03586_18014",
+                    "reason": "States literary fiction's empathy effects 'might be short-lived' while speculating about lasting benefits in avid readers, notes brain networks for understanding others' minds, and notes replication failures - core short-term vs lasting distinction"
+                  },
+                  {
+                    "docid": "shard_05378_8852",
+                    "reason": "Bal & Veltkamp finding that general (non-literary) fiction reading raises empathy only when reader is emotionally 'transported', with a delayed 'sleeper effect' appearing about a week later - nuances popular vs literary fiction claim"
+                  },
+                  {
+                    "docid": "shard_05933_57378",
+                    "reason": "University of Exeter fMRI study specifics: small sample (13 English faculty/students), favorite poetry activates memory/introspection regions (posterior cingulate cortex, medial temporal lobes) more than reading-network areas - concrete poetry brain evidence plus small-sample caution"
+                  },
+                  {
+                    "docid": "shard_01358_76630",
+                    "reason": "Explicit skeptical caution that brain-imaging differences for poetry/literary awareness may be speculative overinterpretation and could be a proxy for intelligence rather than causal benefit - critical methodological caution"
+                  },
+                  {
+                    "docid": "shard_02389_54756",
+                    "reason": "Get Into Reading shared-reading model rationale for practitioners: reading aloud non-prescriptively, inclusion of illiterate/low-vision participants, use of poetry with dementia patients - directly informs program design cautions"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_KSZlnOjhxsEejX1yB4atpd",
+              "name": "search",
+              "arguments": {
+                "query": "fMRI brain connectivity reading novel lasting days after Berns Emory"
+              }
+            },
+            {
+              "id": "tooluse_X5TPN1b5P3d4h2fH6EUb0g",
+              "name": "search",
+              "arguments": {
+                "query": "shared reading dementia loneliness evidence outcomes randomized study"
+              }
+            },
+            {
+              "id": "tooluse_RQMwqWEYEqbN4xmtGnS76Q",
+              "name": "search",
+              "arguments": {
+                "query": "reading fiction empathy small effect size publication bias criticism"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0005",
+        "t_start": "2026-07-17T10:33:52.813+10:00",
+        "t_end": "2026-07-17T10:34:32.230+10:00",
+        "turn": 1,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 39416.458,
+          "context_tokens": 58955,
+          "peak_context_tokens": 58955,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 45962,
+          "tokens": {
+            "input": 58955,
+            "input_uncached": 55907,
+            "output": 3464,
+            "cache_read": 3048,
+            "cache_write": 0,
+            "total": 62419,
+            "processed_input": 55907,
+            "processed": 59371,
+            "context": 58955
+          },
+          "provider_usage": {
+            "inputTokens": 55907,
+            "outputTokens": 3464,
+            "totalTokens": 62419,
+            "cacheReadInputTokens": 3048
+          },
+          "cumulative_tokens": {
+            "input": 62237,
+            "input_uncached": 56141,
+            "output": 3935,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 66172,
+            "processed_input": 56141,
+            "processed": 60076
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06148_28204",
+            "shard_02470_15021",
+            "shard_06508_67198",
+            "shard_03586_18014",
+            "shard_05378_8852",
+            "shard_04198_14817",
+            "shard_00201_4759",
+            "shard_02997_67367",
+            "shard_01569_69095",
+            "shard_04766_82646",
+            "shard_01368_7426",
+            "shard_01223_25931",
+            "shard_02834_63263",
+            "shard_03312_38823",
+            "shard_02556_1500",
+            "shard_02794_44343",
+            "shard_05009_61588",
+            "shard_00596_44747",
+            "shard_05350_6282",
+            "shard_01378_17568",
+            "shard_02875_17283",
+            "shard_00124_44507",
+            "shard_02766_65206",
+            "shard_01448_21199",
+            "shard_04668_36645",
+            "shard_01358_76630",
+            "shard_05189_52833",
+            "shard_05933_57378",
+            "shard_06491_54111",
+            "shard_04320_10535",
+            "shard_00684_77431",
+            "shard_06535_37064",
+            "shard_01028_12669",
+            "shard_03040_46613",
+            "shard_04952_72774",
+            "shard_00539_68191",
+            "shard_01472_802",
+            "shard_02389_54756",
+            "shard_00436_7163"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_02470_15021",
+              "reason": "Panero interview explains why Kidd & Castano replication failed (tiny effect sizes, correlation vs causation, theory of mind vs empathy distinction) - key caution"
+            },
+            {
+              "docid": "shard_03586_18014",
+              "reason": "States literary fiction's empathy effects 'might be short-lived' while speculating about lasting benefits in avid readers, notes brain networks for understanding others' minds, and notes replication failures - core short-term vs lasting distinction"
+            },
+            {
+              "docid": "shard_05378_8852",
+              "reason": "Bal & Veltkamp finding that general (non-literary) fiction reading raises empathy only when reader is emotionally 'transported', with a delayed 'sleeper effect' appearing about a week later - nuances popular vs literary fiction claim"
+            },
+            {
+              "docid": "shard_05933_57378",
+              "reason": "University of Exeter fMRI study specifics: small sample (13 English faculty/students), favorite poetry activates memory/introspection regions (posterior cingulate cortex, medial temporal lobes) more than reading-network areas - concrete poetry brain evidence plus small-sample caution"
+            },
+            {
+              "docid": "shard_01358_76630",
+              "reason": "Explicit skeptical caution that brain-imaging differences for poetry/literary awareness may be speculative overinterpretation and could be a proxy for intelligence rather than causal benefit - critical methodological caution"
+            },
+            {
+              "docid": "shard_02389_54756",
+              "reason": "Get Into Reading shared-reading model rationale for practitioners: reading aloud non-prescriptively, inclusion of illiterate/low-vision participants, use of poetry with dementia patients - directly informs program design cautions"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_02470_15021\", \"shard_03586_18014\", \"shard_05378_8852\", \"shard_01358_76630\", \"shard_05933_57378\", \"shard_02389_54756\"], \"rejected\": [{\"docid\": \"shard_06148_28204\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06508_67198\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04198_14817\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00201_4759\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02997_67367\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01569_69095\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04766_82646\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01368_7426\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01223_25931\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02834_63263\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03312_38823\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02556_1500\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02794_44343\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05009_61588\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00596_44747\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05350_6282\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01378_17568\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02875_17283\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00124_44507\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02766_65206\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01448_21199\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04668_36645\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05189_52833\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06491_54111\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04320_10535\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00684_77431\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06535_37064\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01028_12669\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03040_46613\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04952_72774\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00539_68191\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01472_802\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00436_7163\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05378_8852\", \"reason\": \"duplicate/already committed; repeated occurrence within the staged batch compacted\"}]}\n[context budget: 58,955 / 500,000 tokens (11.8%) · elapsed: 0m 45s]",
+        "failed": false,
+        "tool_call_id": "tooluse_TVb2JmdRVaK9qv15Qrmuoy",
+        "id": "step-0006",
+        "t_start": "2026-07-17T10:34:32.230+10:00",
+        "t_end": "2026-07-17T10:34:32.232+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1.864,
+          "context_tokens": 58955,
+          "peak_context_tokens": 58955,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 45964,
+          "cumulative_tokens": {
+            "input": 62237,
+            "input_uncached": 56141,
+            "output": 3935,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 66172,
+            "processed_input": 56141,
+            "processed": 60076
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06148_28204",
+            "shard_02470_15021",
+            "shard_06508_67198",
+            "shard_03586_18014",
+            "shard_05378_8852",
+            "shard_04198_14817",
+            "shard_00201_4759",
+            "shard_02997_67367",
+            "shard_01569_69095",
+            "shard_04766_82646",
+            "shard_01368_7426",
+            "shard_01223_25931",
+            "shard_02834_63263",
+            "shard_03312_38823",
+            "shard_02556_1500",
+            "shard_02794_44343",
+            "shard_05009_61588",
+            "shard_00596_44747",
+            "shard_05350_6282",
+            "shard_01378_17568",
+            "shard_02875_17283",
+            "shard_00124_44507",
+            "shard_02766_65206",
+            "shard_01448_21199",
+            "shard_04668_36645",
+            "shard_01358_76630",
+            "shard_05189_52833",
+            "shard_05933_57378",
+            "shard_06491_54111",
+            "shard_04320_10535",
+            "shard_00684_77431",
+            "shard_06535_37064",
+            "shard_01028_12669",
+            "shard_03040_46613",
+            "shard_04952_72774",
+            "shard_00539_68191",
+            "shard_01472_802",
+            "shard_02389_54756",
+            "shard_00436_7163"
+          ],
+          "committed": [
+            "shard_02470_15021",
+            "shard_03586_18014",
+            "shard_05378_8852",
+            "shard_01358_76630",
+            "shard_05933_57378",
+            "shard_02389_54756"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_06148_28204",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06508_67198",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04198_14817",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00201_4759",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02997_67367",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01569_69095",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04766_82646",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01368_7426",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01223_25931",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02834_63263",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03312_38823",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02556_1500",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02794_44343",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05009_61588",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00596_44747",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05350_6282",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01378_17568",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02875_17283",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00124_44507",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02766_65206",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01448_21199",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04668_36645",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05189_52833",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06491_54111",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04320_10535",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00684_77431",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06535_37064",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01028_12669",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03040_46613",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04952_72774",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00539_68191",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01472_802",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00436_7163",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05378_8852",
+              "reason": "duplicate/already committed; repeated occurrence within the staged batch compacted"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "fMRI brain connectivity reading novel lasting days after Berns Emory"
+        },
+        "output": {
+          "query": "fMRI brain connectivity reading novel lasting days after Berns Emory",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_06317_80562",
+              "docid": "shard_06317_80562",
+              "kind": "document",
+              "rrf_score": 0.028083,
+              "truncated": false,
+              "original_chars": 3612,
+              "returned_chars": 3612
+            },
+            {
+              "rank": 2,
+              "id": "shard_05471_76114",
+              "docid": "shard_05471_76114",
+              "kind": "document",
+              "rrf_score": 0.027222,
+              "truncated": false,
+              "original_chars": 2845,
+              "returned_chars": 2845
+            },
+            {
+              "rank": 3,
+              "id": "shard_03448_69183",
+              "docid": "shard_03448_69183",
+              "kind": "document",
+              "rrf_score": 0.026357,
+              "truncated": false,
+              "original_chars": 3354,
+              "returned_chars": 3354
+            },
+            {
+              "rank": 4,
+              "id": "shard_00998_71538",
+              "docid": "shard_00998_71538",
+              "kind": "document",
+              "rrf_score": 0.02605,
+              "truncated": false,
+              "original_chars": 2102,
+              "returned_chars": 2102
+            },
+            {
+              "rank": 5,
+              "id": "shard_04813_27191",
+              "docid": "shard_04813_27191",
+              "kind": "document",
+              "rrf_score": 0.025712,
+              "truncated": false,
+              "original_chars": 2102,
+              "returned_chars": 2102
+            },
+            {
+              "rank": 6,
+              "id": "shard_02169_13255",
+              "docid": "shard_02169_13255",
+              "kind": "document",
+              "rrf_score": 0.025125,
+              "truncated": false,
+              "original_chars": 2652,
+              "returned_chars": 2652
+            },
+            {
+              "rank": 7,
+              "id": "shard_03791_6380",
+              "docid": "shard_03791_6380",
+              "kind": "document",
+              "rrf_score": 0.024716,
+              "truncated": false,
+              "original_chars": 5343,
+              "returned_chars": 5343
+            },
+            {
+              "rank": 8,
+              "id": "shard_05742_79654",
+              "docid": "shard_05742_79654",
+              "kind": "document",
+              "rrf_score": 0.024706,
+              "truncated": false,
+              "original_chars": 3531,
+              "returned_chars": 3531
+            },
+            {
+              "rank": 9,
+              "id": "shard_04138_32448",
+              "docid": "shard_04138_32448",
+              "kind": "document",
+              "rrf_score": 0.024351,
+              "truncated": false,
+              "original_chars": 6242,
+              "returned_chars": 6242
+            },
+            {
+              "rank": 10,
+              "id": "shard_03285_20295",
+              "docid": "shard_03285_20295",
+              "kind": "document",
+              "rrf_score": 0.02384,
+              "truncated": false,
+              "original_chars": 3562,
+              "returned_chars": 3562
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_06317_80562",
+          "shard_05471_76114",
+          "shard_03448_69183",
+          "shard_00998_71538",
+          "shard_04813_27191",
+          "shard_02169_13255",
+          "shard_03791_6380",
+          "shard_05742_79654",
+          "shard_04138_32448",
+          "shard_03285_20295"
+        ],
+        "returned": [
+          {
+            "docid": "shard_06317_80562",
+            "score": 0.028083
+          },
+          {
+            "docid": "shard_05471_76114",
+            "score": 0.027222
+          },
+          {
+            "docid": "shard_03448_69183",
+            "score": 0.026357
+          },
+          {
+            "docid": "shard_00998_71538",
+            "score": 0.02605
+          },
+          {
+            "docid": "shard_04813_27191",
+            "score": 0.025712
+          },
+          {
+            "docid": "shard_02169_13255",
+            "score": 0.025125
+          },
+          {
+            "docid": "shard_03791_6380",
+            "score": 0.024716
+          },
+          {
+            "docid": "shard_05742_79654",
+            "score": 0.024706
+          },
+          {
+            "docid": "shard_04138_32448",
+            "score": 0.024351
+          },
+          {
+            "docid": "shard_03285_20295",
+            "score": 0.02384
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_KSZlnOjhxsEejX1yB4atpd",
+        "id": "step-0007",
+        "t_start": "2026-07-17T10:34:32.232+10:00",
+        "t_end": "2026-07-17T10:34:32.748+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 515.826,
+          "context_tokens": 58955,
+          "peak_context_tokens": 58955,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47147,
+          "cumulative_tokens": {
+            "input": 62237,
+            "input_uncached": 56141,
+            "output": 3935,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 66172,
+            "processed_input": 56141,
+            "processed": 60076
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06317_80562",
+            "shard_05471_76114",
+            "shard_03448_69183",
+            "shard_00998_71538",
+            "shard_04813_27191",
+            "shard_02169_13255",
+            "shard_03791_6380",
+            "shard_05742_79654",
+            "shard_04138_32448",
+            "shard_03285_20295"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "shared reading dementia loneliness evidence outcomes randomized study"
+        },
+        "output": {
+          "query": "shared reading dementia loneliness evidence outcomes randomized study",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04014_70153",
+              "docid": "shard_04014_70153",
+              "kind": "document",
+              "rrf_score": 0.028958,
+              "truncated": false,
+              "original_chars": 2670,
+              "returned_chars": 2670
+            },
+            {
+              "rank": 2,
+              "id": "shard_00602_56851",
+              "docid": "shard_00602_56851",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3302,
+              "returned_chars": 3302
+            },
+            {
+              "rank": 3,
+              "id": "shard_03906_23604",
+              "docid": "shard_03906_23604",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 16735,
+              "returned_chars": 16735
+            },
+            {
+              "rank": 4,
+              "id": "shard_02647_22385",
+              "docid": "shard_02647_22385",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3302,
+              "returned_chars": 3302
+            },
+            {
+              "rank": 5,
+              "id": "shard_02624_61072",
+              "docid": "shard_02624_61072",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": true,
+              "original_chars": 26212,
+              "returned_chars": 19196
+            },
+            {
+              "rank": 6,
+              "id": "shard_01513_52743",
+              "docid": "shard_01513_52743",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 850,
+              "returned_chars": 850
+            },
+            {
+              "rank": 7,
+              "id": "shard_06101_30430",
+              "docid": "shard_06101_30430",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3282,
+              "returned_chars": 3282
+            },
+            {
+              "rank": 8,
+              "id": "shard_06195_81511",
+              "docid": "shard_06195_81511",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 3190,
+              "returned_chars": 3190
+            },
+            {
+              "rank": 9,
+              "id": "shard_00619_12003",
+              "docid": "shard_00619_12003",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 1174,
+              "returned_chars": 1174
+            },
+            {
+              "rank": 10,
+              "id": "shard_04294_79526",
+              "docid": "shard_04294_79526",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 9703,
+              "returned_chars": 9703
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04014_70153",
+          "shard_00602_56851",
+          "shard_03906_23604",
+          "shard_02647_22385",
+          "shard_02624_61072",
+          "shard_01513_52743",
+          "shard_06101_30430",
+          "shard_06195_81511",
+          "shard_00619_12003",
+          "shard_04294_79526"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04014_70153",
+            "score": 0.028958
+          },
+          {
+            "docid": "shard_00602_56851",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_03906_23604",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02647_22385",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_02624_61072",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01513_52743",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_06101_30430",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_06195_81511",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_00619_12003",
+            "score": 0.015385
+          },
+          {
+            "docid": "shard_04294_79526",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_X5TPN1b5P3d4h2fH6EUb0g",
+        "id": "step-0008",
+        "t_start": "2026-07-17T10:34:32.233+10:00",
+        "t_end": "2026-07-17T10:34:33.415+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1182.8,
+          "context_tokens": 58955,
+          "peak_context_tokens": 58955,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47147,
+          "cumulative_tokens": {
+            "input": 62237,
+            "input_uncached": 56141,
+            "output": 3935,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 66172,
+            "processed_input": 56141,
+            "processed": 60076
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04014_70153",
+            "shard_00602_56851",
+            "shard_03906_23604",
+            "shard_02647_22385",
+            "shard_02624_61072",
+            "shard_01513_52743",
+            "shard_06101_30430",
+            "shard_06195_81511",
+            "shard_00619_12003",
+            "shard_04294_79526"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "reading fiction empathy small effect size publication bias criticism"
+        },
+        "output": {
+          "query": "reading fiction empathy small effect size publication bias criticism",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_04397_10949",
+              "docid": "shard_04397_10949",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3524,
+              "returned_chars": 3524
+            },
+            {
+              "rank": 2,
+              "id": "shard_04488_25035",
+              "docid": "shard_04488_25035",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 4465,
+              "returned_chars": 4465
+            },
+            {
+              "rank": 3,
+              "id": "shard_02216_33084",
+              "docid": "shard_02216_33084",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3363,
+              "returned_chars": 3363
+            },
+            {
+              "rank": 4,
+              "id": "shard_00918_72643",
+              "docid": "shard_00918_72643",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 3045,
+              "returned_chars": 3045
+            },
+            {
+              "rank": 5,
+              "id": "shard_01569_69095",
+              "docid": "shard_01569_69095",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1588,
+              "returned_chars": 1588
+            },
+            {
+              "rank": 6,
+              "id": "shard_01863_46500",
+              "docid": "shard_01863_46500",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 3369,
+              "returned_chars": 3369
+            },
+            {
+              "rank": 7,
+              "id": "shard_00687_35519",
+              "docid": "shard_00687_35519",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 970,
+              "returned_chars": 970
+            },
+            {
+              "rank": 8,
+              "id": "shard_04854_73121",
+              "docid": "shard_04854_73121",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 4290,
+              "returned_chars": 4290
+            },
+            {
+              "rank": 9,
+              "id": "shard_03855_35526",
+              "docid": "shard_03855_35526",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 970,
+              "returned_chars": 970
+            },
+            {
+              "rank": 10,
+              "id": "shard_02730_8945",
+              "docid": "shard_02730_8945",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 6132,
+              "returned_chars": 6132
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_04397_10949",
+          "shard_04488_25035",
+          "shard_02216_33084",
+          "shard_00918_72643",
+          "shard_01569_69095",
+          "shard_01863_46500",
+          "shard_00687_35519",
+          "shard_04854_73121",
+          "shard_03855_35526",
+          "shard_02730_8945"
+        ],
+        "returned": [
+          {
+            "docid": "shard_04397_10949",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04488_25035",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_02216_33084",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_00918_72643",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_01569_69095",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_01863_46500",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_00687_35519",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_04854_73121",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_03855_35526",
+            "score": 0.015385
+          },
+          {
+            "docid": "shard_02730_8945",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_RQMwqWEYEqbN4xmtGnS76Q",
+        "id": "step-0009",
+        "t_start": "2026-07-17T10:34:32.233+10:00",
+        "t_end": "2026-07-17T10:34:33.301+10:00",
+        "turn": 1,
+        "parent_id": "step-0005",
+        "stats": {
+          "duration_ms": 1068.037,
+          "context_tokens": 58955,
+          "peak_context_tokens": 58955,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 47147,
+          "cumulative_tokens": {
+            "input": 62237,
+            "input_uncached": 56141,
+            "output": 3935,
+            "cache_read": 6096,
+            "cache_write": 0,
+            "total": 66172,
+            "processed_input": 56141,
+            "processed": 60076
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_02216_33084",
+            "shard_00918_72643",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_00687_35519",
+            "shard_04854_73121",
+            "shard_03855_35526",
+            "shard_02730_8945"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_TVb2JmdRVaK9qv15Qrmuoy",
+            "tooluse_KSZlnOjhxsEejX1yB4atpd",
+            "tooluse_X5TPN1b5P3d4h2fH6EUb0g",
+            "tooluse_RQMwqWEYEqbN4xmtGnS76Q"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_hg1Z5NGdYGT5GLTEnsuyvd",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_06317_80562",
+                    "reason": "Berns/Emory fMRI study: reading a novel produced elevated resting-state connectivity in left temporal cortex and central sulcus that persisted for days after finishing, dubbed 'shadow activity' - concrete brain mechanism and short-vs-longer-term timing data"
+                  },
+                  {
+                    "docid": "shard_01569_69095",
+                    "reason": "Direct quote from original author David Comer Kidd stating literary fiction 'seems to improve Theory of Mind in the short-term' and defining literary (DeLillo, Chekhov) vs popular (Danielle Steel) fiction in the actual experimental design"
+                  },
+                  {
+                    "docid": "shard_04488_25035",
+                    "reason": "Gavaler & Johnson 'Genre Effect' study shows readers exert less empathic effort on identical text once it is labeled science fiction rather than literary realism - shows the literary/genre distinction may reflect reader bias/expectation rather than the text itself"
+                  },
+                  {
+                    "docid": "shard_01863_46500",
+                    "reason": "Reports that reading only a nonfiction account or summary (vs. the full fictional narrative Saffron Dreams) produced no empathy/bias shift, and cites Konrath meta-analysis showing 48% decline in empathic concern among US college students 1970s-2000s - nonfiction contrast plus generalizability caution"
+                  },
+                  {
+                    "docid": "shard_04397_10949",
+                    "reason": "Keen's scholarly synthesis concludes the case for reading fiction producing altruistic real-world behavior (not just test scores) remains inconclusive - key caution distinguishing lab measures from lasting prosocial change"
+                  },
+                  {
+                    "docid": "shard_02216_33084",
+                    "reason": "Oatley study notes similar empathy-test boosts from narrative video games and TV drama (not unique to prose books), and references bibliotherapist practice of prescribing literary works - relevant to program design and media specificity caution"
+                  }
+                ]
+              }
+            },
+            {
+              "id": "tooluse_REnbkeAt8HugvdEX3OXPa9",
+              "name": "search",
+              "arguments": {
+                "query": "bibliotherapy randomized controlled trial depression anxiety books on prescription evaluation"
+              }
+            },
+            {
+              "id": "tooluse_eNhHr2tJNWYbm5fJEaIBbQ",
+              "name": "search",
+              "arguments": {
+                "query": "Reader Organisation Get Into Reading evaluation mental health outcomes evidence"
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0010",
+        "t_start": "2026-07-17T10:34:33.416+10:00",
+        "t_end": "2026-07-17T10:35:01.442+10:00",
+        "turn": 2,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 28025.835,
+          "context_tokens": 65773,
+          "peak_context_tokens": 65773,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 75173,
+          "tokens": {
+            "input": 65773,
+            "input_uncached": 49112,
+            "output": 2356,
+            "cache_read": 3048,
+            "cache_write": 13613,
+            "total": 68129,
+            "processed_input": 62725,
+            "processed": 65081,
+            "context": 65773
+          },
+          "provider_usage": {
+            "inputTokens": 49112,
+            "outputTokens": 2356,
+            "totalTokens": 68129,
+            "cacheReadInputTokens": 3048,
+            "cacheWriteInputTokens": 13613,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 13613
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 128010,
+            "input_uncached": 105253,
+            "output": 6291,
+            "cache_read": 9144,
+            "cache_write": 13613,
+            "total": 134301,
+            "processed_input": 118866,
+            "processed": 125157
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06317_80562",
+            "shard_05471_76114",
+            "shard_03448_69183",
+            "shard_00998_71538",
+            "shard_04813_27191",
+            "shard_02169_13255",
+            "shard_03791_6380",
+            "shard_05742_79654",
+            "shard_04138_32448",
+            "shard_03285_20295",
+            "shard_04014_70153",
+            "shard_00602_56851",
+            "shard_03906_23604",
+            "shard_02647_22385",
+            "shard_02624_61072",
+            "shard_01513_52743",
+            "shard_06101_30430",
+            "shard_06195_81511",
+            "shard_00619_12003",
+            "shard_04294_79526",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_02216_33084",
+            "shard_00918_72643",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_00687_35519",
+            "shard_04854_73121",
+            "shard_03855_35526",
+            "shard_02730_8945"
+          ],
+          "committed": [
+            "shard_01358_76630",
+            "shard_02389_54756",
+            "shard_02470_15021",
+            "shard_03586_18014",
+            "shard_05378_8852",
+            "shard_05933_57378"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_06317_80562",
+              "reason": "Berns/Emory fMRI study: reading a novel produced elevated resting-state connectivity in left temporal cortex and central sulcus that persisted for days after finishing, dubbed 'shadow activity' - concrete brain mechanism and short-vs-longer-term timing data"
+            },
+            {
+              "docid": "shard_01569_69095",
+              "reason": "Direct quote from original author David Comer Kidd stating literary fiction 'seems to improve Theory of Mind in the short-term' and defining literary (DeLillo, Chekhov) vs popular (Danielle Steel) fiction in the actual experimental design"
+            },
+            {
+              "docid": "shard_04488_25035",
+              "reason": "Gavaler & Johnson 'Genre Effect' study shows readers exert less empathic effort on identical text once it is labeled science fiction rather than literary realism - shows the literary/genre distinction may reflect reader bias/expectation rather than the text itself"
+            },
+            {
+              "docid": "shard_01863_46500",
+              "reason": "Reports that reading only a nonfiction account or summary (vs. the full fictional narrative Saffron Dreams) produced no empathy/bias shift, and cites Konrath meta-analysis showing 48% decline in empathic concern among US college students 1970s-2000s - nonfiction contrast plus generalizability caution"
+            },
+            {
+              "docid": "shard_04397_10949",
+              "reason": "Keen's scholarly synthesis concludes the case for reading fiction producing altruistic real-world behavior (not just test scores) remains inconclusive - key caution distinguishing lab measures from lasting prosocial change"
+            },
+            {
+              "docid": "shard_02216_33084",
+              "reason": "Oatley study notes similar empathy-test boosts from narrative video games and TV drama (not unique to prose books), and references bibliotherapist practice of prescribing literary works - relevant to program design and media specificity caution"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_06317_80562\", \"shard_04397_10949\", \"shard_04488_25035\", \"shard_02216_33084\", \"shard_01569_69095\", \"shard_01863_46500\"], \"rejected\": [{\"docid\": \"shard_05471_76114\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03448_69183\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00998_71538\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04813_27191\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02169_13255\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03791_6380\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05742_79654\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04138_32448\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03285_20295\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04014_70153\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00602_56851\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03906_23604\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02647_22385\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02624_61072\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01513_52743\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06101_30430\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_06195_81511\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00619_12003\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04294_79526\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00918_72643\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00687_35519\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04854_73121\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03855_35526\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02730_8945\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 65,773 / 500,000 tokens (13.2%) · elapsed: 1m 15s]",
+        "failed": false,
+        "tool_call_id": "tooluse_hg1Z5NGdYGT5GLTEnsuyvd",
+        "id": "step-0011",
+        "t_start": "2026-07-17T10:35:01.442+10:00",
+        "t_end": "2026-07-17T10:35:01.444+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 1.931,
+          "context_tokens": 65773,
+          "peak_context_tokens": 65773,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 75175,
+          "cumulative_tokens": {
+            "input": 128010,
+            "input_uncached": 105253,
+            "output": 6291,
+            "cache_read": 9144,
+            "cache_write": 13613,
+            "total": 134301,
+            "processed_input": 118866,
+            "processed": 125157
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_06317_80562",
+            "shard_05471_76114",
+            "shard_03448_69183",
+            "shard_00998_71538",
+            "shard_04813_27191",
+            "shard_02169_13255",
+            "shard_03791_6380",
+            "shard_05742_79654",
+            "shard_04138_32448",
+            "shard_03285_20295",
+            "shard_04014_70153",
+            "shard_00602_56851",
+            "shard_03906_23604",
+            "shard_02647_22385",
+            "shard_02624_61072",
+            "shard_01513_52743",
+            "shard_06101_30430",
+            "shard_06195_81511",
+            "shard_00619_12003",
+            "shard_04294_79526",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_02216_33084",
+            "shard_00918_72643",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_00687_35519",
+            "shard_04854_73121",
+            "shard_03855_35526",
+            "shard_02730_8945"
+          ],
+          "committed": [
+            "shard_06317_80562",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_02216_33084",
+            "shard_01569_69095",
+            "shard_01863_46500"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_05471_76114",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03448_69183",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00998_71538",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04813_27191",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02169_13255",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03791_6380",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05742_79654",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04138_32448",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03285_20295",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04014_70153",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00602_56851",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03906_23604",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02647_22385",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02624_61072",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01513_52743",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06101_30430",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_06195_81511",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00619_12003",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04294_79526",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00918_72643",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00687_35519",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04854_73121",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03855_35526",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02730_8945",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "bibliotherapy randomized controlled trial depression anxiety books on prescription evaluation"
+        },
+        "output": {
+          "query": "bibliotherapy randomized controlled trial depression anxiety books on prescription evaluation",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_03022_48758",
+              "docid": "shard_03022_48758",
+              "kind": "document",
+              "rrf_score": 0.031258,
+              "truncated": false,
+              "original_chars": 12298,
+              "returned_chars": 12298
+            },
+            {
+              "rank": 2,
+              "id": "shard_03008_83160",
+              "docid": "shard_03008_83160",
+              "kind": "document",
+              "rrf_score": 0.030415,
+              "truncated": false,
+              "original_chars": 13026,
+              "returned_chars": 13026
+            },
+            {
+              "rank": 3,
+              "id": "shard_03133_64799",
+              "docid": "shard_03133_64799",
+              "kind": "document",
+              "rrf_score": 0.027778,
+              "truncated": false,
+              "original_chars": 3672,
+              "returned_chars": 3672
+            },
+            {
+              "rank": 4,
+              "id": "shard_05891_68209",
+              "docid": "shard_05891_68209",
+              "kind": "document",
+              "rrf_score": 0.025827,
+              "truncated": false,
+              "original_chars": 4321,
+              "returned_chars": 4321
+            },
+            {
+              "rank": 5,
+              "id": "shard_03306_34917",
+              "docid": "shard_03306_34917",
+              "kind": "document",
+              "rrf_score": 0.023994,
+              "truncated": false,
+              "original_chars": 3807,
+              "returned_chars": 3807
+            },
+            {
+              "rank": 6,
+              "id": "shard_00036_54358",
+              "docid": "shard_00036_54358",
+              "kind": "document",
+              "rrf_score": 0.021653,
+              "truncated": false,
+              "original_chars": 1446,
+              "returned_chars": 1446
+            },
+            {
+              "rank": 7,
+              "id": "shard_02549_28707",
+              "docid": "shard_02549_28707",
+              "kind": "document",
+              "rrf_score": 0.020939,
+              "truncated": false,
+              "original_chars": 3322,
+              "returned_chars": 3322
+            },
+            {
+              "rank": 8,
+              "id": "shard_04356_36883",
+              "docid": "shard_04356_36883",
+              "kind": "document",
+              "rrf_score": 0.020709,
+              "truncated": false,
+              "original_chars": 3929,
+              "returned_chars": 3929
+            },
+            {
+              "rank": 9,
+              "id": "shard_01259_31598",
+              "docid": "shard_01259_31598",
+              "kind": "document",
+              "rrf_score": 0.02041,
+              "truncated": false,
+              "original_chars": 6558,
+              "returned_chars": 6558
+            },
+            {
+              "rank": 10,
+              "id": "shard_05419_413",
+              "docid": "shard_05419_413",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 6623,
+              "returned_chars": 6623
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_03022_48758",
+          "shard_03008_83160",
+          "shard_03133_64799",
+          "shard_05891_68209",
+          "shard_03306_34917",
+          "shard_00036_54358",
+          "shard_02549_28707",
+          "shard_04356_36883",
+          "shard_01259_31598",
+          "shard_05419_413"
+        ],
+        "returned": [
+          {
+            "docid": "shard_03022_48758",
+            "score": 0.031258
+          },
+          {
+            "docid": "shard_03008_83160",
+            "score": 0.030415
+          },
+          {
+            "docid": "shard_03133_64799",
+            "score": 0.027778
+          },
+          {
+            "docid": "shard_05891_68209",
+            "score": 0.025827
+          },
+          {
+            "docid": "shard_03306_34917",
+            "score": 0.023994
+          },
+          {
+            "docid": "shard_00036_54358",
+            "score": 0.021653
+          },
+          {
+            "docid": "shard_02549_28707",
+            "score": 0.020939
+          },
+          {
+            "docid": "shard_04356_36883",
+            "score": 0.020709
+          },
+          {
+            "docid": "shard_01259_31598",
+            "score": 0.02041
+          },
+          {
+            "docid": "shard_05419_413",
+            "score": 0.016393
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_REnbkeAt8HugvdEX3OXPa9",
+        "id": "step-0012",
+        "t_start": "2026-07-17T10:35:01.444+10:00",
+        "t_end": "2026-07-17T10:35:02.625+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 1180.504,
+          "context_tokens": 65773,
+          "peak_context_tokens": 65773,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 76443,
+          "cumulative_tokens": {
+            "input": 128010,
+            "input_uncached": 105253,
+            "output": 6291,
+            "cache_read": 9144,
+            "cache_write": 13613,
+            "total": 134301,
+            "processed_input": 118866,
+            "processed": 125157
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03022_48758",
+            "shard_03008_83160",
+            "shard_03133_64799",
+            "shard_05891_68209",
+            "shard_03306_34917",
+            "shard_00036_54358",
+            "shard_02549_28707",
+            "shard_04356_36883",
+            "shard_01259_31598",
+            "shard_05419_413"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "search",
+        "arguments": {
+          "query": "Reader Organisation Get Into Reading evaluation mental health outcomes evidence"
+        },
+        "output": {
+          "query": "Reader Organisation Get Into Reading evaluation mental health outcomes evidence",
+          "k": 10,
+          "results": [
+            {
+              "rank": 1,
+              "id": "shard_02169_13387",
+              "docid": "shard_02169_13387",
+              "kind": "document",
+              "rrf_score": 0.020979,
+              "truncated": false,
+              "original_chars": 3904,
+              "returned_chars": 3904
+            },
+            {
+              "rank": 2,
+              "id": "shard_00623_82896",
+              "docid": "shard_00623_82896",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 2135,
+              "returned_chars": 2135
+            },
+            {
+              "rank": 3,
+              "id": "shard_04730_22247",
+              "docid": "shard_04730_22247",
+              "kind": "document",
+              "rrf_score": 0.016393,
+              "truncated": false,
+              "original_chars": 3273,
+              "returned_chars": 3273
+            },
+            {
+              "rank": 4,
+              "id": "shard_00356_970",
+              "docid": "shard_00356_970",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 1534,
+              "returned_chars": 1534
+            },
+            {
+              "rank": 5,
+              "id": "shard_04853_53434",
+              "docid": "shard_04853_53434",
+              "kind": "document",
+              "rrf_score": 0.016129,
+              "truncated": false,
+              "original_chars": 13393,
+              "returned_chars": 13393
+            },
+            {
+              "rank": 6,
+              "id": "shard_04632_18821",
+              "docid": "shard_04632_18821",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 1614,
+              "returned_chars": 1614
+            },
+            {
+              "rank": 7,
+              "id": "shard_05982_46854",
+              "docid": "shard_05982_46854",
+              "kind": "document",
+              "rrf_score": 0.015873,
+              "truncated": false,
+              "original_chars": 8713,
+              "returned_chars": 8713
+            },
+            {
+              "rank": 8,
+              "id": "shard_04242_31434",
+              "docid": "shard_04242_31434",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": false,
+              "original_chars": 2460,
+              "returned_chars": 2460
+            },
+            {
+              "rank": 9,
+              "id": "shard_02280_79224",
+              "docid": "shard_02280_79224",
+              "kind": "document",
+              "rrf_score": 0.015625,
+              "truncated": true,
+              "original_chars": 38329,
+              "returned_chars": 20452
+            },
+            {
+              "rank": 10,
+              "id": "shard_01748_13230",
+              "docid": "shard_01748_13230",
+              "kind": "document",
+              "rrf_score": 0.015385,
+              "truncated": false,
+              "original_chars": 2407,
+              "returned_chars": 2407
+            }
+          ],
+          "budget_tokens_per_result": 4096,
+          "context_protocol": "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be exactly the first action on that turn. Select only sparse non-duplicate documents whose full text should persist, with a reason naming each document's distinct evidence. Every unselected occurrence will be compacted before the next turn."
+        },
+        "returned_docids": [
+          "shard_02169_13387",
+          "shard_00623_82896",
+          "shard_04730_22247",
+          "shard_00356_970",
+          "shard_04853_53434",
+          "shard_04632_18821",
+          "shard_05982_46854",
+          "shard_04242_31434",
+          "shard_02280_79224",
+          "shard_01748_13230"
+        ],
+        "returned": [
+          {
+            "docid": "shard_02169_13387",
+            "score": 0.020979
+          },
+          {
+            "docid": "shard_00623_82896",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_04730_22247",
+            "score": 0.016393
+          },
+          {
+            "docid": "shard_00356_970",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04853_53434",
+            "score": 0.016129
+          },
+          {
+            "docid": "shard_04632_18821",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_05982_46854",
+            "score": 0.015873
+          },
+          {
+            "docid": "shard_04242_31434",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_02280_79224",
+            "score": 0.015625
+          },
+          {
+            "docid": "shard_01748_13230",
+            "score": 0.015385
+          }
+        ],
+        "failed": false,
+        "tool_call_id": "tooluse_eNhHr2tJNWYbm5fJEaIBbQ",
+        "id": "step-0013",
+        "t_start": "2026-07-17T10:35:01.445+10:00",
+        "t_end": "2026-07-17T10:35:02.712+10:00",
+        "turn": 2,
+        "parent_id": "step-0010",
+        "stats": {
+          "duration_ms": 1267.462,
+          "context_tokens": 65773,
+          "peak_context_tokens": 65773,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 76443,
+          "cumulative_tokens": {
+            "input": 128010,
+            "input_uncached": 105253,
+            "output": 6291,
+            "cache_read": 9144,
+            "cache_write": 13613,
+            "total": 134301,
+            "processed_input": 118866,
+            "processed": 125157
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_02169_13387",
+            "shard_00623_82896",
+            "shard_04730_22247",
+            "shard_00356_970",
+            "shard_04853_53434",
+            "shard_04632_18821",
+            "shard_05982_46854",
+            "shard_04242_31434",
+            "shard_02280_79224",
+            "shard_01748_13230"
+          ],
+          "committed": [],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_hg1Z5NGdYGT5GLTEnsuyvd",
+            "tooluse_REnbkeAt8HugvdEX3OXPa9",
+            "tooluse_eNhHr2tJNWYbm5fJEaIBbQ"
+          ]
+        },
+        "output": {
+          "text": null,
+          "reasoning": [],
+          "tool_calls": [
+            {
+              "id": "tooluse_FOoPT5EiIqSEwDTPS3xlZy",
+              "name": "commit_context",
+              "arguments": {
+                "documents": [
+                  {
+                    "docid": "shard_03022_48758",
+                    "reason": "Comprehensive Reading Well evidence base: NICE guidance, self-help effect sizes (0.84 vs waitlist, 0.34 disadvantage vs therapist), Welsh scheme uptake stats, Berns fMRI detail (angular/supramarginal gyri activation decaying rapidly, long-term somatosensory 'embodied semantics'), Kidd/Castano 'temporarily enhances ToM', and reading-group social wellbeing survey stats"
+                  },
+                  {
+                    "docid": "shard_03008_83160",
+                    "reason": "RCT comparing positive-psychology vs CBT self-help books (no difference, n=115, 1-month follow-up), meta-analysis showing guided self-help ~equivalent to face-to-face therapy at up to 1 year, and readability study finding prescribed self-help books require 12.6-15.4 reading age - key accessibility caution for program design"
+                  },
+                  {
+                    "docid": "shard_05891_68209",
+                    "reason": "2017 Clinical Psychology Review finding bibliotherapy reduces depression in the long term, but anxiety evidence is only from a small short-term pilot (n=34, 12 weeks) - explicit short vs long-term contrast by condition"
+                  },
+                  {
+                    "docid": "shard_02169_13387",
+                    "reason": "Distinguishes clinical CBT-bibliotherapy model from The Reader's group 'Shared Reading' model using canonical 'great literature', notes evaluations are often conducted by those invested in the scheme (bias caution), and flags emerging graphic novel/comics bibliotherapy as alternative format"
+                  },
+                  {
+                    "docid": "shard_00356_970",
+                    "reason": "Concrete GP-surgery/health-centre reading-group study: statistically significant depression severity improvement sustained over a 12-month period, with qualitative themes of increased confidence and concentration - lasting effect evidence for group reading"
+                  },
+                  {
+                    "docid": "shard_05419_413",
+                    "reason": "Systematic review concludes there is a lack of empirical studies specifically on fiction/poetry (vs self-help) bibliotherapy, identifies only three supportive studies, and states benefits appear strongest in group settings with a skilled facilitator while larger RCTs are still needed - key evidentiary caution and design guidance"
+                  }
+                ]
+              }
+            }
+          ],
+          "stop_reason": "tool_use"
+        },
+        "id": "step-0014",
+        "t_start": "2026-07-17T10:35:02.712+10:00",
+        "t_end": "2026-07-17T10:35:24.961+10:00",
+        "turn": 3,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 22248.094,
+          "context_tokens": 74511,
+          "peak_context_tokens": 74511,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 98692,
+          "tokens": {
+            "input": 74511,
+            "input_uncached": 43230,
+            "output": 1896,
+            "cache_read": 16661,
+            "cache_write": 14620,
+            "total": 76407,
+            "processed_input": 57850,
+            "processed": 59746,
+            "context": 74511
+          },
+          "provider_usage": {
+            "inputTokens": 43230,
+            "outputTokens": 1896,
+            "totalTokens": 76407,
+            "cacheReadInputTokens": 16661,
+            "cacheWriteInputTokens": 14620,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 14620
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 202521,
+            "input_uncached": 148483,
+            "output": 8187,
+            "cache_read": 25805,
+            "cache_write": 28233,
+            "total": 210708,
+            "processed_input": 176716,
+            "processed": 184903
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03022_48758",
+            "shard_03008_83160",
+            "shard_03133_64799",
+            "shard_05891_68209",
+            "shard_03306_34917",
+            "shard_00036_54358",
+            "shard_02549_28707",
+            "shard_04356_36883",
+            "shard_01259_31598",
+            "shard_05419_413",
+            "shard_02169_13387",
+            "shard_00623_82896",
+            "shard_04730_22247",
+            "shard_00356_970",
+            "shard_04853_53434",
+            "shard_04632_18821",
+            "shard_05982_46854",
+            "shard_04242_31434",
+            "shard_02280_79224",
+            "shard_01748_13230"
+          ],
+          "committed": [
+            "shard_01358_76630",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_02216_33084",
+            "shard_02389_54756",
+            "shard_02470_15021",
+            "shard_03586_18014",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_05378_8852",
+            "shard_05933_57378",
+            "shard_06317_80562"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "tool_call",
+        "tool_name": "commit_context",
+        "arguments": {
+          "documents": [
+            {
+              "docid": "shard_03022_48758",
+              "reason": "Comprehensive Reading Well evidence base: NICE guidance, self-help effect sizes (0.84 vs waitlist, 0.34 disadvantage vs therapist), Welsh scheme uptake stats, Berns fMRI detail (angular/supramarginal gyri activation decaying rapidly, long-term somatosensory 'embodied semantics'), Kidd/Castano 'temporarily enhances ToM', and reading-group social wellbeing survey stats"
+            },
+            {
+              "docid": "shard_03008_83160",
+              "reason": "RCT comparing positive-psychology vs CBT self-help books (no difference, n=115, 1-month follow-up), meta-analysis showing guided self-help ~equivalent to face-to-face therapy at up to 1 year, and readability study finding prescribed self-help books require 12.6-15.4 reading age - key accessibility caution for program design"
+            },
+            {
+              "docid": "shard_05891_68209",
+              "reason": "2017 Clinical Psychology Review finding bibliotherapy reduces depression in the long term, but anxiety evidence is only from a small short-term pilot (n=34, 12 weeks) - explicit short vs long-term contrast by condition"
+            },
+            {
+              "docid": "shard_02169_13387",
+              "reason": "Distinguishes clinical CBT-bibliotherapy model from The Reader's group 'Shared Reading' model using canonical 'great literature', notes evaluations are often conducted by those invested in the scheme (bias caution), and flags emerging graphic novel/comics bibliotherapy as alternative format"
+            },
+            {
+              "docid": "shard_00356_970",
+              "reason": "Concrete GP-surgery/health-centre reading-group study: statistically significant depression severity improvement sustained over a 12-month period, with qualitative themes of increased confidence and concentration - lasting effect evidence for group reading"
+            },
+            {
+              "docid": "shard_05419_413",
+              "reason": "Systematic review concludes there is a lack of empirical studies specifically on fiction/poetry (vs self-help) bibliotherapy, identifies only three supportive studies, and states benefits appear strongest in group settings with a skilled facilitator while larger RCTs are still needed - key evidentiary caution and design guidance"
+            }
+          ]
+        },
+        "output": "{\"committed\": [\"shard_03022_48758\", \"shard_03008_83160\", \"shard_05891_68209\", \"shard_05419_413\", \"shard_02169_13387\", \"shard_00356_970\"], \"rejected\": [{\"docid\": \"shard_03133_64799\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_03306_34917\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00036_54358\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02549_28707\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04356_36883\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01259_31598\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_00623_82896\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04730_22247\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04853_53434\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04632_18821\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_05982_46854\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_04242_31434\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_02280_79224\", \"reason\": \"not selected for committed context\"}, {\"docid\": \"shard_01748_13230\", \"reason\": \"not selected for committed context\"}]}\n[context budget: 74,511 / 500,000 tokens (14.9%) · elapsed: 1m 38s]",
+        "failed": false,
+        "tool_call_id": "tooluse_FOoPT5EiIqSEwDTPS3xlZy",
+        "id": "step-0015",
+        "t_start": "2026-07-17T10:35:24.961+10:00",
+        "t_end": "2026-07-17T10:35:24.963+10:00",
+        "turn": 3,
+        "parent_id": "step-0014",
+        "stats": {
+          "duration_ms": 1.963,
+          "context_tokens": 74511,
+          "peak_context_tokens": 74511,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 98694,
+          "cumulative_tokens": {
+            "input": 202521,
+            "input_uncached": 148483,
+            "output": 8187,
+            "cache_read": 25805,
+            "cache_write": 28233,
+            "total": 210708,
+            "processed_input": 176716,
+            "processed": 184903
+          }
+        },
+        "context": {
+          "staged": [
+            "shard_03022_48758",
+            "shard_03008_83160",
+            "shard_03133_64799",
+            "shard_05891_68209",
+            "shard_03306_34917",
+            "shard_00036_54358",
+            "shard_02549_28707",
+            "shard_04356_36883",
+            "shard_01259_31598",
+            "shard_05419_413",
+            "shard_02169_13387",
+            "shard_00623_82896",
+            "shard_04730_22247",
+            "shard_00356_970",
+            "shard_04853_53434",
+            "shard_04632_18821",
+            "shard_05982_46854",
+            "shard_04242_31434",
+            "shard_02280_79224",
+            "shard_01748_13230"
+          ],
+          "committed": [
+            "shard_03022_48758",
+            "shard_03008_83160",
+            "shard_05891_68209",
+            "shard_05419_413",
+            "shard_02169_13387",
+            "shard_00356_970"
+          ],
+          "rejected": [
+            {
+              "docid": "shard_03133_64799",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_03306_34917",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00036_54358",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02549_28707",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04356_36883",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01259_31598",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_00623_82896",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04730_22247",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04853_53434",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04632_18821",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_05982_46854",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_04242_31434",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_02280_79224",
+              "reason": "not selected for committed context"
+            },
+            {
+              "docid": "shard_01748_13230",
+              "reason": "not selected for committed context"
+            }
+          ]
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "tool_results",
+          "tool_call_ids": [
+            "tooluse_FOoPT5EiIqSEwDTPS3xlZy"
+          ]
+        },
+        "output": {
+          "text": "Serious claims about reading \"rewiring\" empathy or poetry doing something uniquely powerful to the brain deserve real scrutiny before they anchor a library program, because the underlying research is genuinely mixed, often short-term, and sometimes fails to replicate.\n\nThe most famous claim comes from a 2013 study by David Comer Kidd and Emanuele Castano, who reported that people who read short excerpts of literary fiction (think Chekhov or Don DeLillo) scored higher immediately afterward on a Theory of Mind test than people who read popular fiction, nonfiction, or nothing at all.\nKidd himself was careful to frame this as a short-term effect, saying literary fiction \"seems to improve Theory of Mind in the short-term\" and that popular fiction likely has its own benefits that simply weren't measured. [shard_01569_69095]\nWhen Maria Eugenia Panero and colleagues tried to replicate the finding in 2016, they found no significant advantage for literary-fiction readers, and she attributes the original result partly to very small effect sizes and partly to there being no strong theoretical reason literary fiction should out-perform popular fiction, since both are fundamentally about other people's mental states. [shard_02470_15021]\nCrucially, Panero also notes that even the one thing that did replicate — lifetime fiction readers scoring higher on Theory of Mind — cannot establish causation, since people who already read minds well might simply be drawn to fiction in the first place. [shard_02470_15021]\nOther commentators reviewing this literature likewise conclude that any empathy boost from literary fiction may be short-lived in the moment, with only speculative reasons to think avid, lifelong readers accumulate lasting benefit, and they emphasize that several labs failed to replicate even the fleeting effect. [shard_03586_18014]\n\nThe literary/popular boundary itself looks softer than headlines suggest.\nA study on the \"Genre Effect\" found that when researchers took an identical passage and simply relabeled its setting as science fiction rather than realistic fiction, readers reported less transportation, less perspective-taking, and lower comprehension of characters' minds, suggesting that reader bias about a genre's status — not something inherent in the text — can suppress engagement. [shard_04488_25035]\nFor general fiction reading, work by Bal and Veltkamp suggests empathy gains depend less on a literary label and more on whether the reader felt emotionally \"transported\" by the story, with effects sometimes showing up as a delayed \"sleeper effect\" measurable about a week after reading rather than immediately. [shard_05378_8852]\nNonfiction, meanwhile, is typically used as the control condition precisely because it does not reliably produce these shifts: one study found that reading a summary or a nonfiction account of a story about a Muslim woman targeted by racist attacks did not reduce bias the way reading the full novel did, and the same review notes a documented decline in empathic concern among college students across recent decades, a reminder that individual reading interventions operate against a much larger social backdrop. [shard_01863_46500]\nEven when reading produces higher test scores, whether that translates into real-world kindness or altruistic behavior remains unresolved: a scholarly synthesis of narrative-empathy research concludes the case for reading fiction causing lasting altruistic behavior, as opposed to short-term shifts on lab measures, is still inconclusive. [shard_04397_10949]\nIt's also worth knowing that similar empathy-test boosts have been reported for narrative video games and television drama, so any effect may reflect engaging with character-driven narrative generally rather than something unique to books. [shard_02216_33084]\n\nOn brain responses specifically, a well-known Emory University fMRI study had students read a thriller novel over nine days and found heightened resting-state connectivity in language-related left temporal cortex on mornings after reading, an effect the researchers called \"shadow activity,\" alongside longer-lasting changes in somatosensory regions tied to bodily simulation of the story. [shard_06317_80562]\nA more detailed account of that same work shows the perspective-taking-related hubs (angular and supramarginal gyri) decayed rapidly once the novel was finished, while the somatosensory changes persisted longer, suggesting any brain trace of a \"good book\" is a mix of quickly fading and more durable components. [shard_03022_48758]\nFor poetry specifically, a small University of Exeter fMRI study of just thirteen English faculty and graduate students found that reading favorite poetry activated memory and introspection regions like the posterior cingulate cortex more strongly than generic \"reading network\" areas, framed by the authors as poetry functioning like a kind of recollection. [shard_05933_57378]\nA separate brain-imaging study linking \"literary awareness\" to distinct activity in executive-control, salience, and default-mode networks while reading poetry versus prose drew a much more skeptical response from at least one commentator, who argued the interpretations were largely speculative, that literary awareness might just be a proxy for general intelligence, and that neuroscience claims are outrunning the more basic psychological evidence for reading's benefits. [shard_01358_76630]\n\nFor group reading programs aimed at wellbeing, the evidence base is more developed but still uneven.\nThe Reading Well \"Books on Prescription\" evidence base cites a meta-analysis showing a fairly strong effect for guided self-help versus a waiting list, but a real disadvantage compared with therapist-delivered treatment, alongside survey data suggesting library reading groups boost confidence, relaxation, and social inclusion. [shard_03022_48758]\nA separate trial comparing a positive-psychology self-help book with a standard CBT-based one found no difference between them at one-month follow-up, and a related readability analysis found that several commonly prescribed self-help books require a reading age of roughly 12.6 to 15.4 years, a real accessibility concern for a program serving diverse teen and adult patrons. [shard_03008_83160]\nA 2017 review in Clinical Psychology Review found bibliotherapy reduced depressive symptoms with effects sustained long-term, whereas the anxiety evidence rests mainly on one small twelve-week pilot with 34 participants, illustrating how \"bibliotherapy works\" can mean quite different things depending on the condition and timescale. [shard_05891_68209]\nA systematic review specifically of fiction and poetry (as opposed to self-help) bibliotherapy found very few empirical studies overall, only three offering clear support, and concluded that benefits seem strongest in a group setting led by a skilled facilitator, while calling for larger randomized trials. [shard_05419_413]\nThe Reader organisation's \"Shared Reading\" and \"Get Into Reading\" model differs from clinical bibliotherapy in choosing texts for literary depth rather than matching a diagnosis, reading aloud together so illiterate or low-vision participants can still take part, and reporting that even people with dementia respond strongly to poetry. [shard_02389_54756] [shard_02169_13387]\nA concrete pilot of that model run in a GP surgery and health drop-in center found statistically significant improvement in depression severity sustained across a twelve-month period, alongside participants reporting more confidence and better concentration. [shard_00356_970]\nOne important caution is that evaluations of these community schemes are often conducted by people already invested in running them, which is a real bias to weigh before treating any single program's results as proof. [shard_02169_13387]\n\nPut together, the safest working assumptions for your program are that engagement and discussion quality likely matter more than any strict literary/genre label, that most documented benefits are modest, sometimes short-lived, and rarely proven causal at the individual level, that poetry's brain-imaging findings are intriguing but based on tiny samples and speculative interpretation, and that a facilitated, socially engaged group-reading format has the most consistent (if still incomplete) evidence for durable wellbeing benefit, provided materials are matched to your patrons' actual reading levels.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0016",
+        "t_start": "2026-07-17T10:35:24.963+10:00",
+        "t_end": "2026-07-17T10:36:27.981+10:00",
+        "turn": 4,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 63016.947,
+          "context_tokens": 53030,
+          "peak_context_tokens": 74511,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 161711,
+          "tokens": {
+            "input": 53030,
+            "input_uncached": 2434,
+            "output": 5364,
+            "cache_read": 31281,
+            "cache_write": 19315,
+            "total": 58394,
+            "processed_input": 21749,
+            "processed": 27113,
+            "context": 53030
+          },
+          "provider_usage": {
+            "inputTokens": 2434,
+            "outputTokens": 5364,
+            "totalTokens": 58394,
+            "cacheReadInputTokens": 31281,
+            "cacheWriteInputTokens": 19315,
+            "cacheDetails": [
+              {
+                "ttl": "5m",
+                "inputTokens": 19315
+              }
+            ]
+          },
+          "cumulative_tokens": {
+            "input": 255551,
+            "input_uncached": 150917,
+            "output": 13551,
+            "cache_read": 57086,
+            "cache_write": 47548,
+            "total": 269102,
+            "processed_input": 198465,
+            "processed": 212016
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00356_970",
+            "shard_01358_76630",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_02169_13387",
+            "shard_02216_33084",
+            "shard_02389_54756",
+            "shard_02470_15021",
+            "shard_03008_83160",
+            "shard_03022_48758",
+            "shard_03586_18014",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_05378_8852",
+            "shard_05419_413",
+            "shard_05891_68209",
+            "shard_05933_57378",
+            "shard_06317_80562"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "user_message",
+          "text": "Your attempted final response did not satisfy the final-report contract already defined in the system instructions.\nProblems:\n- report is 1170 words; the hard maximum is 1024 — rewrite it at about 950 words, cutting the least load-bearing material rather than trimming a few words\nCorrect it in the next turn in this same conversation. Emit tool calls only if more evidence is genuinely needed; otherwise write only the corrected report: plain prose, one sentence per line, with [docid] citation markers.\n[context budget: 53,030 / 500,000 tokens (10.6%) · elapsed: 2m 41s]"
+        },
+        "output": {
+          "text": "Serious claims about reading \"rewiring\" empathy or poetry doing something uniquely powerful to the brain deserve scrutiny before they anchor a library program, because the underlying research is mixed, often short-term, and sometimes fails to replicate.\n\nThe most famous claim comes from a 2013 study by David Comer Kidd and Emanuele Castano, who reported that people who read short excerpts of literary fiction scored higher immediately afterward on a Theory of Mind test than people who read popular fiction, nonfiction, or nothing at all.\nKidd himself framed this as a short-term effect, saying literary fiction \"seems to improve Theory of Mind in the short-term\" and that popular fiction likely has its own unmeasured benefits. [shard_01569_69095]\nWhen Maria Eugenia Panero and colleagues tried to replicate the finding in 2016, they found no significant advantage for literary-fiction readers, attributing the original result partly to very small effect sizes and to there being no strong theoretical reason literary fiction should outperform popular fiction, since both are fundamentally about other people's mental states. [shard_02470_15021]\nPanero also notes that the one thing that did replicate — lifetime fiction readers scoring higher on Theory of Mind — cannot establish causation, since people who already read minds well might simply be drawn to fiction in the first place. [shard_02470_15021]\nOther reviewers likewise conclude that any empathy boost from literary fiction may be short-lived in the moment, with only speculative reason to think avid readers accumulate lasting benefit, and note several labs failed to replicate even the fleeting effect. [shard_03586_18014]\n\nThe literary/popular boundary itself looks softer than headlines suggest.\nA \"Genre Effect\" study found that relabeling an identical passage's setting as science fiction rather than realistic fiction reduced readers' reported transportation, perspective-taking, and comprehension of characters' minds, suggesting reader bias about a genre's status, not something inherent in the text, can suppress engagement. [shard_04488_25035]\nFor general fiction, work by Bal and Veltkamp suggests empathy gains depend less on a literary label and more on whether the reader felt emotionally \"transported,\" with effects sometimes appearing as a delayed \"sleeper effect\" measurable about a week after reading rather than immediately. [shard_05378_8852]\nNonfiction is typically used as the control condition precisely because it does not reliably produce these shifts: one study found reading a summary or nonfiction account of a story about a Muslim woman targeted by racist attacks did not reduce bias the way reading the full novel did, and the same review notes a documented decline in empathic concern among college students across recent decades. [shard_01863_46500]\nEven when reading raises test scores, whether that translates into real-world kindness remains unresolved: a scholarly synthesis of narrative-empathy research concludes the case for reading fiction causing lasting altruistic behavior, as opposed to short-term shifts on lab measures, is still inconclusive. [shard_04397_10949]\nSimilar empathy-test boosts have been reported for narrative video games and television drama, so any effect may reflect engaging with character-driven narrative generally rather than something unique to books. [shard_02216_33084]\n\nOn brain responses, a well-known Emory University fMRI study had students read a thriller novel over nine days and found heightened resting-state connectivity in language-related left temporal cortex on mornings after reading, an effect the researchers called \"shadow activity,\" alongside longer-lasting changes in somatosensory regions tied to bodily simulation of the story. [shard_06317_80562]\nA more detailed account of that work shows the perspective-taking-related hubs decayed rapidly once the novel was finished, while the somatosensory changes persisted longer, so any brain trace of a \"good book\" mixes quickly fading and more durable components. [shard_03022_48758]\nFor poetry, a small University of Exeter fMRI study of just thirteen English faculty and graduate students found that reading favorite poetry activated memory and introspection regions like the posterior cingulate cortex more strongly than generic \"reading network\" areas, framed as poetry functioning like a kind of recollection. [shard_05933_57378]\nA separate study linking \"literary awareness\" to distinct brain-network activity while reading poetry versus prose drew skepticism from at least one commentator, who argued the interpretations were largely speculative, that literary awareness might be a proxy for general intelligence, and that neuroscience claims are outrunning the basic psychological evidence for reading's benefits. [shard_01358_76630]\n\nFor group reading programs aimed at wellbeing, the evidence base is more developed but still uneven.\nThe Reading Well \"Books on Prescription\" evidence base cites a meta-analysis showing a fairly strong effect for guided self-help versus a waiting list, but a real disadvantage compared with therapist-delivered treatment, alongside survey data suggesting library reading groups boost confidence, relaxation, and social inclusion. [shard_03022_48758]\nA separate trial comparing a positive-psychology self-help book with a standard CBT-based one found no difference between them at one-month follow-up, and a related readability analysis found several commonly prescribed self-help books require a reading age of roughly 12.6 to 15.4 years, a real accessibility concern for programs serving diverse teen and adult patrons. [shard_03008_83160]\nA 2017 review found bibliotherapy reduced depressive symptoms with effects sustained long-term, whereas the anxiety evidence rests mainly on one small twelve-week pilot with 34 participants, illustrating how \"bibliotherapy works\" can mean different things depending on condition and timescale. [shard_05891_68209]\nA systematic review specifically of fiction and poetry bibliotherapy found very few empirical studies overall, only three offering clear support, and concluded benefits seem strongest in a group setting led by a skilled facilitator, calling for larger randomized trials. [shard_05419_413]\nThe Reader organisation's \"Shared Reading\" model differs from clinical bibliotherapy in choosing texts for literary depth rather than matching a diagnosis, reading aloud together so illiterate or low-vision participants can still take part, and reporting that even people with dementia respond strongly to poetry. [shard_02389_54756] [shard_02169_13387]\nA concrete pilot of that model run in a GP surgery and health drop-in center found statistically significant improvement in depression severity sustained across a twelve-month period, alongside participants reporting more confidence and better concentration. [shard_00356_970]\nEvaluations of these community schemes are often conducted by people already invested in running them, a real bias to weigh before treating any single program's results as proof. [shard_02169_13387]\n\nPut together, the safest working assumptions are that engagement and discussion quality likely matter more than any strict literary/genre label, that documented benefits are modest and rarely proven causal at the individual level, that poetry's brain-imaging findings are intriguing but based on tiny samples and speculative interpretation, and that a facilitated, socially engaged group-reading format has the most consistent evidence for durable wellbeing benefit, provided materials are matched to your patrons' actual reading levels.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0017",
+        "t_start": "2026-07-17T10:36:27.982+10:00",
+        "t_end": "2026-07-17T10:36:51.393+10:00",
+        "turn": 5,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 23410.733,
+          "context_tokens": 58595,
+          "peak_context_tokens": 74511,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 185123,
+          "tokens": {
+            "input": 58595,
+            "input_uncached": 7999,
+            "output": 2501,
+            "cache_read": 50596,
+            "cache_write": 0,
+            "total": 61096,
+            "processed_input": 7999,
+            "processed": 10500,
+            "context": 58595
+          },
+          "provider_usage": {
+            "inputTokens": 7999,
+            "outputTokens": 2501,
+            "totalTokens": 61096,
+            "cacheReadInputTokens": 50596
+          },
+          "cumulative_tokens": {
+            "input": 314146,
+            "input_uncached": 158916,
+            "output": 16052,
+            "cache_read": 107682,
+            "cache_write": 47548,
+            "total": 330198,
+            "processed_input": 206464,
+            "processed": 222516
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00356_970",
+            "shard_01358_76630",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_02169_13387",
+            "shard_02216_33084",
+            "shard_02389_54756",
+            "shard_02470_15021",
+            "shard_03008_83160",
+            "shard_03022_48758",
+            "shard_03586_18014",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_05378_8852",
+            "shard_05419_413",
+            "shard_05891_68209",
+            "shard_05933_57378",
+            "shard_06317_80562"
+          ],
+          "rejected": []
+        }
+      },
+      {
+        "type": "generation",
+        "tool_name": null,
+        "input": {
+          "kind": "user_message",
+          "text": "Your attempted final response did not satisfy the final-report contract already defined in the system instructions.\nProblems:\n- report is 1044 words; the hard maximum is 1024 — rewrite it at about 950 words, cutting the least load-bearing material rather than trimming a few words\nCorrect it in the next turn in this same conversation. Emit tool calls only if more evidence is genuinely needed; otherwise write only the corrected report: plain prose, one sentence per line, with [docid] citation markers.\n[context budget: 58,595 / 500,000 tokens (11.7%) · elapsed: 3m 5s]"
+        },
+        "output": {
+          "text": "Serious claims about reading \"rewiring\" empathy or poetry doing something uniquely powerful to the brain deserve scrutiny before they anchor a library program, because the underlying research is mixed, often short-term, and sometimes fails to replicate.\n\nThe most famous claim comes from a 2013 study by David Comer Kidd and Emanuele Castano, who reported that people who read short excerpts of literary fiction scored higher immediately afterward on a Theory of Mind test than people who read popular fiction, nonfiction, or nothing at all.\nKidd himself framed this as a short-term effect, saying literary fiction \"seems to improve Theory of Mind in the short-term\" and that popular fiction likely has its own unmeasured benefits. [shard_01569_69095]\nWhen Maria Eugenia Panero and colleagues tried to replicate the finding in 2016, they found no significant advantage for literary-fiction readers, attributing the original result partly to very small effect sizes and to there being no strong theoretical reason literary fiction should outperform popular fiction, since both are fundamentally about other people's mental states. [shard_02470_15021]\nPanero also notes that the one thing that did replicate — lifetime fiction readers scoring higher on Theory of Mind — cannot establish causation, since people who already read minds well might simply be drawn to fiction in the first place. [shard_02470_15021]\nOther reviewers likewise conclude that any empathy boost from literary fiction may be short-lived, with only speculative reason to think avid readers accumulate lasting benefit, and note several labs failed to replicate even the fleeting effect. [shard_03586_18014]\n\nThe literary/popular boundary itself looks softer than headlines suggest.\nA \"Genre Effect\" study found that relabeling an identical passage's setting as science fiction rather than realistic fiction reduced readers' reported transportation, perspective-taking, and comprehension of characters' minds, suggesting reader bias about a genre's status, not the text itself, can suppress engagement. [shard_04488_25035]\nFor general fiction, work by Bal and Veltkamp suggests empathy gains depend less on a literary label and more on whether the reader felt emotionally \"transported,\" with effects sometimes appearing as a delayed \"sleeper effect\" about a week after reading rather than immediately. [shard_05378_8852]\nNonfiction is typically used as the control condition precisely because it does not reliably produce these shifts: one study found reading a summary or nonfiction account of a story about a Muslim woman targeted by racist attacks did not reduce bias the way reading the full novel did, and the same review notes a documented decline in empathic concern among college students across recent decades. [shard_01863_46500]\nEven when reading raises test scores, whether that translates into real-world kindness remains unresolved: a scholarly synthesis of narrative-empathy research concludes the case for reading fiction causing lasting altruistic behavior, as opposed to short-term shifts on lab measures, is still inconclusive. [shard_04397_10949]\n\nOn brain responses, a well-known Emory University fMRI study had students read a thriller novel over nine days and found heightened resting-state connectivity in language-related left temporal cortex on mornings after reading, an effect the researchers called \"shadow activity,\" alongside longer-lasting changes in somatosensory regions tied to bodily simulation of the story. [shard_06317_80562]\nA more detailed account of that work shows the perspective-taking-related hubs decayed rapidly once the novel was finished, while the somatosensory changes persisted longer, so any brain trace of a \"good book\" mixes quickly fading and more durable components. [shard_03022_48758]\nFor poetry, a small University of Exeter fMRI study of just thirteen English faculty and graduate students found that reading favorite poetry activated memory and introspection regions like the posterior cingulate cortex more strongly than generic \"reading network\" areas, framed as poetry functioning like a kind of recollection. [shard_05933_57378]\nA separate study linking \"literary awareness\" to distinct brain-network activity while reading poetry versus prose drew skepticism from a commentator, who argued the interpretations were largely speculative, that literary awareness might be a proxy for general intelligence, and that neuroscience claims are outrunning the basic psychological evidence for reading's benefits. [shard_01358_76630]\n\nFor group reading programs aimed at wellbeing, the evidence base is more developed but still uneven.\nThe Reading Well \"Books on Prescription\" evidence base cites a meta-analysis showing a fairly strong effect for guided self-help versus a waiting list, but a real disadvantage compared with therapist-delivered treatment, alongside survey data suggesting library reading groups boost confidence, relaxation, and social inclusion. [shard_03022_48758]\nA separate trial comparing a positive-psychology self-help book with a standard CBT-based one found no difference between them at one-month follow-up, and a related readability analysis found several commonly prescribed self-help books require a reading age of roughly 12.6 to 15.4 years, a real accessibility concern for programs serving diverse teen and adult patrons. [shard_03008_83160]\nA 2017 review found bibliotherapy reduced depressive symptoms with effects sustained long-term, whereas the anxiety evidence rests mainly on one small twelve-week pilot with 34 participants, illustrating how \"bibliotherapy works\" can mean different things depending on condition and timescale. [shard_05891_68209]\nA systematic review specifically of fiction and poetry bibliotherapy found very few empirical studies overall, only three offering clear support, and concluded benefits seem strongest in a group setting led by a skilled facilitator, calling for larger randomized trials. [shard_05419_413]\nThe Reader organisation's \"Shared Reading\" model differs from clinical bibliotherapy in choosing texts for literary depth rather than matching a diagnosis, reading aloud together so illiterate or low-vision participants can still take part, and reporting that even people with dementia respond strongly to poetry. [shard_02389_54756] [shard_02169_13387]\nA concrete pilot of that model run in a GP surgery and health drop-in center found statistically significant improvement in depression severity sustained across a twelve-month period, alongside participants reporting more confidence and better concentration. [shard_00356_970]\nEvaluations of these community schemes are often conducted by people already invested in running them, a real bias to weigh before treating any single program's results as proof. [shard_02169_13387]\n\nPut together, the safest assumptions are that engagement and discussion quality likely matter more than any strict literary/genre label, that documented benefits are modest and rarely proven causal at the individual level, that poetry's brain-imaging findings are intriguing but based on tiny samples and speculative interpretation, and that a facilitated, socially engaged group-reading format has the most consistent evidence for durable wellbeing benefit, provided materials match your patrons' actual reading levels.",
+          "reasoning": [],
+          "tool_calls": [],
+          "stop_reason": "end_turn"
+        },
+        "id": "step-0018",
+        "t_start": "2026-07-17T10:36:51.395+10:00",
+        "t_end": "2026-07-17T10:37:13.646+10:00",
+        "turn": 6,
+        "parent_id": "run",
+        "stats": {
+          "duration_ms": 22250.86,
+          "context_tokens": 61296,
+          "peak_context_tokens": 74511,
+          "context_budget_tokens": 500000,
+          "elapsed_ms": 207376,
+          "tokens": {
+            "input": 61296,
+            "input_uncached": 10700,
+            "output": 2385,
+            "cache_read": 50596,
+            "cache_write": 0,
+            "total": 63681,
+            "processed_input": 10700,
+            "processed": 13085,
+            "context": 61296
+          },
+          "provider_usage": {
+            "inputTokens": 10700,
+            "outputTokens": 2385,
+            "totalTokens": 63681,
+            "cacheReadInputTokens": 50596
+          },
+          "cumulative_tokens": {
+            "input": 375442,
+            "input_uncached": 169616,
+            "output": 18437,
+            "cache_read": 158278,
+            "cache_write": 47548,
+            "total": 393879,
+            "processed_input": 217164,
+            "processed": 235601
+          }
+        },
+        "context": {
+          "staged": [],
+          "committed": [
+            "shard_00356_970",
+            "shard_01358_76630",
+            "shard_01569_69095",
+            "shard_01863_46500",
+            "shard_02169_13387",
+            "shard_02216_33084",
+            "shard_02389_54756",
+            "shard_02470_15021",
+            "shard_03008_83160",
+            "shard_03022_48758",
+            "shard_03586_18014",
+            "shard_04397_10949",
+            "shard_04488_25035",
+            "shard_05378_8852",
+            "shard_05419_413",
+            "shard_05891_68209",
+            "shard_05933_57378",
+            "shard_06317_80562"
+          ],
+          "rejected": []
+        }
+      }
+    ],
+    "output": {
+      "references": [
+        "shard_01569_69095",
+        "shard_02470_15021",
+        "shard_03586_18014",
+        "shard_04488_25035",
+        "shard_05378_8852",
+        "shard_01863_46500",
+        "shard_04397_10949",
+        "shard_06317_80562",
+        "shard_03022_48758",
+        "shard_05933_57378",
+        "shard_01358_76630",
+        "shard_03008_83160",
+        "shard_05891_68209",
+        "shard_05419_413",
+        "shard_02389_54756",
+        "shard_02169_13387",
+        "shard_00356_970"
+      ],
+      "answer": [
+        {
+          "text": "Serious claims about reading \"rewiring\" empathy or poetry doing something uniquely powerful to the brain deserve scrutiny before they anchor a library program, because the underlying research is mixed, often short-term, and sometimes fails to replicate.",
+          "citations": []
+        },
+        {
+          "text": "The most famous claim comes from a 2013 study by David Comer Kidd and Emanuele Castano, who reported that people who read short excerpts of literary fiction scored higher immediately afterward on a Theory of Mind test than people who read popular fiction, nonfiction, or nothing at all.",
+          "citations": []
+        },
+        {
+          "text": "Kidd himself framed this as a short-term effect, saying literary fiction \"seems to improve Theory of Mind in the short-term\" and that popular fiction likely has its own unmeasured benefits.",
+          "citations": [
+            0
+          ]
+        },
+        {
+          "text": "When Maria Eugenia Panero and colleagues tried to replicate the finding in 2016, they found no significant advantage for literary-fiction readers, attributing the original result partly to very small effect sizes and to there being no strong theoretical reason literary fiction should outperform popular fiction, since both are fundamentally about other people's mental states.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Panero also notes that the one thing that did replicate — lifetime fiction readers scoring higher on Theory of Mind — cannot establish causation, since people who already read minds well might simply be drawn to fiction in the first place.",
+          "citations": [
+            1
+          ]
+        },
+        {
+          "text": "Other reviewers likewise conclude that any empathy boost from literary fiction may be short-lived, with only speculative reason to think avid readers accumulate lasting benefit, and note several labs failed to replicate even the fleeting effect.",
+          "citations": [
+            2
+          ]
+        },
+        {
+          "text": "The literary/popular boundary itself looks softer than headlines suggest.",
+          "citations": []
+        },
+        {
+          "text": "A \"Genre Effect\" study found that relabeling an identical passage's setting as science fiction rather than realistic fiction reduced readers' reported transportation, perspective-taking, and comprehension of characters' minds, suggesting reader bias about a genre's status, not the text itself, can suppress engagement.",
+          "citations": [
+            3
+          ]
+        },
+        {
+          "text": "For general fiction, work by Bal and Veltkamp suggests empathy gains depend less on a literary label and more on whether the reader felt emotionally \"transported,\" with effects sometimes appearing as a delayed \"sleeper effect\" about a week after reading rather than immediately.",
+          "citations": [
+            4
+          ]
+        },
+        {
+          "text": "Nonfiction is typically used as the control condition precisely because it does not reliably produce these shifts: one study found reading a summary or nonfiction account of a story about a Muslim woman targeted by racist attacks did not reduce bias the way reading the full novel did, and the same review notes a documented decline in empathic concern among college students across recent decades.",
+          "citations": [
+            5
+          ]
+        },
+        {
+          "text": "Even when reading raises test scores, whether that translates into real-world kindness remains unresolved: a scholarly synthesis of narrative-empathy research concludes the case for reading fiction causing lasting altruistic behavior, as opposed to short-term shifts on lab measures, is still inconclusive.",
+          "citations": [
+            6
+          ]
+        },
+        {
+          "text": "On brain responses, a well-known Emory University fMRI study had students read a thriller novel over nine days and found heightened resting-state connectivity in language-related left temporal cortex on mornings after reading, an effect the researchers called \"shadow activity,\" alongside longer-lasting changes in somatosensory regions tied to bodily simulation of the story.",
+          "citations": [
+            7
+          ]
+        },
+        {
+          "text": "A more detailed account of that work shows the perspective-taking-related hubs decayed rapidly once the novel was finished, while the somatosensory changes persisted longer, so any brain trace of a \"good book\" mixes quickly fading and more durable components.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "For poetry, a small University of Exeter fMRI study of just thirteen English faculty and graduate students found that reading favorite poetry activated memory and introspection regions like the posterior cingulate cortex more strongly than generic \"reading network\" areas, framed as poetry functioning like a kind of recollection.",
+          "citations": [
+            9
+          ]
+        },
+        {
+          "text": "A separate study linking \"literary awareness\" to distinct brain-network activity while reading poetry versus prose drew skepticism from a commentator, who argued the interpretations were largely speculative, that literary awareness might be a proxy for general intelligence, and that neuroscience claims are outrunning the basic psychological evidence for reading's benefits.",
+          "citations": [
+            10
+          ]
+        },
+        {
+          "text": "For group reading programs aimed at wellbeing, the evidence base is more developed but still uneven.",
+          "citations": []
+        },
+        {
+          "text": "The Reading Well \"Books on Prescription\" evidence base cites a meta-analysis showing a fairly strong effect for guided self-help versus a waiting list, but a real disadvantage compared with therapist-delivered treatment, alongside survey data suggesting library reading groups boost confidence, relaxation, and social inclusion.",
+          "citations": [
+            8
+          ]
+        },
+        {
+          "text": "A separate trial comparing a positive-psychology self-help book with a standard CBT-based one found no difference between them at one-month follow-up, and a related readability analysis found several commonly prescribed self-help books require a reading age of roughly 12.6 to 15.4 years, a real accessibility concern for programs serving diverse teen and adult patrons.",
+          "citations": [
+            11
+          ]
+        },
+        {
+          "text": "A 2017 review found bibliotherapy reduced depressive symptoms with effects sustained long-term, whereas the anxiety evidence rests mainly on one small twelve-week pilot with 34 participants, illustrating how \"bibliotherapy works\" can mean different things depending on condition and timescale.",
+          "citations": [
+            12
+          ]
+        },
+        {
+          "text": "A systematic review specifically of fiction and poetry bibliotherapy found very few empirical studies overall, only three offering clear support, and concluded benefits seem strongest in a group setting led by a skilled facilitator, calling for larger randomized trials.",
+          "citations": [
+            13
+          ]
+        },
+        {
+          "text": "The Reader organisation's \"Shared Reading\" model differs from clinical bibliotherapy in choosing texts for literary depth rather than matching a diagnosis, reading aloud together so illiterate or low-vision participants can still take part, and reporting that even people with dementia respond strongly to poetry.",
+          "citations": [
+            14,
+            15
+          ]
+        },
+        {
+          "text": "A concrete pilot of that model run in a GP surgery and health drop-in center found statistically significant improvement in depression severity sustained across a twelve-month period, alongside participants reporting more confidence and better concentration.",
+          "citations": [
+            16
+          ]
+        },
+        {
+          "text": "Evaluations of these community schemes are often conducted by people already invested in running them, a real bias to weigh before treating any single program's results as proof.",
+          "citations": [
+            15
+          ]
+        },
+        {
+          "text": "Put together, the safest assumptions are that engagement and discussion quality likely matter more than any strict literary/genre label, that documented benefits are modest and rarely proven causal at the individual level, that poetry's brain-imaging findings are intriguing but based on tiny samples and speculative interpretation, and that a facilitated, socially engaged group-reading format has the most consistent evidence for durable wellbeing benefit, provided materials match your patrons' actual reading levels.",
+          "citations": []
+        }
+      ]
+    },
+    "started_at": "2026-07-17T10:33:46.268+10:00",
+    "ended_at": "2026-07-17T10:37:13.649+10:00",
+    "duration_ms": 207381,
+    "config": {
+      "context_token_budget": 500000,
+      "safety_max_rounds": 100,
+      "max_committed_per_step": 6
+    }
+  }
+}
