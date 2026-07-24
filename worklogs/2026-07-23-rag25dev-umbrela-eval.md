@@ -97,6 +97,29 @@ All runs: k=1000, complexity=2000 (dense), depth 1000 docs/topic, chunk->parent 
   surfaces ~60-70% MORE pool-relevant docs while ranking judged docs about as well — at
   1/3 the vector width (256-d matryoshka vs 768-d) and same model. Clear improvement.
 
+### RAG-lens metric choice (what we actually optimize for)
+We optimize for **RAG agents fetching information**, and the LLM reads the whole retrieved
+set — **order within the set does not matter**, and we rarely take more than the top 10.
+=> the rank-discount that nDCG/MAP reward is NOT our objective. The right metric is
+order-agnostic **Precision@10 at a usefulness grade** (UMBRELA grade>=2 = "actually answers
+a sub-narrative"; grade 1 = related-but-answers-nothing ≈ noise to an agent). Report as
+"useful docs in the top-10". nDCG/MAP demoted to secondary; recall@10 is meaningless
+(ceiling 10/983); accuracy/success@10 saturates.
+
+**useful@10 (P@10, grade>=2), mean over 3 judges:**
+| system            | condensed | raw  | judged@10 |
+|-------------------|-----------|------|-----------|
+| climbmix-chunked  | 8.9/10    | 1.7  | 0.18      |
+| old-dense-768     | 9.0/10    | 1.0  | 0.11      |
+| bm25              | 7.5/10    | 7.5  | 1.00      |
+
+- On the judged view **dense > BM25 for RAG utility** (~9/10 vs 7.5/10 useful passages).
+- BM25's 7.5 is fully KNOWN (all top-10 judged); dense's true useful@10 is bounded in
+  [1.7, 8.9] — unknown because 82% of its top-10 is unjudged. Spot-checks suggest the
+  high end, but only fresh judgments prove it.
+- ours ≈ old-dense on top-10 utility; the chunked index's edge is depth-recall (not used
+  at k=10) + higher judged coverage (0.18 vs 0.11 -> less uncertainty).
+
 ### Honest bottom line
 Against a BM25-built pool, only fresh judgments can rank BM25 vs dense fairly. Condensed
 + coverage say: dense retrieval (esp. our new chunked index) is competitive-to-better on
