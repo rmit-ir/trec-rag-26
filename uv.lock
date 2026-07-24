@@ -2277,6 +2277,10 @@ aus-agent = [
     { name = "boto3" },
     { name = "openai" },
 ]
+facet-rag = [
+    { name = "boto3" },
+    { name = "openai" },
+]
 notebook = [
     { name = "ipykernel" },
     { name = "jupyter" },
@@ -2297,6 +2301,10 @@ requires-dist = [{ name = "python-dotenv", specifier = ">=1.0" }]
 [package.metadata.requires-dev]
 ali-deepresearch = [{ name = "openai", specifier = ">=1.60" }]
 aus-agent = [
+    { name = "boto3", specifier = ">=1.40" },
+    { name = "openai", specifier = ">=2.45" },
+]
+facet-rag = [
     { name = "boto3", specifier = ">=1.40" },
     { name = "openai", specifier = ">=2.45" },
 ]
