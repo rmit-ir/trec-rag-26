@@ -1,19 +1,23 @@
 """SSR Boolean retrieval client — Cottontail Shortest-Substring Ranking.
 
-Talks to the ``tasks/ssr_search`` HTTP service (``serve.py``, default
-``:8099``) which wraps the Cottontail ``ssr-server`` over the full-corpus Hazel
-burrows. Queries are **GCL Boolean** expressions (not natural language); see
-``src/tools/search_tool.py`` for the operator/tactics guidance handed to the
-agent. Returns hits normalized to the shared ``SearchHit`` shape.
+Talks to the ``tasks/ssr_search`` fan-out shim (``fork_shim.py``, default
+``:8099``) which wraps the Cottontail fork's ``MultiShardSearchEngine`` over the
+26 full-corpus SimpleWarren group-burrows. Queries are **GCL Boolean**
+expressions (not natural language); see ``src/tools/search_tool.py`` for the
+operator/tactics guidance handed to the agent. Returns hits normalized to the
+shared ``SearchHit`` shape.
 
 Config (loaded from ``.env`` if python-dotenv is installed):
 
-- ``SSR_SEARCH_URL``  base URL of the SSR service (default ``http://127.0.0.1:8099``)
+- ``SSR_SEARCH_URL``  base URL of the SSR service. Default
+  ``https://index-climbmix-ssr.dsync.net`` (the hosted endpoint); override with
+  ``http://127.0.0.1:8099`` to hit a bare loopback shim.
+- ``SEARCH_API_KEY``  Basic-auth credential for the hosted endpoint (it is behind
+  auth); unset when pointing at a bare loopback shim → no auth header.
 
-The service is local, so no auth is sent. SSR ranks by shortest matching
-substring and does not expose a numeric score, so we synthesize a
-rank-descending score (``1/rank``) purely so downstream ordering is stable;
-scores are not comparable across engines (already documented in the tool).
+SSR ranks by shortest matching substring and does not expose a numeric score, so
+we synthesize a rank-descending score (``1/rank``) purely so downstream ordering
+is stable; scores are not comparable across engines (already documented in the tool).
 """
 from __future__ import annotations
 
@@ -29,10 +33,13 @@ try:
 except ImportError:  # pragma: no cover
     pass
 
-# Reuse the shared POST helper (no auth headers for the local service).
-from utils.search_dense import post_json
+# Reuse the shared auth + POST helpers so the SSR client behaves like the dense/
+# sparse clients: it sends the SEARCH_API_KEY Basic-auth header when the endpoint
+# is behind auth (the hosted index-climbmix-ssr.dsync.net), and nothing when
+# SEARCH_API_KEY is unset (a bare loopback shim).
+from utils.search_dense import auth_headers, post_json
 
-DEFAULT_SSR_URL = "http://127.0.0.1:8099"
+DEFAULT_SSR_URL = "https://index-climbmix-ssr.dsync.net"
 
 
 def search_ssr(query: str, k: int = 10, *, url: str | None = None,
@@ -44,7 +51,7 @@ def search_ssr(query: str, k: int = 10, *, url: str | None = None,
     base = (url or os.environ.get("SSR_SEARCH_URL", DEFAULT_SSR_URL)).rstrip("/")
     body: dict[str, Any] = {"query": query, "k": k}
 
-    data = post_json(f"{base}/search", body, {}, timeout)
+    data = post_json(f"{base}/search", body, auth_headers(), timeout)
     hits: list[SearchHit] = []
     for i, h in enumerate(data.get("results", []), start=1):
         rank = int(h.get("rank", i))
