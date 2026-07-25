@@ -119,17 +119,20 @@ uv run --group notebook python -m ipykernel install --user \
   (`:8085` / `index-climbmix-bm25.dsync.net`) is **OR-only** — its
   `BagOfWordsQueryGenerator` strips all Boolean operators, so use `BoolSearch`
   for true Boolean/phrase/proximity on Lucene.
-- **SSR / Cottontail search (paper approach)** — working in `tasks/ssr_search/`.
-  Implements the *Boolean Queries Are All You Need?* (arXiv 2607.11362) stack:
+- **SSR / Cottontail search (fork stack)** — working in `tasks/ssr_search/`.
+  Implements the *Boolean Queries Are All You Need?* (arXiv 2607.11362) approach:
   Cottontail annotative index + Shortest-Substring Ranking (SSR), driven by a
-  GCL Boolean query language (`(^ a b)` OR, `(+ a b)` AND, `"phrase"`, `>>`/`<<`
+  GCL Boolean query language (`(^ a b)` AND, `(+ a b)` OR, `"phrase"`, `>>`/`<<`
   containment). **This is NOT our Lucene index** — it's a separate C++/Bazel
-  engine (our fork at `tmp/Cottontail`, remote `rmit-ir/Cottontail`; upstream
-  reference at `tmp/Cottontail-claclark`). The task uses a mamba env
-  (`tasks/ssr_search/env`, gcc 13 + bazelisk) to build Cottontail, indexes
-  ClimbMix JSONL shards into Hazel burrows (mmap'd single-file, page-cache
-  bounded — the key to serving a huge corpus without RAM-resident index), and
-  wraps `ssr-server` in an HTTP service + CLI + `src/tools/` Boolean tool.
+  engine, our fork `tmp/Cottontail` (remote `rmit-ir/Cottontail`; upstream paper
+  repo `tmp/Cottontail-claclark` is a READ reference only, we no longer build it).
+  A mamba env (`tasks/ssr_search/env`, gcc 13 + bazelisk) builds the fork's
+  `cottontail-jsonl-{index,query,server}` apps; ClimbMix shards index into 26
+  stemmed SimpleWarren group-burrows. Served as a fleet of 26 single-burrow
+  `cottontail-jsonl-server`s (loopback :7000..:7025, `launch_fork_servers.sh`,
+  each memory-bounded by `--cache-budget-mb`) behind `fork_shim.py` (a stdlib
+  HTTP fan-out on :8099 via `MultiShardSearchEngine`), reverse-tunneled to
+  `index-climbmix-ssr.dsync.net`.
 - **Creating local custom index** — working in `tasks/custom_index/`. All
   scripts, logs, and intermediate artifacts for this task live there.
 - **Search engine + REST API** — working in `tasks/search_serve/`. Consumes a
