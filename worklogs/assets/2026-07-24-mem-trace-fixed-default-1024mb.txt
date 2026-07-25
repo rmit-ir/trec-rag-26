@@ -1,0 +1,17 @@
+# FIXED build, DEFAULT budget (--cache-budget-mb 1024, i.e. no flag), rank-threads=8,
+# GCL-count-only workload, 200 queries/round, seed=99, burrow=fork-climbmix-full/group_0000.
+# Server log line: "SimpleIdx cache budget: 1024 MB (~67108864 annotations)"
+# anon = Anonymous KB from /proc/<pid>/smaps_rollup, in MB.
+start anon=496MB
+round  1 anon= 1069MB
+round  5 anon= 1276MB
+round 10 anon= 1298MB
+round 15 anon= 1360MB
+round 20 anon= 1561MB
+round 25 anon= 1578MB
+round 26 anon= 1517MB
+round 27 anon= 1511MB
+round 28 anon= 1523MB
+round 29 anon= 1523MB
+round 30 anon= 1523MB
+# PLATEAU: rises to ~1.5 GB as cache fills toward the 1 GB budget, then FLAT.

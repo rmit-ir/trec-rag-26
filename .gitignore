@@ -50,6 +50,7 @@ tasks/bm25_index/jars/
 
 # Logs, data, and run outputs
 *.log
+*.bak
 # Access logs (per-run search query logs) — whole folder
 tasks/search_serve/logs/
 data/*
@@ -57,9 +58,16 @@ data/*
 !data/official/
 # ...except bulk downloads pulled from HuggingFace (re-downloadable)
 data/official/browsecomp-plus/
-# Run artifacts + human feedback are deliberately tracked
-!data/outputs/
+# Outputs are large — NOT tracked in git; synced between servers via rsync instead.
+# (Human feedback is small and curated, so it stays tracked.)
 !data/output_feedbacks/
+# Backend-comparison analysis IS tracked (code + result docs), but its large
+# generated intermediates are not (regenerable; synced via rsync).
+!data/task-comparison/
+data/task-comparison/rubric-judge/out/judgments/
+data/task-comparison/rubric-judge/out/pool.json
+data/task-comparison/rubric-judge/out/provenance.json
+data/task-comparison/rubric-judge/out/retrieved_raw.json
 tmp/
 
 # Git worktrees

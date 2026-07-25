@@ -6,7 +6,7 @@
 #   launch_fork_servers.sh            # launch all groups
 #   launch_fork_servers.sh stop       # kill all launched servers
 #
-# Env: BASE_PORT (7000), THREADS (4), RANK_THREADS (2).
+# Env: BASE_PORT (7000), THREADS (4), RANK_THREADS (2), CACHE_BUDGET_MB (2048).
 #
 # NB: group paths are built BY INDEX with printf (group_%04d), NOT by globbing
 # into a bash array -- `GROUPS=( "$OUT"/group_* )` returns junk on this /scratch
@@ -27,6 +27,9 @@ RANK_THREADS=${RANK_THREADS:-2}
 BAND_MIN=${BAND_MIN:-200}
 BAND_TARGET=${BAND_TARGET:-500}
 BAND_MAX=${BAND_MAX:-700}
+# SimpleIdx posting-cache budget per server process (RAM bound). At 2048 MB each
+# server plateaus ~1.5-2 GB RSS (was unbounded ~17 GB); fleet total ~= 26x this.
+CACHE_BUDGET_MB=${CACHE_BUDGET_MB:-2048}
 
 NG=$(compgen -G "$OUT/group_*" | wc -l)
 group_dir(){ printf "%s/group_%04d" "$OUT" "$1"; }
@@ -51,7 +54,7 @@ for ((g=0; g<NG; g++)); do
   setsid "$BIN" --burrow "$burrow" --host 127.0.0.1 --port "$port" \
       --threads "$THREADS" --rank-threads "$RANK_THREADS" --no-auth \
       --paragraph --band-min "$BAND_MIN" --band-target "$BAND_TARGET" \
-      --band-max "$BAND_MAX" \
+      --band-max "$BAND_MAX" --cache-budget-mb "$CACHE_BUDGET_MB" \
       > "$LOGDIR/server_$port.log" 2>&1 &
   echo $! > "$LOGDIR/server_$port.pid"
 done
