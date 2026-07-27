@@ -24,6 +24,10 @@ Usage (repo root):
     python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system facet_rag
     python skills/trec-rag-new-system/scripts/gen_arch_viz.py --print-model
     python skills/trec-rag-new-system/scripts/gen_arch_viz.py --out /tmp/arch.html
+    python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # CI/pre-commit gate
+
+Output is byte-deterministic, so ``--check`` is a reliable freshness gate and
+regeneration produces clean diffs.
 """
 from __future__ import annotations
 
@@ -192,8 +196,11 @@ def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
             seen.add(key)
             edges.append({"to": to, "type": typ})
 
-    for py in py_files:
-        for mod in _imported_modules(py):
+    # sorted() on both the file list and the module set is what makes the output
+    # byte-deterministic — a set's iteration order varies run to run (string hash
+    # randomization), which would break --check and produce noisy diffs.
+    for py in sorted(py_files):
+        for mod in sorted(_imported_modules(py)):
             if mod == "ragrun" or mod.startswith("ragrun."):
                 add("ragrun", "artifacts")
             elif mod == "tools.search_tool":
@@ -580,6 +587,14 @@ def render_html(model: dict[str, Any]) -> str:
     return HTML_TEMPLATE.replace("__MODEL_JSON__", blob)
 
 
+def _rel(path: Path) -> str:
+    """Repo-relative path for display, falling back to the absolute one."""
+    try:
+        return str(path.resolve().relative_to(REPO_ROOT))
+    except ValueError:  # --out pointed outside the repo (e.g. /tmp)
+        return str(path)
+
+
 def _launch(path: Path, system: str | None) -> None:
     """Open the generated HTML in the default browser (deep-linked if asked)."""
     url = path.resolve().as_uri()
@@ -601,6 +616,9 @@ def main() -> None:
     ap.add_argument("--system", metavar="NAME", default=None,
                     help="with --open, deep-link straight into NAME's pipeline "
                          "(e.g. --system facet_rag)")
+    ap.add_argument("--check", action="store_true",
+                    help="exit non-zero if the committed HTML is stale (writes "
+                         "nothing) — used by the pre-commit hook and CI")
     args = ap.parse_args()
 
     model = build_model()
@@ -612,10 +630,23 @@ def main() -> None:
     if args.system and args.system not in known:
         raise SystemExit(f"unknown system {args.system!r}; known: {', '.join(known)}")
 
+    if args.check:
+        fresh = render_html(model)
+        current = args.out.read_text() if args.out.exists() else None
+        rel = _rel(args.out)
+        if current == fresh:
+            print(f"{rel} is up to date ({len(known)} systems)")
+            return
+        reason = "missing" if current is None else "stale"
+        raise SystemExit(
+            f"{rel} is {reason} — the architecture changed.\n"
+            f"Regenerate (and eyeball it) with:\n"
+            f"    python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open")
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render_html(model))
     n_edges = sum(len(s["edges"]) for s in model["systems"])
-    print(f"wrote {args.out.relative_to(REPO_ROOT)} "
+    print(f"wrote {_rel(args.out)} "
           f"({len(known)} systems, {n_edges} edges, {len(model['engines'])} engines)")
 
     if args.open or args.system:

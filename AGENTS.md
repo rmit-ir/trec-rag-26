@@ -107,6 +107,30 @@ uv run --group notebook python -m ipykernel install --user \
   --name trec-rag-notebook --display-name "trec-rag (notebook)"
 ```
 
+## Git Hooks (run once per clone)
+
+Git hooks are not cloned, so every fresh checkout must install them:
+
+```bash
+bash scripts/git-hooks/install.sh     # sets core.hooksPath=scripts/git-hooks
+```
+
+Currently one hook: a **pre-commit** check that `docs/architecture.html` (the
+interactive RAG-systems architecture diagram, generated from `src/systems/`) is
+not stale. It only fires when a commit touches `src/systems/`,
+`gen_arch_viz.py`, or the diagram. Regenerate with
+`python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open`; see the
+`trec-rag-new-system` skill. Bypass with `git commit --no-verify` or
+`SKIP_ARCH_VIZ_CHECK=1`.
+
+## RAG Systems (`src/systems/`)
+
+Adding, running, or reviewing a RAG system is covered by the
+**`trec-rag-new-system`** skill (package layout, shared `ragrun`/`tools`/`utils`
+layers, the strict-vs-rich artifact split, the scaffolder, and the architecture
+visualization that must be regenerated + launched whenever a system is developed
+or run). Browse the current architecture at `docs/architecture.html`.
+
 ## Active Tasks
 
 - **BM25 index (Lucene/Anserini)** — built in `tasks/bm25_index/`. This is a

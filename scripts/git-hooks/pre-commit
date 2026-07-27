@@ -1,0 +1,59 @@
+#!/usr/bin/env bash
+# Enforce that docs/architecture.html matches src/systems/ (see
+# skills/trec-rag-new-system/SKILL.md — "regenerate + launch every time").
+#
+# The diagram is a committed build artifact derived from source, so it goes stale
+# silently. This hook only fires when a commit touches the systems layer, the
+# generator, or the diagram itself; other commits are untouched.
+#
+# Install:  bash scripts/git-hooks/install.sh
+# Bypass:   git commit --no-verify   (or SKIP_ARCH_VIZ_CHECK=1 git commit ...)
+set -euo pipefail
+
+if [[ -n "${SKIP_ARCH_VIZ_CHECK:-}" ]]; then
+  exit 0
+fi
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+# Only relevant when the architecture (or its generator/output) changed.
+if ! git diff --cached --name-only | grep -qE \
+    '^(src/systems/|skills/trec-rag-new-system/scripts/gen_arch_viz\.py|docs/architecture\.html)'; then
+  exit 0
+fi
+
+PY="$(command -v python3 || command -v python)"
+if [[ -z "$PY" ]]; then
+  echo "pre-commit: no python found; skipping architecture-diagram check" >&2
+  exit 0
+fi
+
+GEN="skills/trec-rag-new-system/scripts/gen_arch_viz.py"
+
+# Check the *staged* tree, not the working tree: a stale-but-fixed-locally
+# working copy must not let a stale commit through. Materialize the index into a
+# temp worktree-ish dir via git stash-free `git checkout-index`.
+TMP="$(mktemp -d)"
+trap 'rm -rf "$TMP"' EXIT
+git checkout-index --all --prefix="$TMP/"
+
+if ! (cd "$TMP" && "$PY" "$GEN" --check >/dev/null 2>&1); then
+  cat >&2 <<'MSG'
+
+✗ docs/architecture.html is stale or missing for the staged changes.
+
+  The systems architecture diagram is generated from src/systems/ and must be
+  committed alongside the change that alters it.
+
+  Fix:
+      python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open
+      git add docs/architecture.html
+
+  (Bypass with `git commit --no-verify` if you really mean to.)
+
+MSG
+  exit 1
+fi
+
+exit 0

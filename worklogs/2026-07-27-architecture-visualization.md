@@ -187,12 +187,126 @@ CLI, and no way to point it at one system.
    `--print-model` then listed `doc_probe` among the systems. Deleted the probe
    and regenerated → back to the 5 real systems. **PASS**
 
+## Round 3 — enforce the rule (hooks + CI)
+
+Follow-up ask: *"Yes, add it to be enforced."* Round 2's rule was documented
+convention only. Enforcement needs a freshness *check*, then layers that run it.
+
+### `--check` and the determinism bug it exposed
+
+Added `gen_arch_viz.py --check`: re-renders in memory, compares to the file on
+disk, exits 1 with the fix command if stale/missing (writes nothing).
+
+First run of `--check` reported **stale on a file generated seconds earlier**.
+Root cause: `_imported_modules()` returns a `set`, and edge order came from set
+iteration — which varies between processes under string hash randomization. So
+the HTML was **not byte-deterministic**, contradicting the round-1 claim of
+"deterministic layout / stable diffs" (that claim only covered *coordinates*, not
+edge ordering). Without this fix `--check` would have been useless and every
+regeneration a noisy diff.
+
+Fix: `sorted()` on both the file list and the module set in `_edges_for_system`.
+Verified by generating 5 times and comparing hashes → **1 distinct sha**.
+
+That test also surfaced a second bug: the documented `--out /tmp/arch.html` usage
+crashed with `ValueError: '/tmp/det1.html' is not in the subpath of …` from
+`Path.relative_to` in the success message. Added a `_rel()` helper that falls
+back to the absolute path. Now works, and is covered by the determinism test
+(which writes to `/tmp`).
+
+### Layer 1 — Claude Code hooks (`.claude/settings.json`, new file)
+
+`scripts/hooks/arch_viz_refresh.sh`:
+- **`PostToolUse` (`Edit|Write|MultiEdit`)** — parses the event's `file_path` and
+  returns immediately unless it is under `src/systems/` or is `gen_arch_viz.py`;
+  otherwise regenerates silently (stderr/stdout suppressed so a mid-edit broken
+  tree can't spam the session).
+- **`Stop --verify`** — last-word check: if stale, tries once to regenerate, and
+  only if that still fails exits 2 with instructions (exit 2 feeds stderr back to
+  the model as a blocking reason).
+
+### Layer 2 — git pre-commit hook
+
+`scripts/git-hooks/pre-commit` + `scripts/git-hooks/install.sh`.
+- Fires **only** when the commit touches `src/systems/`, `gen_arch_viz.py`, or
+  `docs/architecture.html`.
+- Checks the **staged tree**, not the working tree: it materializes the index
+  into a temp dir via `git checkout-index --all --prefix=` and runs `--check`
+  there, so a stale-in-index/fixed-in-worktree state cannot slip through.
+- Installed via `core.hooksPath=scripts/git-hooks` (not copying into
+  `.git/hooks`), so the hook stays version-controlled and edits take effect with
+  no re-install. **Git hooks aren't cloned**, hence the installer + the new
+  AGENTS.md section.
+- Bypass: `git commit --no-verify` or `SKIP_ARCH_VIZ_CHECK=1`.
+
+### Layer 3 — CI backstop
+
+`.github/workflows/architecture-diagram.yml` (first workflow in this repo) runs
+`--check` on pushes to `main` and all PRs, since hooks can be uninstalled or
+bypassed. No install step — the generator is stdlib-only (verified with
+`python3 -I`).
+
+### Docs
+
+- `SKILL.md` — new **Enforcement (three layers)** subsection (the `--check`
+  command, what each layer does, the once-per-clone installer, the bypasses); the
+  rule statement now ends "This rule is **enforced**, not just documented".
+- `AGENTS.md` (note: `CLAUDE.md` is a symlink → `AGENTS.md`; edit the target) —
+  new **Git Hooks (run once per clone)** section and a **RAG Systems
+  (`src/systems/`)** pointer to the skill + `docs/architecture.html`, which
+  closes the round-1 follow-up about discoverability.
+
+### Round 3 verification
+
+Determinism / CLI:
+1. 5× generate to `/tmp` → **1 distinct sha**. `--out` outside the repo no longer
+   crashes. **PASS**
+2. `--check` on a fresh file → `up to date`, exit 0. **PASS**
+3. `python3 -I … --check` (isolated mode, no site-packages) → exit 0, confirming
+   stdlib-only for CI. **PASS**
+
+Git hook — run in a **throwaway clone** (`git clone --no-hardlinks` into a
+tempdir) so no test could touch the real tree:
+| test | expected | result |
+| --- | --- | --- |
+| commit an unrelated file | hook no-ops | PASS (exit 0) |
+| stage a new system, diagram stale | **blocked** | PASS (rejected + fix message) |
+| regenerate + `git add`, recommit | accepted | PASS |
+| `git commit --no-verify` | bypassed | PASS |
+| `SKIP_ARCH_VIZ_CHECK=1 git commit` | bypassed | PASS |
+
+Claude Code hook (piping synthetic JSON events on stdin):
+| test | expected | result |
+| --- | --- | --- |
+| `file_path` = `README.md` | no-op | PASS (exit 0) |
+| `file_path` = `src/systems/facet_rag/pipeline.py` | regenerates | PASS |
+| `--verify` when fresh | exit 0 | PASS |
+| `--verify` after `echo STALE > docs/architecture.html` | self-heals | PASS (exit 0, `--check` clean after) |
+
+CI: workflow YAML parsed with `pyyaml` — `on: {push: {branches:[main]},
+pull_request: None}`, job `check-freshness`, 3 steps. **PASS**
+
+### Process mistake worth recording
+
+My first attempt at the git-hook tests ran against the **real working tree** and
+used `git reset --hard` for cleanup. That destroyed the uncommitted round-3 edits
+to `gen_arch_viz.py` (`--check`, the determinism fix, `_rel()`) — rounds 1–2 were
+already committed (`7a12ab3`, `1c85b5a`) and so survived. I re-applied the three
+edits and re-ran everything in a disposable clone instead. **Lesson: never test a
+commit-blocking hook in the live worktree; clone first.**
+
 ## Follow-ups
 
-- Regenerate `docs/architecture.html` whenever a system is added or its wiring
-  changes (it is a committed build artifact — a pre-commit hook or CI check
-  could enforce freshness).
+- ~~Regenerate the diagram whenever a system changes; a pre-commit hook or CI
+  check could enforce freshness.~~ **Done in round 3** (Claude Code hooks + git
+  pre-commit + CI).
+- ~~Pointer to the diagram from AGENTS.md/CLAUDE.md for discoverability.~~
+  **Done in round 3** (new *RAG Systems* + *Git Hooks* sections in `AGENTS.md`).
+- **Every clone must run `bash scripts/git-hooks/install.sh` once** — otherwise
+  only the CI layer protects that checkout.
 - `claude-code-research` has no python pipeline package; its card is a `manual`
   placeholder. If it grows a real pipeline, give it `ARCH_STAGES`.
-- Consider a one-line pointer to `docs/architecture.html` from AGENTS.md /
-  CLAUDE.md so the diagram is discoverable.
+- The `Stop` hook regenerates `docs/architecture.html` as a side effect, so a
+  session that only *reads* systems code can still leave the file modified if it
+  was stale on entry. That is intentional (it self-heals), but it means a dirty
+  working tree may appear without an explicit edit.

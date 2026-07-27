@@ -105,6 +105,8 @@ silently. Concretely:
 - **When running a system** — launch it deep-linked to that system, so the
   pipeline you are executing is on screen while you read its output.
 
+This rule is **enforced**, not just documented — see *Enforcement* below.
+
 ### Commands
 
 Regenerate (always safe, deterministic output — stable diffs):
@@ -138,6 +140,37 @@ uv run --group facet-rag python src/systems/facet_rag/run.py --qid <id>
 Deep links are plain URL fragments (`docs/architecture.html#facet_rag`), so you
 can bookmark a system view or link it from a README/worklog. An unknown
 `--system` exits non-zero and lists the known names.
+
+### Enforcement (three layers)
+
+The generator's output is **byte-deterministic**, so freshness is checkable:
+
+```bash
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if stale/missing
+```
+
+1. **Claude Code hooks** — `.claude/settings.json` runs
+   `scripts/hooks/arch_viz_refresh.sh` on every `Edit|Write|MultiEdit`
+   (regenerates silently, but only when the edit touched `src/systems/` or the
+   generator) and again on `Stop --verify` (last-word check that self-heals, and
+   blocks with instructions if it can't). So during an agent session the diagram
+   stays current with no manual step.
+2. **Git pre-commit hook** — `scripts/git-hooks/pre-commit` refuses a commit
+   whose *staged tree* has a stale diagram. It checks the **index**, not the
+   working tree, so a locally-fixed-but-unstaged file can't sneak a stale commit
+   through, and it only fires when the commit touches `src/systems/`,
+   `gen_arch_viz.py`, or `docs/architecture.html`. **Git hooks are not cloned —
+   run the installer once per clone:**
+
+   ```bash
+   bash scripts/git-hooks/install.sh      # sets core.hooksPath=scripts/git-hooks
+   ```
+
+   Bypass deliberately with `git commit --no-verify` or
+   `SKIP_ARCH_VIZ_CHECK=1 git commit …`.
+3. **CI** — `.github/workflows/architecture-diagram.yml` re-runs `--check` on
+   every push to `main` and every PR, because hooks can be uninstalled or
+   bypassed. The generator is stdlib-only, so CI needs no install step.
 
 ### How it works
 
