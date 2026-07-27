@@ -89,6 +89,31 @@ appears if broken): `references` is a docid list, every reference is cited, each
 sentence has ≤3 citation indices, the whole answer ≤1024 words, `metadata` has
 exactly `{team_id, narrative_id, narrative, run_id, run_desc}`.
 
+## Architecture Visualization
+
+`scripts/gen_arch_viz.py` auto-derives an **interactive** diagram of the whole
+systems layer and writes a single self-contained HTML file (inline SVG + vanilla
+JS, no server, no CDN):
+
+```bash
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py            # -> docs/architecture.html
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --print-model   # inspect the derived model
+```
+
+- **Two zoom levels**: an overview wiring every `src/systems/<name>` to the
+  shared layers (`ragrun`, `tools.search_tool` + its four engines,
+  `utils.fetch_doc`, `answer_format`, `make_provider`) and the output artifacts
+  — click a system card to drill into its per-stage pipeline.
+- **Auto-derived, no imports.** It only `ast`-parses source (never imports the
+  modules, which would touch env/network). Edges come from each system's
+  `from … import …` lines; the four engines are read from `ENGINE_INFO`.
+- **New systems appear for free.** The scaffolded `pipeline.py` includes an
+  `ARCH_STAGES = [...]` literal (ordered `{id,label,kind,note}` stages, `kind` ∈
+  `llm|no-llm|retrieval|format|artifact|loop`). `gen_arch_viz.py` reads that
+  literal; if a package has none, it falls back to a hand-authored
+  `STAGE_REGISTRY` keyed by system name in the script. **When you add a system,
+  edit its `ARCH_STAGES` to match the real control flow and regenerate the HTML.**
+
 ## Non-Automated Requirements (do these by hand)
 
 1. **Dep group** in the root `pyproject.toml` `[dependency-groups]` (default

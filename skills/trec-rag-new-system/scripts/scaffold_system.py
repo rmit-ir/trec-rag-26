@@ -90,6 +90,22 @@ from ali_deepresearch.answer_format import format_answer
 
 SYSTEM_NAME = "{name}"
 
+# Ordered stage flow for the architecture visualization
+# (skills/trec-rag-new-system/scripts/gen_arch_viz.py reads this literal — no
+# import — so this system appears in docs/architecture.html for free). Edit the
+# labels/kinds to match the real control flow below.
+# stage kind in {{llm, no-llm, retrieval, format, artifact, loop}}.
+ARCH_STAGES = [
+    {{"id": "retrieve", "label": "RETRIEVE", "kind": "retrieval",
+     "note": "search ClimbMix via tools.search_tool"}},
+    {{"id": "generate", "label": "GENERATE", "kind": "llm",
+     "note": "synthesize a grounded answer"}},
+    {{"id": "format", "label": "FORMAT", "kind": "format",
+     "note": "answer_format: prose -> references[] + citations"}},
+    {{"id": "save", "label": "SAVE", "kind": "artifact",
+     "note": "ragrun.save_run -> trajectory + output"}},
+]
+
 
 def run_one(*, qid: str, narrative: str, run_id: str, run_desc: str,
             model_id: str, k: int = 10, format_llm: Any | None = None
@@ -340,7 +356,10 @@ def main() -> None:
     print(f"  3. Write src/systems/{name}/README.md (design + CLI + tests).")
     print(f"  4. Run the offline test:")
     print(f"       uv run --group {group} python src/systems/{name}/test_mock.py")
-    print(f"  5. Take a worklog: worklogs/YYYY-MM-DD-{name}.md")
+    print(f"  5. Edit ARCH_STAGES in pipeline.py to match the real flow, then"
+          f" regenerate the diagram:")
+    print(f"       python skills/trec-rag-new-system/scripts/gen_arch_viz.py")
+    print(f"  6. Take a worklog: worklogs/YYYY-MM-DD-{name}.md")
 
 
 if __name__ == "__main__":
