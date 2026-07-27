@@ -75,7 +75,12 @@ Derives a model dict then writes the HTML.
   Drill-in = the system's linear stage chain, each stage colored by `kind`
   (`llm|no-llm|retrieval|format|artifact|loop`), with a dashed "repeat until
   answer" loop-back arrow for agent systems. `Esc` / a Back button returns.
-- CLI: `--out` (default `docs/architecture.html`), `--print-model`.
+- CLI: `--out` (default `docs/architecture.html`), `--print-model`, `--open`,
+  `--system NAME`.
+- **Deep linking** (added in round 2): the view is driven by the URL fragment via
+  a `route()` function + `hashchange` listener, so `docs/architecture.html#facet_rag`
+  opens that system's pipeline directly. Card clicks set `location.hash` (so
+  browser back/forward work), and `Esc`/Back clears it.
 
 ### Stage flows authored for the 5 existing systems
 
@@ -133,6 +138,54 @@ Derives a model dict then writes the HTML.
    `edges: [answer_format/answer-format, ragrun/artifacts, search_tool/retrieval]`
    — a brand-new system self-describes and is auto-wired with zero edits to the
    generator. **PASS**. Probe deleted (`rm -rf src/systems/arch_probe`).
+
+## Round 2 — make it launchable + document the workflow rule
+
+Follow-up ask: *"the visualization should be created and launched anytime a new
+system is developed or run; also add commands for existing systems."* That
+required a code change as well as docs — there was no way to launch it from the
+CLI, and no way to point it at one system.
+
+### Code
+
+- `gen_arch_viz.py` gained `--open` (writes then opens in the default browser via
+  `webbrowser.open` on a `file://` URI) and `--system NAME` (implies `--open`,
+  deep-links to `#NAME`, validated against the derived model — unknown names exit
+  non-zero and list the known ones).
+- Renderer: replaced the unconditional `drawOverview()` boot with hash routing
+  (`route()` + `hashchange`), so the fragment is the source of truth for which
+  view is showing. Card activation now sets `location.hash` instead of calling
+  `drawSystem` directly, which makes browser back/forward work.
+
+### Docs
+
+- `SKILL.md` — the section is now **"Architecture Visualization (regenerate +
+  launch every time)"**, stating the rule and *why* (the HTML is a committed
+  artifact derived from source, so it goes stale silently), with three explicit
+  triggers (after scaffolding / after changing wiring or stages / when running a
+  system), a Commands block, a copy-paste `--system` line for **each of the five
+  existing systems**, and a paired regenerate-then-run example.
+- `SKILL.md` frontmatter — `description` now mentions running a system and the
+  visualization requirement (otherwise the skill would not be selected for
+  "run a system" asks); version `v0.1.0` → `v0.2.0`.
+- `scaffold_system.py` — checklist step 5 now prints
+  `gen_arch_viz.py --system <name>`; module docstring notes the `ARCH_STAGES`
+  literal and the regenerate command.
+
+### Round 2 verification
+
+1. `python -m py_compile skills/trec-rag-new-system/scripts/*.py` → **PASS**
+2. `gen_arch_viz.py --system nope` →
+   `unknown system 'nope'; known: ali_deepresearch, aus_agent,
+   claude-code-research, facet_rag, o3_deep_research`, `exit=1`. **PASS**
+3. `gen_arch_viz.py --system facet_rag` → wrote the HTML and printed
+   `launched file:///Users/e103037/repos/trec-rag-26/docs/architecture.html#facet_rag`;
+   browser opened on the facet_rag pipeline view. **PASS**
+4. `grep -c "hashchange\|function route" docs/architecture.html` → `2`. **PASS**
+5. **Full scaffold→viz loop**: scaffolded `doc_probe --backends none`; its
+   checklist step 5 printed the correct `--system doc_probe` command;
+   `--print-model` then listed `doc_probe` among the systems. Deleted the probe
+   and regenerated → back to the 5 real systems. **PASS**
 
 ## Follow-ups
 

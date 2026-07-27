@@ -16,8 +16,12 @@ Stage flows come from a hand-authored ``STAGE_REGISTRY`` below, OVERRIDDEN per
 system by a module-level ``ARCH_STAGES = [...]`` literal if the package declares
 one (the scaffolder emits this, so new systems self-describe).
 
+Regenerate (and launch) it whenever a system is added, changed, or run.
+
 Usage (repo root):
     python skills/trec-rag-new-system/scripts/gen_arch_viz.py            # -> docs/architecture.html
+    python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open     # + open in browser
+    python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system facet_rag
     python skills/trec-rag-new-system/scripts/gen_arch_viz.py --print-model
     python skills/trec-rag-new-system/scripts/gen_arch_viz.py --out /tmp/arch.html
 """
@@ -26,8 +30,10 @@ from __future__ import annotations
 import argparse
 import ast
 import json
+import webbrowser
 from pathlib import Path
 from typing import Any
+from urllib.parse import quote
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SYSTEMS_DIR = REPO_ROOT / "src" / "systems"
@@ -484,8 +490,9 @@ function drawOverview() {
     g.addEventListener('mouseleave', () => { blur(); hideTip(); });
     g.addEventListener('focus', focus);
     g.addEventListener('blur', blur);
-    g.addEventListener('click', () => drawSystem(sys));
-    g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); drawSystem(sys); } });
+    const open = () => { location.hash = encodeURIComponent(sys.name); };
+    g.addEventListener('click', open);
+    g.addEventListener('keydown', ev => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); open(); } });
     nodesLayer.appendChild(g);
   });
 
@@ -543,13 +550,23 @@ function drawSystem(sys) {
   defs.appendChild(m); svg.appendChild(defs);
 }
 
-backBtn.addEventListener('click', drawOverview);
-document.addEventListener('keydown', ev => { if (ev.key === 'Escape') drawOverview(); });
-window.addEventListener('resize', () => {
-  if (backBtn.style.display === 'none') drawOverview();
+// Deep link: #<system-name> opens that system's pipeline directly, so a run can
+// launch straight into the system it just executed. Empty hash = overview.
+function route() {
+  const want = decodeURIComponent((location.hash || '').replace(/^#/, ''));
+  const sys = MODEL.systems.find(s => s.name === want);
+  if (sys) drawSystem(sys); else drawOverview();
+}
+backBtn.addEventListener('click', () => {
+  if (location.hash) location.hash = ''; else drawOverview();
 });
+document.addEventListener('keydown', ev => {
+  if (ev.key === 'Escape') { if (location.hash) location.hash = ''; else drawOverview(); }
+});
+window.addEventListener('hashchange', route);
+window.addEventListener('resize', route);
 buildLegend();
-drawOverview();
+route();
 </script>
 </body>
 </html>
@@ -563,11 +580,27 @@ def render_html(model: dict[str, Any]) -> str:
     return HTML_TEMPLATE.replace("__MODEL_JSON__", blob)
 
 
+def _launch(path: Path, system: str | None) -> None:
+    """Open the generated HTML in the default browser (deep-linked if asked)."""
+    url = path.resolve().as_uri()
+    if system:
+        url += "#" + quote(system)
+    webbrowser.open(url)
+    print(f"launched {url}")
+
+
 def main() -> None:
-    ap = argparse.ArgumentParser(description="Generate the systems architecture visualization")
+    ap = argparse.ArgumentParser(
+        description="Generate (and optionally launch) the systems architecture "
+                    "visualization")
     ap.add_argument("--out", type=Path, default=REPO_ROOT / "docs" / "architecture.html")
     ap.add_argument("--print-model", action="store_true",
                     help="dump the derived model as JSON to stdout and exit")
+    ap.add_argument("--open", action="store_true",
+                    help="open the result in the default browser after writing")
+    ap.add_argument("--system", metavar="NAME", default=None,
+                    help="with --open, deep-link straight into NAME's pipeline "
+                         "(e.g. --system facet_rag)")
     args = ap.parse_args()
 
     model = build_model()
@@ -575,12 +608,18 @@ def main() -> None:
         print(json.dumps(model, indent=2, ensure_ascii=False))
         return
 
+    known = [s["name"] for s in model["systems"]]
+    if args.system and args.system not in known:
+        raise SystemExit(f"unknown system {args.system!r}; known: {', '.join(known)}")
+
     args.out.parent.mkdir(parents=True, exist_ok=True)
     args.out.write_text(render_html(model))
-    n_sys = len(model["systems"])
     n_edges = sum(len(s["edges"]) for s in model["systems"])
     print(f"wrote {args.out.relative_to(REPO_ROOT)} "
-          f"({n_sys} systems, {n_edges} edges, {len(model['engines'])} engines)")
+          f"({len(known)} systems, {n_edges} edges, {len(model['engines'])} engines)")
+
+    if args.open or args.system:
+        _launch(args.out, args.system)
 
 
 if __name__ == "__main__":

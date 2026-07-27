@@ -1,8 +1,8 @@
 ---
 name: trec-rag-new-system
-description: Use when adding, scaffolding, or reviewing a new TREC RAG 2026 RAG system (an answer-generating agent/pipeline) under src/systems/ in this repo. Covers the required package layout, the shared ragrun/tools/utils/answer-format layers a system must use (never duplicate), the two output artifacts and their strict-vs-rich split, the run.py CLI + import-surgery convention, pluggable LLM backends, the dep-group + README + worklog requirements, and a scaffolder script.
+description: Use when adding, scaffolding, running, or reviewing a TREC RAG 2026 RAG system (an answer-generating agent/pipeline) under src/systems/ in this repo. Covers the required package layout, the shared ragrun/tools/utils/answer-format layers a system must use (never duplicate), the two output artifacts and their strict-vs-rich split, the run.py CLI + import-surgery convention, pluggable LLM backends, the dep-group + README + worklog requirements, a scaffolder script, and the interactive architecture visualization (docs/architecture.html) that must be regenerated and launched whenever a system is developed or run.
 metadata:
-  version: v0.1.0
+  version: v0.2.0
 ---
 
 # Adding a New TREC RAG 2026 System
@@ -89,30 +89,76 @@ appears if broken): `references` is a docid list, every reference is cited, each
 sentence has ≤3 citation indices, the whole answer ≤1024 words, `metadata` has
 exactly `{team_id, narrative_id, narrative, run_id, run_desc}`.
 
-## Architecture Visualization
+## Architecture Visualization (regenerate + launch every time)
 
 `scripts/gen_arch_viz.py` auto-derives an **interactive** diagram of the whole
-systems layer and writes a single self-contained HTML file (inline SVG + vanilla
-JS, no server, no CDN):
+systems layer and writes a single self-contained HTML file to
+`docs/architecture.html` (inline SVG + vanilla JS, no server, no CDN).
+
+**Rule: regenerate and launch it whenever a system is developed or run.** The
+HTML is a committed build artifact derived from source, so it goes stale
+silently. Concretely:
+
+- **After scaffolding a new system** — regenerate so it appears at all.
+- **After changing a system's wiring or stages** (new shared-layer import, edited
+  `ARCH_STAGES`) — regenerate so the edges/stages match the code.
+- **When running a system** — launch it deep-linked to that system, so the
+  pipeline you are executing is on screen while you read its output.
+
+### Commands
+
+Regenerate (always safe, deterministic output — stable diffs):
 
 ```bash
-python skills/trec-rag-new-system/scripts/gen_arch_viz.py            # -> docs/architecture.html
-python skills/trec-rag-new-system/scripts/gen_arch_viz.py --print-model   # inspect the derived model
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py                  # -> docs/architecture.html
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open           # + open the overview
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --print-model    # inspect the derived model (no write)
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --out /tmp/a.html
 ```
+
+Launch straight into one existing system's pipeline (`--system` implies
+`--open`; it validates the name against the derived model):
+
+```bash
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system facet_rag
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system ali_deepresearch
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system aus_agent
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system o3_deep_research
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system claude-code-research
+```
+
+Pair it with an actual run — regenerate + launch the diagram, then run the
+system:
+
+```bash
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system facet_rag
+uv run --group facet-rag python src/systems/facet_rag/run.py --qid <id>
+```
+
+Deep links are plain URL fragments (`docs/architecture.html#facet_rag`), so you
+can bookmark a system view or link it from a README/worklog. An unknown
+`--system` exits non-zero and lists the known names.
+
+### How it works
 
 - **Two zoom levels**: an overview wiring every `src/systems/<name>` to the
   shared layers (`ragrun`, `tools.search_tool` + its four engines,
   `utils.fetch_doc`, `answer_format`, `make_provider`) and the output artifacts
-  — click a system card to drill into its per-stage pipeline.
+  — click a system card (or deep-link) to drill into its per-stage pipeline.
+  `Esc` / the Back control returns to the overview.
 - **Auto-derived, no imports.** It only `ast`-parses source (never imports the
   modules, which would touch env/network). Edges come from each system's
-  `from … import …` lines; the four engines are read from `ENGINE_INFO`.
+  `from … import …` lines, scanned recursively over the package tree — retrieval
+  often lives in a `tools/` subpackage. The four engines and their blurbs are
+  read from `ENGINE_INFO` in `tools/search_tool.py`. A system that owns a shared
+  symbol gets no self-edge for it.
 - **New systems appear for free.** The scaffolded `pipeline.py` includes an
   `ARCH_STAGES = [...]` literal (ordered `{id,label,kind,note}` stages, `kind` ∈
   `llm|no-llm|retrieval|format|artifact|loop`). `gen_arch_viz.py` reads that
   literal; if a package has none, it falls back to a hand-authored
-  `STAGE_REGISTRY` keyed by system name in the script. **When you add a system,
-  edit its `ARCH_STAGES` to match the real control flow and regenerate the HTML.**
+  `STAGE_REGISTRY` keyed by system name in the script (this covers the systems
+  that predate the convention). **When you add a system, edit its `ARCH_STAGES`
+  to match the real control flow, then regenerate.**
 
 ## Non-Automated Requirements (do these by hand)
 

@@ -13,6 +13,11 @@ duplicated:
 - answer fmt -> ``ali_deepresearch.answer_format.format_answer``
 - backends   -> ``aus_agent.agent.make_provider`` (bedrock / openai)  [optional]
 
+The generated ``pipeline.py`` carries an ``ARCH_STAGES`` literal so the new
+system shows up in the interactive architecture diagram; after filling it in,
+regenerate + launch it with
+``gen_arch_viz.py --system <name>`` (printed in the checklist).
+
 It does NOT edit ``pyproject.toml`` or write the README/worklog — those steps
 are printed as a checklist so the human/agent stays in the loop (a dep group
 and a README are required by the repo conventions).
@@ -357,8 +362,9 @@ def main() -> None:
     print(f"  4. Run the offline test:")
     print(f"       uv run --group {group} python src/systems/{name}/test_mock.py")
     print(f"  5. Edit ARCH_STAGES in pipeline.py to match the real flow, then"
-          f" regenerate the diagram:")
-    print(f"       python skills/trec-rag-new-system/scripts/gen_arch_viz.py")
+          f" regenerate + launch the architecture diagram:")
+    print(f"       python skills/trec-rag-new-system/scripts/gen_arch_viz.py"
+          f" --system {name}")
     print(f"  6. Take a worklog: worklogs/YYYY-MM-DD-{name}.md")
 
 
