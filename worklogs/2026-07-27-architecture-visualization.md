@@ -75,6 +75,27 @@ Derives a model dict then writes the HTML.
   Drill-in = the system's linear stage chain, each stage colored by `kind`
   (`llm|no-llm|retrieval|format|artifact|loop`), with a dashed "repeat until
   answer" loop-back arrow for agent systems. `Esc` / a Back button returns.
+- **Loop-back arrow fix** (PR #1 review, @rankun203): the arrow's span was
+  inferred from array position — tail at `stages.length - 2`, head at stage 1.
+  That is only ever right by accident. For `aus_agent` it drew the tail on
+  `MAP CITES` and for `ali_deepresearch` on `FORMAT`, i.e. it claimed the cycle
+  repeats one-shot formatting steps, and (Kun's point) it did not start from
+  `REASON/COMMIT`, which is the turn that actually decides search-again vs
+  write-the-report. The span is now **declared** on the `loop` stage
+  (`back_to` / `back_from` stage ids + optional `back_label`), so it is checked
+  against real control flow rather than guessed:
+
+  | system | loop span (fixed) | runs once, after the loop | old buggy span |
+  | --- | --- | --- | --- |
+  | `aus_agent` | `SEARCH → STAGE → REASON/COMMIT` | `FINAL PROSE`, `MAP CITES`, `SAVE` | `SEARCH … MAP CITES` |
+  | `ali_deepresearch` | `THINK → TOOL_CALL` | `ANSWER`, `FORMAT`, `SAVE` | `THINK … FORMAT` |
+
+  Verified against the sources: `aus_agent/agent.py`'s single `while True:` turn
+  loop breaks once `_parse_final_prose` accepts a report, and
+  `ali_deepresearch/react_agent.py`'s `while calls_left > 0:` breaks on
+  `<answer>`. Unknown/missing `back_from` now draws **no** arrow — a wrong arrow
+  is worse than a missing one. Labels are per-system too
+  (`repeat until report` / `repeat until <answer>`).
 - CLI: `--out` (default `docs/architecture.html`), `--print-model`, `--open`,
   `--system NAME`.
 - **Deep linking** (added in round 2): the view is driven by the URL fragment via

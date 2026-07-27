@@ -87,7 +87,11 @@ STAGE_REGISTRY: dict[str, list[dict[str, str]]] = {
     ],
     "ali_deepresearch": [
         {"id": "loop", "label": "ReAct LOOP", "kind": "loop",
-         "note": "per turn until <answer>"},
+         "note": "per turn until <answer>",
+         # THINK -> TOOL_CALL -> THINK; ANSWER exits the loop, and FORMAT/SAVE
+         # run exactly once after it.
+         "back_to": "think", "back_from": "tool_call",
+         "back_label": "repeat until <answer>"},
         {"id": "think", "label": "THINK", "kind": "llm",
          "note": "<think> -> reasoning step"},
         {"id": "tool_call", "label": "TOOL_CALL", "kind": "retrieval",
@@ -101,7 +105,12 @@ STAGE_REGISTRY: dict[str, list[dict[str, str]]] = {
     ],
     "aus_agent": [
         {"id": "loop", "label": "TURN LOOP", "kind": "loop",
-         "note": "staged-context state machine"},
+         "note": "staged-context state machine",
+         # The model turn is the top of the cycle: REASON/COMMIT decides whether
+         # to search again (back to SEARCH) or write the report, so the arrow
+         # runs commit -> search. FINAL PROSE / MAP CITES / SAVE are post-loop.
+         "back_to": "search", "back_from": "commit",
+         "back_label": "repeat until report"},
         {"id": "search", "label": "SEARCH", "kind": "retrieval",
          "note": "full-text search; results staged"},
         {"id": "stage", "label": "STAGE", "kind": "no-llm",
@@ -542,12 +551,24 @@ function drawSystem(sys) {
     }
     svg.appendChild(g);
   });
-  // loop-back arrow for agents (first stage kind loop)
-  if (stages[0] && stages[0].kind === 'loop' && stages.length > 2) {
-    const lx0 = x0 + bw, lx1 = x0 + (stages.length - 2) * (bw + gap) + bw/2;
-    edges.appendChild(el('path', { class: 'edge', stroke: 'var(--accent)', 'stroke-dasharray':'5 4', 'marker-end':'url(#arw)',
-      d: `M ${lx1} ${y} C ${lx1} ${y-50}, ${lx0} ${y-50}, ${lx0} ${y}` }));
-    svg.appendChild(el('text', { x: (lx0+lx1)/2, y: y-56, 'text-anchor':'middle', class:'hint' }, 'repeat until answer'));
+  // Loop-back arrow for agents. The cycle's span is DECLARED by the `loop`
+  // stage (back_to = first stage inside the loop, back_from = last one), never
+  // inferred from array position: `length - 2` silently swept post-loop stages
+  // into the cycle (aus_agent's MAP CITES, ali_deepresearch's FORMAT), drawing
+  // the repeat over formatting steps that run exactly once. No back_from ->
+  // no arrow, because a wrong arrow is worse than a missing one.
+  const lp = stages[0];
+  if (lp && lp.kind === 'loop') {
+    const idx = id => stages.findIndex(s => s.id === id);
+    const from = idx(lp.back_from), to = lp.back_to ? idx(lp.back_to) : 1;
+    if (from > 0 && to > 0 && from >= to) {
+      const cx = i => x0 + i * (bw + gap) + bw/2;
+      const lx1 = cx(from), lx0 = cx(to);
+      edges.appendChild(el('path', { class: 'edge', stroke: 'var(--accent)', 'stroke-dasharray':'5 4', 'marker-end':'url(#arw)',
+        d: `M ${lx1} ${y} C ${lx1} ${y-50}, ${lx0} ${y-50}, ${lx0} ${y}` }));
+      svg.appendChild(el('text', { x: (lx0+lx1)/2, y: y-56, 'text-anchor':'middle', class:'hint' },
+        lp.back_label || 'repeat until answer'));
+    }
   }
   // arrow marker
   const defs = el('defs');

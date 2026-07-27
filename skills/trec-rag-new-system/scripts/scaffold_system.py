@@ -100,6 +100,9 @@ SYSTEM_NAME = "{name}"
 # import — so this system appears in docs/architecture.html for free). Edit the
 # labels/kinds to match the real control flow below.
 # stage kind in {{llm, no-llm, retrieval, format, artifact, loop}}.
+# An agent with a cycle leads with a {{"kind": "loop"}} stage that DECLARES the
+# span it repeats: "back_to"/"back_from" are stage ids (plus optional
+# "back_label"). Without them no loop-back arrow is drawn.
 ARCH_STAGES = [
     {{"id": "retrieve", "label": "RETRIEVE", "kind": "retrieval",
      "note": "search ClimbMix via tools.search_tool"}},

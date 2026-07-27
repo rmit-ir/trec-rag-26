@@ -208,7 +208,11 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
   symbol gets no self-edge for it.
 - **New systems appear for free.** The scaffolded `pipeline.py` includes an
   `ARCH_STAGES = [...]` literal (ordered `{id,label,kind,note}` stages, `kind` ∈
-  `llm|no-llm|retrieval|format|artifact|loop`). `gen_arch_viz.py` reads that
+  `llm|no-llm|retrieval|format|artifact|loop`). A cyclic system leads with a
+  `loop` stage that **declares the repeated span** — `back_to` / `back_from`
+  (stage ids) and optional `back_label`; the arrow is never inferred from stage
+  position, and a `loop` stage missing `back_from` draws no arrow at all.
+  `gen_arch_viz.py` reads that
   literal; if a package has none, it falls back to a hand-authored
   `STAGE_REGISTRY` keyed by system name in the script (this covers the systems
   that predate the convention). **When you add a system, edit its `ARCH_STAGES`
