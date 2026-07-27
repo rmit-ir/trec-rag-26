@@ -25,3 +25,16 @@ for h in scripts/git-hooks/*; do
 done
 echo
 echo "Uninstall with: git config --unset core.hooksPath"
+
+# The Claude Code hook layer lives in .claude/settings.json, which is gitignored
+# and therefore cannot ship with the repo — nudge the user through step 2.
+if [[ ! -f .claude/settings.json ]]; then
+  cat <<'MSG'
+
+NOTE: .claude/settings.json is missing (it is gitignored, so it cannot be
+      committed). To also get in-session diagram regeneration:
+
+          mkdir -p .claude
+          cp scripts/hooks/claude-settings.example.json .claude/settings.json
+MSG
+fi

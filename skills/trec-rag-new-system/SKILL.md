@@ -155,6 +155,27 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
    generator) and again on `Stop --verify` (last-word check that self-heals, and
    blocks with instructions if it can't). So during an agent session the diagram
    stays current with no manual step.
+
+   **`.claude/` is gitignored in this repo, so `settings.json` is NOT committed
+   and must be created by hand in every clone** (the hook script itself *is*
+   committed). Copy the tracked template:
+
+   ```bash
+   mkdir -p .claude
+   cp scripts/hooks/claude-settings.example.json .claude/settings.json
+   ```
+
+   If you already have a `.claude/settings.json`, **merge** its `hooks` block
+   into yours rather than overwriting. Restart Claude Code (or `/hooks`) to pick
+   the change up, and verify with:
+
+   ```bash
+   echo '{}' | scripts/hooks/arch_viz_refresh.sh --verify && echo "hook OK"
+   ```
+
+   Without this file the other two layers still enforce freshness — you just
+   lose the automatic in-session regeneration and have to run the generator
+   yourself.
 2. **Git pre-commit hook** — `scripts/git-hooks/pre-commit` refuses a commit
    whose *staged tree* has a stale diagram. It checks the **index**, not the
    working tree, so a locally-fixed-but-unstaged file can't sneak a stale commit

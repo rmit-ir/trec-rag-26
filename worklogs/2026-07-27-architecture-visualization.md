@@ -295,6 +295,44 @@ already committed (`7a12ab3`, `1c85b5a`) and so survived. I re-applied the three
 edits and re-ran everything in a disposable clone instead. **Lesson: never test a
 commit-blocking hook in the live worktree; clone first.**
 
+## Round 4 — document the manual `.claude/settings.json` step
+
+`.claude/` is gitignored in this repo (`.gitignore:32`, grouped with the editor
+dirs `.vscode/` / `.idea/`), so the file that wires up enforcement layer 1 could
+not ship with commit `e97262a`. That layer silently did not exist in any other
+clone. Rather than loosen the ignore rule (it affects more than this feature —
+that is the user's call), made the step explicit and copy-pasteable:
+
+- **`scripts/hooks/claude-settings.example.json`** (new, tracked) — the exact
+  config, with a `_comment` array carrying the recreate instructions inside the
+  file itself. Claude Code ignores unknown top-level keys, so the comment is
+  harmless if left in place. Says to **merge** the `hooks` block if a
+  `settings.json` already exists, rather than overwrite.
+- **`SKILL.md`** — enforcement layer 1 now states that `.claude/` is gitignored,
+  gives the `mkdir -p .claude && cp …` recreate commands, the restart/`/hooks`
+  note, a one-line verify (`echo '{}' | scripts/hooks/arch_viz_refresh.sh
+  --verify`), and what is lost without it (in-session auto-regeneration only —
+  layers 2 and 3 still enforce).
+- **`AGENTS.md`** — the *Git Hooks* section became **"Per-Clone Setup (two manual
+  steps — nothing else is automatic)"** listing both `install.sh` and the
+  settings copy, since they are the same class of un-committable setup.
+- **`scripts/git-hooks/install.sh`** — prints a NOTE pointing at the template
+  when `.claude/settings.json` is absent, so step 2 is discovered while doing
+  step 1.
+
+### Round 4 verification
+
+1. Template's `hooks` block vs. the live `.claude/settings.json` (after dropping
+   `_comment`) → `True` (byte-equal after JSON parse), so the docs cannot drift
+   from the config that was actually tested in round 3. **PASS**
+2. `git check-ignore scripts/hooks/claude-settings.example.json` → not ignored,
+   so the template really is committable. **PASS**
+3. Installer with `.claude/settings.json` present → no NOTE; with it moved away →
+   NOTE printed. Live file restored afterwards. **PASS**
+4. Documented recreate path (`cp` template → strip `_comment`) reproduces the
+   live config exactly; documented verify command
+   (`echo '{}' | scripts/hooks/arch_viz_refresh.sh --verify`) → `hook OK`. **PASS**
+
 ## Follow-ups
 
 - ~~Regenerate the diagram whenever a system changes; a pre-commit hook or CI
@@ -302,8 +340,16 @@ commit-blocking hook in the live worktree; clone first.**
   pre-commit + CI).
 - ~~Pointer to the diagram from AGENTS.md/CLAUDE.md for discoverability.~~
   **Done in round 3** (new *RAG Systems* + *Git Hooks* sections in `AGENTS.md`).
-- **Every clone must run `bash scripts/git-hooks/install.sh` once** — otherwise
-  only the CI layer protects that checkout.
+- **Every clone must run the two per-clone setup steps** (`bash
+  scripts/git-hooks/install.sh`, then copy
+  `scripts/hooks/claude-settings.example.json` → `.claude/settings.json`) —
+  otherwise only the CI layer protects that checkout. Documented in `AGENTS.md`
+  → *Per-Clone Setup*.
+- **Open decision:** `.claude/settings.json` stays un-committable while `.claude/`
+  is gitignored. If the team would rather share it, un-ignore that one path
+  (`!.claude/settings.json`, keeping `settings.local.json` ignored) and delete the
+  manual step — that loosens an ignore rule affecting more than this feature, so
+  it was left to the user.
 - `claude-code-research` has no python pipeline package; its card is a `manual`
   placeholder. If it grows a real pipeline, give it `ARCH_STAGES`.
 - The `Stop` hook regenerates `docs/architecture.html` as a side effect, so a
