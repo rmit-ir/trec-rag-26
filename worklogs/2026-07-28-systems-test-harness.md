@@ -410,9 +410,12 @@ Three of the five systems have end-to-end tests (`facet_rag`,
 `ali_deepresearch`, `aus_agent`). The other two are deferred to a follow-up
 rather than rushed into this branch: each needs a new fake of a *different*
 shape, which deserves its own review, and neither blocks the enforcement wiring
-(CI and the pre-commit hook are in place regardless). **GitHub issues are
-disabled on this repo, so this section is the tracking record** — the
-reconnaissance below is what a follow-up starts from instead of re-deriving.
+(CI and the pre-commit hook are in place regardless). Tracked as
+[issue #4](https://github.com/rmit-ir/trec-rag-26/issues/4), whose body is this
+section — the reconnaissance below is what a follow-up starts from instead of
+re-deriving. (Issues were disabled on the repo while this branch was being
+written and got enabled shortly after; the defect list in "What the harness
+found" is [issue #3](https://github.com/rmit-ir/trec-rag-26/issues/3).)
 
 `o3_deep_research` — one 390-line `run.py`; testable surface `FormatLLM`,
 `_docids_from_mcp_output`, `add_item_step`, `usage_stats`, `_retrieve`,
