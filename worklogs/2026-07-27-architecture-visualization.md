@@ -377,3 +377,56 @@ that is the user's call), made the step explicit and copy-pasteable:
   session that only *reads* systems code can still leave the file modified if it
   was stale on entry. That is intentional (it self-heals), but it means a dirty
   working tree may appear without an explicit edit.
+
+## Round 5 — fix drill-in clipping on narrow viewports (PR #1 review)
+
+A reviewer screenshot of the `aus_agent` drill-in showed the last pipeline
+stage (SAVE) clipped at the right edge. Root cause: `drawSystem()` laid out
+against `W = svg.clientWidth` with fixed box/gap sizes (`bw=150, gap=34`) and
+`x0 = max(40, (W - totalW)/2)`, so a 7-stage pipeline needs
+`totalW = 7*150 + 6*34 = 1254` px plus margins (~1334) — wider than the
+reviewer's ~1250 px viewport, and there was no scale-down or scroll.
+
+### Fix (`skills/trec-rag-new-system/scripts/gen_arch_viz.py`, drawSystem)
+
+Compute `needW = totalW + 80`; when `needW > clientWidth`, set
+`viewBox="0 0 <needW> <H>"` on the svg (default `preserveAspectRatio`
+letterboxes, keeping aspect) and lay out against `needW`, so the whole row
+scales down to fit instead of clipping. When it fits, remove any viewBox.
+Because overview and drill-in reuse the **same** `<svg>` element and
+`clear(svg)` only removes children (not attributes), `drawOverview()` also
+removes a lingering `viewBox` so a wide drill-in can't distort the overview
+after Back.
+
+Overview sanity check at ~1250 px: rightmost content is the engine boxes at
+`colGap*3.85 + 150 = W*0.77 + 150` → 1112.5 px at W=1250 — proportional
+layout, no clipping, no change needed.
+
+### Verification (exact commands + results)
+
+```bash
+python3 skills/trec-rag-new-system/scripts/gen_arch_viz.py
+# wrote docs/architecture.html (5 systems, 14 edges, 4 engines)
+python3 skills/trec-rag-new-system/scripts/gen_arch_viz.py --check
+# docs/architecture.html is up to date (5 systems)   (exit 0)
+```
+
+Headless-browser check at the reviewer's width (playwright chromium
+headless-shell, viewport 1250x700; conda-forge libs via
+`LD_LIBRARY_PATH=/tmp/pw-libs/lib` since the EL8 host lacks libatk et al.).
+Probe script: `worklogs/assets/2026-07-28-arch-viz-viewbox-check.py`. Results:
+
+- `#aus_agent` fresh load → `viewBox="0 0 1334 604"`, 7 stage boxes, SAVE box
+  fully visible, dashed loop arrow REASON/COMMIT → SEARCH labeled
+  "repeat until report".
+- Click "Back to overview" on the same svg → `viewBox=None` (no leak),
+  overview renders identically to a fresh no-fragment load.
+- Drill into `facet_rag` (5 stages, fits) → `viewBox=None` (narrow path
+  keeps the old pixel-space behavior).
+- Fresh overview load → `viewBox=None`, engines column ends at x=1112.5
+  inside the 1250 px svg.
+
+Screenshots (committed evidence):
+[assets/2026-07-28-arch-viz-aus-agent-1250x700.png](assets/2026-07-28-arch-viz-aus-agent-1250x700.png),
+[assets/2026-07-28-arch-viz-overview-after-back-1250x700.png](assets/2026-07-28-arch-viz-overview-after-back-1250x700.png),
+[assets/2026-07-28-arch-viz-overview-fresh-1250x700.png](assets/2026-07-28-arch-viz-overview-fresh-1250x700.png).

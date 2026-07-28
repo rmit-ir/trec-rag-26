@@ -422,6 +422,7 @@ function drawOverview() {
   crumb.textContent = 'overview';
   backBtn.style.display = 'none';
   clear(svg);
+  svg.removeAttribute('viewBox'); // clear() drops children only; a drill-in's viewBox would linger
   const W = svg.clientWidth || 1200, colGap = W / 5;
   const rowH = 64, pad = 30;
   const sysCol = colGap * 1.15, sharedCol = colGap * 2.6, engCol = colGap * 3.85;
@@ -522,11 +523,18 @@ function drawSystem(sys) {
   crumb.textContent = 'overview  ›  ' + sys.name;
   backBtn.style.display = '';
   clear(svg);
-  const W = svg.clientWidth || 1200;
-  svg.setAttribute('height', svg.clientHeight);
+  const H = svg.clientHeight;
+  svg.setAttribute('height', H);
   const stages = sys.stages;
   const bw = 150, bh = 62, gap = 34;
   const totalW = stages.length * bw + (stages.length - 1) * gap;
+  // Long pipelines can exceed the viewport (7 stages need ~1334px); scale the
+  // whole row down via viewBox instead of clipping the last box. Same svg is
+  // reused across views, so the narrow path must remove a lingering viewBox.
+  const needW = totalW + 80;
+  let W = svg.clientWidth || 1200;
+  if (needW > W) { svg.setAttribute('viewBox', '0 0 ' + needW + ' ' + H); W = needW; }
+  else svg.removeAttribute('viewBox');
   const x0 = Math.max(40, (W - totalW) / 2), y = 150;
 
   svg.appendChild(el('text', { x: x0, y: 60, class: 'lbl', 'font-size': 18, 'font-weight': 700 }, sys.name));
