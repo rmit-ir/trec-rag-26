@@ -11,7 +11,8 @@ The upstream ``<answer>`` is free-form markdown prose. The track requires
 - **Heuristic fallback** (``llm=None`` or the LLM output is unusable): split the
   draft into sentences and distribute the candidate docids across them
   round-robin. Fully offline and deterministic — this is the path exercised by
-  ``test_mock.py``.
+  ``tests/systems/test_ali_deepresearch.py`` and by the ``tests/contract/``
+  format-conformance suite.
 
 Both paths return ``(references, answer)`` already mapped to reference indices and
 guaranteed to pass ``ragrun.validate_rag_output``.
