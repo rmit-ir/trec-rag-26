@@ -37,7 +37,7 @@ from collections import OrderedDict, defaultdict
 
 ROOT = "/scratch/fast/kun/projects/trec-rag-26"
 OUT_DIR = f"{ROOT}/data/outputs/aus_agent"
-DEST = f"{ROOT}/data/outputs/engine-comparison"
+DEST = f"{ROOT}/data/task-comparison"
 
 RUN_IDS = ["cmp-dense", "cmp-keyword", "cmp-lucene", "cmp-ssr-fork-v2"]
 # Short, stable backend labels for the matrices.

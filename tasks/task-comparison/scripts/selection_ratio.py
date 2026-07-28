@@ -26,7 +26,7 @@ from collections import defaultdict, OrderedDict
 
 ROOT = "/scratch/fast/kun/projects/trec-rag-26"
 OUT_DIR = f"{ROOT}/data/outputs/aus_agent"
-DEST = f"{ROOT}/data/outputs/engine-comparison"
+DEST = f"{ROOT}/data/task-comparison"
 RUN_ID = "cmp-ssr-fork-v2"
 
 # Published fork matrix (searches per topic) used to pick the right SSR run_id.

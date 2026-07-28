@@ -8,7 +8,7 @@ axes, and the on-disk layout.
 
 Run stages as (from repo root):
     PYTHONPATH=src uv run --group aus-agent python \
-        data/outputs/engine-comparison/rubric-judge/<stage>.py [--qids <qid> ...]
+        tasks/task-comparison/rubric-judge/<stage>.py [--qids <qid> ...]
 """
 from __future__ import annotations
 
@@ -20,7 +20,9 @@ from pathlib import Path
 ROOT = Path("/scratch/fast/kun/projects/trec-rag-26")
 SRC = ROOT / "src"
 HERE = Path(__file__).resolve().parent
-OUT = HERE / "out"
+# Code lives under tasks/task-comparison/; all artifacts (judgments, pools,
+# matrices) live under data/task-comparison/ per the repo's code-vs-data split.
+OUT = ROOT / "data/task-comparison/rubric-judge/out"
 JUDGE_DIR = OUT / "judgments"
 
 TOPICS_TSV = (ROOT / "data/official/trec-rag-2026-data/trec-rag-2026"

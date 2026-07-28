@@ -492,3 +492,38 @@ term, OR the alternatives — and the near-absence of the old 5–7-term require
    - (10) (^ uranium inventory utility (+ contracting))
    - (10) (^ Centrus HALEU)
    - (10) (^ uranium fabrication bottleneck)
+
+---
+
+## Cut 4 — committed-doc diversity, best-explanation, credibility & answer-level RAGDOLL
+
+30 dev topics × 4 **isolated per-engine full agent runs** (`dev-*-30`, `gpt-5.6-luna`);
+1,396 committed docs judged + 120 generated answers judged. Full method, inputs and
+result matrix: `worklogs/2026-07-27-committed-diversity-and-answer-ragdoll.md`.
+Artifacts: `data/task-comparison/diversity/`.
+
+**NEW HEADLINE — retrieval quality does NOT fully propagate to answers.** At the
+retrieval/committed-doc level the Cut-1 order holds (keyword ≈ dense > ssr > lucene),
+but at the **answer** level **dense ≈ keyword ≈ ssr (overall 1.90–1.93) > lucene
+(1.67)** — the LLM synthesizes competent answers from ssr's noisier evidence; only
+lucene is weak enough to drag the answer down.
+
+| engine | committed best-expl win-rate | mean UMBRELA | low-rel rate | Vendi/n (diversity) | unique-contrib | **answer overall** |
+|---|--:|--:|--:|--:|--:|--:|
+| keyword | **0.236** | **1.96** | **0.042** | 0.563 | 0.803 | 1.90 |
+| dense   | 0.228 | 1.88 | 0.110 | 0.519 | 0.866 | **1.93** |
+| lucene  | 0.209 | 1.93 | 0.066 | 0.507 | 0.860 | 1.67 |
+| ssr     | 0.188 | 1.78 | **0.192** | **0.597** | **0.872** | 1.90 |
+
+**Complementarity:** committed-docid Jaccard ≤ 0.044 across every engine pair; union
+Vendi 13.3 ≈ 2× single-engine → engines are near-disjoint and additive.
+
+**Findings:** (1) **diversity ≠ value** — ssr is most internally diverse yet commits
+the weakest evidence (its "unique" docs are often unique-but-off-target, low-rel 0.192);
+(2) **LLM synthesis compensates for weak retrieval up to a point** — ssr ties keyword/dense
+on answers, lucene does not; (3) keyword leads retrieval quality on the fewest docs;
+dense trades relevance for recall (most near-dups, 0.022).
+
+**DECISION refinement:** retrieval verdict unchanged, but on *answers* **ssr is not a
+laggard — it ties keyword/dense; lucene is the sole laggard.** Prefer **ssr over lucene**
+as the routed Boolean arm.

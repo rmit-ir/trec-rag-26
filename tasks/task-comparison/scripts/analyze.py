@@ -8,7 +8,7 @@ final answer size. Emits a per-topic cross-backend matrix + the full query
 trajectories as JSON and Markdown.
 
 Usage:
-    python data/outputs/engine-comparison/analyze.py
+    python data/task-comparison/analyze.py
 """
 import json
 import glob
@@ -17,7 +17,7 @@ from collections import defaultdict
 
 ROOT = "/scratch/fast/kun/projects/trec-rag-26"
 OUT_DIR = f"{ROOT}/data/outputs/aus_agent"
-DEST = f"{ROOT}/data/outputs/engine-comparison"
+DEST = f"{ROOT}/data/task-comparison"
 
 RUNID_TO_BACKEND = {
     "cmp-dense": "dense(semantic)",

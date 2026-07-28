@@ -1,0 +1,67 @@
+{
+  "params": {
+    "dup_threshold": 0.9,
+    "engines": [
+      "dense",
+      "keyword",
+      "ssr",
+      "lucene"
+    ],
+    "n_topics": 30
+  },
+  "within_engine": {
+    "dense": {
+      "n": 13.2,
+      "mean_sim": 0.41573413213094074,
+      "mean_dist": 0.5842658678690592,
+      "nn_dup_rate": 0.021764346764346763,
+      "vendi": 6.601841147740682,
+      "vendi_ratio": 0.5193358646038146,
+      "n_topics": 30,
+      "unique_contrib": 0.8657759941583472,
+      "vendi_gain": 6.694959656397502
+    },
+    "keyword": {
+      "n": 10.833333333333334,
+      "mean_sim": 0.42092121044794717,
+      "mean_dist": 0.5790787895520528,
+      "nn_dup_rate": 0.0044444444444444444,
+      "vendi": 5.828775119781494,
+      "vendi_ratio": 0.5629474903657301,
+      "n_topics": 30,
+      "unique_contrib": 0.8030603655603656,
+      "vendi_gain": 7.4680256843566895
+    },
+    "ssr": {
+      "n": 12.3,
+      "mean_sim": 0.37066953827937443,
+      "mean_dist": 0.6293304617206256,
+      "nn_dup_rate": 0.006666666666666667,
+      "vendi": 6.834917775789896,
+      "vendi_ratio": 0.5966046206974182,
+      "n_topics": 30,
+      "unique_contrib": 0.8723202220484829,
+      "vendi_gain": 6.461883028348287
+    },
+    "lucene": {
+      "n": 14.066666666666666,
+      "mean_sim": 0.4249096870422363,
+      "mean_dist": 0.5750903129577637,
+      "nn_dup_rate": 0.012433862433862434,
+      "vendi": 6.466223812103271,
+      "vendi_ratio": 0.5074823608140286,
+      "n_topics": 30,
+      "unique_contrib": 0.8602100138423668,
+      "vendi_gain": 6.830576992034912
+    }
+  },
+  "cross_engine_jaccard": {
+    "dense|keyword": 0.029600865584592174,
+    "dense|ssr": 0.02277731605317812,
+    "dense|lucene": 0.023144137517707313,
+    "keyword|ssr": 0.034331718269078146,
+    "keyword|lucene": 0.043877344877344876,
+    "ssr|lucene": 0.03163422970535522
+  },
+  "union_vendi_mean": 13.296800804138183
+}
