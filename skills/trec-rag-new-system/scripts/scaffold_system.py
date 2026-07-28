@@ -4,9 +4,9 @@
 Generates the standard skeleton every system in this repo follows (see
 ``src/systems/ali_deepresearch`` / ``aus_agent`` / ``facet_rag`` for worked
 examples): ``__init__.py``, ``run.py`` (CLI with ``--query|--qid|--all`` and
-the import-surgery header), ``prompts.py``, ``pipeline.py``, and
-``test_mock.py``. Files are wired to the shared layers so nothing is
-duplicated:
+the import-surgery header), ``prompts.py``, and ``pipeline.py``, plus a
+pytest module at ``tests/systems/test_<name>.py``. Files are wired to the
+shared layers so nothing is duplicated:
 
 - retrieval  -> ``tools.search_tool`` (+ ``utils.fetch_doc``)   [corpus-only]
 - artifacts  -> ``ragrun`` (TrajectoryBuilder / build_rag_output / save_run)
@@ -37,6 +37,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[3]
 SYSTEMS_DIR = REPO_ROOT / "src" / "systems"
+TESTS_DIR = REPO_ROOT / "tests" / "systems"
 
 
 def _valid_name(name: str) -> str:
@@ -246,70 +247,76 @@ if __name__ == "__main__":
 '''
 
 TEST_MOCK_PY = '''\
-"""Offline end-to-end test for {name} — no live model endpoint required.
+"""End-to-end tests for {name} — collected by ``pytest``, hermetic by default.
 
-Drives ``pipeline.run_one`` against the REAL ClimbMix search backend and
-asserts both artifacts are written with no violations. With no search
-credentials (SEARCH_API_KEY / PYSERINI_API_TOKEN) the hosted endpoints return
-401; the test then reports SKIPPED rather than a code failure.
+The offline test drives the REAL ``pipeline.run_one`` with retrieval stubbed at
+``tools.search_tool._DISPATCH`` (the ``stub_search_tool`` fixture), so the whole
+pipeline — plus artifact writing and TREC-spec validation — is proven with no
+credentials and no network. The ``live`` test is the same path against the real
+ClimbMix endpoints; it is deselected unless you ask for it.
 
-Run:  uv run --group {group} python src/systems/{name}/test_mock.py
+Fixtures come from ``tests/conftest.py``: ``stub_search_tool``,
+``scripted_provider``, ``read_artifacts``, and the autouse ``no_network`` /
+``isolated_data_dir`` guards. See that file for the full list.
+
+Run:  uv run --group dev pytest tests/systems/test_{name}.py
+      uv run --group dev pytest tests/systems/test_{name}.py -m live   # real
 """
 from __future__ import annotations
 
-import json
-import os
-import sys
+import pytest
 
-_HERE = os.path.dirname(os.path.abspath(__file__))
-_SYSTEMS = os.path.dirname(_HERE)
-sys.path[:] = [p for p in sys.path if os.path.abspath(p or ".") != _HERE]
-if _SYSTEMS not in sys.path:
-    sys.path.insert(0, _SYSTEMS)
+from ragrun import validate_rag_output
 
-from ragrun import validate_rag_output  # noqa: E402
+from {name}.pipeline import run_one
 
-from {name}.pipeline import run_one  # noqa: E402
+NARRATIVE = "How effective are influenza vaccines at preventing illness?"
+QID = "mock_{name}_001"
 
 
-def main() -> int:
-    narrative = "How effective are influenza vaccines at preventing illness?"
-    qid = "mock_{name}_001"
+def _run(**kwargs):
+    """Invoke the pipeline with this system's standard test arguments.
 
-    # TODO: if this system calls an LLM, pass a scripted mock (see
-    # ali_deepresearch/test_mock.py ScriptedLLM or facet_rag ScriptedProvider).
-    result = run_one(qid=qid, narrative=narrative, run_id="{name}.mock",
-                     run_desc="mock end-to-end test", model_id="mock/{name}")
-
-    paths = result["paths"]
-    output = json.loads(paths["output"].read_text())
-    trajectory = json.loads(paths["trajectory"].read_text())
-
-    if not trajectory["retrieved_docids"]:
-        print("  [SKIP] live ClimbMix search returned nothing — check "
-              "credentials/reachability (SEARCH_API_KEY / PYSERINI_API_TOKEN).")
-        print("\\nRESULT: SKIPPED (no retrieval; not a code failure)")
-        return 0
-
-    ok = True
-
-    def check(label: str, cond: bool) -> None:
-        nonlocal ok
-        print(f"  [{{'PASS' if cond else 'FAIL'}}] {{label}}")
-        ok = ok and cond
-
-    check("output written", paths["output"].exists())
-    check("trajectory written", paths["trajectory"].exists())
-    check("no violations file", "violations" not in paths)
-    check("validate_rag_output clean", validate_rag_output(output) == [])
-    check("references non-empty", len(result["references"]) > 0)
-
-    print("\\nRESULT:", "PASS" if ok else "FAIL")
-    return 0 if ok else 1
+    TODO: if this system calls an LLM, pass a scripted provider here —
+    ``scripted_provider([model_turn(text=...), ...])`` or the responder form
+    for stage-dependent turns. See ``tests/systems/test_facet_rag.py``.
+    """
+    return run_one(qid=QID, narrative=NARRATIVE, run_id="{name}.mock",
+                   run_desc="mock end-to-end test", model_id="mock/{name}",
+                   **kwargs)
 
 
-if __name__ == "__main__":
-    raise SystemExit(main())
+def test_run_one_writes_valid_artifacts(stub_search_tool, read_artifacts):
+    """The pipeline produces both artifacts, spec-clean, with real retrieval
+    plumbing exercised against stubbed transport."""
+    result = _run()
+    artifacts = read_artifacts(result["paths"])
+
+    assert artifacts["output"], "output.json not written"
+    assert artifacts["trajectory"], "trajectory.json not written"
+    # A violations file means the output breaks the TREC RAG 2026 spec.
+    assert artifacts["violations"] == []
+    assert validate_rag_output(artifacts["output"]) == []
+    assert result["references"]
+    assert artifacts["trajectory"]["retrieved_docids"]
+    # The rich trace is internal to output.json and must never leak into the
+    # strict trajectory projection.
+    assert "trace" not in artifacts["trajectory"]
+    assert artifacts["output"]["trace"]["steps"]
+
+
+def test_search_is_routed_to_the_expected_engine(stub_search_tool):
+    """Retrieval goes through tools.search_tool, so the stub records it."""
+    _run()
+    assert stub_search_tool, "no engine was called — is retrieval wired up?"
+
+
+@pytest.mark.live
+def test_run_one_live():
+    """Same path against the real ClimbMix endpoints (needs SEARCH_API_KEY)."""
+    result = _run()
+    assert result["references"]
+    assert "violations" not in result["paths"]
 '''
 
 
@@ -342,7 +349,11 @@ def main() -> None:
     write(pkg / "__init__.py", INIT_PY.format(name=name), force=args.force)
     write(pkg / "prompts.py", PROMPTS_PY.format(name=name), force=args.force)
     write(pkg / "pipeline.py", PIPELINE_PY.format(name=name), force=args.force)
-    write(pkg / "test_mock.py",
+    # Tests live in the collected suite under tests/, not beside the package:
+    # pytest owns discovery (see [tool.pytest.ini_options] testpaths) and the
+    # shared fixtures in tests/conftest.py are what make them hermetic.
+    TESTS_DIR.mkdir(parents=True, exist_ok=True)
+    write(TESTS_DIR / f"test_{name}.py",
           TEST_MOCK_PY.format(name=name, group=group), force=args.force)
 
     run_py = RUN_PY_HEADER.format(name=name, group=group)
@@ -362,8 +373,8 @@ def main() -> None:
     print(f"     then:  uv sync --group {group}")
     print(f"  2. Fill in pipeline.py (run_one), prompts.py, and run.py TODOs.")
     print(f"  3. Write src/systems/{name}/README.md (design + CLI + tests).")
-    print(f"  4. Run the offline test:")
-    print(f"       uv run --group {group} python src/systems/{name}/test_mock.py")
+    print(f"  4. Fill in the scripted-provider TODO, then run the offline test:")
+    print(f"       uv run --group dev pytest tests/systems/test_{name}.py")
     print(f"  5. Edit ARCH_STAGES in pipeline.py to match the real flow, then"
           f" regenerate + launch the architecture diagram:")
     print(f"       python skills/trec-rag-new-system/scripts/gen_arch_viz.py"

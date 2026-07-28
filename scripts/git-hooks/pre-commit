@@ -1,25 +1,63 @@
 #!/usr/bin/env bash
-# Enforce that docs/architecture.html matches src/systems/ (see
-# skills/trec-rag-new-system/SKILL.md — "regenerate + launch every time").
+# Two pre-commit checks, each gated on the paths a commit actually touches:
 #
-# The diagram is a committed build artifact derived from source, so it goes stale
-# silently. This hook only fires when a commit touches the systems layer, the
-# generator, or the diagram itself; other commits are untouched.
+#   1. docs/architecture.html matches src/systems/  (see
+#      skills/trec-rag-new-system/SKILL.md — "regenerate + launch every time").
+#      The diagram is a committed build artifact derived from source, so it goes
+#      stale silently.
+#   2. the offline pytest suite passes, when a commit touches src/ or tests/.
 #
 # Install:  bash scripts/git-hooks/install.sh
-# Bypass:   git commit --no-verify   (or SKIP_ARCH_VIZ_CHECK=1 git commit ...)
+# Bypass:   git commit --no-verify
+#           SKIP_ARCH_VIZ_CHECK=1 git commit ...   (diagram check only)
+#           SKIP_TEST_CHECK=1 git commit ...       (test run only)
 set -euo pipefail
-
-if [[ -n "${SKIP_ARCH_VIZ_CHECK:-}" ]]; then
-  exit 0
-fi
 
 REPO_ROOT="$(git rev-parse --show-toplevel)"
 cd "$REPO_ROOT"
 
+STAGED="$(git diff --cached --name-only)"
+
+# --- check 2: offline test suite -------------------------------------------
+# Runs against the WORKING TREE, not the staged tree: provisioning a venv in a
+# throwaway checkout-index dir costs minutes, and in practice the working tree
+# is what the developer just ran. The suite is hermetic (tests/conftest.py's
+# autouse no_network fixture) so this needs no creds and makes no network calls.
+if [[ -z "${SKIP_TEST_CHECK:-}" ]] \
+   && grep -qE '^(src/|tests/|pyproject\.toml)' <<<"$STAGED"; then
+  if command -v uv >/dev/null; then
+    echo "pre-commit: running offline test suite …" >&2
+    # Delegated to scripts/test.sh so the dep-group list and the fail-on-skip
+    # gate live in exactly one place. (Those groups carry SDKs some tests
+    # `importorskip` — mcp for src/mcp, boto3 for aus_agent — and without them
+    # the tests skip and the run is green while proving nothing.)
+    if ! bash scripts/test.sh; then
+      cat >&2 <<'MSG'
+
+✗ the offline test suite failed.
+
+  Fix the failures, or re-run to see them:
+      bash scripts/test.sh
+
+  (Bypass with `SKIP_TEST_CHECK=1 git commit ...` if you really mean to.)
+
+MSG
+      exit 1
+    fi
+  else
+    echo "pre-commit: uv not found; skipping test check" >&2
+  fi
+fi
+
+# --- check 1: architecture diagram freshness --------------------------------
+if [[ -n "${SKIP_ARCH_VIZ_CHECK:-}" ]]; then
+  exit 0
+fi
+
 # Only relevant when the architecture (or its generator/output) changed.
-if ! git diff --cached --name-only | grep -qE \
-    '^(src/systems/|skills/trec-rag-new-system/scripts/gen_arch_viz\.py|docs/architecture\.html)'; then
+if ! grep -qE \
+    '^(src/systems/|skills/trec-rag-new-system/scripts/gen_arch_viz\.py|docs/architecture\.html)' \
+    <<<"$STAGED"; then
   exit 0
 fi
 

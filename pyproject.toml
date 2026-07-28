@@ -20,6 +20,11 @@ sources = ["src"]
 packages = ["src/utils", "src/tools", "src/ragrun"]
 
 [dependency-groups]
+# Test harness for src/ (shared layers + every system). Hermetic by default:
+# `uv run --group dev pytest` needs no creds and makes no network calls.
+dev = [
+    "pytest>=8.4",
+]
 # Per-system dep groups — default `uv sync` installs none of them.
 # Install one with `uv sync --group <name>` (e.g. `uv sync --group aus-agent`),
 # then run scripts with `uv run --group <name> python …`.
@@ -55,4 +60,21 @@ notebook = [
     "ipykernel",
     "jupyter",
     "nbconvert",
+]
+
+[tool.pytest.ini_options]
+# `src/systems` is on the path (not just `src`) because each system package
+# imports its siblings flat — `from aus_agent.providers...`, `from
+# ali_deepresearch.answer_format...` — matching every run.py's import surgery.
+# `importmode=importlib` lets same-named test modules coexist across systems
+# without __init__.py files or module-name collisions.
+pythonpath = ["src", "src/systems", "tests"]
+testpaths = ["tests"]
+# Hermetic by default: bare `pytest` deselects `live`. Opt in with
+# `pytest -m live`, or run everything with `pytest -m 'live or not live'`.
+addopts = "-ra --strict-markers --import-mode=importlib -m 'not live'"
+markers = [
+    "live: hits real network services (search endpoints / model APIs); needs creds. Deselected by default.",
+    "contract: input/output format conformance against the TREC RAG 2026 spec.",
+    "local_socket: real HTTP over loopback against the dummy API server (tests/dummy_api). No creds, runs by default.",
 ]
