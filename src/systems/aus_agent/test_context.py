@@ -215,6 +215,33 @@ class ContextLedgerTest(unittest.TestCase):
             ),
         }, decision.rejected)
 
+    def test_chunk_pages_commit_as_distinct_units_and_collapse_to_docs(self):
+        # Two pages of one document are DISTINCT staged units; both commit by id
+        # (unedited), and the organizer collapse maps them to one parent docid
+        # with citation indices reindexed.
+        payload = json.dumps({"query": "q", "k": 2, "results": [
+            {"rank": 1, "id": "shard_1_2_p1", "docid": "shard_1_2",
+             "kind": "chunk", "score": 0.9, "text": "page one text"},
+            {"rank": 2, "id": "shard_1_2_p3", "docid": "shard_1_2",
+             "kind": "chunk", "score": 0.8, "text": "page three text"},
+        ]})
+        ledger = ContextLedger()
+        ledger.stage("s1", "search", payload,
+                     documents_from_search(json.loads(payload)))
+        self.assertEqual(ledger.staged_ids, ["shard_1_2_p1", "shard_1_2_p3"])
+        decision = ledger.commit([
+            {"id": "shard_1_2_p1", "reason": "page one fact"},
+            {"id": "shard_1_2_p3", "reason": "page three fact"},
+        ], max_documents=10)
+        self.assertEqual(decision.committed, ["shard_1_2_p1", "shard_1_2_p3"])
+        self.assertEqual(sorted(ledger.committed_ids),
+                         ["shard_1_2_p1", "shard_1_2_p3"])
+        refs, ans = agent._collapse_to_docs(
+            ["shard_1_2_p1", "shard_1_2_p3", "shard_9_9_p5"],
+            [{"text": "s", "citations": [0, 1, 2]}])
+        self.assertEqual(refs, ["shard_1_2", "shard_9_9"])
+        self.assertEqual(ans[0]["citations"], [0, 1])
+
     def test_search_requests_and_records_text_beyond_500_characters(self):
         long_text = "x" * 900
 
@@ -473,14 +500,16 @@ class ProviderCompactionTest(unittest.TestCase):
 
 class AgentFlowTest(unittest.TestCase):
     def test_system_prompt_file_loads_with_one_safe_placeholder(self):
-        self.assertTrue(agent.SYSTEM_PROMPT_PATH.is_file())
-        template = agent.SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+        default_path = (
+            agent.SYSTEM_PROMPTS_DIR / f"{agent.DEFAULT_PROMPT_VARIANT}.md")
+        self.assertTrue(default_path.is_file())
+        template = default_path.read_text(encoding="utf-8")
         self.assertEqual(
             template.count(agent.MAX_COMMITTED_PLACEHOLDER), 1)
 
         prompt = agent.load_system_prompt(4)
         self.assertNotIn(agent.MAX_COMMITTED_PLACEHOLDER, prompt)
-        self.assertIn("Commit at most `4` documents", prompt)
+        self.assertIn("Commit at most `4` results", prompt)
         self.assertIn("exactly one sentence per line", prompt)
         self.assertIn("square-bracket markers", prompt)
         self.assertIn("outside its grammar", prompt)
@@ -592,8 +621,19 @@ class AgentFlowTest(unittest.TestCase):
         self.assertIn("never call a tool solely to create another", prompt)
         self.assertIn("500,000 tokens", prompt)
         self.assertNotIn("ClimbMix", prompt)
-        self.assertNotIn("get_document", prompt)
+        self.assertIn("get_documents", prompt)  # page-navigation tool
         self.assertNotIn("scratchpad", prompt.lower())
+
+    def test_prompt_variant_composes_and_unknown_raises(self):
+        # A named variant is a full file that supersets the baseline and still
+        # renders exactly one placeholder; an unknown name is a hard error.
+        base = agent.load_system_prompt(4)
+        variant = agent.load_system_prompt(4, "firsthand")
+        self.assertNotIn(agent.MAX_COMMITTED_PLACEHOLDER, variant)
+        self.assertIn("Source valuation", variant)
+        self.assertNotIn("Source valuation", base)
+        with self.assertRaises(RuntimeError):
+            agent.load_system_prompt(4, "does-not-exist")
 
     def test_default_current_context_budget_is_500k(self):
         self.assertEqual(agent.DEFAULT_CONTEXT_TOKEN_BUDGET, 500_000)
@@ -842,10 +882,10 @@ class AgentFlowTest(unittest.TestCase):
         self.assertEqual(trace["summary"]["tokens"]["output"], 50)
         self.assertEqual(trace["summary"]["tokens"]["processed"], 1_550)
         self.assertNotIn("ClimbMix", provider.system_prompt)
-        self.assertNotIn("get_document", provider.system_prompt)
+        self.assertIn("get_documents", provider.system_prompt)
         self.assertEqual(
             {tool["name"] for tool in provider.tools},
-            {"search", "commit_context"},
+            {"search", "get_documents", "commit_context"},
         )
         user_messages = [
             message["text"] for message in provider.messages

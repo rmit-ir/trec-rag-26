@@ -40,9 +40,11 @@ from .context import ContextLedger
 from .providers.base import Provider
 from .tools import (
     COMMIT_CONTEXT_TOOL,
+    GET_DOCUMENTS_TOOL,
     apply_commit,
     build_search_tool_def,
     execute_full_text_search,
+    execute_get_documents,
     expire_staged,
 )
 
@@ -60,8 +62,11 @@ DEFAULT_SAFETY_MAX_ROUNDS = 100
 # bounds that tail; past it the loop is not making progress and must stop.
 FINISHING_ROUNDS_GRACE = 10
 DEFAULT_MAX_COMMITTED_PER_STEP = 10
-SYSTEM_PROMPT_PATH = (
-    Path(__file__).resolve().parent / "prompts" / "system.md")
+# One full system prompt per file under prompts/system/. `default.md` is the
+# live baseline; other files are variants selected by their filename stem
+# (e.g. --prompt-variant firsthand -> prompts/system/firsthand.md).
+SYSTEM_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "system"
+DEFAULT_PROMPT_VARIANT = "default"
 MAX_COMMITTED_PLACEHOLDER = "__MAX_COMMITTED_DOCS__"
 
 # The current time goes in the user message, NOT the system prompt. Bedrock
@@ -94,13 +99,23 @@ def now_full(now: datetime | None = None) -> str:
     return f"{now:%A, %d %B %Y, %H:%M:%S %z} ({TZ.key})"
 
 
-def load_system_prompt(max_committed: int) -> str:
-    """Load the system prompt relative to this module and render one token."""
-    template = SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+def load_system_prompt(max_committed: int,
+                       variant: str = DEFAULT_PROMPT_VARIANT) -> str:
+    """Load the system prompt for ``variant`` and render one token.
+
+    Each variant is a full prompt file ``prompts/system/<variant>.md``;
+    ``default`` is the live baseline. The rendered ``__MAX_COMMITTED_DOCS__``
+    token must appear exactly once.
+    """
+    path = SYSTEM_PROMPTS_DIR / f"{variant}.md"
+    if not path.exists():
+        raise RuntimeError(f"unknown prompt variant {variant!r}: "
+                           f"{path} not found")
+    template = path.read_text(encoding="utf-8")
     count = template.count(MAX_COMMITTED_PLACEHOLDER)
     if count != 1:
         raise RuntimeError(
-            f"{SYSTEM_PROMPT_PATH} must contain exactly one "
+            f"prompt variant {variant!r} must contain exactly one "
             f"{MAX_COMMITTED_PLACEHOLDER} placeholder; found {count}")
     return template.replace(MAX_COMMITTED_PLACEHOLDER, str(max_committed))
 
@@ -192,7 +207,7 @@ def _extract_citations(line: str) -> list[str]:
 
 def _parse_final_prose(
     text: str | None,
-    committed_docids: set[str],
+    committed_ids: set[str],
     *,
     allow_uncited: bool = False,
 ) -> tuple[list[dict[str, Any]] | None, list[str], list[str]]:
@@ -272,12 +287,12 @@ def _parse_final_prose(
     for index, sentence in enumerate(sentences, 1):
         unknown = [
             docid for docid in sentence["citations"]
-            if docid not in committed_docids
+            if docid not in committed_ids
         ]
         if unknown:
             sentence["citations"] = [
                 docid for docid in sentence["citations"]
-                if docid in committed_docids
+                if docid in committed_ids
             ]
             repairs.append(
                 f"sentence {index}: dropped uncommitted docids "
@@ -290,7 +305,7 @@ def _parse_final_prose(
 
     errors: list[str] = []
     if not allow_uncited and not any(s["citations"] for s in sentences):
-        if committed_docids:
+        if committed_ids:
             errors.append(
                 "no sentence carries a citation; support factual sentences "
                 "with committed docids in [docid] markers at the end of the "
@@ -332,6 +347,34 @@ def _map_citations(sentences: list[dict[str, Any]],
                 idxs.append(idx)
         answer.append({"text": sent["text"], "citations": idxs})
     return references, answer
+
+
+def _collapse_to_docs(references: list[str], answer: list[dict[str, Any]]
+                      ) -> tuple[list[str], list[dict[str, Any]]]:
+    """Collapse unit-id references (chunk ids) to parent docids for the
+    organizer submission: pages of the same document dedup to one reference,
+    and each sentence's citation indices are remapped onto the parent-doc
+    reference list (deduped, capped at three). The internal/trace side keeps
+    the chunk-native unit ids; this is the final-format transform only.
+    """
+    doc_refs: list[str] = []
+    unit_to_doc: dict[int, int] = {}
+    for i, uid in enumerate(references):
+        docid = re.sub(r"_p\d+$", "", uid)  # strip the _p<page> chunk suffix
+        if docid not in doc_refs:
+            doc_refs.append(docid)
+        unit_to_doc[i] = doc_refs.index(docid)
+    doc_answer: list[dict[str, Any]] = []
+    for sent in answer:
+        idxs: list[int] = []
+        for u_idx in sent["citations"]:
+            d_idx = unit_to_doc.get(u_idx)
+            if d_idx is not None and d_idx not in idxs:
+                idxs.append(d_idx)
+            if len(idxs) >= 3:
+                break
+        doc_answer.append({"text": sent["text"], "citations": idxs})
+    return doc_refs, doc_answer
 
 
 def _word_count(sentences: list[dict[str, Any]]) -> int:
@@ -438,8 +481,8 @@ def _turn_stats(usage: dict[str, Any], duration_ms: float,
 
 def _context_snapshot(ledger: ContextLedger) -> dict[str, Any]:
     return {
-        "staged": ledger.staged_docids,
-        "committed": sorted(ledger.committed_docids),
+        "staged": ledger.staged_ids,
+        "committed": sorted(ledger.committed_ids),
         "rejected": [],
     }
 
@@ -492,6 +535,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               max_committed_per_step: int = DEFAULT_MAX_COMMITTED_PER_STEP,
               run_id: str = "aus-agent-dev",
               run_desc: str | None = None,
+              prompt_variant: str = DEFAULT_PROMPT_VARIANT,
               engines: list[str] | None = None) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -510,6 +554,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "k": k,
         "temperature": None,  # sampling params not sent (removed on 4.6+)
         "run_id": run_id,
+        "prompt_variant": prompt_variant,
         "engines": engines,
     })
     log.info("[%s] starting: backend=%s model=%s k=%d run_id=%s budget=%d",
@@ -545,7 +590,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             narrative=query,
             run_id=run_id,
             run_desc=run_desc or (
-                f"aus_agent research harness ({backend}/{provider.model_id}): "
+                f"aus_agent research harness ({backend}/{provider.model_id}, "
+                f"prompt={prompt_variant}): "
                 f"continuous single-agent full-text search with sparse "
                 f"committed context and line-per-sentence cited prose answers "
                 f"parsed into the organizer schema."),
@@ -576,8 +622,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "max_committed_per_step": max_committed_per_step,
         }
         trajectory.trace["summary"]["context"] = {
-            "committed": sorted(ledger.committed_docids),
-            "rejected": sorted(ledger.rejected_docids),
+            "committed": sorted(ledger.committed_ids),
+            "rejected": sorted(ledger.rejected_ids),
         }
         # Repairs are applied silently to save a correction turn; record them so
         # the leniency stays auditable rather than invisible.
@@ -703,9 +749,11 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         return output
 
     try:
-        system_prompt = load_system_prompt(max_committed_per_step)
+        system_prompt = load_system_prompt(max_committed_per_step,
+                                            prompt_variant)
         tool_definitions = [
             build_search_tool_def(engines),
+            GET_DOCUMENTS_TOOL,
             COMMIT_CONTEXT_TOOL,
         ]
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
@@ -802,7 +850,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     # (uncommitted) evidence can never be cited, so accepting
                     # it after the expiry loses nothing and saves a turn.
                     candidate, _, notes = _parse_final_prose(
-                        turn.get("text"), set(ledger.committed_docids),
+                        turn.get("text"), set(ledger.committed_ids),
                         allow_uncited=(
                             finishing
                             or uncited_refusals >= MAX_UNCITED_REFUSALS))
@@ -918,7 +966,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
             if not calls:
                 candidate, validation_errors, notes = _parse_final_prose(
-                    turn.get("text"), set(ledger.committed_docids),
+                    turn.get("text"), set(ledger.committed_ids),
                     allow_uncited=(
                         finishing or uncited_refusals >= MAX_UNCITED_REFUSALS))
                 if candidate is not None:
@@ -972,8 +1020,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 ct0 = now_iso()
                 started = perf_counter()
                 pending_before = list(ledger.pending)
-                committed_before = set(ledger.committed_docids)
-                rejected_before = set(ledger.rejected_docids)
+                committed_before = set(ledger.committed_ids)
+                rejected_before = set(ledger.rejected_ids)
                 try:
                     handled = apply_commit(
                         ledger,
@@ -987,8 +1035,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     # batch is compacted now rather than carried forward for a
                     # retry.
                     ledger.pending = pending_before
-                    ledger.committed_docids = committed_before
-                    ledger.rejected_docids = rejected_before
+                    ledger.committed_ids = committed_before
+                    ledger.rejected_ids = rejected_before
                     decision = expire_staged(
                         ledger,
                         max_documents=max_committed_per_step,
@@ -1020,8 +1068,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         # update. A backend failure ends the run rather than
                         # carrying inconsistent context into another turn.
                         ledger.pending = pending_before
-                        ledger.committed_docids = committed_before
-                        ledger.rejected_docids = rejected_before
+                        ledger.committed_ids = committed_before
+                        ledger.rejected_ids = rejected_before
                         raise
                     out = json.dumps(handled.payload, ensure_ascii=False)
                     failed = False
@@ -1047,7 +1095,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     log.info("[%s] commit_context: %d committed, %d rejected "
                              "(%d total)", query_id, len(documents),
                              len(decision.rejected),
-                             len(ledger.committed_docids))
+                             len(ledger.committed_ids))
                 if failed:
                     # The invalid batch has already expired; refuse remaining
                     # same-turn actions so the next turn starts cleanly.
@@ -1118,7 +1166,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     out, feedback_stats = action_feedback(out, duration_ms)
                     context = {
                         "staged": [
-                            str(document["docid"]) for document in documents],
+                            str(document["id"]) for document in documents],
                         "committed": [],
                         "rejected": [],
                     }
@@ -1143,6 +1191,61 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         "is_error": failed,
                     }
 
+            # get_documents: fetch specific units by id and stage like search,
+            # so the same commit_context step retains them next turn.
+            get_docs_calls = [
+                call for call in calls if call["name"] == "get_documents"]
+            if get_docs_calls and (budget_hit or safety_hit):
+                gd_msg, gd_stats = action_feedback(json.dumps({
+                    "error": (
+                        "tool call not executed because the preceding "
+                        "generation input context reached the research budget; "
+                        "write the final report now using the contract "
+                        "already defined in the system prompt"),
+                    "context_tokens": context_tokens,
+                    "peak_context_tokens": peak_context_tokens,
+                    "context_token_budget": context_token_budget,
+                }), 0)
+                ts = now_iso()
+                for call in get_docs_calls:
+                    tb.add_tool_call(
+                        call["name"], call["arguments"], gd_msg,
+                        failed=True, t_start=ts, t_end=ts, turn=ti,
+                        stats=gd_stats,
+                        context=_context_snapshot(ledger), documents=[],
+                        tool_call_id=call["id"])
+                    result_by_id[call["id"]] = {
+                        "id": call["id"], "content": gd_msg, "is_error": True}
+            elif get_docs_calls:
+                for call in get_docs_calls:
+                    ct0 = now_iso()
+                    try:
+                        out, documents, missing = execute_get_documents(
+                            call["arguments"])
+                        failed = False
+                    except Exception as exc:  # a fetch failure is not fatal
+                        out = json.dumps(
+                            {"error": f"{type(exc).__name__}: {exc}"})
+                        documents, missing, failed = [], [], True
+                    ct1 = now_iso()
+                    out, feedback_stats = action_feedback(out, 0.0)
+                    returned = [str(d["id"]) for d in documents]
+                    context = {"staged": returned, "committed": [],
+                               "rejected": []}
+                    tb.add_tool_call(
+                        call["name"], call["arguments"], out,
+                        returned=returned, failed=failed,
+                        t_start=ct0, t_end=ct1, turn=ti,
+                        stats=feedback_stats, documents=[], context=context,
+                        tool_call_id=call["id"])
+                    log.info("[%s] get_documents: %d staged, %d missing",
+                             query_id, len(documents), len(missing))
+                    if not failed and documents:
+                        ledger.stage(
+                            call["id"], call["name"], out, documents)
+                    result_by_id[call["id"]] = {
+                        "id": call["id"], "content": out, "is_error": failed}
+
             provider.add_tool_results(
                 [result_by_id[call["id"]] for call in calls])
             next_model_input = {
@@ -1157,16 +1260,19 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             sentences = [{"text": f"Run failed: {type(e).__name__}: {e}",
                           "citations": []}]
 
-    eligible_docids = set(ledger.committed_docids)
-    references, answer = _map_citations(sentences, eligible_docids)
+    eligible_ids = set(ledger.committed_ids)
+    # Internal citations are unit ids (chunk ids): the agent cites the exact id
+    # it committed, unedited. references_unit/answer are chunk-native.
+    references_unit, answer = _map_citations(sentences, eligible_ids)
     answer_text = " ".join(s["text"] for s in answer)
-    # Strict output cites doc-level ids (track requirement); the trace also
-    # keeps the full retrieval-unit ids (with any _p<n> page suffix) so
-    # reviewers see exactly which page supported each reference.
-    references_full = [ledger.committed_full_ids.get(d, d) for d in references]
+    # Organizer submission cites doc-level ids: collapse pages of a document to
+    # the parent docid and remap citation indices (the final-format transform).
+    # The trace keeps the chunk-native unit ids in references_full so reviewers
+    # see exactly which page supported each reference.
+    references, answer = _collapse_to_docs(references_unit, answer)
     tb.set_trace_output({
         "references": references,
-        "references_full": references_full,
+        "references_full": references_unit,
         "answer": answer,
     })
     tb.add_output_text(
@@ -1176,7 +1282,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
     log.info("[%s] finished status=%s: %d sentences, %d references, "
              "%d committed docs", query_id, status, len(answer),
-             len(references), len(ledger.committed_docids))
+             len(references), len(ledger.committed_ids))
     output = build_output(references, answer)
     trajectory = build_trajectory(status)
     # The final save is the only one that writes the trajectory, validates, and
@@ -1191,5 +1297,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "peak_context_tokens": peak_context_tokens,
             "processed_tokens": (
                 trajectory.trace["summary"]["tokens"].get("processed", 0)),
-            "committed_documents": len(ledger.committed_docids),
-            "rejected_documents": len(ledger.rejected_docids)}
+            "committed_documents": len(ledger.committed_ids),
+            "rejected_documents": len(ledger.rejected_ids)}

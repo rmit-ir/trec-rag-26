@@ -3,9 +3,15 @@
 Tool results are shown to the model in full exactly once.  On the following
 model step, ``commit_context`` selects the small subset worth retaining.
 Selected documents remain verbatim in provider history; every other document
-is replaced by a compact decision marker. ``output.json.trace`` records docids
+is replaced by a compact decision marker. ``output.json.trace`` records ids
 and decisions but omits document text; the Outputs Viewer fetches text through
 its document API. ``trajectory.json`` remains strict.
+
+The ledger is UNIT-ID-native: it keys on each retrieval unit's ``id`` (a chunk
+id ``<docid>_p<page>`` when the backend is chunked, else a doc id), NOT the
+parent ``docid``. The agent commits and cites the exact id the search engine
+returned, unedited; the chunk→parent-docid collapse for the organizer
+submission happens only in the final output transform (see agent.py).
 """
 from __future__ import annotations
 
@@ -17,10 +23,10 @@ REJECTION_PREFIX = "the agent decided this document is irrelevant:"
 DUPLICATE_PREFIX = "duplicate/already committed document compacted:"
 
 
-def rejection_marker(docid: str, reason: str | None = None) -> str:
+def rejection_marker(unit_id: str, reason: str | None = None) -> str:
     if reason and reason.startswith("duplicate/already committed"):
-        return f"{DUPLICATE_PREFIX} {docid}"
-    return f"{REJECTION_PREFIX} {docid}"
+        return f"{DUPLICATE_PREFIX} {unit_id}"
+    return f"{REJECTION_PREFIX} {unit_id}"
 
 
 @dataclass
@@ -31,8 +37,9 @@ class StagedResult:
     documents: list[dict[str, Any]]
 
     @property
-    def docids(self) -> list[str]:
-        return list(dict.fromkeys(str(d["docid"]) for d in self.documents))
+    def ids(self) -> list[str]:
+        """Retrieval-unit ids (the exact id the backend returned)."""
+        return list(dict.fromkeys(str(d["id"]) for d in self.documents))
 
 
 @dataclass
@@ -54,14 +61,11 @@ class CommitDecision:
 
 @dataclass
 class ContextLedger:
-    """Tracks unresolved staged results and cumulative committed docids."""
+    """Tracks unresolved staged results and cumulative committed unit ids."""
 
     pending: list[StagedResult] = field(default_factory=list)
-    committed_docids: set[str] = field(default_factory=set)
-    rejected_docids: set[str] = field(default_factory=set)
-    # docid -> full retrieval-unit id (e.g. shard_x_y -> shard_x_y_p2); the
-    # strict output cites doc-level ids, the trace keeps the precise unit.
-    committed_full_ids: dict[str, str] = field(default_factory=dict)
+    committed_ids: set[str] = field(default_factory=set)
+    rejected_ids: set[str] = field(default_factory=set)
 
     def stage(self, call_id: str, tool_name: str, output: str,
               documents: list[dict[str, Any]]) -> None:
@@ -74,9 +78,9 @@ class ContextLedger:
             ))
 
     @property
-    def staged_docids(self) -> list[str]:
+    def staged_ids(self) -> list[str]:
         return list(dict.fromkeys(
-            docid for result in self.pending for docid in result.docids))
+            uid for result in self.pending for uid in result.ids))
 
     @property
     def has_staged(self) -> bool:
@@ -86,62 +90,66 @@ class ContextLedger:
                max_documents: int,
                unselected_reason: str = "not selected for committed context",
                ) -> CommitDecision:
-        staged = self.staged_docids
+        staged = self.staged_ids
         staged_set = set(staged)
 
         selected_by_id: dict[str, dict[str, str]] = {}
         for item in selected:
-            docid = str(item.get("docid", "")).strip()
-            if docid and docid not in selected_by_id:
-                selected_by_id[docid] = {
-                    "docid": docid,
+            # Commit by the exact unit id. Accept a legacy "docid" key as a
+            # fallback: for an unpaginated result it equals the id, and for a
+            # paginated one a bare parent docid simply won't match a staged
+            # chunk unit below (which correctly forces the precise `_p<n>` id).
+            uid = str(item.get("id") or item.get("docid") or "").strip()
+            if uid and uid not in selected_by_id:
+                selected_by_id[uid] = {
+                    "id": uid,
                     "reason": str(item.get("reason", "")).strip(),
                 }
 
-        unknown = [d for d in selected_by_id if d not in staged_set]
+        unknown = [u for u in selected_by_id if u not in staged_set]
         if unknown:
             raise ValueError(
                 "cannot commit documents outside the staged context: "
                 + ", ".join(unknown))
         missing_reasons = [
-            docid for docid, item in selected_by_id.items()
+            uid for uid, item in selected_by_id.items()
             if not item["reason"]
         ]
         if missing_reasons:
             raise ValueError(
                 "every committed document needs a distinct evidence reason: "
                 + ", ".join(missing_reasons))
-        already_committed = staged_set & self.committed_docids
+        already_committed = staged_set & self.committed_ids
         selected_by_id = {
-            docid: item for docid, item in selected_by_id.items()
-            if docid not in already_committed
+            uid: item for uid, item in selected_by_id.items()
+            if uid not in already_committed
         }
         overflow_ids = list(selected_by_id)[max_documents:]
         selected_by_id = dict(
             list(selected_by_id.items())[:max_documents])
 
-        committed = [d for d in staged if d in selected_by_id]
-        rejected_ids = [d for d in staged if d not in selected_by_id]
+        committed = [u for u in staged if u in selected_by_id]
+        rejected_ids = [u for u in staged if u not in selected_by_id]
         rejected = [{
-            "docid": d,
+            "docid": u,
             "reason": (
                 "duplicate/already committed; later occurrence compacted"
-                if d in already_committed
+                if u in already_committed
                 else (
                     f"selection exceeded per-step maximum of {max_documents}"
-                    if d in overflow_ids
+                    if u in overflow_ids
                     else unselected_reason
                 )
             ),
-        } for d in rejected_ids]
+        } for u in rejected_ids]
         occurrence_counts: dict[str, int] = {}
         for result in self.pending:
-            for docid in result.docids:
-                occurrence_counts[docid] = occurrence_counts.get(docid, 0) + 1
-        for docid in committed:
-            for _ in range(max(0, occurrence_counts.get(docid, 0) - 1)):
+            for uid in result.ids:
+                occurrence_counts[uid] = occurrence_counts.get(uid, 0) + 1
+        for uid in committed:
+            for _ in range(max(0, occurrence_counts.get(uid, 0) - 1)):
                 rejected.append({
-                    "docid": docid,
+                    "docid": uid,
                     "reason": (
                         "duplicate/already committed; repeated occurrence "
                         "within the staged batch compacted"
@@ -153,45 +161,44 @@ class ContextLedger:
         documents_by_id: dict[str, dict[str, Any]] = {}
         for result in self.pending:
             for document in result.documents:
-                docid = str(document["docid"])
-                documents_by_id.setdefault(docid, document)
+                uid = str(document["id"])
+                documents_by_id.setdefault(uid, document)
 
-        # Preserve each newly committed docid in full exactly once. Duplicate
+        # Preserve each newly committed unit in full exactly once. Duplicate
         # occurrences from parallel queries, plus any occurrence of an
-        # already-committed docid, become compact tombstones.
+        # already-committed unit, become compact tombstones.
         remaining_to_keep = set(committed)
         replacements: dict[str, str] = {}
         for result in self.pending:
             keep_here: set[str] = set()
             occurrence_reasons = dict(rejected_reasons)
-            for docid in result.docids:
-                if docid in remaining_to_keep:
-                    keep_here.add(docid)
-                    remaining_to_keep.remove(docid)
-                elif docid in committed:
-                    occurrence_reasons[docid] = (
+            for uid in result.ids:
+                if uid in remaining_to_keep:
+                    keep_here.add(uid)
+                    remaining_to_keep.remove(uid)
+                elif uid in committed:
+                    occurrence_reasons[uid] = (
                         "duplicate/already committed; repeated occurrence "
                         "within the staged batch compacted")
             replacements[result.call_id] = _compact_output(
                 result.tool_name, result.output, keep_here,
                 occurrence_reasons)
-        self.committed_docids.update(committed)
-        self.rejected_docids.update(rejected_ids)
+        self.committed_ids.update(committed)
+        self.rejected_ids.update(rejected_ids)
         # Cumulative summary means "never committed" rather than "a later
         # duplicate retrieval occurrence was omitted".
-        self.rejected_docids.difference_update(self.committed_docids)
+        self.rejected_ids.difference_update(self.committed_ids)
         self.pending.clear()
 
         selected_documents = []
-        for docid in committed:
-            document = dict(documents_by_id[docid])
+        for uid in committed:
+            document = dict(documents_by_id[uid])
             metadata = dict(document.get("metadata") or {})
-            reason = selected_by_id[docid]["reason"]
+            reason = selected_by_id[uid]["reason"]
             if reason:
                 metadata["commit_reason"] = reason
             document["metadata"] = metadata
             selected_documents.append(document)
-            self.committed_full_ids[docid] = str(document.get("id") or docid)
 
         return CommitDecision(
             staged=staged,
@@ -204,21 +211,26 @@ class ContextLedger:
 
 def _compact_output(tool_name: str, output: str, keep_full: set[str],
                     rejected_reasons: dict[str, str] | None = None) -> str:
-    """Remove rejected text while retaining the original tool-result shape."""
+    """Remove rejected text while retaining the original tool-result shape.
+
+    Matches results by their unit ``id`` (chunk id when chunked), so committing
+    one page of a document keeps that page verbatim and compacts the rest.
+    """
     payload, separator, status_line = output.partition("\n[context budget:")
     try:
         data = json.loads(payload)
     except json.JSONDecodeError:
         return output
 
-    if tool_name == "search" and isinstance(data.get("results"), list):
+    if tool_name in ("search", "get_documents") and isinstance(
+            data.get("results"), list):
         compacted = []
         for raw in data["results"]:
-            if not isinstance(raw, dict) or "docid" not in raw:
+            if not isinstance(raw, dict) or "id" not in raw:
                 compacted.append(raw)
                 continue
-            docid = str(raw["docid"])
-            if docid in keep_full:
+            uid = str(raw["id"])
+            if uid in keep_full:
                 compacted.append(raw)
                 continue
             item = {
@@ -226,8 +238,8 @@ def _compact_output(tool_name: str, output: str, keep_full: set[str],
                 for key in ("rank", "id", "docid", "kind", "score")
                 if key in raw
             }
-            reason = (rejected_reasons or {}).get(docid)
-            item["decision"] = rejection_marker(docid, reason)
+            reason = (rejected_reasons or {}).get(uid)
+            item["decision"] = rejection_marker(uid, reason)
             if reason:
                 item["reason"] = reason
             compacted.append(item)

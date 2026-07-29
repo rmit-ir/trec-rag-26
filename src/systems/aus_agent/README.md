@@ -38,9 +38,12 @@ selection evidence.
 
 ## Layout
 
-- `prompts/system.md` — the complete system contract: scope interpretation,
-  internal success requirements, research workflow, staged evidence protocol,
-  500K stopping policy, and the final prose-report contract. Runtime
+- `prompts/system/` — one full system prompt per file, selected by
+  `--prompt-variant <stem>`. `default.md` is the live baseline (the complete
+  system contract: scope interpretation, internal success requirements,
+  research workflow, staged evidence protocol, 500K stopping policy, and the
+  final prose-report contract); other files (e.g. `firsthand.md`) are variants,
+  and the chosen variant is recorded in the run metadata + `run_desc`. Runtime
   substitution uses the single distinctive `__MAX_COMMITTED_DOCS__`
   placeholder.
 - `agent.py` — harness loop, staged-context state machine, parallel tool

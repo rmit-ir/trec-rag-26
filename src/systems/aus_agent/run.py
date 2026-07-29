@@ -116,6 +116,12 @@ def main() -> None:
     ap.add_argument("--run-id",
                     default=env("RUN_AUS_AGENT_RUN_ID", "aus-agent-dev"))
     ap.add_argument(
+        "--prompt-variant", dest="prompt_variant",
+        default=env("RUN_AUS_AGENT_PROMPT_VARIANT", "default"),
+        help="system-prompt variant = filename stem under prompts/system/ "
+             "('default' is the baseline; e.g. 'firsthand' loads "
+             "prompts/system/firsthand.md). Recorded in run metadata + run_desc.")
+    ap.add_argument(
         "--search-backends", "--engines", dest="search_backends",
         default=env("RUN_AUS_AGENT_SEARCH_BACKENDS", "semantic,keyword"),
         help="comma-separated retrieval backends the search tool may use: "
@@ -164,6 +170,7 @@ def main() -> None:
                                 max_committed_per_step=(
                                     args.max_committed_per_step),
                                 run_id=args.run_id,
+                                prompt_variant=args.prompt_variant,
                                 engines=search_backends)
         except Exception:  # keep --all going
             failures += 1

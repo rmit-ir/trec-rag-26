@@ -176,8 +176,9 @@ def build_search_tool(engines: list[str] | tuple[str, ...] | None = None
     }
     required = ["query", "search_engine"] if multi else ["query"]
     desc = ("Search the ClimbMix corpus for passages relevant to a query. "
-            "Returns ranked passages with their docid and text; cite by docid. "
-            "search_engine selects: " + blurbs + ".")
+            "Returns ranked passages, each with its `id` (a page/chunk id like "
+            "`shard_x_p2` when paginated) and text; commit and cite by that `id` "
+            "exactly as returned. search_engine selects: " + blurbs + ".")
     return {"name": "search", "description": desc,
             "input_schema": {"type": "object", "properties": props,
                              "required": required}}
