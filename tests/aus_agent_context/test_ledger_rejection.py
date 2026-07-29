@@ -39,7 +39,7 @@ def test_committing_a_docid_outside_the_staged_batch_raises(
         ledger_with) -> None:
     """A hallucinated docid must not become a citable reference.
 
-    ``committed_docids`` is exactly the set the final-report parser accepts
+    ``committed_ids`` is exactly the set the final-report parser accepts
     citations from, so a docid admitted here is a docid the run will happily cite
     in its submitted answer — with no retrieved document behind it. Raising is
     what turns a fabricated id into an expired batch and a correction turn
@@ -103,9 +103,9 @@ def test_a_validation_failure_leaves_the_batch_staged(ledger_with) -> None:
         ledger.commit([{"docid": "missing", "reason": "no"}], max_documents=2)
 
     assert ledger.has_staged is True
-    assert ledger.staged_docids == ["a", "b", "c"]
-    assert ledger.committed_docids == set()
-    assert ledger.rejected_docids == set()
+    assert ledger.staged_ids == ["a", "b", "c"]
+    assert ledger.committed_ids == set()
+    assert ledger.rejected_ids == set()
 
 
 def test_an_entry_with_a_blank_docid_is_ignored_not_an_error(
@@ -240,7 +240,7 @@ def test_a_zero_maximum_rejects_the_whole_selection(ledger_with) -> None:
         {"docid": "b", "reason": UNSELECTED_REASON},
         {"docid": "c", "reason": UNSELECTED_REASON},
     ]
-    assert ledger.committed_docids == set()
+    assert ledger.committed_ids == set()
 
 
 # ---------------------------------------------------------------------------
@@ -261,8 +261,8 @@ def test_an_empty_selection_rejects_the_whole_batch(ledger_with) -> None:
     assert decision.committed == []
     assert [r["docid"] for r in decision.rejected] == ["a", "b", "c"]
     assert {r["reason"] for r in decision.rejected} == {UNSELECTED_REASON}
-    assert ledger.committed_docids == set()
-    assert ledger.rejected_docids == set(DOC_SETS["alpha"])
+    assert ledger.committed_ids == set()
+    assert ledger.rejected_ids == set(DOC_SETS["alpha"])
     assert ledger.has_staged is False
 
 
@@ -343,7 +343,7 @@ def test_a_custom_reason_that_looks_like_a_duplicate_switches_the_marker(
         unselected_reason="duplicate/already committed by mistake")
     entry = results_by_docid(decision.replacements["search-1"])["a"]
     assert entry["decision"].startswith(DUPLICATE_PREFIX)
-    assert "a" not in ledger.committed_docids
+    assert "a" not in ledger.committed_ids
 
 
 def test_the_rejection_marker_names_the_docid_it_replaced(ledger_with) -> None:

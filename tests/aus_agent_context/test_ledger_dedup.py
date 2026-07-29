@@ -167,7 +167,7 @@ def test_parallel_duplicate_occurrence_is_kept_in_full_only_once(
     """The within-batch case, which no cumulative check can catch.
 
     Structurally different from the across-turns path above: ``a`` is genuinely
-    being committed here — it is not in ``committed_docids`` yet — so the
+    being committed here — it is not in ``committed_ids`` yet — so the
     already-committed filter never fires. Overlap is the norm rather than the
     exception, because the system prompt actively tells the agent to run
     complementary queries in parallel; two of them hitting the same strong
@@ -245,26 +245,56 @@ def test_an_uncommitted_docid_repeated_across_batches_is_a_plain_rejection(
         assert "text" not in entry
 
 
-def test_duplicate_rows_within_one_result_all_keep_their_text() -> None:
-    """CURRENT BEHAVIOUR, not desired — known gap at context.py:137-177.
+def test_two_pages_of_one_document_are_independent_commit_decisions() -> None:
+    """Chunk-native commit makes the page — not the parent doc — the unit.
 
-    Two chunks of the same parent docid in ONE search result list: every row
-    keeps its full text, and nothing is reported as a duplicate. Two reasons,
-    both structural:
+    Two chunks of one parent docid in ONE search result list are two DISTINCT
+    staged units, so each is decided on its own: commit page 1 and page 2
+    survives or dies on its own merits rather than riding along on its parent's
+    id. This is what makes a chunk-granularity index safe to commit against —
+    under a doc-level unit the two pages collapsed into one decision and the
+    unselected page kept its text for free.
 
-    - ``occurrence_counts`` counts ``result.docids``, which is already deduped
-      per result (``StagedResult.docids`` runs ``dict.fromkeys``), so a repeat
-      *inside* one result contributes 1, not 2 — no duplicate rejection.
-    - ``_compact_output`` tests ``docid in keep_full``, a per-result set, so
-      every row carrying a committed docid keeps its text.
+    Parent-doc collapse is a submission-format concern only, and lives in
+    ``agent._collapse_to_docs``.
+    """
+    payload = json.dumps({
+        "query": "alpha",
+        "results": [
+            {"rank": 1, "id": "doc_p1", "docid": "doc", "kind": "chunk",
+             "score": 1.0, "text": "page one"},
+            {"rank": 2, "id": "doc_p2", "docid": "doc", "kind": "chunk",
+             "score": 0.5, "text": "page two"},
+        ],
+    })
+    from aus_agent.context import ContextLedger
 
-    Expected (by the docstring's "preserve each newly committed docid in full
-    exactly once"): row 1 verbatim, row 2 a ``DUPLICATE_PREFIX`` tombstone, one
-    duplicate rejection. Actual: both rows verbatim, ``rejected == []``.
+    ledger = ContextLedger()
+    ledger.stage("q1", "search", payload,
+                 documents_from_search(json.loads(payload)))
+    assert ledger.staged_ids == ["doc_p1", "doc_p2"]
 
-    Only reachable with a chunk-granularity index that returns two pages of one
-    document; today's engines are doc-level, so this costs nothing yet. Flagged
-    rather than fixed — no ``src/`` changes from the test migration.
+    decision = ledger.commit([{"id": "doc_p1", "reason": "kept"}],
+                             max_documents=3)
+
+    # Page 1 committed and keeps its text; page 2 was never selected, so it is
+    # rejected and its text is replaced — the whole point of the protocol.
+    assert decision.committed == ["doc_p1"]
+    assert ledger.committed_ids == {"doc_p1"}
+    assert [r["docid"] for r in decision.rejected] == ["doc_p2"]
+
+    results = first_line_json(decision.replacements["q1"])["results"]
+    assert results[0]["text"] == "page one"
+    assert "text" not in results[1]
+    assert results[1]["decision"].startswith(REJECTION_PREFIX)
+
+
+def test_both_pages_of_one_document_can_be_committed_together() -> None:
+    """Committing two pages of one document is legal and keeps both texts.
+
+    Reading adjacent pages of a strong source is encouraged, so the ledger must
+    not treat the second page as a duplicate of the first just because they
+    share a parent docid.
     """
     payload = json.dumps({
         "query": "alpha",
@@ -281,17 +311,15 @@ def test_duplicate_rows_within_one_result_all_keep_their_text() -> None:
     ledger.stage("q1", "search", payload,
                  documents_from_search(json.loads(payload)))
 
-    decision = ledger.commit([{"docid": "doc", "reason": "kept"}],
+    decision = ledger.commit([{"id": "doc_p1", "reason": "page one fact"},
+                              {"id": "doc_p2", "reason": "page three fact"}],
                              max_documents=3)
 
+    assert decision.committed == ["doc_p1", "doc_p2"]
+    assert decision.rejected == []
     results = first_line_json(decision.replacements["q1"])["results"]
     assert results[0]["text"] == "page one"
-    assert results[1]["text"] == "page two"   # would be a tombstone if fixed
-    assert decision.rejected == []            # would carry one duplicate
-    # The staged docid is one decision either way, and the retained unit id is
-    # the first occurrence's — that part already holds.
-    assert decision.committed == ["doc"]
-    assert ledger.committed_full_ids == {"doc": "doc_p1"}
+    assert results[1]["text"] == "page two"
 
 
 def test_the_duplicate_reason_is_carried_onto_the_tombstone_entry(

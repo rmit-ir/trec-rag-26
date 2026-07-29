@@ -312,18 +312,18 @@ def test_the_conversation_holds_the_task_and_one_correction(
 
 def test_the_system_prompt_and_tools_are_the_context_protocol_only(
         research_run: dict[str, Any]) -> None:
-    """The model is given two tools and no corpus name.
+    """The model is given the protocol tools and no corpus name.
 
-    ``get_document`` was removed deliberately (a fetch tool re-introduces exactly
-    the unbounded context growth the commit protocol bounds), and naming the
-    corpus invites the model to answer from what it knows about ClimbMix rather
-    than from retrieval.
+    Every tool that returns document text must route through the stage/commit
+    protocol — that is what bounds context growth. ``get_documents`` qualifies
+    (its results are staged exactly like a search batch); an unstaged fetch tool
+    would not, and must never be added. Naming the corpus invites the model to
+    answer from what it knows about ClimbMix rather than from retrieval.
     """
     provider = research_run["provider"]
-    assert {tool["name"] for tool in provider.tools} == {"search",
-                                                         "commit_context"}
+    assert {tool["name"] for tool in provider.tools} == {
+        "search", "get_documents", "commit_context"}
     assert "ClimbMix" not in provider.system_prompt
-    assert "get_document" not in provider.system_prompt
 
 
 # ---------------------------------------------------------------------------

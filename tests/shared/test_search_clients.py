@@ -329,7 +329,8 @@ def test_sparse_maps_nested_hits(monkeypatch: pytest.MonkeyPatch) -> None:
     assert hits[0]["score"] == pytest.approx(11.42)
     assert hits[0]["text"] == "toll revenue"
     assert hits[1]["text"] is None            # missing `_source` -> None, not ""
-    assert hits[0]["meta"] == {"source": "sparse", "_index": "climbmix-bm25"}
+    assert hits[0]["meta"] == {"source": "sparse", "granularity": "chunk",
+                               "_index": "climbmix-bm25"}
 
 
 def test_sparse_rank_is_always_positional(monkeypatch: pytest.MonkeyPatch) -> None:

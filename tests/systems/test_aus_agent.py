@@ -32,6 +32,7 @@ from aus_agent.agent import (
     FINISHING_ROUNDS_GRACE,
     MAX_REPORT_WORDS,
     MAX_UNCITED_REFUSALS,
+    _collapse_to_docs,
     _map_citations,
     _parse_final_prose,
     _usage_token_stats,
@@ -237,7 +238,8 @@ def test_happy_run_provider_conversation_shape(
     provider = happy_run["provider"]
     assert len(provider.user_messages) == 1
     assert QUERY in provider.user_messages[0]
-    assert [t["name"] for t in provider.tools] == ["search", "commit_context"]
+    assert [t["name"] for t in provider.tools] == [
+        "search", "get_documents", "commit_context"]
     assert [[r["id"] for r in batch] for batch in provider.tool_results] == [
         ["s1"], ["c1"]]
     assert all(not r["is_error"] for batch in provider.tool_results
@@ -270,7 +272,7 @@ def test_happy_run_trace_records_the_full_input_contract(
     assert set(trace_input) == {"system_prompt", "user_message", "tools"}
     assert "commit_context" in trace_input["system_prompt"]
     assert [t["name"] for t in trace_input["tools"]] == [
-        "search", "commit_context"]
+        "search", "get_documents", "commit_context"]
 
 
 def test_happy_run_trace_summary_carries_the_context_ledger(
@@ -425,12 +427,14 @@ def test_chunk_ids_are_reported_doc_level_but_kept_in_full_in_the_trace(
 
     monkeypatch.setattr(search_tool, "_DISPATCH",
                         {e: _chunked for e in search_tool._DISPATCH})
+    # Commit and cite the chunk-native unit id; the doc-level collapse is the
+    # submission-format step at the end of the run, not the model's job.
     result = drive([
         model_turn(tool_calls=[tool_call(
             "search", {"query": "q", "search_engine": "semantic"}, id="s1")]),
         model_turn(tool_calls=[tool_call("commit_context", {"documents": [
-            {"docid": D[0], "reason": "revenue"}]}, id="c1")]),
-        model_turn(text=f"A cited claim [{D[0]}]."),
+            {"id": f"{D[0]}_p1", "reason": "revenue"}]}, id="c1")]),
+        model_turn(text=f"A cited claim [{D[0]}_p1]."),
     ])
     assert result["output"]["references"] == [D[0]]
     assert result["trace"]["output"]["references_full"] == [f"{D[0]}_p1"]
@@ -1139,6 +1143,82 @@ def test_map_citations_drops_never_retrieved_docids() -> None:
     references, answer = _map_citations(
         [{"text": "Claim.", "citations": ["zz", "d2"]}], COMMITTED)
     assert references == ["d2"]
+    assert answer[0]["citations"] == [0]
+
+
+# ---------------------------------------------------------------------------
+# _collapse_to_docs (the chunk -> parent-doc submission transform)
+# ---------------------------------------------------------------------------
+def test_collapse_to_docs_maps_chunk_pages_onto_one_parent_reference() -> None:
+    """references must be ClimbMix docids — a chunk id is not a valid one.
+
+    ``rag-task.md``: "Use the ClimbMix docid as the cited evidence identifier in
+    final RAG references" and "If a system chunks documents internally, keep
+    final references tied to ClimbMix document IDs". Two pages of one document
+    therefore collapse to a single reference, and the sentence's citation
+    indices are remapped onto the collapsed list — deduped, so citing both pages
+    of one doc cites it once.
+    """
+    references, answer = _collapse_to_docs(
+        ["doc_a_p1", "doc_a_p7", "doc_b_p2"],
+        [{"text": "Both pages of A.", "citations": [0, 1]},
+         {"text": "A and B.", "citations": [0, 2]}])
+    assert references == ["doc_a", "doc_b"]
+    assert answer == [{"text": "Both pages of A.", "citations": [0]},
+                      {"text": "A and B.", "citations": [0, 1]}]
+
+
+def test_collapse_to_docs_caps_a_sentence_at_three_citations() -> None:
+    """The track's hard per-sentence limit, enforced at the submission boundary.
+
+    ``rag-task.md``: "Cite no more than three references per sentence." This is
+    the LAST transform before the artifact is written, and it has its own cap
+    independent of ``_map_citations`` — collapsing can only ever shrink a
+    citation list, but a sentence citing four DISTINCT parent docs must still be
+    truncated to three or ``validate_rag_output`` rejects the run.
+    """
+    references, answer = _collapse_to_docs(
+        ["d1_p1", "d2_p1", "d3_p1", "d4_p1", "d5_p1"],
+        [{"text": "Overcited.", "citations": [0, 1, 2, 3, 4]}])
+    assert references == ["d1", "d2", "d3", "d4", "d5"]
+    assert answer[0]["citations"] == [0, 1, 2]
+    assert len(answer[0]["citations"]) <= 3
+
+
+def test_collapse_to_docs_counts_the_cap_in_parent_docs_not_chunks() -> None:
+    """Four chunks of two documents is two citations, not a capped four.
+
+    The cap applies to the collapsed reference list, so pages of the same parent
+    must not consume cap slots — otherwise a well-sourced sentence reading four
+    pages of two documents would lose a genuine second source.
+    """
+    _, answer = _collapse_to_docs(
+        ["a_p1", "a_p2", "a_p3", "b_p1"],
+        [{"text": "Four pages, two docs.", "citations": [0, 1, 2, 3]}])
+    assert answer[0]["citations"] == [0, 1]
+
+
+def test_collapse_to_docs_leaves_an_unpaginated_docid_untouched() -> None:
+    """Doc-level engines must pass through unchanged.
+
+    Only a trailing ``_p<n>`` is stripped; a docid whose own name contains
+    digits and underscores (every ClimbMix id does) must survive intact.
+    """
+    references, answer = _collapse_to_docs(
+        ["shard_00459_61697"], [{"text": "Claim.", "citations": [0]}])
+    assert references == ["shard_00459_61697"]
+    assert answer[0]["citations"] == [0]
+
+
+def test_collapse_to_docs_drops_an_out_of_range_citation_index() -> None:
+    """An index past the reference list must vanish, not become a bad citation.
+
+    ``validate_rag_output`` rejects any citation index outside ``references``,
+    so this is the difference between a dropped citation and an invalid run.
+    """
+    references, answer = _collapse_to_docs(
+        ["a_p1"], [{"text": "Claim.", "citations": [0, 9]}])
+    assert references == ["a"]
     assert answer[0]["citations"] == [0]
 
 

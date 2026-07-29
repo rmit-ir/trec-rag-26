@@ -112,12 +112,14 @@ def test_the_prompt_renders_exactly_one_placeholder() -> None:
     prompt that lies — the check is a hard ``RuntimeError`` in
     ``load_system_prompt``.
     """
-    template = agent.SYSTEM_PROMPT_PATH.read_text(encoding="utf-8")
+    default_path = (
+        agent.SYSTEM_PROMPTS_DIR / f"{agent.DEFAULT_PROMPT_VARIANT}.md")
+    template = default_path.read_text(encoding="utf-8")
     assert template.count(agent.MAX_COMMITTED_PLACEHOLDER) == 1
 
     prompt = agent.load_system_prompt(4)
     assert agent.MAX_COMMITTED_PLACEHOLDER not in prompt
-    assert "Commit at most `4` documents" in prompt
+    assert "Commit at most `4` results" in prompt
 
 
 def test_the_prompt_teaches_the_commit_protocol_and_its_ordering() -> None:
@@ -135,19 +137,24 @@ def test_the_prompt_teaches_the_commit_protocol_and_its_ordering() -> None:
     assert "commit first, and write the report on the following turn" in flat
 
 
-def test_the_prompt_never_names_the_corpus_or_a_fetch_tool() -> None:
+def test_the_prompt_never_names_the_corpus_or_an_unstaged_fetch() -> None:
     """Two deliberate absences, each with a failure mode behind it.
 
     Naming ClimbMix invites the model to answer from what it knows about the
-    corpus instead of from retrieval. ``get_document`` was removed because a
-    fetch tool re-introduces exactly the unbounded context growth the commit
-    protocol bounds — anything fetched is text nobody staged and nobody can
-    compact.
+    corpus instead of from retrieval. A scratchpad invites text nobody staged
+    and nobody can compact.
+
+    ``get_documents`` is the *staged* navigation tool — its results go through
+    the same stage/commit protocol as a search batch, so it does not reopen the
+    unbounded-growth hole an unstaged fetch would. The prompt must therefore
+    present it as staged rather than as a free read.
     """
     prompt = agent.load_system_prompt(10)
     assert "ClimbMix" not in prompt
-    assert "get_document" not in prompt
     assert "scratchpad" not in prompt.lower()
+    flat = " ".join(prompt.split())
+    assert "`get_documents`" in flat
+    assert "Its results are staged exactly like a search batch" in flat
 
 
 def test_the_report_contract_is_stated_in_the_prompt() -> None:

@@ -47,23 +47,22 @@ def test_fresh_ledger_has_nothing_staged_or_committed() -> None:
     """
     ledger = ContextLedger()
     assert ledger.pending == []
-    assert ledger.committed_docids == set()
-    assert ledger.rejected_docids == set()
-    assert ledger.committed_full_ids == {}
-    assert ledger.staged_docids == []
+    assert ledger.committed_ids == set()
+    assert ledger.rejected_ids == set()
+    assert ledger.staged_ids == []
     assert ledger.has_staged is False
 
 
 def test_staging_a_batch_lists_its_docids_in_rank_order(ledger_with) -> None:
     """Rank order is the order the model saw, so it is the order it selects in.
 
-    ``staged_docids`` is what the commit validator checks a selection against
+    ``staged_ids`` is what the commit validator checks a selection against
     and what the trace shows as the batch. Reordering it would make the trace
     disagree with the tool result the model actually read.
     """
     ledger = ledger_with(("search-1", "alpha"))
     assert ledger.has_staged is True
-    assert ledger.staged_docids == ["a", "b", "c"]
+    assert ledger.staged_ids == ["a", "b", "c"]
     assert len(ledger.pending) == 1
     assert ledger.pending[0].call_id == "search-1"
     assert ledger.pending[0].tool_name == "search"
@@ -83,7 +82,7 @@ def test_staging_an_empty_document_list_is_dropped_entirely() -> None:
     assert ledger.has_staged is False
 
 
-def test_staged_docids_dedupes_across_batches_keeping_first_order(
+def test_staged_ids_dedupes_across_batches_keeping_first_order(
         ledger_with) -> None:
     """The commit contract is one decision per docid, not per occurrence.
 
@@ -92,21 +91,27 @@ def test_staged_docids_dedupes_across_batches_keeping_first_order(
     docid once per occurrence would be both confusing and a validation trap.
     """
     ledger = ledger_with(("q1", "alpha"), ("q2", "beta"), ("q3", "alpha"))
-    assert ledger.staged_docids == ["a", "b", "c", "d", "e", "f"]
+    assert ledger.staged_ids == ["a", "b", "c", "d", "e", "f"]
 
 
-def test_staged_result_docids_dedupes_within_one_result() -> None:
-    """One search returning two chunks of one document is still one decision.
+def test_staged_result_ids_dedupes_within_one_result() -> None:
+    """The batch is keyed on the retrieval-unit id, deduped per result.
 
-    A chunk-granularity index returns ``<docid>_p1``/``_p2`` rows that share a
-    parent docid. The model commits doc-level ids (the track cites doc-level),
-    so the batch must present the parent once — otherwise a single selection
-    would appear to leave an occurrence unresolved.
+    A repeated unit id within one result is one decision, not two — otherwise a
+    single selection would appear to leave an occurrence unresolved. Note the
+    unit is the *chunk*: two pages of one document are DISTINCT units under
+    chunk-native commit, and collapsing to the parent docid happens only at the
+    submission boundary (``agent._collapse_to_docs``).
     """
     result = StagedResult(
         call_id="q1", tool_name="search", output="{}",
-        documents=[{"docid": "a"}, {"docid": "a"}, {"docid": "b"}])
-    assert result.docids == ["a", "b"]
+        documents=[{"id": "a"}, {"id": "a"}, {"id": "b"}])
+    assert result.ids == ["a", "b"]
+
+    paged = StagedResult(
+        call_id="q2", tool_name="search", output="{}",
+        documents=[{"id": "a_p1", "docid": "a"}, {"id": "a_p2", "docid": "a"}])
+    assert paged.ids == ["a_p1", "a_p2"]
 
 
 # ---------------------------------------------------------------------------
@@ -152,8 +157,8 @@ def test_commit_clears_pending_and_updates_the_cumulative_sets(
     ledger = ledger_with(("search-1", "alpha"))
     ledger.commit([{"docid": "b", "reason": "evidence"}], max_documents=3)
     assert ledger.pending == []
-    assert ledger.committed_docids == {"b"}
-    assert ledger.rejected_docids == {"a", "c"}
+    assert ledger.committed_ids == {"b"}
+    assert ledger.rejected_ids == {"a", "c"}
 
 
 def test_commit_returns_the_selected_documents_with_their_reason(
@@ -216,13 +221,14 @@ def test_commit_order_follows_the_staged_order_not_the_selection_order(
     assert decision.staged == ["a", "b", "c"]
 
 
-def test_commit_records_the_full_retrieval_unit_id_per_docid() -> None:
-    """Doc-level citation is a track requirement; the page is a review need.
+def test_commit_is_chunk_native_and_keeps_the_page_level_unit_id() -> None:
+    """The page must survive the commit; doc-level collapse is a later step.
 
-    The strict output must cite ``shard_00459_61697``, but a reviewer (and any
-    citation-support judgement) needs to know it was page 2 that supported the
-    claim. ``committed_full_ids`` is the only place that mapping survives —
-    without it a chunk-granularity run is unauditable.
+    A reviewer (and any citation-support judgement) needs to know it was page 2
+    that supported the claim, so the ledger commits the exact unit id. The
+    strict output still cites ``shard_00459_61697`` — but that collapse happens
+    at the submission boundary, not here. Committing a bare parent docid must
+    NOT silently match a staged chunk.
     """
     payload = json.dumps({
         "query": "alpha",
@@ -235,26 +241,36 @@ def test_commit_records_the_full_retrieval_unit_id_per_docid() -> None:
     ledger = ContextLedger()
     ledger.stage("search-1", "search", payload,
                  documents_from_search(json.loads(payload)))
+    assert ledger.staged_ids == ["shard_00459_61697_p2"]
 
-    ledger.commit([{"docid": "shard_00459_61697", "reason": "the page"}],
-                  max_documents=3)
+    decision = ledger.commit(
+        [{"id": "shard_00459_61697_p2", "reason": "the page"}],
+        max_documents=3)
 
-    assert ledger.committed_full_ids == {
-        "shard_00459_61697": "shard_00459_61697_p2"}
+    assert decision.committed == ["shard_00459_61697_p2"]
+    assert ledger.committed_ids == {"shard_00459_61697_p2"}
+
+    # The parent docid alone is not a staged unit — it must be rejected rather
+    # than resolved to whichever page happened to be staged.
+    with pytest.raises(ValueError, match="outside the staged context"):
+        ledger.commit([{"docid": "shard_00459_61697", "reason": "the doc"}],
+                      max_documents=3)
 
 
-def test_commit_falls_back_to_the_docid_when_no_unit_id_is_present() -> None:
-    """Doc-level engines must not produce a ``None`` in ``references_full``.
+def test_commit_accepts_the_legacy_docid_key_for_a_doc_level_unit() -> None:
+    """Doc-level engines return no separate ``id``, so ``docid`` must still work.
 
-    ``run_agent`` builds ``references_full`` by looking every reference up in
-    this map. Today's engines are doc-level, so the ``id`` field is often just
-    the docid or absent entirely; the fallback keeps that path yielding a real
-    id rather than a null the submission exporter would carry through.
+    ``documents_from_search`` falls back to ``docid`` for the unit id, so for an
+    unpaginated result the two are equal and a selection keyed on the legacy
+    ``docid`` key commits normally.
     """
     ledger = ContextLedger()
-    ledger.stage("search-1", "search", "{}", [{"docid": "a", "text": "t"}])
-    ledger.commit([{"docid": "a", "reason": "kept"}], max_documents=3)
-    assert ledger.committed_full_ids == {"a": "a"}
+    ledger.stage("search-1", "search", "{}", [{"id": "a", "docid": "a",
+                                               "text": "t"}])
+    decision = ledger.commit([{"docid": "a", "reason": "kept"}],
+                             max_documents=3)
+    assert decision.committed == ["a"]
+    assert ledger.committed_ids == {"a"}
 
 
 def test_commit_decision_context_is_the_trace_projection(ledger_with) -> None:
@@ -294,10 +310,10 @@ def test_commit_decision_is_constructible_as_a_plain_record() -> None:
 # ---------------------------------------------------------------------------
 # Sequential commits across turns
 # ---------------------------------------------------------------------------
-def test_committed_docids_accumulate_across_batches(ledger_with) -> None:
+def test_committed_ids_accumulate_across_batches(ledger_with) -> None:
     """The committed set is the run's citable universe, built up over turns.
 
-    ``run_agent`` passes ``set(ledger.committed_docids)`` to the final-report
+    ``run_agent`` passes ``set(ledger.committed_ids)`` to the final-report
     parser, which drops any citation outside it. A ledger that reset per batch
     would make every document from an earlier round uncitable, and the model's
     correctly-cited report would come back stripped of its references.
@@ -308,13 +324,13 @@ def test_committed_docids_accumulate_across_batches(ledger_with) -> None:
                  documents_from_search(json.loads(search_payload("beta"))))
     ledger.commit([{"docid": "d", "reason": "second"}], max_documents=3)
 
-    assert ledger.committed_docids == {"a", "d"}
-    assert ledger.rejected_docids == {"b", "c", "e", "f"}
+    assert ledger.committed_ids == {"a", "d"}
+    assert ledger.rejected_ids == {"b", "c", "e", "f"}
 
 
 def test_a_docid_rejected_then_committed_leaves_the_rejected_set(
         ledger_with) -> None:
-    """``rejected_docids`` means "never committed", not "some copy was compacted".
+    """``rejected_ids`` means "never committed", not "some copy was compacted".
 
     The two sets are written side by side into
     ``trace.summary.context.{committed,rejected}``. Without the
@@ -324,16 +340,16 @@ def test_a_docid_rejected_then_committed_leaves_the_rejected_set(
     """
     ledger = ledger_with(("q1", "alpha"))
     ledger.commit([{"docid": "a", "reason": "first"}], max_documents=3)
-    assert "b" in ledger.rejected_docids
+    assert "b" in ledger.rejected_ids
 
     ledger.stage("q2", "search", staged_output("alpha"),
                  documents_from_search(json.loads(search_payload("alpha"))))
     ledger.commit([{"docid": "b", "reason": "worth keeping after all"}],
                   max_documents=3)
 
-    assert ledger.committed_docids == {"a", "b"}
-    assert "b" not in ledger.rejected_docids
-    assert ledger.rejected_docids == {"c"}
+    assert ledger.committed_ids == {"a", "b"}
+    assert "b" not in ledger.rejected_ids
+    assert ledger.rejected_ids == {"c"}
 
 
 # ---------------------------------------------------------------------------
@@ -402,7 +418,8 @@ def test_compaction_leaves_a_non_json_tool_result_untouched() -> None:
     """
     ledger = ContextLedger()
     output = "this tool result is not JSON at all"
-    ledger.stage("search-1", "search", output, [{"docid": "a", "text": "t"}])
+    ledger.stage("search-1", "search", output,
+                 [{"id": "a", "docid": "a", "text": "t"}])
     decision = ledger.commit([], max_documents=3)
     assert decision.replacements["search-1"] == output
 
@@ -418,7 +435,7 @@ def test_compaction_of_a_non_search_tool_reserializes_without_pruning() -> None:
     ledger = ContextLedger()
     output = json.dumps({"results": [{"docid": "a", "text": "kept whole"}]})
     ledger.stage("call-1", "some_other_tool", output,
-                 [{"docid": "a", "text": "kept whole"}])
+                 [{"id": "a", "docid": "a", "text": "kept whole"}])
     decision = ledger.commit([], max_documents=3)
     assert json.loads(decision.replacements["call-1"]) == {
         "results": [{"docid": "a", "text": "kept whole"}]}
@@ -440,7 +457,7 @@ def test_compaction_passes_through_result_entries_it_cannot_identify(
     """
     ledger = ContextLedger()
     output = json.dumps({"results": results})
-    ledger.stage("search-1", "search", output, [{"docid": "a"}])
+    ledger.stage("search-1", "search", output, [{"id": "a", "docid": "a"}])
     decision = ledger.commit([], max_documents=3)
     assert first_line_json(decision.replacements["search-1"])["results"] \
         == results
@@ -456,7 +473,7 @@ def test_compaction_ignores_a_payload_whose_results_are_not_a_list() -> None:
     """
     ledger = ContextLedger()
     output = json.dumps({"results": "unexpected shape"})
-    ledger.stage("search-1", "search", output, [{"docid": "a"}])
+    ledger.stage("search-1", "search", output, [{"id": "a", "docid": "a"}])
     decision = ledger.commit([], max_documents=3)
     assert first_line_json(decision.replacements["search-1"]) == {
         "results": "unexpected shape"}

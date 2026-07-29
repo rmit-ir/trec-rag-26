@@ -52,8 +52,8 @@ def test_the_schema_requires_a_documents_array_of_docid_reason_pairs() -> None:
     documents = schema["properties"]["documents"]
     assert documents["type"] == "array"
     item = documents["items"]
-    assert set(item["properties"]) == {"docid", "reason"}
-    assert sorted(item["required"]) == ["docid", "reason"]
+    assert set(item["properties"]) == {"id", "reason"}
+    assert sorted(item["required"]) == ["id", "reason"]
 
 
 def test_the_description_states_the_one_turn_window_and_the_empty_case() -> None:
@@ -215,7 +215,7 @@ def test_finishing_appends_the_write_the_report_now_instruction(
     instruction = handled.payload["instruction"]
     # The report contract is restated because this may be the model's last turn.
     assert "write the final report now" in instruction
-    assert "[docid] citation markers" in instruction
+    assert "[id] citation markers" in instruction
     assert "only committed evidence" in instruction
 
 
@@ -306,7 +306,7 @@ def test_expire_staged_leaves_previously_committed_documents_alone(
     """An expiry cannot cost the run evidence it already retained.
 
     Expiry runs on the failure paths, often right after a successful commit in
-    an earlier round. ``committed_docids`` is the run's citable universe, so
+    an earlier round. ``committed_ids`` is the run's citable universe, so
     clearing or narrowing it here would silently strip references from the final
     report as a side effect of an unrelated protocol slip.
     """
@@ -321,5 +321,4 @@ def test_expire_staged_leaves_previously_committed_documents_alone(
                  documents_from_search(_json.loads(search_payload("beta"))))
     expire_staged(ledger, max_documents=3, reason="not retained")
 
-    assert ledger.committed_docids == {"a"}
-    assert ledger.committed_full_ids == {"a": "a"}
+    assert ledger.committed_ids == {"a"}
