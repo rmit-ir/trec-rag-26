@@ -2,8 +2,6 @@
 import * as React from "react";
 import useSWR from "swr";
 import Box from "@mui/material/Box";
-import Tabs from "@mui/material/Tabs";
-import Tab from "@mui/material/Tab";
 import Paper from "@mui/material/Paper";
 import Typography from "@mui/material/Typography";
 import IconButton from "@mui/material/IconButton";
@@ -19,40 +17,28 @@ import type { DocResult } from "@/lib/types";
 import FeedbackWidget from "@/components/FeedbackWidget";
 
 /**
- * Persistent right-hand document column. Shows docid, kind (document/chunk),
- * and which backend served the text (dense endpoint vs Pyserini; chunk ids
- * that fell back to the parent doc are flagged). Stays open across citation
- * clicks; the close button clears the ?doc= param.
+ * Persistent right-hand document column. Fetches the retrieval unit by id,
+ * AS-IS, via `/api/doc/{id}` — a chunk id yields that chunk (dense and sparse
+ * both return page/chunk ids now), so there is no per-backend id parsing and
+ * no separate "full document" view. Shows docid, kind (document/chunk), and
+ * which docstore served the text. Stays open across citation clicks; the close
+ * button clears the ?doc= param.
  */
 export default function DocSidebar({
   docid,
-  source,
   system,
   sessionId,
   onClose,
 }: {
   docid: string;
-  /** engine that surfaced this doc in the trace — fetch from the same side */
-  source?: "sparse" | "dense";
   system: string;
   sessionId: string;
   onClose: () => void;
 }) {
-  const [view, setView] = React.useState<"retrieved" | "full">("retrieved");
-  // A new docid resets to the retrieved unit.
-  React.useEffect(() => setView("retrieved"), [docid]);
-
-  const retrieved = useSWR<DocResult>(
-    `/api/doc/${encodeURIComponent(docid)}${source ? `?source=${source}` : ""}`,
+  const { data, error, isLoading } = useSWR<DocResult>(
+    `/api/doc/${encodeURIComponent(docid)}`,
     fetcher,
   );
-  // Full parent document via the sparse (Pyserini) full-doc API; only
-  // fetched once the tab is opened.
-  const full = useSWR<DocResult>(
-    view === "full" ? `/api/doc/${encodeURIComponent(docid)}?full=1` : null,
-    fetcher,
-  );
-  const { data, error, isLoading } = view === "full" ? full : retrieved;
 
   return (
     <Paper
@@ -91,11 +77,6 @@ export default function DocSidebar({
               label={`source: ${data.source}`}
               sx={{ height: 18 }}
             />
-            {data.parentFallback ? (
-              <Tooltip title={`Chunk id not addressable directly — showing parent document ${data.resolvedId}`}>
-                <Chip size="small" color="warning" variant="outlined" label={`parent doc: ${data.resolvedId}`} sx={{ height: 18 }} />
-              </Tooltip>
-            ) : null}
           </Stack>
         ) : null}
         <Box sx={{ mt: 0.75 }}>
@@ -107,26 +88,7 @@ export default function DocSidebar({
           />
         </Box>
       </Box>
-      <Tabs
-        value={view}
-        onChange={(_e, v) => setView(v)}
-        variant="scrollable"
-        scrollButtons="auto"
-        allowScrollButtonsMobile
-        sx={{ px: 1, minHeight: 32, borderBottom: 1, borderColor: "divider" }}
-      >
-        <Tab
-          value="retrieved"
-          label="Retrieved"
-          sx={{ minHeight: 32, py: 0, textTransform: "none" }}
-        />
-        <Tab
-          value="full"
-          label="Full document"
-          sx={{ minHeight: 32, py: 0, textTransform: "none" }}
-        />
-      </Tabs>
-      <Box sx={{ p: 1.5, overflowY: "auto", flexGrow: 1 }}>
+      <Box sx={{ p: 1.5, overflowY: "auto", flexGrow: 1, borderTop: 1, borderColor: "divider" }}>
         {isLoading ? (
           <>
             <Skeleton /> <Skeleton /> <Skeleton /> <Skeleton width="70%" />
