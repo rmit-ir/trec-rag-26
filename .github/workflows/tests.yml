@@ -1,0 +1,35 @@
+name: tests
+
+# The offline suite under tests/ is hermetic by design (see tests/conftest.py:
+# the autouse `no_network` fixture fails any unmarked test that opens a socket),
+# so it runs in CI with no credentials and no access to the ClimbMix endpoints.
+# `live`-marked tests are deselected by the default addopts in pyproject.toml
+# and are therefore never attempted here.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pytest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+        with:
+          enable-cache: true
+      # requires-python is >=3.13; let uv provision it rather than pinning a
+      # setup-python version that could drift from pyproject.
+      #
+      # Runs the same entry point developers use, so CI cannot drift from local:
+      # scripts/test.sh owns the dep-group list and the fail-on-skip gate.
+      #
+      # Those groups matter because some tests `importorskip` an SDK that lives in
+      # one — test_mcp_server.py needs `mcp.server.fastmcp` (o3-deep-research),
+      # test_aus_agent.py needs `boto3` (aus-agent). Without them the tests SKIP
+      # rather than fail, and the job is green having proven nothing about the
+      # code they cover; the suite is otherwise skip-free by design, so the script
+      # treats any skip as a missing dependency and exits non-zero.
+      - name: Run the offline test suite
+        run: bash scripts/test.sh

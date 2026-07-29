@@ -126,7 +126,9 @@ architecture diagram, generated from `src/systems/` — from going stale:
 - **pre-commit** (`scripts/git-hooks/pre-commit`) rejects a commit whose staged
   tree has a stale diagram. It only fires when the commit touches
   `src/systems/`, `gen_arch_viz.py`, or the diagram itself. Bypass with
-  `git commit --no-verify` or `SKIP_ARCH_VIZ_CHECK=1`.
+  `git commit --no-verify` or `SKIP_ARCH_VIZ_CHECK=1`. The same hook runs the
+  offline test suite when a commit touches `src/`, `tests/`, or
+  `pyproject.toml` (bypass with `SKIP_TEST_CHECK=1`).
 - **Claude Code hooks** (`scripts/hooks/arch_viz_refresh.sh`) regenerate it
   in-session on edits under `src/systems/`, and self-heal on `Stop`. If you
   already have a `.claude/settings.json`, merge the template's `hooks` block in
@@ -137,6 +139,106 @@ CI (`.github/workflows/architecture-diagram.yml`) re-checks freshness on PRs and
 Regenerate manually any time with
 `python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open`; see the
 `trec-rag-new-system` skill for the full story.
+
+## Testing (`tests/`)
+
+All tests live under `tests/` and are collected by pytest — nothing under
+`src/` is a test file. The suite is **hermetic by default**: no credentials, no
+network.
+
+**Use `scripts/test.sh`** — it passes the dep groups for you and fails on a
+skip (both are easy to get wrong by hand; see below). Two modes:
+
+```bash
+bash scripts/test.sh                    # EVERYTHING (792 cases, ~7s) — before every commit
+bash scripts/test.sh contract           # just one area
+```
+
+Selective mode takes anything pytest does — a directory, a file, a
+`file::test_name`, a `-k` expression — plus the shorthands `contract`, `shared`,
+`systems`, `dummy-api`, `aus-agent`, and `live`:
+
+```bash
+bash scripts/test.sh tests/shared/test_fusion.py
+bash scripts/test.sh tests/systems/test_facet_rag.py::test_run_one_plans_both_facets
+bash scripts/test.sh -k "rrf or fuse"
+bash scripts/test.sh live               # ONLY the live tests — needs creds, hits real services
+```
+
+**Run the full suite after ANY change under `src/utils/`, `src/tools/`,
+`src/ragrun/` or `src/systems/`**, and before committing. Those layers are shared
+by all five systems, so a subset can't clear a change to them — and the whole
+suite is ~7 seconds, cheaper than reasoning about which tests your edit reached.
+A selective run prints this reminder on success.
+
+The equivalent by hand, if you need pytest flags the script doesn't pass through:
+
+```bash
+DEP_GROUPS="--group dev --group o3-deep-research --group aus-agent"
+uv run $DEP_GROUPS pytest                        # whole offline suite
+uv run $DEP_GROUPS pytest -m 'live or not live'  # offline + live together
+```
+
+**Pass all three dep groups.** `tests/shared/test_mcp_server.py` `importorskip`s
+`mcp.server.fastmcp` and `tests/systems/test_aus_agent.py` `importorskip`s
+`boto3`, so with `--group dev` alone those tests *skip* and the run is green
+having proven nothing about the code they cover. The suite is otherwise skip-free
+by design, so **`scripts/test.sh` and CI both fail on any skip** — if you add an
+`importorskip`, add its group to `scripts/test.sh`,
+`.github/workflows/tests.yml`, and `scripts/git-hooks/pre-commit`.
+
+(Don't name that variable `GROUPS` — it's a bash built-in holding your numeric
+group ids, and assigning to it is silently ignored.)
+
+Layout: `tests/contract/` (input/output format conformance against the track
+spec), `tests/shared/` (`utils`/`tools`/`mcp` layers), `tests/systems/`
+(per-system end-to-end), `tests/aus_agent_context/` (the `ContextLedger` suite),
+`tests/dummy_api/` (the real clients over loopback HTTP, see below).
+
+`tests/conftest.py` holds the shared fixtures and *enforces* hermeticism rather
+than trusting it — read it before writing tests:
+
+- **`no_network`** (autouse) fails any unmarked test that reaches
+  `urllib.request.urlopen`/`socket.create_connection`, naming the URL.
+- **`isolated_data_dir`** (autouse) repoints `RAGRUN_DATA_DIR` at a tmp dir so
+  `save_run` never writes into the real `data/outputs/`.
+- **`no_ambient_creds`** (autouse) strips `SEARCH_API_KEY`/`OPENAI_API_KEY`/AWS
+  vars for offline tests — otherwise a "hermetic" test can pass locally only
+  because it silently authenticated.
+- **`stub_search_tool`** — dummy retrieval backends returning
+  spec-shaped payloads; patches `tools.search_tool._DISPATCH`, so the real
+  serialization/truncation/error-envelope code stays under test while transport
+  is faked. Returns a `calls` dict for asserting engine routing.
+- **`scripted_provider`** — dummy LLM implementing the full
+  `providers.base.Provider` contract; script it with a list of `ModelTurn`s or a
+  `responder(pending_text, turn_index)` callable.
+- **`fake_hits` / `fake_search_response`** — canonical ClimbMix payloads in the
+  exact shapes `references/{rag,retrieval}-task.md` document.
+
+**Every external API is dummied in the offline suite** — search endpoints via
+`stub_search_tool`, model backends via `scripted_provider` — each returning a
+response in the documented format, so a pipeline runs end-to-end with zero
+network. Mark a test `@pytest.mark.live` to hit the real services instead; each
+system keeps at least one so the real path stays exercisable.
+
+`tests/dummy_api/` goes one layer deeper: a local `HTTPServer` speaking each
+backend's documented wire format, with the **real** clients pointed at it via
+their env vars and nothing patched. That covers what `stub_search_tool` cannot —
+URL construction, auth headers, the `User-Agent` the proxy requires, HTTP verb,
+request-body shape, and response→`SearchHit` mapping. Those tests are marked
+`local_socket` (loopback only, no creds, runs in CI); `tests/dummy_api/conftest.py`
+narrows `no_network` rather than disabling it, so a hardcoded hosted URL still
+fails.
+
+**Every test needs a docstring, and it must say something the test name does
+not** — why the behaviour matters, or what breaks if it regresses. A prose
+restatement of the name is worse than nothing. Module docstrings carry the
+layer-level "what this file defends and why it's fragile" so per-test ones stay
+short. Tests that pin a known `src/` defect are named `*_current_behaviour` and
+say so in the docstring, so a fix announces itself by failing.
+
+Enforced by `.github/workflows/tests.yml` on every PR/push and by the
+`pre-commit` hook. See the `trec-rag-new-system` skill for the full story.
 
 ## RAG Systems (`src/systems/`)
 

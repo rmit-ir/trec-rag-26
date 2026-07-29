@@ -44,8 +44,7 @@ prompts.SYSTEM_PROMPT ────┘        │
   `ragrun.validate_rag_output`.
 - **`run.py`** — CLI (`--query | --qid | --all`), endpoint config, artifact
   assembly.
-- **`test_mock.py`** — end-to-end run against a scripted mock LLM and the **real**
-  ClimbMix tools; no network model call.
+Tests live in `tests/systems/test_ali_deepresearch.py` (see `## Tests` below).
 
 ## Upstream mapping — kept vs. replaced
 
@@ -106,14 +105,23 @@ Artifacts land in `data/outputs/ali_deepresearch/<ts>.<slug>.{trajectory,output}
 Pass `--no-format-llm` to use the offline heuristic formatter instead of an
 extra LLM call.
 
-## Offline test (no endpoint)
+## Tests
 
 ```bash
-uv run --group ali-deepresearch python src/systems/ali_deepresearch/test_mock.py
+bash scripts/test.sh tests/systems/test_ali_deepresearch.py
 ```
 
-A scripted mock LLM drives `think → search → think → get_document → answer`
-through the real loop and the real ClimbMix tools, then asserts both JSONs are
-written with no violations, `tool_call_counts == {search:1, get_document:1}`, a
-non-empty `retrieved_docids`, and correctly interleaved reasoning/tool-call
-items.
+Fully offline — no credentials, no network. A `ScriptedProvider` drives
+`think → search → think → get_document → answer` through the real loop, with
+retrieval stubbed by the `stub_search_tool` fixture, and asserts both JSONs are
+written with no violations, the per-tool call counts, a non-empty
+`retrieved_docids`, correctly interleaved reasoning/tool-call items, and that
+every reference is cited. The `answer_format` heuristic and LLM paths are covered
+separately.
+
+One `@pytest.mark.live` test keeps the real-endpoint path exercisable; it is
+deselected by default and needs `SEARCH_API_KEY` / `PYSERINI_API_TOKEN`:
+
+```bash
+bash scripts/test.sh live tests/systems/test_ali_deepresearch.py
+```

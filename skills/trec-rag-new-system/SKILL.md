@@ -49,10 +49,10 @@ python skills/trec-rag-new-system/scripts/scaffold_system.py my_baseline --backe
 python skills/trec-rag-new-system/scripts/scaffold_system.py my_thing   --backends none
 ```
 
-The script writes `src/systems/<name>/{__init__,run,prompts,pipeline,test_mock}.py`
-and prints a checklist for the steps it deliberately does NOT automate
-(pyproject dep group, README, worklog). It refuses to overwrite existing files
-without `--force`.
+The script writes `src/systems/<name>/{__init__,run,prompts,pipeline}.py` plus a
+pytest module at `tests/systems/test_<name>.py`, and prints a checklist for the
+steps it deliberately does NOT automate (pyproject dep group, README, worklog).
+It refuses to overwrite existing files without `--force`.
 
 ## Required Package Layout
 
@@ -66,10 +66,10 @@ Every system is a Python package `src/systems/<name>/`:
 - `prompts.py` — prompt strings only; keep engine guidance and citation shape
   out (they come from the shared layers).
 - the pipeline/agent module — control flow, trajectory assembly, artifact write.
-- `test_mock.py` — offline end-to-end test: a scripted LLM/provider drives the
-  **real** pipeline and the **real** ClimbMix search tools. It reports `SKIPPED`
-  (not FAIL) when search returns nothing because credentials are unset.
 - `README.md` — design diagram, upstream mapping (if a port), CLI, tests.
+
+Tests do **not** live in the package — they live in the collected suite under
+`tests/` (see the Test Harness section below).
 
 ## The Two Artifacts (strict vs. rich)
 
@@ -88,6 +88,101 @@ Answer rules enforced by `validate_rag_output` (a `.output.violations.json`
 appears if broken): `references` is a docid list, every reference is cited, each
 sentence has ≤3 citation indices, the whole answer ≤1024 words, `metadata` has
 exactly `{team_id, narrative_id, narrative, run_id, run_desc}`.
+
+## Test Harness
+
+All tests live under `tests/`, collected by pytest (config in the root
+`pyproject.toml`). Nothing under `src/` is a test file.
+
+Run them through `scripts/test.sh`, which passes the dep groups and fails on a
+skip. Two modes — everything, or just what you name:
+
+```bash
+bash scripts/test.sh                    # EVERYTHING (~7s) — before every commit
+bash scripts/test.sh systems            # one area: contract shared systems dummy-api aus-agent
+bash scripts/test.sh tests/systems/test_<name>.py     # or any pytest target / -k expr
+bash scripts/test.sh live               # ONLY the live tests (needs creds)
+```
+
+**Run the full suite whenever you touch a shared layer** — `src/utils/`,
+`src/tools/`, `src/ragrun/` — or any system. All five systems sit on those
+layers, so a per-system run cannot clear a change to them. Selective runs print
+that reminder. By hand:
+
+```bash
+DEP_GROUPS="--group dev --group o3-deep-research --group aus-agent"
+uv run $DEP_GROUPS pytest -m 'live or not live'   # offline + live together
+```
+
+**Pass all three dep groups.** Two test modules `importorskip` an SDK that lives
+in a per-system group (`mcp.server.fastmcp` for `src/mcp`, `boto3` for
+`aus_agent`); with `--group dev` alone they *skip*, and the run is green having
+proven nothing. The suite is skip-free by design, so `scripts/test.sh` and CI both
+fail on any skip. If you add an `importorskip`, add its group to
+`scripts/test.sh`, `.github/workflows/tests.yml`, and
+`scripts/git-hooks/pre-commit`. (Not `GROUPS` — bash reserves that name for your
+numeric group ids and silently ignores assignments to it.)
+
+**Hermetic by default.** Bare `pytest` deselects the `live` marker, and
+`tests/conftest.py` enforces the guarantee rather than trusting it:
+
+- `no_network` (autouse) fails any unmarked test that reaches
+  `urllib.request.urlopen` or `socket.create_connection`, naming the URL it
+  tried. A test that needs retrieval stubs it; a test that wants the real
+  endpoint is marked `@pytest.mark.live`.
+- `isolated_data_dir` (autouse) repoints `RAGRUN_DATA_DIR` at a tmp dir, so
+  `save_run` never writes into the real `data/outputs/` tree.
+- `no_ambient_creds` (autouse) strips `SEARCH_API_KEY`, `OPENAI_API_KEY`, the
+  AWS vars, etc. for offline tests — otherwise a "hermetic" test can pass on
+  your machine only because it silently authenticated somewhere.
+
+**Shared fixtures** (`tests/conftest.py` — read it before writing tests):
+
+| fixture | what it gives you |
+| --- | --- |
+| `stub_search_tool` | patches `tools.search_tool._DISPATCH` for every engine; returns a `calls` dict so you can assert engine routing and query text. The real serialization / truncation / error-envelope logic stays under test — only the transport is faked. |
+| `scripted_provider` | the `ScriptedProvider` class implementing the full `providers.base.Provider` contract. Script it with a list of `ModelTurn`s, or a `responder(pending_text, turn_index)` callable for stage-dependent turns. Records the conversation; raises when the script is exhausted. |
+| `fake_hits` / `fake_search_response` | canonical ClimbMix payloads in the exact shapes the spec documents. |
+| `read_artifacts(paths)` | loads what a `save_run` wrote → `{trajectory, output, violations}`, with `violations` defaulting to `[]`. |
+
+Module-level helpers: `from conftest import model_turn, tool_call,
+CLIMBMIX_DOCIDS`.
+
+**Marker discipline.** Every system should have both: offline tests that prove
+the pipeline with stubbed retrieval, and at least one `@pytest.mark.live` test
+that keeps the real path exercisable. `--strict-markers` means a typo'd marker
+is an error, not a silent no-op. A third marker, `local_socket`, means "real
+loopback HTTP to the dummy server, no creds" — those run in CI, so do **not**
+mark them `live`.
+
+**Deeper than the stubs: `tests/dummy_api/`.** `stub_search_tool` patches
+`_DISPATCH`, which skips the retrieval clients entirely — URL construction, auth
+headers, the required `User-Agent`, HTTP verb, request-body shape, and
+response→`SearchHit` mapping. `DummyClimbMixAPI` is a local `HTTPServer` speaking
+each backend's documented wire format; tests point a client's env var at
+`api.base_url`, patch nothing else, and can assert what the client *sent*
+(`api.last_request`) as well as what it parsed. Reach for it when you add or
+change a client.
+
+**Docstrings are required, and the bar is content.** Every test carries a
+docstring that says something its *name* does not: why the behaviour matters, or
+what breaks if it regresses. A prose restatement of the name adds lines and no
+information. Put the layer-level explanation in the module docstring so the
+per-test ones stay short. A test that pins a known `src/` defect is named
+`*_current_behaviour` and says so, so a later fix announces itself by failing
+rather than passing silently.
+
+**Format conformance** (`tests/contract/`) tests our artifacts against
+`skills/trec-rag-2026-track-guidelines/references/{rag,retrieval}-task.md`:
+topics-TSV input parsing, ClimbMix document input shapes, the `rag_output`
+JSONL object, the strict-vs-rich trajectory split, and the six-column runfile.
+Treat those spec files as the source of truth when a test and the code
+disagree.
+
+**Enforcement.** `.github/workflows/tests.yml` runs the offline suite on every
+PR and push to `main`, and fails the job if any test skipped. The `pre-commit`
+hook also runs it when a commit touches `src/`, `tests/`, or `pyproject.toml`
+(bypass with `SKIP_TEST_CHECK=1`).
 
 ## Architecture Visualization (regenerate + launch every time)
 
@@ -224,7 +319,10 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
    `uv sync` installs none). Run as `uv run --group <name> python
    src/systems/<name>/run.py …`. Each system gets its own group.
 2. **README.md** documenting the design + CLI + tests.
-3. **Worklog** `worklogs/YYYY-MM-DD-<name>.md`, committed with the code.
+3. **Fill in the generated test** at `tests/systems/test_<name>.py` — the
+   scaffold leaves a TODO for the scripted provider. An unfilled scaffold test
+   proves nothing; the offline test must actually drive your pipeline.
+4. **Worklog** `worklogs/YYYY-MM-DD-<name>.md`, committed with the code.
 
 ## Credentials
 
@@ -232,6 +330,10 @@ Retrieval needs the repo `.env` (see `.env.example`): `SEARCH_API_KEY`
 (dense+sparse), `PYSERINI_API_TOKEN` (keyword/Pyserini). LLM backends need
 their own keys (`AWS_*` / `BEDROCK_*` for Bedrock, `OPENAI_API_KEY` /
 `OPENAI_MODEL_ID` for OpenAI). Never print or commit tokens.
+
+None of these are needed to run the offline test suite — that is the point of
+the hermeticism guards above. They are needed only for `pytest -m live` and for
+real runs.
 
 ## Reference Implementations
 

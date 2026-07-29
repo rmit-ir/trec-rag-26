@@ -60,8 +60,8 @@ truth; nothing is restated in this system's prompts).
   sentence/citation shape via `ali_deepresearch.answer_format.format_answer`,
   and writes both artifacts with `ragrun.save_run`.
 - `run.py` — CLI (`--query | --qid | --all`, `--backend`, `--engines`, ...).
-- `test_mock.py` — offline end-to-end test: a scripted `Provider` drives the
-  three real stages against the **real** ClimbMix search backend.
+Tests live in `tests/systems/test_facet_rag.py` (see `## Tests` below), not in
+this package.
 
 ## Backends (pluggable — reused, not duplicated)
 
@@ -87,8 +87,9 @@ SEARCH_API_KEY=user:pass                 # dense + sparse ClimbMix services
 PYSERINI_API_TOKEN=...                    # hosted Pyserini BM25 (keyword engine)
 ```
 
-Without them the hosted search endpoints return `401 Unauthorized`;
-`test_mock.py` then reports `SKIPPED` (no retrieval) rather than a code failure.
+Without them the hosted search endpoints return `401 Unauthorized`. The test
+suite needs neither key — retrieval is stubbed offline — so a 401 only affects
+real runs and the `live`-marked tests.
 
 ## CLI
 
@@ -110,15 +111,28 @@ uv run --group facet-rag python src/systems/facet_rag/run.py --all \
 Artifacts land in `data/outputs/facet_rag/<ts>.<slug>.{trajectory,output}.json`
 (a `.output.violations.json` appears only if the answer breaks a track rule).
 
-## Offline test (no endpoint)
+## Tests
 
 ```sh
-uv run --group facet-rag python src/systems/facet_rag/test_mock.py
+bash scripts/test.sh tests/systems/test_facet_rag.py
 ```
 
-A scripted mock provider drives `plan -> execute -> synthesize -> format`
-through the real pipeline and the real ClimbMix search tools, then asserts both
-JSONs are written with no violations, `tool_call_counts == {search: 2}`, a
-non-empty `retrieved_docids`, valid per-sentence citations, and the correct
-strict/rich artifact split. With no search credentials it reports `SKIPPED`.
+Fully offline — no credentials, no network, nothing to skip. A `ScriptedProvider`
+drives `plan -> execute -> synthesize -> format` through the real pipeline with
+retrieval stubbed by the `stub_search_tool` fixture, then asserts both JSONs are
+written with no violations, `tool_call_counts == {search: 2}`, a non-empty
+`retrieved_docids`, valid per-sentence citations, and the correct strict/rich
+artifact split. The planner's JSON parsing (fenced output, disabled engines, `k`
+clamping, malformed input → fallback facets) is covered case by case.
+
+`tests/dummy_api/test_dummy_api.py` additionally runs the whole pipeline against
+a local HTTP server impersonating the ClimbMix endpoints, so the retrieval
+clients themselves are exercised without credentials.
+
+One `@pytest.mark.live` test keeps the real-endpoint path exercisable; it is
+deselected by default and needs `SEARCH_API_KEY` / `PYSERINI_API_TOKEN`:
+
+```sh
+bash scripts/test.sh live tests/systems/test_facet_rag.py
+```
 ```
