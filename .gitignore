@@ -51,27 +51,26 @@ tasks/bm25_index/jars/
 # Logs, data, and run outputs
 *.log
 *.bak
-# Access logs (per-run search query logs) — whole folder
+# Per-run log folders (may hold non-.log artifacts too)
 tasks/search_serve/logs/
+tasks/task-comparison/logs/
 data/*
-# Official datasets tracked as submodules
+# Official datasets tracked as submodules (except re-downloadable bulk pulls)
 !data/official/
-# ...except bulk downloads pulled from HuggingFace (re-downloadable)
 data/official/browsecomp-plus/
-# Outputs are large — NOT tracked in git; synced between servers via rsync instead.
+# Outputs are large — synced between servers via rsync, not git.
 # (Human feedback is small and curated, so it stays tracked.)
 !data/output_feedbacks/
-# Backend-comparison analysis IS tracked (code + result docs), but its large
-# generated intermediates are not (regenerable; synced via rsync).
+# Backend-comparison: code lives in tasks/task-comparison/; result docs + small
+# summaries under data/task-comparison/ ARE tracked, but large regenerable
+# intermediates (judgment caches, pools, embeddings, doc-text, id maps) are not.
 !data/task-comparison/
-data/task-comparison/rubric-judge/out/judgments/
+data/task-comparison/rubric-judge/out/*judgments/
 data/task-comparison/rubric-judge/out/pool.json
 data/task-comparison/rubric-judge/out/provenance.json
 data/task-comparison/rubric-judge/out/retrieved_raw.json
-data/task-comparison/rubric-judge/out/answer_judgments/
-data/task-comparison/diversity/embeddings.npy
-data/task-comparison/diversity/doc_text.jsonl
-tasks/task-comparison/logs/
+data/task-comparison/diversity/*.npy
+data/task-comparison/diversity/*.jsonl
 tmp/
 
 # Git worktrees
