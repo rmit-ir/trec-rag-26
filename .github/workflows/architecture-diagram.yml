@@ -1,0 +1,21 @@
+name: architecture-diagram
+
+# Backstop for the local pre-commit hook (scripts/git-hooks/pre-commit): git
+# hooks are not cloned and can be bypassed with --no-verify, so CI re-checks
+# that docs/architecture.html matches src/systems/.
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  check-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      # The generator is stdlib-only (ast/json/pathlib) — no install step needed.
+      - name: Check docs/architecture.html is up to date
+        run: python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check

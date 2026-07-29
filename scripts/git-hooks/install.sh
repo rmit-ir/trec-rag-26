@@ -1,0 +1,40 @@
+#!/usr/bin/env bash
+# Install this repo's git hooks by pointing core.hooksPath at scripts/git-hooks.
+#
+# Git hooks are NOT cloned, so every clone must run this once:
+#     bash scripts/git-hooks/install.sh
+#
+# Using core.hooksPath (rather than copying into .git/hooks) means the hooks stay
+# version-controlled — editing scripts/git-hooks/pre-commit takes effect for
+# everyone who has run this, with no re-install.
+set -euo pipefail
+
+REPO_ROOT="$(git rev-parse --show-toplevel)"
+cd "$REPO_ROOT"
+
+chmod +x scripts/git-hooks/pre-commit
+git config core.hooksPath scripts/git-hooks
+
+echo "installed: core.hooksPath = $(git config core.hooksPath)"
+echo "hooks active:"
+for h in scripts/git-hooks/*; do
+  case "$(basename "$h")" in
+    install.sh|README.md) ;;
+    *) echo "  - $(basename "$h")" ;;
+  esac
+done
+echo
+echo "Uninstall with: git config --unset core.hooksPath"
+
+# The Claude Code hook layer lives in .claude/settings.json, which is gitignored
+# and therefore cannot ship with the repo — nudge the user through step 2.
+if [[ ! -f .claude/settings.json ]]; then
+  cat <<'MSG'
+
+NOTE: .claude/settings.json is missing (it is gitignored, so it cannot be
+      committed). To also get in-session diagram regeneration:
+
+          mkdir -p .claude
+          cp scripts/hooks/claude-settings.example.json .claude/settings.json
+MSG
+fi

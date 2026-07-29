@@ -34,6 +34,13 @@ aus-agent = [
 ali-deepresearch = [
     "openai>=1.60",
 ]
+# facet_rag plan-then-execute multi-facet RAG (src/systems/facet_rag). Reuses
+# the aus_agent pluggable providers (Bedrock + OpenAI) behind the shared
+# Provider contract, so it needs the same two SDKs.
+facet-rag = [
+    "boto3>=1.40",
+    "openai>=2.45",
+]
 # OpenAI o3-deep-research baseline (src/systems/o3_deep_research) — Responses
 # API runner + the ClimbMix MCP server (src/mcp) it grounds the agent on.
 o3-deep-research = [

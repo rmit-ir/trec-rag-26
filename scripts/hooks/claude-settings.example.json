@@ -1,0 +1,41 @@
+{
+  "_comment": [
+    "Template for .claude/settings.json — the Claude Code hook layer that keeps",
+    "docs/architecture.html in sync with src/systems/ during agent sessions.",
+    "",
+    ".claude/ is gitignored in this repo (it is grouped with editor dirs), so this",
+    "file CANNOT be committed and must be recreated per clone:",
+    "",
+    "    mkdir -p .claude",
+    "    cp scripts/hooks/claude-settings.example.json .claude/settings.json",
+    "",
+    "If you already have a .claude/settings.json, MERGE the \"hooks\" block below",
+    "into it instead of overwriting — do not clobber existing settings.",
+    "",
+    "Claude Code ignores unknown top-level keys, so leaving this _comment in place",
+    "is harmless. See skills/trec-rag-new-system/SKILL.md -> Enforcement."
+  ],
+  "hooks": {
+    "PostToolUse": [
+      {
+        "matcher": "Edit|Write|MultiEdit",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/hooks/arch_viz_refresh.sh"
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/scripts/hooks/arch_viz_refresh.sh --verify"
+          }
+        ]
+      }
+    ]
+  }
+}

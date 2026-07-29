@@ -107,6 +107,45 @@ uv run --group notebook python -m ipykernel install --user \
   --name trec-rag-notebook --display-name "trec-rag (notebook)"
 ```
 
+## Per-Clone Setup (two manual steps — nothing else is automatic)
+
+Neither of these can be committed, so **every fresh checkout must run both**:
+
+```bash
+# 1. git hooks (hooks are never cloned)
+bash scripts/git-hooks/install.sh                 # sets core.hooksPath=scripts/git-hooks
+
+# 2. Claude Code hooks (.claude/ is gitignored)
+mkdir -p .claude
+cp scripts/hooks/claude-settings.example.json .claude/settings.json
+```
+
+Both exist to keep `docs/architecture.html` — the interactive RAG-systems
+architecture diagram, generated from `src/systems/` — from going stale:
+
+- **pre-commit** (`scripts/git-hooks/pre-commit`) rejects a commit whose staged
+  tree has a stale diagram. It only fires when the commit touches
+  `src/systems/`, `gen_arch_viz.py`, or the diagram itself. Bypass with
+  `git commit --no-verify` or `SKIP_ARCH_VIZ_CHECK=1`.
+- **Claude Code hooks** (`scripts/hooks/arch_viz_refresh.sh`) regenerate it
+  in-session on edits under `src/systems/`, and self-heal on `Stop`. If you
+  already have a `.claude/settings.json`, merge the template's `hooks` block in
+  rather than overwriting it.
+
+CI (`.github/workflows/architecture-diagram.yml`) re-checks freshness on PRs and
+`main`, so a clone that skips step 1 or 2 is still caught — just later.
+Regenerate manually any time with
+`python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open`; see the
+`trec-rag-new-system` skill for the full story.
+
+## RAG Systems (`src/systems/`)
+
+Adding, running, or reviewing a RAG system is covered by the
+**`trec-rag-new-system`** skill (package layout, shared `ragrun`/`tools`/`utils`
+layers, the strict-vs-rich artifact split, the scaffolder, and the architecture
+visualization that must be regenerated + launched whenever a system is developed
+or run). Browse the current architecture at `docs/architecture.html`.
+
 ## Active Tasks
 
 - **BM25 index (Lucene/Anserini)** — built in `tasks/bm25_index/`. This is a
