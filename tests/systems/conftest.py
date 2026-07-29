@@ -35,9 +35,20 @@ def load_script(path: Path, name: str) -> ModuleType:
     hyphenated ``claude-code-research/scripts/*.py`` and
     ``o3_deep_research/run.py`` (a bare ``run.py``, which would collide with
     every other system's runner if imported by its own name).
+
+    Reusing one ``name`` for two different files is the exact collision this
+    helper exists to avoid, so a cache hit whose ``__file__`` disagrees with
+    ``path`` raises instead of handing back the wrong module — otherwise the
+    second test would silently assert against the first script.
     """
+    path = path.resolve()
     cached = sys.modules.get(name)
     if cached is not None:
+        cached_file = getattr(cached, "__file__", None)
+        if cached_file is None or Path(cached_file).resolve() != path:
+            raise AssertionError(
+                f"module name {name!r} is already bound to {cached_file} — "
+                f"cannot reuse it for {path}; pick a distinct name.")
         return cached
     spec = importlib.util.spec_from_file_location(name, path)
     assert spec is not None and spec.loader is not None, f"cannot load {path}"

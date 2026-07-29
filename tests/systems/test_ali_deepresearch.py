@@ -167,11 +167,12 @@ def test_react_run_completes(react_run: dict[str, Any]) -> None:
 
 def test_react_run_writes_both_artifacts_without_violations(
         react_run: dict[str, Any]) -> None:
-    """A submission-ready run leaves no ``output.violations.json`` behind.
+    """A submission-ready ReAct run leaves no ``output.violations.json`` behind.
 
     ``save_run`` writes that third file only when the output breaks the track
     schema, so its absence is the machine-checkable claim that this artifact
-    could be exported as-is.
+    could be exported as-is — asserted here for the ReAct loop, whose answer is
+    assembled incrementally across rounds rather than in one synthesis step.
     """
     paths = react_run["paths"]
     assert paths["trajectory"].exists()

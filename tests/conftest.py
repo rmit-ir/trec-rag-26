@@ -24,6 +24,7 @@ Fixture layers, cheapest first:
 """
 from __future__ import annotations
 
+import itertools
 import json
 import os
 import socket
@@ -252,10 +253,20 @@ def model_turn(*, text: str | None = None,
     }
 
 
+_CALL_SEQ = itertools.count(1)
+
+
 def tool_call(name: str, arguments: dict[str, Any], *,
               id: str | None = None) -> dict[str, Any]:
-    """Build one normalized ``tool_call`` event."""
-    return {"id": id or f"call_{name}_{len(arguments)}",
+    """Build one normalized ``tool_call`` event.
+
+    The default id carries a process-wide sequence number because a tool-call
+    id is a *key*: ``add_tool_results``/``compact_tool_results`` look results up
+    by it and ``StrictScriptedProvider.content_by_id`` is a dict keyed on it, so
+    two calls sharing an id silently collapse into one instead of failing. Pass
+    ``id=`` explicitly whenever a test asserts on the id.
+    """
+    return {"id": id or f"call_{name}_{next(_CALL_SEQ)}",
             "name": name, "arguments": dict(arguments)}
 
 

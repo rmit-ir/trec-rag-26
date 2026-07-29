@@ -250,7 +250,7 @@ Everything now goes through one script, because the two things that make a run
 being restated in three places and were easy to get wrong by hand:
 
 ```bash
-bash scripts/test.sh                    # full suite (786 cases, ~7s)
+bash scripts/test.sh                    # full suite (792 cases, ~7s)
 bash scripts/test.sh contract           # shorthands: contract shared systems dummy-api aus-agent
 bash scripts/test.sh tests/shared/test_fusion.py::test_rrf_fuse_orders_by_score
 bash scripts/test.sh -k "rrf or fuse"   # anything pytest accepts passes through
@@ -460,15 +460,15 @@ this.
 
 ```bash
 bash scripts/test.sh
-# 786 passed, 4 deselected, 0 skipped
+# 792 passed, 4 deselected, 0 skipped
 ```
 
 | directory | cases | what it covers |
 | --- | --- | --- |
 | `tests/contract/` | 228 | input/output format conformance vs the spec files |
 | `tests/shared/` | 240 (1 `live`) | `utils` clients, RRF fusion, `env`, tool layer, `src/mcp` |
-| `tests/systems/` | 173 (3 `live`) | `facet_rag`, `ali_deepresearch`, `aus_agent` pipelines |
-| `tests/aus_agent_context/` | 134 | the context ledger (migrated from `unittest`) |
+| `tests/systems/` | 178 (3 `live`) | `facet_rag`, `ali_deepresearch`, `aus_agent` pipelines |
+| `tests/aus_agent_context/` | 135 | the context ledger (migrated from `unittest`) |
 | `tests/dummy_api/` | 15 | real clients over loopback HTTP vs the dummy server |
 
 The three dep groups are not optional: `test_mcp_server.py` `importorskip`s
@@ -485,5 +485,42 @@ Fixture-contract smoke probe (written first, to prove the fixtures work against
 real code before the suites were built on them):
 [assets/2026-07-28-harness-fixture-smoke.py](assets/2026-07-28-harness-fixture-smoke.py)
 — 5 passed, then deleted from `tests/` since the real suites subsume it.
+
+## Review round (2026-07-29)
+
+Two fixture-level collision hazards from the PR review, both latent (nothing in
+the suite triggered either yet) and both in helpers whose whole job is to keep
+tests independent — so the failure mode would have been a *silently wrong pass*,
+not a red test:
+
+1. **`tests/conftest.py::tool_call` built its default id from
+   `len(arguments)`**, so any two calls to the same tool with the same arity
+   shared an id. A tool-call id is a key, not a label:
+   `ScriptedProvider.compact_tool_results` looks results up by it and
+   `StrictScriptedProvider.content_by_id` is a dict keyed on it, so colliding
+   ids collapse two results into one. Now a process-wide `itertools.count`;
+   explicit `id=` is unchanged, which is what every id-asserting test passes.
+2. **`tests/systems/conftest.py::load_script` cached by `name` alone**, so
+   reusing one name for a second path returned the *first* module — exactly the
+   collision the helper exists to prevent (`o3_deep_research/run.py` is loaded
+   under an explicit name precisely because bare `run.py` collides). It now
+   compares the cached module's `__file__` against the requested path and raises
+   on a mismatch. Verified both directions: two different files under one name
+   raise; the same file under the same name still hits the cache.
+
+Also corrected while re-verifying the PR's own claims, which had drifted after
+the later `chunk-native commit` realignment on this branch: the case counts in
+`AGENTS.md` and this worklog (786 → 792 total; `tests/systems/` 173 → 178,
+`tests/aus_agent_context/` 134 → 135), and one duplicate test docstring the AST
+sweep caught — `test_ali_deepresearch.py:168` and `test_facet_rag.py:137` shared
+verbatim prose for the same no-violations invariant. The duplication is
+legitimate coverage (two different pipelines), so the ReAct one now says what is
+specific to it rather than being deleted. Sweep re-run: **546 test functions, 0
+missing, 0 duplicate**.
+
+```bash
+bash scripts/test.sh
+# 792 passed, 4 deselected, 1 warning in 9.88s
+```
 
 <!-- FINAL-COUNTS -->
