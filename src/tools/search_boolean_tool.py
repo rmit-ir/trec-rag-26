@@ -28,6 +28,8 @@ import os
 import urllib.request
 from typing import Any
 
+from utils.http_retry import urlopen_with_backoff
+
 try:
     from dotenv import load_dotenv
 
@@ -96,7 +98,7 @@ def _post(url: str, body: dict[str, Any], timeout: float) -> dict[str, Any]:
     data = json.dumps(body).encode("utf-8")
     req = urllib.request.Request(url, data=data,
                                  headers={"Content-Type": "application/json"})
-    with urllib.request.urlopen(req, timeout=timeout) as resp:
+    with urlopen_with_backoff(req, timeout=timeout) as resp:
         return json.loads(resp.read().decode("utf-8"))
 
 

@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from utils.http_retry import urlopen_with_backoff
 from utils.search_types import SearchHit, make_hit
 
 try:  # optional; env still works without it
@@ -40,7 +41,7 @@ def _get_json(url: str, params: dict[str, Any], token: str | None,
     if token:
         headers["Authorization"] = f"Bearer {token}"
     req = urllib.request.Request(full, headers=headers, method="GET")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urlopen_with_backoff(req, timeout=timeout) as r:
         return json.load(r)
 
 

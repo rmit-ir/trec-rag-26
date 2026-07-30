@@ -19,6 +19,7 @@ import os
 import urllib.request
 from typing import Any
 
+from utils.http_retry import urlopen_with_backoff
 from utils.search_types import SearchHit, make_hit
 
 try:  # optional; env still works without it
@@ -43,13 +44,19 @@ def auth_headers() -> dict[str, str]:
 
 def post_json(url: str, body: dict[str, Any], headers: dict[str, str],
               timeout: float) -> dict[str, Any]:
+    """POST ``body`` as JSON and parse the response.
+
+    Shared by the dense, sparse, and SSR clients (both import it from here), so
+    the ``429``/``5xx`` backoff the pyserini-rest-api skill mandates covers all
+    three from this one place.
+    """
     payload = json.dumps(body).encode()
     # A non-default User-Agent is required: the endpoint's proxy 403s the stock
     # "Python-urllib/x.y" UA.
     hdrs = {"Content-Type": "application/json",
             "User-Agent": "trec-rag-search/1.0", **headers}
     req = urllib.request.Request(url, data=payload, headers=hdrs, method="POST")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urlopen_with_backoff(req, timeout=timeout) as r:
         return json.load(r)
 
 

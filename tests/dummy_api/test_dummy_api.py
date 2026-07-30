@@ -124,6 +124,27 @@ def test_fetch_doc_quotes_the_docid(monkeypatch):
         assert api.last_request["path"].endswith("/doc/shard_00459_61697")
 
 
+def test_get_documents_reads_dense_search_url_at_call_time(monkeypatch):
+    """The endpoint must be resolved per call, not frozen at import.
+
+    It used to be a module constant, so a ``.env`` loaded after this module was
+    imported — or any redirection to a local service — was silently ignored and
+    the request went to the hosted endpoint anyway. Nothing failed loudly; the
+    chunk just came back in ``missing``.
+    """
+    from aus_agent.tools.get_documents import execute_get_documents
+
+    with DummyClimbMixAPI("dense") as api:
+        monkeypatch.setenv("DENSE_SEARCH_URL", api.base_url)
+        _out, documents, missing = execute_get_documents({"ids": [DOCIDS[0]]})
+
+    assert missing == []
+    assert [d["docid"] for d in documents] == [DOCIDS[0]]
+    assert documents[0]["text"] == TEXTS[0]
+    # The dense service answers {"docid", "text"} — not Pyserini's {"doc"}.
+    assert api.last_request["path"] == f"/doc/{DOCIDS[0]}"
+
+
 # ---------------------------------------------------------------------------
 # Request-side contract: headers and auth
 # ---------------------------------------------------------------------------

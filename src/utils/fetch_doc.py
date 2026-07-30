@@ -16,6 +16,8 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from utils.http_retry import urlopen_with_backoff
+
 try:  # optional; env still works without it
     from dotenv import load_dotenv
 
@@ -47,7 +49,7 @@ def fetch_doc(docid: str, *, url: str | None = None, token: str | None = None,
     if tok:
         headers["Authorization"] = f"Bearer {tok}"
     req = urllib.request.Request(full, headers=headers, method="GET")
-    with urllib.request.urlopen(req, timeout=timeout) as r:
+    with urlopen_with_backoff(req, timeout=timeout) as r:
         data = json.load(r)
     return {"docid": data.get("docid", docid), "text": _doc_text(data.get("doc"))}
 

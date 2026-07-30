@@ -101,12 +101,26 @@ class DummyClimbMixAPI:
     def __init__(self, flavor: str = "dense", *,
                  doc_as_object: bool = False,
                  require_auth: bool = False,
-                 status: int = 200) -> None:
+                 status: int = 200,
+                 fail_times: int = 0,
+                 fail_status: int = 429,
+                 retry_after: str | None = None) -> None:
         self.flavor = flavor
         self.doc_as_object = doc_as_object
         self.require_auth = require_auth
         self.status = status
+        # Rate-limit emulation: answer the first ``fail_times`` requests with
+        # ``fail_status`` (optionally carrying ``Retry-After``), then behave
+        # normally — so a test can assert the client retried rather than giving
+        # up, and that it eventually got the real payload.
+        self.fail_times = fail_times
+        self.fail_status = fail_status
+        self.retry_after = retry_after
         self.requests: list[dict[str, Any]] = []
+        # The handler runs on the server thread while the test asserts on the
+        # main one, so the countdown needs a lock even though the two never
+        # overlap in a single-request test.
+        self._fail_lock = threading.Lock()
         self._server: HTTPServer | None = None
         self._thread: threading.Thread | None = None
 
@@ -130,13 +144,28 @@ class DummyClimbMixAPI:
                     "params": params,
                 })
 
-            def _send(self, obj: Any, status: int | None = None) -> None:
+            def _send(self, obj: Any, status: int | None = None,
+                      extra_headers: dict[str, str] | None = None) -> None:
                 blob = json.dumps(obj).encode()
                 self.send_response(status or api.status)
                 self.send_header("Content-Type", "application/json")
                 self.send_header("Content-Length", str(len(blob)))
+                for key, value in (extra_headers or {}).items():
+                    self.send_header(key, value)
                 self.end_headers()
                 self.wfile.write(blob)
+
+            def _rate_limited(self) -> bool:
+                """Burn one of the pre-programmed failures, if any remain."""
+                with api._fail_lock:
+                    if api.fail_times <= 0:
+                        return False
+                    api.fail_times -= 1
+                extra = ({"Retry-After": api.retry_after}
+                         if api.retry_after is not None else None)
+                self._send({"error": "slow down"}, status=api.fail_status,
+                           extra_headers=extra)
+                return True
 
             def _unauthorized(self) -> bool:
                 """Emulate the hosted endpoints' 401 when auth is required."""
@@ -155,7 +184,7 @@ class DummyClimbMixAPI:
                 except json.JSONDecodeError:
                     body = {"__raw__": raw.decode("utf-8", "replace")}
                 self._record("POST", body, {})
-                if self._unauthorized():
+                if self._unauthorized() or self._rate_limited():
                     return
                 query = str(body.get("query", ""))
                 # dense/ssr use "k", the Anserini index-server uses "hits".
@@ -167,16 +196,21 @@ class DummyClimbMixAPI:
                 params = {key: values[0] for key, values
                           in urllib.parse.parse_qs(parsed.query).items()}
                 self._record("GET", None, params)
-                if self._unauthorized():
+                if self._unauthorized() or self._rate_limited():
                     return
-                # GET /v1/<index>/doc/<docid> — document fetch.
+                # GET /doc/<docid> — document fetch. The two backends differ:
+                # the dense service (tasks/search_serve/scripts/server.py)
+                # answers {"docid", "text"}, while hosted Pyserini answers
+                # {"docid", "doc"} with `doc` a string OR a text-bearing object.
                 if "/doc/" in parsed.path:
                     docid = urllib.parse.unquote(parsed.path.rsplit("/", 1)[-1])
                     text = TEXTS[0]
+                    if api.flavor == "dense":
+                        self._send({"docid": docid, "text": text})
+                        return
                     self._send({
                         "api": "v1", "index": "climbmix-400b", "docid": docid,
-                        # The spec allows `doc` to be a string OR an object with
-                        # a text-bearing field; both paths are exercised.
+                        # Both `doc` paths are exercised via doc_as_object.
                         "doc": {"text": text} if api.doc_as_object else text,
                     })
                     return

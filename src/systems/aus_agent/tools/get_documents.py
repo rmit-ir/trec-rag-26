@@ -17,11 +17,22 @@ import urllib.request
 from concurrent.futures import ThreadPoolExecutor
 from typing import Any
 
+from utils.http_retry import urlopen_with_backoff
 from utils.search_dense import auth_headers
 from utils.search_types import classify_id
 
-DENSE = os.environ.get(
-    "DENSE_SEARCH_URL", "https://index-climbmix-jina-v5-nano.dsync.net").rstrip("/")
+DEFAULT_DENSE_URL = "https://index-climbmix-jina-v5-nano.dsync.net"
+
+
+def _dense_base() -> str:
+    """Resolve the dense endpoint per call, like every other client does.
+
+    Reading ``DENSE_SEARCH_URL`` into a module constant bound it at import time,
+    so anything setting the env var later — a ``.env`` loaded after this module
+    is imported, or a test pointing at a local server — was silently ignored and
+    the request went to the hosted endpoint instead.
+    """
+    return os.environ.get("DENSE_SEARCH_URL", DEFAULT_DENSE_URL).rstrip("/")
 
 GET_DOCUMENTS_TOOL: dict[str, Any] = {
     "name": "get_documents",
@@ -54,11 +65,15 @@ GET_DOCUMENTS_TOOL: dict[str, Any] = {
 
 
 def _fetch_one(uid: str) -> tuple[str, str | None]:
-    url = f"{DENSE}/doc/{urllib.parse.quote(uid, safe='')}"
+    url = f"{_dense_base()}/doc/{urllib.parse.quote(uid, safe='')}"
     # non-default UA: the endpoint's proxy 403s the stock "Python-urllib" UA.
     headers = {**auth_headers(), "User-Agent": "trec-rag-search/1.0"}
     try:
-        with urllib.request.urlopen(
+        # The bare `except` below turns any failure into "missing", so without
+        # backoff a 429 here reads to the agent as "this chunk does not exist" —
+        # indistinguishable from a genuinely out-of-range `_p<page>`. Retrying
+        # first keeps rate-limiting from silently poisoning the context.
+        with urlopen_with_backoff(
                 urllib.request.Request(url, headers=headers), timeout=30) as r:
             data = json.load(r)
         text = data.get("text")
