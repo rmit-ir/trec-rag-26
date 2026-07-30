@@ -34,7 +34,12 @@ from typing import Any
 import pytest
 
 from ali_deepresearch.answer_format import format_answer
-from ragrun import build_rag_output, submission_output, validate_rag_output
+from ragrun import (
+    build_rag_output,
+    jsonl_row,
+    submission_output,
+    validate_rag_output,
+)
 
 from conftest import CLIMBMIX_DOCIDS
 
@@ -77,13 +82,13 @@ def make_output(references: list[str] | Any | None = None,
 def to_jsonl(objects: list[dict[str, Any]]) -> str:
     """Serialize outputs the way a submission file is written.
 
-    ``ensure_ascii=False`` matches ``ragrun.save_run``; the point of the helper is
-    that it is the *only* newline-inserting step, so ``test_jsonl_*`` below can
-    prove one-object-per-line holds for arbitrary answer text.
+    Uses the real ``ragrun.jsonl_row`` (which ``scripts/export-rag-submission.py``
+    also uses) rather than a local ``json.dumps``, so these tests cannot pass
+    against a serializer the submission does not actually go through. The helper
+    is the *only* newline-inserting step, so ``test_jsonl_*`` below can prove
+    one-object-per-line holds for arbitrary answer text.
     """
-    return "".join(
-        json.dumps(submission_output(obj), ensure_ascii=False) + "\n"
-        for obj in objects)
+    return "".join(jsonl_row(submission_output(obj)) + "\n" for obj in objects)
 
 
 # ---------------------------------------------------------------------------
@@ -136,28 +141,38 @@ def test_build_rag_output_copies_references_list() -> None:
     assert obj["references"] == list(CLIMBMIX_DOCIDS[:2])
 
 
-def test_build_rag_output_splats_a_string_reference_current_behaviour() -> None:
-    """CURRENT BEHAVIOUR / GAP: passing a bare docid string as ``references``
-    silently becomes a list of its characters, and now validates clean.
+def test_build_rag_output_rejects_a_bare_string_reference() -> None:
+    """A bare docid string as ``references`` must raise, not be splatted.
 
-    ``build_rag_output`` does ``list(references)``, so
-    ``references="shard_00459_61697"`` yields 17 single-character "docids" instead
-    of raising or wrapping. Every one of them is a ``str``, so the type check
-    passes; the 16 that no sentence cites are permitted (uncited references are
-    legal), so ``validate_rag_output`` is completely silent. Local validation used
-    to at least emit a confused "never cited" message here — after the spec's
-    "do not reject uncited references" rule there is no signal at all, and the
-    mangled submission would only be caught by a human reading ``references``.
-    Pinned rather than fixed; a ``str`` guard in ``build_rag_output`` would be the
-    one-line change, and is the only place this can now be caught.
+    ``list("shard_00459_61697")`` yields 17 single-character "docids", and since
+    v0.6.0 made uncited references legal that mangled object *validates clean* —
+    every character is a ``str`` and the 16 uncited ones are permitted. So the
+    builder is now the only place a ``references=docid`` typo can be caught at
+    all; downstream there is no signal short of a human reading the submission.
+    """
+    with pytest.raises(TypeError) as excinfo:
+        build_rag_output(
+            narrative_id="rag2026-37", narrative=NARRATIVE, run_id="r",
+            run_desc="d", references="shard_00459_61697",
+            answer=[{"text": "x", "citations": [0]}])
+
+    # The message must name the fix, since the mistake is a plausible one.
+    assert "shard_00459_61697" in str(excinfo.value)
+
+
+def test_build_rag_output_accepts_a_non_list_sequence() -> None:
+    """A tuple/generator of docids still works — only ``str`` is rejected.
+
+    The guard above is a type check on one specific mistake, not a narrowing of
+    the parameter to ``list``; callers that build references lazily (a generator
+    over fused hits) must not have to materialize them first.
     """
     obj = build_rag_output(
         narrative_id="rag2026-37", narrative=NARRATIVE, run_id="r",
-        run_desc="d", references="shard_00459_61697",
+        run_desc="d", references=(d for d in CLIMBMIX_DOCIDS[:2]),
         answer=[{"text": "x", "citations": [0]}])
 
-    assert obj["references"] == list("shard_00459_61697")
-    assert validate_rag_output(obj) == []
+    assert obj["references"] == list(CLIMBMIX_DOCIDS[:2])
 
 
 def test_build_rag_output_is_json_serializable() -> None:
@@ -221,8 +236,9 @@ VIOLATION_CASES = [
         id="metadata-missing-narrative"),
     pytest.param(
         # NB: constructed by hand rather than through ``build_rag_output``,
-        # which would coerce the bare string with ``list(...)`` — see
-        # ``test_build_rag_output_splats_a_string_reference_current_behaviour``.
+        # which now raises TypeError on a bare string — see
+        # ``test_build_rag_output_rejects_a_bare_string_reference``. The
+        # validator must still catch one that reached it another way.
         {**make_output(), "references": "shard_00459_61697"},
         "references must be a list of docid strings",
         id="references-not-a-list"),
@@ -531,37 +547,74 @@ def test_duplicate_docid_in_references_is_not_flagged_current_behaviour() -> Non
     assert validate_rag_output(obj) == []
 
 
-def test_non_string_answer_text_raises_current_behaviour() -> None:
-    """CURRENT BEHAVIOUR / GAP: a non-string ``answer[].text`` crashes the
-    validator instead of being reported as a violation.
+def test_non_string_answer_text_is_a_violation_not_a_crash() -> None:
+    """A non-string ``answer[].text`` must be *reported*, never raise.
 
-    ``total_words += len(sent["text"].split())`` runs before any type check, so
-    ``{"text": 123, "citations": [0]}`` raises ``AttributeError`` out of
-    ``validate_rag_output`` — and therefore out of ``save_run``, losing the run's
-    artifacts. Only reachable from a hand-written or LLM-parsed output object
-    (``format_answer`` always ``str()``s the text), but it is a real hole.
+    ``total_words += len(sent["text"].split())`` used to run before any type
+    check, so ``{"text": 123, ...}`` raised ``AttributeError`` out of
+    ``validate_rag_output`` and therefore out of ``save_run`` — the run's
+    artifacts were never written at all. A validation report that destroys the
+    thing it is reporting on is worse than no report: the evidence of what went
+    wrong goes with it. Reachable from a hand-built or LLM-parsed answer object
+    (``format_answer`` always ``str()``s the text).
     """
     obj = make_output(references=[CLIMBMIX_DOCIDS[0]],
                       answer=[{"text": 123, "citations": [0]}])
 
-    with pytest.raises(AttributeError):
-        validate_rag_output(obj)
+    assert validate_rag_output(obj) == ["answer[0].text must be a string, got int"]
 
 
-def test_bool_citation_index_is_accepted_current_behaviour() -> None:
-    """CURRENT BEHAVIOUR: ``True`` passes as citation index 1.
+def test_a_non_string_text_does_not_suppress_the_citation_check() -> None:
+    """Both problems in one answer object must both be reported.
 
-    ``isinstance(True, int)`` is ``True`` in Python, so a JSON ``true`` in a
-    citations array validates as index 1. Harmless in practice (JSON produced by
-    our own formatters never contains booleans there) and the fix would be
-    ``type(c) is not int``; pinned so the quirk is documented rather than
-    rediscovered.
+    The type guard sits on the word-count path only, so validation continues into
+    ``citations`` — otherwise fixing the ``text`` type would reveal a second
+    violation the first report never mentioned, and a caller iterating
+    fix-then-revalidate would need two rounds.
+    """
+    obj = make_output(references=[CLIMBMIX_DOCIDS[0]],
+                      answer=[{"text": None, "citations": [7]}])
+
+    assert validate_rag_output(obj) == [
+        "answer[0].text must be a string, got NoneType",
+        "answer[0] cites invalid reference index 7",
+    ]
+
+
+def test_a_long_answer_with_one_bad_text_still_reports_the_word_cap() -> None:
+    """Skipping a non-string's word count must not smuggle a run under the cap.
+
+    The uncounted object contributes nothing, so a submission that is over 1024
+    words *only because of* the bad object would report just the type error — but
+    every well-formed object is still counted, so a genuinely oversized answer is
+    still caught alongside it.
+    """
+    obj = make_output(
+        references=[CLIMBMIX_DOCIDS[0]],
+        answer=[{"text": "word " * 1025, "citations": [0]},
+                {"text": 42, "citations": [0]}])
+
+    assert validate_rag_output(obj) == [
+        "answer[1].text must be a string, got int",
+        "answer is 1025 words (max 1024)",
+    ]
+
+
+@pytest.mark.parametrize("value", [True, False])
+def test_a_boolean_is_not_a_valid_citation_index(value: bool) -> None:
+    """A JSON ``true``/``false`` must be rejected, not read as index 1/0.
+
+    ``isinstance(True, int)`` is ``True`` in Python, so the check needs
+    ``type(c) is int``. Both values matter: ``False`` would silently attribute a
+    claim to ``references[0]`` — a real document, wrongly cited — which is the
+    failure the support evaluation punishes hardest.
     """
     obj = make_output(references=list(CLIMBMIX_DOCIDS[:2]),
                       answer=[{"text": "Cites 0 and a boolean.",
-                               "citations": [0, True]}])
+                               "citations": [0, value]}])
 
-    assert validate_rag_output(obj) == []
+    assert validate_rag_output(obj) == [
+        f"answer[0] cites invalid reference index {value!r}"]
 
 
 # ---------------------------------------------------------------------------
@@ -683,20 +736,17 @@ def test_jsonl_line_integrity_with_control_chars_in_answer_text(
     assert json.loads(lines[0])["answer"][0]["text"] == raw_text
 
 
-@pytest.mark.parametrize("separator", [" ", " "])
-def test_unicode_line_separators_stay_literal_current_behaviour(
+@pytest.mark.parametrize("separator", ["\u2028", "\u2029"])
+def test_unicode_line_separators_are_escaped_in_the_jsonl_row(
         separator: str) -> None:
-    """CURRENT BEHAVIOUR / hazard: U+2028/U+2029 are NOT escaped by
-    ``ensure_ascii=False``, so they survive into the JSONL line verbatim.
+    """U+2028/U+2029 must be escaped, because ``str.splitlines()`` breaks on them.
 
-    JSONL readers that split on ``"\\n"`` (including ``json.loads`` per line, and
-    every reader we use) are unaffected — the record is still one physical line by
-    the LF definition. But Python's ``str.splitlines()`` *does* break on these
-    code points, so any tooling that reads the submission with ``splitlines()`` or
-    ``for line in file`` on a text stream in some locales would see a truncated
-    record. ``ensure_ascii=True`` would escape them; ``save_run`` uses
-    ``ensure_ascii=False`` for readable Unicode narratives, so the risk is
-    accepted and pinned here.
+    ``ensure_ascii=False`` does not escape these two, so they used to survive into
+    the line verbatim. Every reader *we* use splits on ``"\\n"`` and was therefore
+    unaffected — the record is still one physical line by the LF definition. But an
+    organizer-side tool using ``splitlines()`` would see a truncated record, and we
+    cannot see their reader. ``jsonl_row`` escapes just these two rather than
+    switching to ``ensure_ascii=True``, so narratives stay readable Unicode.
     """
     obj = make_output(references=[CLIMBMIX_DOCIDS[0]],
                       answer=[{"text": f"Paragraph{separator}separator.",
@@ -704,11 +754,28 @@ def test_unicode_line_separators_stay_literal_current_behaviour(
 
     line = to_jsonl([obj]).rstrip("\n")
 
-    assert separator in line                       # literal, not  -escaped
-    assert len(line.split("\n")) == 1              # still one JSONL record
-    assert len(line.splitlines()) == 2             # ...but splitlines disagrees
+    assert separator not in line                   # escaped, not literal
+    assert len(line.split("\n")) == 1              # one JSONL record...
+    assert len(line.splitlines()) == 1             # ...and splitlines now agrees
+    # The escape is transparent to any JSON parser: the text round-trips whole.
     assert json.loads(line)["answer"][0]["text"] == \
         f"Paragraph{separator}separator."
+
+
+def test_jsonl_row_leaves_the_rest_of_unicode_literal() -> None:
+    """Only U+2028/U+2029 are escaped — everything else stays readable.
+
+    The cheap fix for the test above would have been ``ensure_ascii=True``, which
+    turns every accented name and non-Latin script in a narrative into
+    ``\\uXXXX`` soup. This pins the narrow escape, so nobody later "simplifies"
+    ``jsonl_row`` into the blanket version and costs us the readability.
+    """
+    obj = make_output(narrative="Caf\u00e9 \u2014 \u6771\u4eac \u2014 na\u00efve")
+
+    line = to_jsonl([obj]).rstrip("\n")
+
+    assert "Caf\u00e9 \u2014 \u6771\u4eac \u2014 na\u00efve" in line
+    assert "\\u" not in line
 
 
 def test_jsonl_keeps_unicode_unescaped_but_parseable() -> None:

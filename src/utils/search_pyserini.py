@@ -21,6 +21,7 @@ import urllib.parse
 import urllib.request
 from typing import Any
 
+from utils.fetch_doc import _doc_text
 from utils.http_retry import urlopen_with_backoff
 from utils.search_types import SearchHit, make_hit
 
@@ -58,11 +59,17 @@ def search_pyserini(query: str, k: int = 10, *, url: str | None = None,
 
     hits: list[SearchHit] = []
     for i, c in enumerate(data.get("candidates", []), start=1):
+        # The spec: "If `doc` is an object, extract its text-bearing field such
+        # as `text` or `contents`; if it is a string, use the string directly."
+        # A missing `doc` (the docids-only response mode) must stay None rather
+        # than become "" — that None is what tells the fusion layer to borrow
+        # text from another source.
+        doc = c.get("doc")
         hits.append(make_hit(
             c["docid"],
             score=float(c["score"]),
             rank=c.get("rank", i),
-            text=c.get("doc"),
+            text=None if doc is None else _doc_text(doc),
             meta={"source": "pyserini", "index": index, "api": api},
         ))
     return hits

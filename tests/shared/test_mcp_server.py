@@ -341,6 +341,25 @@ def test_engine_selection(engine: str | None, expected_fn: str,
     assert ("with_text" in calls[0]) is expects_with_text
 
 
+def test_an_unrecognised_engine_warns_before_falling_back(
+        monkeypatch: pytest.MonkeyPatch,
+        capsys: pytest.CaptureFixture[str]) -> None:
+    """The hybrid fallback must be announced on stderr, not silent.
+
+    A typo'd ``MCP_SEARCH_ENGINE=semanic`` ran a whole experiment on the wrong
+    retriever with nothing in the logs to say so — the run looked healthy and the
+    comparison it fed was meaningless. Falling back is still right (a live server
+    should not refuse to start over one env var), so the warning is the fix.
+    """
+    monkeypatch.setenv("MCP_SEARCH_ENGINE", "semanic")
+    mod = _load_server("climbmix_server_typo")
+
+    err = capsys.readouterr().err
+    assert "semanic" in err
+    assert "hybrid" in err
+    assert mod.SEARCH_ENGINE == "semanic"  # the raw value is not rewritten
+
+
 @pytest.mark.parametrize("var,attr,raw,expected", [
     ("MCP_SEARCH_K", "SEARCH_K", "25", 25),
     ("MCP_SNIPPET_CHARS", "SNIPPET_CHARS", "1200", 1200),

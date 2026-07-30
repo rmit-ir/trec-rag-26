@@ -22,11 +22,32 @@ from typing import Any
 REJECTION_PREFIX = "the agent decided this document is irrelevant:"
 DUPLICATE_PREFIX = "duplicate/already committed document compacted:"
 
+# The two duplicate reasons the ledger itself generates. Kept as constants so the
+# reasons the ledger writes and the ones it recognises cannot drift apart.
+LATER_OCCURRENCE_REASON = (
+    "duplicate/already committed; later occurrence compacted")
+PARALLEL_OCCURRENCE_REASON = (
+    "duplicate/already committed; repeated occurrence within the staged batch "
+    "compacted")
+_DUPLICATE_REASONS = frozenset({LATER_OCCURRENCE_REASON,
+                                PARALLEL_OCCURRENCE_REASON})
 
-def rejection_marker(unit_id: str, reason: str | None = None) -> str:
-    if reason and reason.startswith("duplicate/already committed"):
-        return f"{DUPLICATE_PREFIX} {unit_id}"
-    return f"{REJECTION_PREFIX} {unit_id}"
+
+def rejection_marker(unit_id: str, reason: str | None = None, *,
+                     duplicate: bool | None = None) -> str:
+    """The compact marker shown in place of a document's text.
+
+    ``duplicate`` says whether the ledger actually saw this unit already — pass
+    it explicitly. Inferring duplicate-ness from ``reason`` alone was a
+    string-prefix match, so a caller-supplied ``unselected_reason`` that merely
+    *started* like a duplicate reason produced ``DUPLICATE_PREFIX`` for a unit
+    that was never committed, telling the model to look for full text that does
+    not exist. Left as a fallback (restricted to the exact reasons the ledger
+    generates) for callers that pass only a reason.
+    """
+    if duplicate is None:
+        duplicate = reason in _DUPLICATE_REASONS
+    return f"{DUPLICATE_PREFIX if duplicate else REJECTION_PREFIX} {unit_id}"
 
 
 @dataclass
@@ -133,7 +154,7 @@ class ContextLedger:
         rejected = [{
             "docid": u,
             "reason": (
-                "duplicate/already committed; later occurrence compacted"
+                LATER_OCCURRENCE_REASON
                 if u in already_committed
                 else (
                     f"selection exceeded per-step maximum of {max_documents}"
@@ -148,13 +169,8 @@ class ContextLedger:
                 occurrence_counts[uid] = occurrence_counts.get(uid, 0) + 1
         for uid in committed:
             for _ in range(max(0, occurrence_counts.get(uid, 0) - 1)):
-                rejected.append({
-                    "docid": uid,
-                    "reason": (
-                        "duplicate/already committed; repeated occurrence "
-                        "within the staged batch compacted"
-                    ),
-                })
+                rejected.append({"docid": uid,
+                                 "reason": PARALLEL_OCCURRENCE_REASON})
         rejected_reasons = {
             item["docid"]: item["reason"] for item in rejected}
 
@@ -172,17 +188,21 @@ class ContextLedger:
         for result in self.pending:
             keep_here: set[str] = set()
             occurrence_reasons = dict(rejected_reasons)
+            # Units this batch is tombstoning *because the text lives elsewhere*
+            # — either committed on an earlier turn, or kept in full by another
+            # occurrence within this batch. This, not a reason-string prefix, is
+            # what earns DUPLICATE_PREFIX.
+            duplicate_here = set(already_committed)
             for uid in result.ids:
                 if uid in remaining_to_keep:
                     keep_here.add(uid)
                     remaining_to_keep.remove(uid)
                 elif uid in committed:
-                    occurrence_reasons[uid] = (
-                        "duplicate/already committed; repeated occurrence "
-                        "within the staged batch compacted")
+                    occurrence_reasons[uid] = PARALLEL_OCCURRENCE_REASON
+                    duplicate_here.add(uid)
             replacements[result.call_id] = _compact_output(
                 result.tool_name, result.output, keep_here,
-                occurrence_reasons)
+                occurrence_reasons, duplicate_here)
         self.committed_ids.update(committed)
         self.rejected_ids.update(rejected_ids)
         # Cumulative summary means "never committed" rather than "a later
@@ -210,11 +230,17 @@ class ContextLedger:
 
 
 def _compact_output(tool_name: str, output: str, keep_full: set[str],
-                    rejected_reasons: dict[str, str] | None = None) -> str:
+                    rejected_reasons: dict[str, str] | None = None,
+                    duplicate_ids: set[str] | None = None) -> str:
     """Remove rejected text while retaining the original tool-result shape.
 
     Matches results by their unit ``id`` (chunk id when chunked), so committing
     one page of a document keeps that page verbatim and compacts the rest.
+
+    ``duplicate_ids`` are the units the ledger knows it retained elsewhere; they
+    get ``DUPLICATE_PREFIX`` instead of ``REJECTION_PREFIX``. It is passed
+    explicitly rather than re-derived from ``rejected_reasons`` because the
+    ledger is the only authority on what it actually kept.
     """
     payload, separator, status_line = output.partition("\n[context budget:")
     try:
@@ -239,7 +265,8 @@ def _compact_output(tool_name: str, output: str, keep_full: set[str],
                 if key in raw
             }
             reason = (rejected_reasons or {}).get(uid)
-            item["decision"] = rejection_marker(uid, reason)
+            item["decision"] = rejection_marker(
+                uid, reason, duplicate=uid in (duplicate_ids or set()))
             if reason:
                 item["reason"] = reason
             compacted.append(item)

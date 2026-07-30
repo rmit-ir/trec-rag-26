@@ -16,6 +16,7 @@ web search.
 from ragrun.trajectory import TrajectoryBuilder, now_iso
 from ragrun.outputs import (
     build_rag_output,
+    jsonl_row,
     submission_output,
     validate_rag_output,
     save_run,
@@ -27,6 +28,7 @@ __all__ = [
     "TrajectoryBuilder",
     "now_iso",
     "build_rag_output",
+    "jsonl_row",
     "submission_output",
     "validate_rag_output",
     "save_run",

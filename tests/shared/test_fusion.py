@@ -189,17 +189,22 @@ def test_fusion_uses_list_position_not_the_hit_rank_field() -> None:
     assert fused[0]["score"] == pytest.approx(_rrf(1))
 
 
-def test_duplicate_id_within_one_ranking_accumulates_twice() -> None:
-    """ACTUAL BEHAVIOUR (asserted, not fixed — see report): a backend that
-    returns the same unit id twice in ONE list gets its RRF contribution counted
-    twice, and only the later rank is recorded in ``meta["sources"]``. No hosted
-    backend does this today, but nothing in ``rrf_fuse`` guards against it."""
+def test_duplicate_id_within_one_ranking_counts_once_at_its_best_rank() -> None:
+    """RRF gives each unit ONE contribution per ranking, duplicates included.
+
+    A backend repeating an id used to have its contribution added twice, which
+    promotes it over hits the sources genuinely agreed on — and ``meta["sources"]``
+    kept the *later*, worse rank, so the fused row also misreported where it came
+    from. The first occurrence wins because that is the rank the backend itself
+    ranked highest. No hosted backend does this today; the guard is one line and
+    the failure would be a silently wrong ranking.
+    """
     dup = [make_hit(A, score=1.0, rank=1, text="t", meta={}),
            make_hit(A, score=0.5, rank=2, text="t", meta={})]
     fused = rrf_fuse([dup], source_names=["dense"])
     assert len(fused) == 1
-    assert fused[0]["score"] == pytest.approx(_rrf(1) + _rrf(2))
-    assert fused[0]["meta"]["sources"]["dense"] == {"rank": 2, "score": 0.5}
+    assert fused[0]["score"] == pytest.approx(_rrf(1))
+    assert fused[0]["meta"]["sources"]["dense"] == {"rank": 1, "score": 1.0}
 
 
 def test_fuses_on_unit_id_so_sibling_chunks_stay_separate() -> None:

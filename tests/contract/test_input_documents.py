@@ -114,23 +114,19 @@ def test_search_pyserini_maps_string_doc_to_hit_text(
     assert all(h["meta"]["api"] == "v1" for h in hits)
 
 
-def test_search_pyserini_leaves_object_doc_unextracted_current_behaviour(
+def test_search_pyserini_extracts_the_text_field_of_an_object_doc(
         monkeypatch: pytest.MonkeyPatch,
         fake_search_response: Callable[..., dict[str, Any]]) -> None:
-    """GAP (current behaviour, reported not fixed): ``search_pyserini`` does NOT
-    extract the text-bearing field of an object ``doc``.
+    """An object ``doc`` must be unwrapped, per the spec, not copied verbatim.
 
-    The spec says "If ``doc`` is an object, extract its text-bearing field such as
-    ``text`` or ``contents``; if it is a string, use the string directly."
-    ``fetch_doc._doc_text`` implements exactly that, but
-    ``search_pyserini`` passes ``c.get("doc")`` straight into
-    ``make_hit(text=...)``, so a parse-mode flip on the hosted API would put a
-    dict into ``SearchHit["text"]`` — which is typed ``str | None``. Downstream
-    ``run_search_tool`` would then emit the dict into the tool JSON, and any
-    ``text[:max_chars]`` slice raises ``TypeError``.
+    ``retrieval-task.md``: "If ``doc`` is an object, extract its text-bearing
+    field such as ``text`` or ``contents``; if it is a string, use the string
+    directly." A dict reaching ``SearchHit["text"]`` (typed ``str | None``) is
+    what makes ``run_search_tool``'s ``text[:max_chars]`` raise ``TypeError``,
+    so a parse-mode flip on the hosted API would take down the tool layer rather
+    than degrade it.
 
-    Asserting the deviation keeps it visible; the fix (route through
-    ``utils.fetch_doc._doc_text``) is a one-line src change we are not making here.
+    The client shares ``fetch_doc._doc_text`` so the two cannot drift.
     """
     resp = fake_search_response("q", 1, doc_as_object=True)
     _stub_pyserini(monkeypatch, resp)
@@ -138,12 +134,8 @@ def test_search_pyserini_leaves_object_doc_unextracted_current_behaviour(
     hits = search_pyserini("q", k=1)
 
     assert isinstance(resp["candidates"][0]["doc"], dict)
-    # Spec-conformant behaviour would be `hits[0]["text"] == "<the text>"`.
-    assert hits[0]["text"] == resp["candidates"][0]["doc"]
-    assert not isinstance(hits[0]["text"], str)
-    # The extractor that *would* fix it already exists and works:
-    assert _doc_text(resp["candidates"][0]["doc"]) == \
-        resp["candidates"][0]["doc"]["text"]
+    assert hits[0]["text"] == resp["candidates"][0]["doc"]["text"]
+    assert isinstance(hits[0]["text"], str)
 
 
 def test_search_pyserini_missing_doc_is_none(
@@ -204,20 +196,33 @@ def test_doc_text_extraction_follows_the_spec(doc: Any, expected: str) -> None:
     pytest.param(["a", "b"], id="array"),
     pytest.param(3, id="number"),
     pytest.param(True, id="boolean"),
-    pytest.param(None, id="null"),
 ])
 def test_doc_text_falls_back_to_json_for_exotic_payloads(doc: Any) -> None:
-    """The spec permits array/number/boolean/null ``doc`` payloads.
+    """The spec permits array/number/boolean ``doc`` payloads.
 
     ``_doc_text`` never raises and never returns a non-``str``: anything it cannot
     recognise is re-serialized as JSON. That keeps the "text is a string"
     invariant that every downstream slice/truncation depends on, at the cost of
     handing the model a JSON blob when the API changes shape.
+
+    ``null`` is the one exception — see
+    ``test_doc_text_maps_a_null_doc_to_the_empty_string``.
     """
     out = _doc_text(doc)
 
     assert isinstance(out, str)
     assert json.loads(out) == doc
+
+
+def test_doc_text_maps_a_null_doc_to_the_empty_string() -> None:
+    """A null/absent ``doc`` is "no text", so it must not take the JSON fallback.
+
+    ``json.dumps(None)`` is the string ``"null"``, which then behaves like a
+    one-word passage: it counts toward the answer word budget, and the model can
+    quote the literal word *null* into a cited sentence. ``""`` is falsy, so
+    every downstream "did we get text?" check sees the truth instead.
+    """
+    assert _doc_text(None) == ""
 
 
 def test_fetch_doc_wrapper_shape(monkeypatch: pytest.MonkeyPatch) -> None:

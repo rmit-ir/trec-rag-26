@@ -59,7 +59,17 @@ def build_rag_output(*, narrative_id: str, narrative: str, run_id: str,
                      run_desc: str, references: list[str],
                      answer: list[dict[str, Any]],
                      team_id: str = TEAM_ID) -> dict[str, Any]:
-    """Assemble one TREC RAG 2026 output object (no extra metadata keys)."""
+    """Assemble one TREC RAG 2026 output object (no extra metadata keys).
+
+    Raises ``TypeError`` if ``references`` is a bare string. ``list("shard_0…")``
+    silently splats it into single-character "docids", and since v0.6.0 made
+    uncited references legal the result *validates clean* — so this is the only
+    place a trivial ``references=docid`` typo can still be caught.
+    """
+    if isinstance(references, str):
+        raise TypeError(
+            "references must be a list of docid strings, not a single string "
+            f"({references!r}) — did you mean [{references!r}]?")
     return {
         "metadata": {
             "team_id": team_id,
@@ -71,6 +81,22 @@ def build_rag_output(*, narrative_id: str, narrative: str, run_id: str,
         "references": list(references),
         "answer": answer,
     }
+
+
+def jsonl_row(obj: dict[str, Any]) -> str:
+    """Serialize one submission object as a single, unambiguous JSONL line.
+
+    ``ensure_ascii=False`` is deliberate — narratives and answers stay readable
+    Unicode rather than ``\\uXXXX`` soup — but it leaves U+2028 LINE SEPARATOR and
+    U+2029 PARAGRAPH SEPARATOR literal. Splitting on ``"\\n"`` is unaffected (the
+    record is still one physical line by the LF definition), but Python's
+    ``str.splitlines()`` breaks on both, so any organizer-side tool reading the
+    submission that way would see a truncated record. Escaping just these two
+    removes the hazard without touching the readability of everything else.
+    """
+    return (json.dumps(obj, ensure_ascii=False, separators=(",", ":"))
+            .replace(" ", "\\u2028")
+            .replace(" ", "\\u2029"))
 
 
 def submission_output(obj: dict[str, Any]) -> dict[str, Any]:
@@ -122,7 +148,17 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
         if not isinstance(sent, dict) or "text" not in sent or "citations" not in sent:
             errs.append(f"answer[{i}] must have 'text' and 'citations'")
             continue
-        total_words += len(sent["text"].split())
+        # The spec treats `text` as "an opaque, non-empty text string". Without
+        # this guard a non-string raised AttributeError out of validate_rag_output
+        # and out of save_run, so the run's artifacts were never written at all —
+        # a validation *report* must never destroy the thing it is reporting on.
+        if not isinstance(sent["text"], str):
+            errs.append(f"answer[{i}].text must be a string, "
+                        f"got {type(sent['text']).__name__}")
+        else:
+            # The spec defines the count normatively as
+            # sum(len(item["text"].split()) for item in answer) — do not change it.
+            total_words += len(sent["text"].split())
         cits = sent["citations"]
         if not isinstance(cits, list) or len(cits) > 3:
             errs.append(f"answer[{i}].citations must be a list of at most 3 citations")
@@ -133,7 +169,9 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
             if isinstance(c, str):
                 if c not in refs:
                     errs.append(f"answer[{i}] cites unknown reference docid {c!r}")
-            elif isinstance(c, int) and 0 <= c < len(refs):
+            # `type(c) is int`, not isinstance: bool is a subclass of int, so a
+            # JSON `true` would otherwise validate as index 1.
+            elif type(c) is int and 0 <= c < len(refs):
                 continue
             else:
                 errs.append(f"answer[{i}] cites invalid reference index {c!r}")

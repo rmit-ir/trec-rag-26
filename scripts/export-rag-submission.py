@@ -15,7 +15,7 @@ from pathlib import Path
 REPO_ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO_ROOT / "src"))
 
-from ragrun import submission_output, validate_rag_output  # noqa: E402
+from ragrun import jsonl_row, submission_output, validate_rag_output  # noqa: E402
 
 
 def main() -> int:
@@ -81,7 +81,7 @@ def main() -> int:
             print(f"FAIL duplicate narrative_id {topic}: {path}", file=sys.stderr)
             return 1
         seen_topics.add(topic)
-        rows.append(json.dumps(official, ensure_ascii=False, separators=(",", ":")))
+        rows.append(jsonl_row(official))
 
     args.output.parent.mkdir(parents=True, exist_ok=True)
     args.output.write_text("\n".join(rows) + "\n", encoding="utf-8")

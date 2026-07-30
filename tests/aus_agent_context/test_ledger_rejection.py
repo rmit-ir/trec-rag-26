@@ -322,27 +322,24 @@ def test_a_custom_unselected_reason_replaces_the_default(ledger_with) -> None:
     assert entry["decision"].startswith(REJECTION_PREFIX)
 
 
-def test_a_custom_reason_that_looks_like_a_duplicate_switches_the_marker(
+def test_a_custom_reason_that_looks_like_a_duplicate_keeps_the_plain_marker(
         ledger_with) -> None:
-    """CURRENT BEHAVIOUR — the reason string, not the ledger, picks the marker.
+    """The LEDGER decides what is a duplicate — not a prefix of the reason text.
 
-    ``rejection_marker`` (context.py:20-23) dispatches on
+    ``rejection_marker`` used to dispatch on
     ``reason.startswith("duplicate/already committed")``, so a caller-supplied
-    ``unselected_reason`` beginning with that text yields ``DUPLICATE_PREFIX``
-    for a docid that was never committed — telling the model to look for full
-    text that does not exist.
-
-    Not reachable today: the only callers are ``run_agent`` (``"not retained"``)
-    and its invalid-commit path (``"staged batch expired after invalid ..."``).
-    Pinned so the coupling is visible if a new expiry reason is ever worded that
-    way. Asserting actual behaviour; no ``src/`` change from this migration.
+    ``unselected_reason`` merely *beginning* that way yielded ``DUPLICATE_PREFIX``
+    for a unit that was never committed — telling the model full text exists
+    elsewhere in its context when it does not, so it stops looking for evidence
+    it never actually kept. The ledger now passes ``duplicate=`` explicitly from
+    what it retained.
     """
     ledger = ledger_with(("search-1", "alpha"))
     decision = ledger.commit(
         [], max_documents=3,
         unselected_reason="duplicate/already committed by mistake")
     entry = results_by_docid(decision.replacements["search-1"])["a"]
-    assert entry["decision"].startswith(DUPLICATE_PREFIX)
+    assert entry["decision"].startswith(REJECTION_PREFIX)
     assert "a" not in ledger.committed_ids
 
 

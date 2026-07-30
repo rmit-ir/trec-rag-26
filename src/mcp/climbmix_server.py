@@ -39,6 +39,7 @@ Env:
 from __future__ import annotations
 
 import os
+import sys
 from typing import Any
 
 try:  # env from repo .env, same pattern as the systems' runners
@@ -59,6 +60,13 @@ from utils.search_sparse import search_sparse
 SEARCH_K = int(os.environ.get("MCP_SEARCH_K", "10"))
 SNIPPET_CHARS = int(os.environ.get("MCP_SNIPPET_CHARS", "500"))
 SEARCH_ENGINE = os.environ.get("MCP_SEARCH_ENGINE", "hybrid")
+_ENGINES = ("hybrid", "semantic", "keyword")
+if SEARCH_ENGINE not in _ENGINES:
+    # Still falls back to hybrid rather than refusing to start — but silently
+    # doing so meant a typo'd engine name ran a whole experiment on the wrong
+    # retriever with nothing in the logs to say so.
+    print(f"[warn] MCP_SEARCH_ENGINE={SEARCH_ENGINE!r} is not one of "
+          f"{_ENGINES}; falling back to 'hybrid'", file=sys.stderr, flush=True)
 
 # Documents render at the Pyserini REST endpoint, so citations get a real URL
 # while `id` stays the ClimbMix docid the eval pipeline keys on.

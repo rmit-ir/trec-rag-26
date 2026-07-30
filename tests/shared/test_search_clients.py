@@ -536,13 +536,32 @@ def test_lucene_bool_invokes_bs_with_k_query_and_snippet_chars(
     assert captured["kw"]["capture_output"] is True and captured["kw"]["text"] is True
 
 
+def test_lucene_bool_default_bs_path_is_inside_this_checkout() -> None:
+    """``DEFAULT_BS`` must be derived from the repo, not baked to one machine.
+
+    It was literally ``/scratch/fast/kun/projects/trec-rag-26/…``, so on every
+    other host the default was a path that does not exist and the failure arrived
+    as a bash "No such file" from inside a subprocess — with ``LUCENE_BOOL_BS``
+    effectively mandatory and nothing saying so.
+    """
+    from pathlib import Path
+
+    repo_root = Path(__file__).resolve().parents[2]
+    expected = repo_root / "tasks" / "bm25_index" / "boolsearch" / "bs.sh"
+
+    assert lucene_mod.DEFAULT_BS == str(expected)
+    # The wrapper is committed, so the default must actually resolve here.
+    assert expected.exists()
+
+
 @pytest.mark.parametrize("source", ["env", "arg"])
 def test_lucene_bool_bs_path_override(source: str,
                                      monkeypatch: pytest.MonkeyPatch) -> None:
-    """``DEFAULT_BS`` is an absolute path baked to one machine's ``/scratch``
-    checkout, so on every other host the override IS the only working
-    configuration. Axis: env var vs argument, with the env var set in both cases
-    so the ``arg`` case also proves the argument wins."""
+    """``bs.sh`` lives outside the repo whenever the index host differs from the
+    checkout, so the override is the working configuration there — and
+    ``DEFAULT_BS`` was hardcoded to one machine's ``/scratch`` path, which made it
+    the only one anywhere. Axis: env var vs argument, with the env var set in both
+    cases so the ``arg`` case also proves the argument wins."""
     captured: dict[str, Any] = {}
     monkeypatch.setattr(subprocess, "run",
                         _fake_run(_Completed(_BS_STDOUT), captured))
@@ -599,20 +618,21 @@ def test_lucene_bool_trailing_hit_without_a_snippet_line_gets_none_text(
     assert search_lucene_bool("+a")[0]["text"] is None
 
 
-def test_lucene_bool_consecutive_hit_lines_borrow_the_next_hit_line_as_text(
+def test_lucene_bool_consecutive_hit_lines_do_not_borrow_each_others_text(
         monkeypatch: pytest.MonkeyPatch) -> None:
-    """ACTUAL BEHAVIOUR (arguably a bug, asserted not fixed — see report):
-    ``text`` is unconditionally "the next line", so when BoolSearch emits hits
-    with no snippet in between (e.g. ``snippet_chars=0``), hit 1's text becomes
-    hit 2's header line. Ranks/docids/scores stay correct, so this only pollutes
-    the snippet text."""
+    """With ``snippet_chars=0`` BoolSearch emits back-to-back hit lines.
+
+    ``text`` used to be unconditionally "the next line", so hit 1 got hit 2's
+    header — ``"[2] shard_01012_88420 score=1.0"`` handed to the model as if it
+    were passage evidence. Ranks/docids/scores were always fine, which is what
+    made it easy to miss: only what the model *reads* was wrong.
+    """
     stdout = ("[1] shard_00459_61697 score=2.0\n"
               "[2] shard_01012_88420 score=1.0\n")
     monkeypatch.setattr(subprocess, "run", _fake_run(_Completed(stdout), {}))
     hits = search_lucene_bool("+a", snippet_chars=0)
     assert [h["rank"] for h in hits] == [1, 2]
-    assert hits[0]["text"] == "[2] shard_01012_88420 score=1.0"
-    assert hits[1]["text"] is None
+    assert [h["text"] for h in hits] == [None, None]
 
 
 def test_lucene_bool_parses_negative_scores(
@@ -647,19 +667,19 @@ def test_pyserini_maps_candidates(fake_search_response: Callable[..., dict[str, 
                                "api": "v1"}
 
 
-def test_pyserini_doc_as_object_is_NOT_unwrapped(
+def test_pyserini_doc_as_object_is_unwrapped(
         fake_search_response: Callable[..., dict[str, Any]],
         monkeypatch: pytest.MonkeyPatch) -> None:
-    """ACTUAL BEHAVIOUR (asserted, not fixed — see report): ``search_pyserini``
-    copies ``candidate["doc"]`` straight into ``text``, so when the API returns
-    ``doc`` as an OBJECT (``{"text": ...}``, which the spec permits and
-    ``fake_search_response(doc_as_object=True)`` models) ``text`` ends up a dict
-    instead of a string. ``utils.fetch_doc._doc_text`` handles both forms; this
-    client has no equivalent."""
+    """An object ``doc`` (which the spec permits) is unwrapped to its text field.
+
+    The client shares ``utils.fetch_doc._doc_text`` rather than reimplementing
+    the precedence, so the search path and the doc-fetch path cannot disagree
+    about what "the text" of a document is.
+    """
     payload = fake_search_response("q", 1, doc_as_object=True)
     monkeypatch.setattr("urllib.request.urlopen", _capturing_urlopen(payload, {}))
     text = search_pyserini("q", k=1)[0]["text"]
-    assert isinstance(text, dict) and set(text) == {"text"}
+    assert text == payload["candidates"][0]["doc"]["text"]
 
 
 def test_pyserini_rank_falls_back_to_enumeration(
@@ -798,14 +818,17 @@ def test_fetch_doc_missing_docid_falls_back_to_the_request_docid(
     assert fetch_doc(DOCIDS[1])["docid"] == DOCIDS[1]
 
 
-def test_fetch_doc_missing_doc_is_json_null_text(
+def test_fetch_doc_missing_doc_yields_empty_text(
         monkeypatch: pytest.MonkeyPatch) -> None:
-    """ACTUAL BEHAVIOUR: no ``doc`` key -> ``_doc_text(None)`` -> the string
-    ``"null"`` (json.dumps of None), not ``""``. Asserted so the surprise is
-    documented rather than discovered in a citation."""
+    """No ``doc`` key means no text, so ``text`` must be ``""`` — not ``"null"``.
+
+    It used to be the latter (``json.dumps(None)``), a truthy one-word string
+    that a caller's ``if doc["text"]:`` check would happily accept and pass to
+    the model as evidence.
+    """
     monkeypatch.setattr("urllib.request.urlopen",
                         _capturing_urlopen({"docid": DOCIDS[0]}, {}))
-    assert fetch_doc(DOCIDS[0])["text"] == "null"
+    assert fetch_doc(DOCIDS[0])["text"] == ""
 
 
 def test_fetch_doc_url_percent_encodes_the_docid(

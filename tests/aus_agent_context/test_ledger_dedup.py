@@ -32,6 +32,9 @@ from aus_agent_context.fakes import (
 from aus_agent.context import DUPLICATE_PREFIX, REJECTION_PREFIX
 from aus_agent.tools import documents_from_search
 
+# Deliberately re-stated rather than imported from ``context``: these are the
+# model-facing prose the agent reads, so a reword in ``src/`` should fail a test
+# rather than travel silently into the prompt.
 LATER_OCCURRENCE_REASON = (
     "duplicate/already committed; later occurrence compacted")
 PARALLEL_OCCURRENCE_REASON = (
@@ -320,6 +323,29 @@ def test_both_pages_of_one_document_can_be_committed_together() -> None:
     results = first_line_json(decision.replacements["q1"])["results"]
     assert results[0]["text"] == "page one"
     assert results[1]["text"] == "page two"
+
+
+def test_the_marker_comes_from_the_ledger_not_from_the_reason_wording(
+        ledger_with) -> None:
+    """Rewording a duplicate reason must not change which marker is used.
+
+    ``rejection_marker`` once inferred duplicate-ness from
+    ``reason.startswith(...)``, which coupled the model-facing marker to the exact
+    prose of a message intended for humans — so editing the wording would have
+    silently downgraded real duplicates to plain rejections. The ledger now says
+    ``duplicate=`` outright, and ``DUPLICATE_PREFIX`` is what tells the model its
+    full text is still available further up the context.
+    """
+    ledger = ledger_with(("q1", "alpha"), ("q2", "alpha"))
+    decision = ledger.commit([{"docid": "a", "reason": "kept"}],
+                             max_documents=3)
+
+    second_a = results_by_docid(decision.replacements["q2"])["a"]
+    assert second_a["decision"].startswith(DUPLICATE_PREFIX)
+    # The reason still travels alongside, but it is not what chose the prefix.
+    assert second_a["reason"] == PARALLEL_OCCURRENCE_REASON
+    # And the occurrence that kept its text is not marked at all.
+    assert "decision" not in results_by_docid(decision.replacements["q1"])["a"]
 
 
 def test_the_duplicate_reason_is_carried_onto_the_tombstone_entry(

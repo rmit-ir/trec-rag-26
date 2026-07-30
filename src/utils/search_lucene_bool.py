@@ -21,12 +21,17 @@ from __future__ import annotations
 import os
 import re
 import subprocess
+from pathlib import Path
 from typing import Any
 
 from utils.search_types import SearchHit, make_hit
 
-_REPO_ROOT = "/scratch/fast/kun/projects/trec-rag-26"
-DEFAULT_BS = f"{_REPO_ROOT}/tasks/bm25_index/boolsearch/bs.sh"
+# Derived from this file's location (src/utils/search_lucene_bool.py -> parents[2]),
+# the same trick ragrun.outputs uses. It was previously hardcoded to one
+# developer's /scratch checkout, which made LUCENE_BOOL_BS mandatory on every
+# other host and produced a confusing "No such file" from inside bash.
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+DEFAULT_BS = str(_REPO_ROOT / "tasks" / "bm25_index" / "boolsearch" / "bs.sh")
 
 # "[1] shard_00823_61684 score=10.11"  ->  rank, docid, score
 _HIT_RE = re.compile(r"^\[(\d+)\]\s+(\S+)\s+score=([\-\d.]+)\s*$")
@@ -61,8 +66,14 @@ def search_lucene_bool(query: str, k: int = 10, *, snippet_chars: int = 500,
         rank = int(m.group(1))
         docid = m.group(2)
         score = float(m.group(3))
-        # the snippet is the (indented) line immediately after the hit line
-        text = lines[i + 1].strip() if i + 1 < len(lines) else None
+        # The snippet is the (indented) line immediately after the hit line —
+        # unless that line is itself the NEXT hit, which happens whenever
+        # BoolSearch emits no snippet (snippet_chars=0). Taking it unconditionally
+        # gave hit n the text "[n+1] shard_… score=…", i.e. handed the model a
+        # header line as if it were evidence.
+        text: str | None = None
+        if i + 1 < len(lines) and not _HIT_RE.match(lines[i + 1]):
+            text = lines[i + 1].strip()
         hits.append(make_hit(
             docid, score=score, rank=rank, text=text,
             meta={"source": "lucene_bool"},

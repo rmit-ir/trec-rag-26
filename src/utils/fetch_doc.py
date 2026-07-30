@@ -29,7 +29,16 @@ DEFAULT_DOC_URL = "http://api.castorini.uwaterloo.ca/v1/climbmix-400b/doc"
 
 
 def _doc_text(doc: Any) -> str:
-    """Extract text from the API's ``doc`` field (string or object)."""
+    """Extract text from the API's ``doc`` field (string or object).
+
+    Shared with ``utils.search_pyserini``, whose ``candidates[].doc`` field the
+    spec defines identically — the two must not drift.
+    """
+    if doc is None:
+        # An absent or null `doc` means "no text", so it must not go through the
+        # JSON fallback below: json.dumps(None) is the string "null", which then
+        # reads as a one-word passage and can be quoted in a cited sentence.
+        return ""
     if isinstance(doc, str):
         return doc
     if isinstance(doc, dict):

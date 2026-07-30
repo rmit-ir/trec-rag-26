@@ -38,8 +38,18 @@ def rrf_fuse(rankings: list[list[SearchHit]], *, rrf_k: int = 60,
     for li, ranking in enumerate(rankings):
         w = weights[li]
         name = source_names[li]
+        # RRF gives each unit one contribution per *ranking*, so a backend that
+        # returns the same id twice must not have it counted twice — that would
+        # promote the duplicate over genuinely better-agreed hits, and
+        # meta["sources"] would keep only the worse (later) rank. Keeping the
+        # first occurrence keeps the better rank, which is the one the backend
+        # itself ranked highest.
+        seen_here: set[str] = set()
         for rank, hit in enumerate(ranking, start=1):
             unit_id = hit["id"]
+            if unit_id in seen_here:
+                continue
+            seen_here.add(unit_id)
             entry = fused.get(unit_id)
             if entry is None:
                 entry = {"id": unit_id, "docid": hit["docid"], "kind": hit["kind"],

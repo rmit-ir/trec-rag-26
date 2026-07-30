@@ -438,12 +438,17 @@ def test_retrieved_docids_accumulate_across_calls() -> None:
     assert builder.finalize("completed")["retrieved_docids"] == ["a", "b", "c"]
 
 
-def test_failed_call_docids_still_count_as_retrieved_current_behaviour() -> None:
-    """CURRENT BEHAVIOUR: ``returned_docids`` from a call marked ``failed=True``
-    are still merged into ``retrieved_docids``.
+def test_failed_call_docids_still_count_as_retrieved() -> None:
+    """``failed`` describes the tool call; ``retrieved_docids`` describes exposure.
 
-    In practice a failed call returns nothing, so the set is unaffected; the note
-    is here because "retrieved" is otherwise read as "successfully retrieved".
+    Deliberate, not an oversight: if a call surfaced docids then the agent saw
+    them, whatever status the call ended with. ``o3_deep_research`` is the case
+    that matters — it parses docids out of an ``mcp_call``'s ``output`` and marks
+    the step failed from a *separate* ``error`` field, so a call can legitimately
+    carry both. Filtering on ``failed`` there would drop evidence the run really
+    did read. Callers that want only successful calls read
+    ``tool_call_counts`` (successes) rather than ``tool_call_counts_all``, which
+    is asserted below to keep the two notions visibly separate.
     """
     builder = TrajectoryBuilder("q", "query")
     builder.add_tool_call("search", {}, "o", returned_docids=["z"], failed=True)
