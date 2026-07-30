@@ -117,7 +117,11 @@ def _docids_from_mcp_output(name: str, arguments: str, output: str) -> list[str]
         if name == "fetch":
             args = json.loads(arguments or "{}")
             return [args["id"]] if args.get("id") else []
-    except (json.JSONDecodeError, TypeError, KeyError):
+    except (json.JSONDecodeError, TypeError, KeyError, AttributeError):
+        # AttributeError covers a JSON *array* payload (`.get` on a list). This
+        # runs after the expensive part of a DR run is already billed, so any
+        # unexpected tool-output shape must cost one call's docids, not the
+        # artifacts.
         pass
     return []
 
@@ -301,7 +305,15 @@ def run_one(client: Any, *, qid: str, query: str, args: argparse.Namespace,
                            t_start=item_t0.get(len(items) - 1, started_at),
                            t_end=ended_at)
 
-    status = "completed" if (resp.status == "completed" and answer_text) else str(resp.status)
+    # A DR run can end `completed` with no message item (e.g. it spent its tool
+    # budget planning). Reporting that as `completed` would pass the exporter's
+    # `status in ("completed", "budget_exhausted")` gate and submit
+    # format_answer's "No answer was produced." placeholder as our answer, so an
+    # answerless run gets its own status.
+    if resp.status == "completed" and not answer_text:
+        status = "completed_no_answer"
+    else:
+        status = str(resp.status)
     trajectory = tb.finalize(status=status, started_at=started_at,
                              ended_at=ended_at)
 
