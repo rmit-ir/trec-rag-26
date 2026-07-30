@@ -2,7 +2,7 @@
 name: pyserini-rest-api
 description: Use for accessing the Pyserini REST API, which is the official API for the TREC RAG tracks.
 metadata:
-  version: v0.2.0
+  version: v0.3.0
   source_url: https://github.com/TREC-RAG/trec-rag-skills/tree/main/skills/pyserini-rest-api
 ---
 
@@ -154,6 +154,22 @@ Parameters:
 - `docid`: required path string
 - `parse`: optional boolean, default `true`; omit it unless the user explicitly asks to control raw vs. parsed output. See `references/search-behavior.md` for detailed `parse` behavior.
 
+## Request Pacing and Rate Limits
+
+The API is shared infrastructure. A client that issues many requests, such as a batch script or a multi-worker agent pipeline, must bound how many requests it has in flight and back off on errors, so the service stays responsive for everyone.
+
+Core rule: each worker may have at most one request in flight. A worker sends its next request only after its previous response or error has been received. Running several workers concurrently is fine; total in-flight requests are then bounded by the worker-pool size. Note that this bounds concurrency, not request rate: when responses are fast, a pool of N workers can still approach N requests per second. It reduces the risk of `429 Too Many Requests` but does not guarantee its absence, so keep the pool modest and back off when errors appear.
+
+Mandatory pacing rules:
+
+- At most one in-flight request per worker: send the next request only after the previous response or error has been received. Do not fire requests on a timer regardless of completions, and do not launch unbounded async fan-out.
+- Bound total concurrency with a fixed, modest worker-pool size. Around a dozen workers is acceptable; shrink the pool if `429` responses, other errors, or slow responses appear.
+- On HTTP `429`, stop and back off before retrying: honor the `Retry-After` response header when present; otherwise wait with exponential backoff (for example 1s, 2s, 4s, capped at 60s) and retry a bounded number of times. Treat repeated `429` after backoff as a signal to shrink the pool, not to retry harder.
+- Apply the same bounded backoff to transient `5xx` responses and timeouts; never tight-loop on a failing request.
+- Run the Health Check procedure as a one-shot check, not in a polling loop.
+
+In practice, multi-week agentic retrieval workloads against `climbmix-400b` (a pool of roughly a dozen workers, each with at most one request in flight, tens of thousands of search and document requests) completed without a single `429` and needed no explicit rate limiter. The effective request rate stayed far below the concurrency bound because each worker spent most of its time processing results between calls; a pool that fires requests back-to-back with no processing between them would need the backoff rules above to do real work.
+
 ## Response Shape
 
 For search and document response examples, read `references/search-behavior.md` when implementing clients, inspecting `doc` contents, or validating response parsing. By default, `doc` is returned as a parsed JSON structure when possible.
@@ -188,8 +204,9 @@ When helping with this API:
 6. When using the recommended repo-local curl workflow, use `curl -sS -K .curlrc.pyserini-rest -o tmp/pyserini-rest-*.json` for all Pyserini REST requests so the token stays out of command lines and the command prefix can be approved once for network access.
 7. Use `/v1/{index}/search` for retrieval and `/v1/{index}/doc/{docid}` for follow-up fetches.
 8. Run `jq` only as a separate local command against the saved `tmp/pyserini-rest-*.json` file; avoid `curl | jq` pipelines.
-9. Omit `parse` by default; read `references/search-behavior.md` before changing it.
-10. Formulate queries as ordinary text; avoid assuming Lucene query syntax support.
-11. Read `references/search-behavior.md` when the user asks about raw stored payloads, query semantics, or detailed response interpretation.
-12. Read `references/error-behavior.md` when debugging clients or explaining non-`200` API responses.
-13. When debugging clients, check HTTP status and the JSON `error` field first.
+9. Pace requests: at most one in-flight request per worker, a fixed modest worker-pool size, and backoff on `429` or `5xx` per Request Pacing and Rate Limits.
+10. Omit `parse` by default; read `references/search-behavior.md` before changing it.
+11. Formulate queries as ordinary text; avoid assuming Lucene query syntax support.
+12. Read `references/search-behavior.md` when the user asks about raw stored payloads, query semantics, or detailed response interpretation.
+13. Read `references/error-behavior.md` when debugging clients or explaining non-`200` API responses.
+14. When debugging clients, check HTTP status and the JSON `error` field first.

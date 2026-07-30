@@ -577,9 +577,14 @@ def test_save_run_embeds_the_trace_in_output_only(
 def test_save_run_writes_violations_file_when_the_output_is_invalid(
         read_artifacts: Callable[[dict[str, Path]], dict[str, Any]]) -> None:
     """An invalid output is still saved (visibility over hard failure) with the
-    violation list alongside it."""
+    violation list alongside it.
+
+    The violation used is a dangling citation index — one of the few rules that
+    survives the spec's "do not reject" directives, so this test keeps testing
+    ``save_run``'s persistence behaviour rather than tracking validator policy.
+    """
     output = make_output()
-    output["references"] = list(CLIMBMIX_DOCIDS[:2])      # index 1 now uncited
+    output["answer"][0]["citations"] = [1]           # only reference is index 0
     ts = run_timestamp()
 
     written = save_run("contract_system", "query text",
@@ -589,8 +594,9 @@ def test_save_run_writes_violations_file_when_the_output_is_invalid(
     assert set(written) == {"trajectory", "output", "violations"}
     artifacts = read_artifacts(run_artifact_paths("contract_system",
                                                   "query text", ts))
-    assert artifacts["violations"] == ["references never cited: indices [1]"]
-    assert artifacts["output"]["references"] == list(CLIMBMIX_DOCIDS[:2])
+    assert artifacts["violations"] == [
+        "answer[0] cites invalid reference index 1"]
+    assert artifacts["output"]["answer"][0]["citations"] == [1]
 
 
 def test_save_run_partial_mode_skips_trajectory_and_validation() -> None:

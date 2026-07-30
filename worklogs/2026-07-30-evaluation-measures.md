@@ -169,6 +169,15 @@ not something confirmable from the track spec. `docs/evaluation-measures.md`
 says so explicitly rather than asserting equivalence as fact. Worth re-checking
 once the 2026 track guidelines publish their measures.
 
+> **Resolved later the same day** — see
+> `worklogs/2026-07-30-spec-revendor-validator-relax.md`. The guidelines had
+> *already* published them; the wrong place was searched. The vendored
+> `skills/trec-rag-2026-track-guidelines/` was still at v0.3.0 while upstream was
+> at v0.6.0, which names weighted citation precision/recall and cites the same
+> study. The measures section of the data submodule's READMEs was never going to
+> carry them. `docs/evaluation-measures.md` §1.8 now records what the spec does
+> and does not pin down.
+
 ## Files
 
 - `docs/evaluation-measures.md` — new

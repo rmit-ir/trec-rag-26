@@ -1,0 +1,39 @@
+name: vendored-skills
+
+# Three of the four directories under skills/ are copies of skills published at
+# TREC-RAG/trec-rag-skills — including trec-rag-2026-track-guidelines, which the
+# official data repo designates as the canonical spec for the 2026 submission
+# formats. Nothing refreshes those copies: `git submodule update --remote` does
+# not touch them, so they drift silently while we keep reasoning from them.
+#
+# That is not hypothetical. On 2026-07-30 our vendored spec was at v0.3.0 while
+# upstream had reached v0.6.0, which had already relaxed three validation rules
+# our validator still enforced — meaning it rejected conforming submissions.
+#
+# This job is the refresh signal. It needs network (it clones upstream), so it
+# cannot live in the hermetic pytest suite; it runs on a weekly schedule, on
+# demand, and on any PR that touches the vendored copies or the checker itself.
+on:
+  schedule:
+    # Mondays 00:17 UTC. Off the hour to avoid the scheduler's peak-minute
+    # backlog, which delays cron jobs on shared runners.
+    - cron: "17 0 * * 1"
+  workflow_dispatch:
+  pull_request:
+    paths:
+      - "skills/**"
+      - "scripts/check_vendored_skills.py"
+      - ".github/workflows/vendored-skills.yml"
+
+jobs:
+  check-freshness:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # The checker is stdlib-only (argparse/filecmp/shutil/subprocess) so there
+      # is no install step to keep in sync with pyproject.
+      - name: Check vendored skills match upstream
+        run: python scripts/check_vendored_skills.py

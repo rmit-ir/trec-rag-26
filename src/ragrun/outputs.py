@@ -5,7 +5,7 @@
 
     {
       "metadata": {team_id, narrative_id, narrative, run_id, run_desc},
-      "references": ["<climbmix docid>", ...],   # only docids cited by answer
+      "references": ["<climbmix docid>", ...],   # retrieved docids; uncited is OK
       "answer": [{"text": "<sentence>", "citations": [0, 1]}, ...]
     }
 
@@ -88,7 +88,13 @@ def submission_output(obj: dict[str, Any]) -> dict[str, Any]:
 
 def validate_rag_output(obj: dict[str, Any]) -> list[str]:
     """Return a list of violations of the track's answer/validation rules
-    (empty list = valid). Mirrors rag-task.md."""
+    (empty list = valid). Mirrors rag-task.md.
+
+    Only the explicit structural rules are enforced, per the guidelines'
+    directive not to add stylistic validation of our own. Three things the spec
+    calls out as *not* rejectable — extra ``metadata`` keys, uncited
+    ``references``, and an empty ``citations`` array — are therefore accepted.
+    """
     errs: list[str] = []
     meta = obj.get("metadata")
     if not isinstance(meta, dict):
@@ -98,9 +104,9 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
     missing = required - meta.keys()
     if missing:
         errs.append(f"metadata missing keys: {sorted(missing)}")
-    extra = meta.keys() - required
-    if extra:
-        errs.append(f"metadata has extra keys (not allowed): {sorted(extra)}")
+    # Extra ``metadata`` keys are explicitly allowed ("may also contain any
+    # additional participant-defined fields"), so only the five required keys
+    # are checked. Do not reinstate an extra-key check.
 
     refs = obj.get("references")
     answer = obj.get("answer")
@@ -111,7 +117,6 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
         errs.append("answer must be a non-empty list")
         answer = []
 
-    cited: set[int] = set()
     total_words = 0
     for i, sent in enumerate(answer):
         if not isinstance(sent, dict) or "text" not in sent or "citations" not in sent:
@@ -120,18 +125,22 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
         total_words += len(sent["text"].split())
         cits = sent["citations"]
         if not isinstance(cits, list) or len(cits) > 3:
-            errs.append(f"answer[{i}].citations must be a list of at most 3 indices")
+            errs.append(f"answer[{i}].citations must be a list of at most 3 citations")
             continue
         for c in cits:
-            if not isinstance(c, int) or not (0 <= c < len(refs)):
-                errs.append(f"answer[{i}] cites invalid reference index {c!r}")
+            # A citation is either a zero-based position into ``references`` or
+            # the docid string of a reference entry, written verbatim.
+            if isinstance(c, str):
+                if c not in refs:
+                    errs.append(f"answer[{i}] cites unknown reference docid {c!r}")
+            elif isinstance(c, int) and 0 <= c < len(refs):
+                continue
             else:
-                cited.add(c)
+                errs.append(f"answer[{i}] cites invalid reference index {c!r}")
     if total_words > 1024:
         errs.append(f"answer is {total_words} words (max 1024)")
-    uncited = set(range(len(refs))) - cited
-    if uncited:
-        errs.append(f"references never cited: indices {sorted(uncited)}")
+    # Uncited references are explicitly permitted and must not be penalized, so
+    # there is no coverage check here. Do not reinstate one.
     return errs
 
 

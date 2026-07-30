@@ -1,6 +1,32 @@
 Google Groups mailing list: https://groups.google.com/g/trec-rag-2026-participants
 TREC RAG 2026 Official Skills: https://github.com/TREC-RAG/trec-rag-skills.git
 
+## Vendored Official Skills (the spec drifts silently — check it)
+
+`skills/trec-rag-2026-track-guidelines/`, `skills/pyserini-rest-api/`, and
+`skills/trec-rag-climbmix-corpus-creation/` are **copies** of the official skills
+above, not submodules — Claude Code only discovers skills at `skills/<name>/`.
+The track-guidelines one is **the canonical spec** for the submission formats
+(the official data repo says so). Nothing refreshes any of them: `git submodule
+update --remote` does not touch them.
+
+**Before any submission-format work, check freshness:**
+
+```bash
+python scripts/check_vendored_skills.py            # report drift (needs network)
+python scripts/check_vendored_skills.py --update   # re-vendor in place
+```
+
+Never hand-edit these copies — `--update` overwrites them wholesale.
+`skills/trec-rag-new-system/` is ours and is skipped. CI re-checks weekly
+(`.github/workflows/vendored-skills.yml`); it is not in the pytest suite because
+it needs network.
+
+A re-vendor can invalidate code, not just docs: the v0.3.0 → v0.6.0 bump relaxed
+three validation rules `validate_rag_output` was still enforcing, so it was
+rejecting conforming submissions. See
+`worklogs/2026-07-30-spec-revendor-validator-relax.md`.
+
 ## Environment Rules
 
 - **Each task gets its own `uv` env.** Every directory under `tasks/<task>/`

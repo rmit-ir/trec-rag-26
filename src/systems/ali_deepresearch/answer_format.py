@@ -2,8 +2,8 @@
 
 The upstream ``<answer>`` is free-form markdown prose. The track requires
 ``answer = [{"text": <sentence>, "citations": [ref_idx, ...]}]`` with
-``references = [docid, ...]`` (every reference cited, ≤3 citations/sentence,
-≤1024 words total). ``format_answer`` produces that structure two ways:
+``references = [docid, ...]`` (≤3 citations/sentence, ≤1024 words total).
+``format_answer`` produces that structure two ways:
 
 - **LLM stage** (``llm`` given): one extra call to the same endpoint asks the
   model to rewrite the draft as sentences citing only the allowed docids. Faithful
@@ -127,6 +127,9 @@ def _from_llm_json(raw: str, candidate_docids: list[str]
     if not answer:
         return None
     # Enforce the word budget, then drop any reference left uncited by the trim.
+    # Since v0.6.0 uncited references are permitted and unpenalized, so this
+    # re-indexing is now tidiness ("keeping only useful documents can make
+    # submissions easier to inspect") rather than a conformance requirement.
     kept = _trim_to_words([a["text"] for a in answer])
     answer = answer[:len(kept)]
     used = {c for a in answer for c in a["citations"]}

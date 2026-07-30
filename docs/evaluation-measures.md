@@ -10,10 +10,21 @@ The anchor source for **support evaluation** is:
 > arXiv:2504.15205v1, 21 Apr 2025 (16 pp).
 > Local copy: `tmp/papers/2504.15205.pdf`
 
-TREC RAG 2026 is expected to score support with the same weighted
-precision/recall formulas, so the definitions in §3.4 of that paper are treated
-here as the spec our implementation must match. Verified: RAGDoll reproduces the
-paper's worked example exactly (see [Verification](#verification)).
+**This is the 2026 track's own citation, not our inference.** The v0.6.0 track
+guidelines name weighted citation precision and recall as the support measures and
+point at this study by name for the methodology
+(`skills/trec-rag-2026-track-guidelines/references/rag-task.md:126-133`). The spec
+links the SIGIR 2025 published version — *Assessing Support for the TREC 2024 RAG
+Track: A Large-Scale Comparative Study of LLM and Human Evaluations*,
+[10.1145/3726302.3730165](https://dl.acm.org/doi/pdf/10.1145/3726302.3730165) —
+of which the arXiv preprint above is the same study by the same authors; section
+numbers here are the preprint's.
+
+So the §3.4 definitions are the spec our implementation must match, and RAGDoll
+reproduces the paper's worked example exactly (see
+[Verification](#verification)). What the spec does *not* restate is the
+first-citation-only annotation protocol (§1.5) — see
+[What the 2026 spec does and does not pin down](#what-the-2026-spec-does-and-does-not-pin-down).
 
 ---
 
@@ -191,6 +202,43 @@ Directional bias to expect when comparing an LLM judge to humans (§4.1): **GPT-
 skews toward "partial support", humans toward "no support"**, so LLM-judged
 weighted P/R runs higher. The largest single off-diagonal cell from-scratch is
 GPT-4o=PS / human=NS at 15.1%.
+
+### 1.8 What the 2026 spec does and does not pin down
+
+The v0.6.0 guidelines (`references/rag-task.md`, "Evaluation") name the measures
+and the methodology paper, but restate less than the paper defines. What is
+stated, and what we are still inferring from 2024:
+
+| Fact | Stated in the 2026 spec? |
+|---|---|
+| Support scored as weighted citation precision + recall | **Yes** — named, with the same prose definitions as §3.4 |
+| Uncited answer objects omitted from precision, scored 0 for recall | **Yes** — stated twice, and made a validation rule |
+| The methodology paper | **Yes** — cited by name (SIGIR '25 version) |
+| Nugget scoring "in the style of AutoNuggetizer" | **Yes** — named, formulas not given |
+| Pairwise system-vs-system battles with hidden identities and randomized order | **Yes** — named, aggregation method not given |
+| FS/PS/NS weights = 1.0 / 0.5 / 0.0 | **No** — "weighted" is never expanded; taken from §3.2 |
+| Only the *first* cited passage of each answer object is judged | **No** — inherited from §3.3 |
+| Rubric scoring, UMBRELA relevance judging | **Not for the RAG task** — ResearchRubrics rubrics and UMBRELA qrels ship as *development-data diagnostics* (`references/development-data.md`), not as announced test-set measures |
+
+Two consequences worth acting on:
+
+- **The first-citation-only protocol is the load-bearing unstated assumption.**
+  If 2026 judges *all* citations of a sentence, then citing three passages when
+  one supports the claim starts costing precision — under first-citation-only it
+  costs nothing, and the spec's "order the citations from strongest to weakest
+  support" rule (`rag-task.md:146`) is exactly what makes a first-citation
+  reading safe. That rule existing is weak evidence the protocol carries over,
+  but it is not a statement of it. Prefer citing the single strongest passage,
+  which is optimal under either protocol.
+- **The zero-citation asymmetry is now a *rule*, not just an artifact.** The spec
+  states it in the Evaluation section and again as a validation rule, so "an
+  empty citations array costs recall only" is guaranteed 2026 behaviour, not an
+  inference from the 2024 implementation.
+
+Note the aggregation the paper uses (unweighted mean over `(topic, run)` cells,
+§1.5) is also unstated for 2026 — a macro-average over narratives is the safe
+assumption, but a leaderboard rank computed locally will not necessarily match
+the organizers' to the digit.
 
 ---
 

@@ -1,11 +1,13 @@
 # TREC RAG 2026 Track Reference
 
-Sources checked June 17, 2026:
+Sources checked July 17, 2026:
 
 - Home: https://trec-rag.github.io/
 - NIST TREC 2026 call for participation: https://trec.nist.gov/cfp.html
 - GitHub org: https://github.com/TREC-RAG
 - Development data: https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/development-data
+- Test data: https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/test-data
+- Test-narrative release announcement: https://x.com/TREC_RAG/status/2074513634043064419
 
 ## Summary
 
@@ -32,16 +34,17 @@ The goals of TREC RAG 2026 are:
 - The site announces that TREC RAG is returning for 2026 as one of the TREC 2026 tracks.
 - The site announces that TREC RAG 2026 will be agent-first and points agents to the TREC-RAG `trec-rag-skills` repository.
 - The site announces that TREC RAG 2026 will use NVIDIA's ClimbMix-400b.
-- Development queries for RAG 2026 are released at https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/development-data so teams can test systems before the official evaluation topics are released in early July. The development data includes RAG25 and ResearchRubrics topic TSV files, RAG25 answer nuggets, RAG25 UMBRELA qrels over ClimbMix-400b, and ResearchRubrics evaluation rubrics.
+- Official test narratives are released at https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/test-data. The shared `trec_rag_2026_queries.tsv` file contains 119 narratives for both the Retrieval and RAG tasks. Use `references/test-data.md` for schema, handling, and validation guidance.
+- Development data for RAG 2026 is released at https://github.com/TREC-RAG/trec-rag-data/tree/main/trec-rag-2026/development-data so teams can test systems separately from the official test narratives. It includes RAG25 narrative and ResearchRubrics prompt TSV files, RAG25 answer nuggets, RAG25 UMBRELA qrels over ClimbMix-400b, and ResearchRubrics evaluation rubrics.
 - The public site says guidelines have been released and points to the `trec-rag-2026-track-guidelines` skill.
-- The released 2026 tasks are Retrieval (`R`) and Retrieval-Augmented Generation (`RAG`): the Retrieval task ranks passages for supplied topics using ClimbMix through the Pyserini REST API or a custom retrieval system; the RAG task retrieves evidence and returns a summarized answer grounded in that evidence.
-- Use `references/development-data.md` when people want to test or evaluate systems with the released development topics, nuggets, rubrics, and qrels; it explains what each file is and how to use it safely.
+- The released 2026 tasks are Retrieval (`R`) and Retrieval-Augmented Generation (`RAG`): the Retrieval task ranks passages for supplied narratives using ClimbMix through the Pyserini REST API or a custom retrieval system; the RAG task retrieves evidence and returns a summarized answer grounded in that evidence.
+- Use `references/development-data.md` when people want to test or evaluate systems with the released development narratives and prompts, nuggets, rubrics, and qrels; it explains what each file is and how to use it safely.
 - Use `trec-rag-2026-track-guidelines` for task rules, baselines, output formats, ClimbMix/Pyserini defaults, and validation.
-- The submission deadline is public as August 7th, but upload procedures and portal-specific requirements should be verified from the official site before submission-critical work.
+- The submission deadline is public as August 8th, but upload procedures and portal-specific requirements should be verified from the official site before submission-critical work.
 - Current TREC RAG website timeline:
-  - Test topics released: July 6th.
+  - Test narratives released: July 6th.
   - Baselines released: soon after July 6th.
-  - Submission deadline: August 7th.
+  - Submission deadline: August 8th.
   - Results and judgments returned: TBD.
   - TREC 2026 Conference: November 2026.
 

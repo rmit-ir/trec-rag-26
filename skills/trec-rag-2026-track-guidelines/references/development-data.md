@@ -12,11 +12,11 @@ These links are provenance and optional background. Agents normally should not o
 
 ## Summary
 
-TREC RAG 2026 development data is an early public practice set for building and evaluating systems before the official evaluation topics are released. Use it for smoke tests, retrieval tuning, prompt iteration, RAG answer-generation practice, and validation rehearsals.
+TREC RAG 2026 development data is an early public practice set for building and evaluating systems separately from the official test narratives. Use it for smoke tests, retrieval tuning, prompt iteration, RAG answer-generation practice, and validation rehearsals.
 
-Do not treat these development topics, projected qrels, nuggets, or rubrics as final official evaluation inputs. Keep exact dataset contents in the `trec-rag-data` repository; this reference explains purpose, schema, and safe usage.
+Do not treat these development narratives and prompts, projected qrels, nuggets, or rubrics as final official evaluation inputs. Keep exact dataset contents in the `trec-rag-data` repository; this reference explains purpose, schema, and safe usage.
 
-## Topic Files
+## Development Input Files
 
 ### `topics/rag25-topics-dev.tsv`
 
@@ -28,7 +28,7 @@ Each row is:
 qid<TAB>narrative
 ```
 
-Use these topics when you want RAG25-style development queries with known diagnostic artifacts. Preserve `qid` exactly when creating local runs, joining against nuggets, or evaluating retrieval against projected qrels.
+Use these narratives when you want RAG25-style development inputs with known diagnostic artifacts. Preserve `qid` exactly when creating local runs, joining against nuggets, or evaluating retrieval against projected qrels.
 
 ### `topics/research-rubrics-topics-dev.tsv`
 
@@ -46,11 +46,11 @@ Use these prompts to practice deep-research answer generation and rubric-based d
 
 ### `rag25-dev-nuggets/rag25-dev-nuggets.jsonl`
 
-These are diagnostic answer-coverage targets for the RAG25-derived development topics. Nuggets are short semantic information units that a good answer may need to cover. In TREC RAG evaluation, nuggets are mapped to sub-narratives and used to measure answer completeness and coverage.
+These are diagnostic answer-coverage targets for the RAG25-derived development narratives. Nuggets are short semantic information units that a good answer may need to cover. In TREC RAG evaluation, nuggets are mapped to sub-narratives and used to measure answer completeness and coverage.
 
 Each JSONL object has:
 
-- `qid`: topic ID matching `rag25-topics-dev.tsv`.
+- `qid`: narrative ID matching `rag25-topics-dev.tsv`.
 - `nuggets`: array of nugget objects.
 - `nuggets[].text`: short semantic information unit.
 - `nuggets[].mapped_sub_narrative`: the sub-narrative or coverage area associated with the nugget.
@@ -66,7 +66,7 @@ These are rubric criteria for the ResearchRubrics development prompts. ResearchR
 Each JSONL object has prompt metadata plus:
 
 - `qid`: prompt ID matching `research-rubrics-topics-dev.tsv`.
-- `domain`: ResearchRubrics topic domain.
+- `domain`: ResearchRubrics prompt domain.
 - `conceptual_breadth`, `logical_nesting`, `exploration`: prompt complexity labels.
 - `rubrics`: array of rubric criteria.
 - `rubrics[].criterion`: one criterion to evaluate against an answer.
@@ -77,7 +77,7 @@ Use these rubrics only to evaluate an agent's generated answer after it is produ
 
 ### `rag25-dev-umbrela-qrels/*.qrels`
 
-These are projected ClimbMix relevance judgments for the RAG25-derived development topics. They are UMBRELA/model-generated development qrels over ClimbMix document IDs, useful for retrieval tuning and offline metric calculations.
+These are projected ClimbMix relevance judgments for the RAG25-derived development narratives. They are UMBRELA/model-generated development qrels over ClimbMix document IDs, useful for retrieval tuning and offline metric calculations.
 
 Each file uses standard TREC qrels format:
 
@@ -97,9 +97,9 @@ The current qrels files correspond to different projected assessor/model variant
 
 ## Recommended Development Workflow
 
-1. Choose a development topic set: RAG25-derived topics for TREC-style narrative diagnostics, or ResearchRubrics prompts for deep-research rubric diagnostics.
+1. Choose a development input set: RAG25-derived narratives for TREC-style diagnostics, or ResearchRubrics prompts for deep-research rubric diagnostics.
 2. Retrieve ClimbMix documents using the system under test or the Pyserini/ClimbMix baseline.
 3. For retrieval-only work, evaluate ranked output against a selected development qrels file when available.
-4. For RAG work on RAG25-derived topics, use nuggets to diagnose answer coverage after verifying that answer claims are grounded in retrieved ClimbMix documents.
+4. For RAG work on RAG25-derived narratives, use nuggets to diagnose answer coverage after verifying that answer claims are grounded in retrieved ClimbMix documents.
 5. For RAG work on ResearchRubrics prompts, use the rubric criteria to diagnose answer quality and failure modes.
-6. Keep final submission-format validation separate from development diagnostics; development artifacts do not replace official 2026 evaluation topics or submission instructions.
+6. Keep final submission-format validation separate from development diagnostics; development artifacts do not replace official 2026 test narratives or submission instructions.
