@@ -2055,6 +2055,37 @@ def _load_prompt_grades(cfg: Config, prompt_version: str) -> dict[str, dict[str,
     return {t: dict(qrels.topic(t)) for t in qrels.topics}
 
 
+def _restrict_to_pool(grades: dict[str, dict[str, int]],
+                      pool_keys: set[tuple[str, str]],
+                      prompt_version: str) -> dict[str, dict[str, int]]:
+    """Drop grades for pairs outside this run's pool, loudly.
+
+    A prompt's qrels snapshot is experiment-wide, not run-scoped: it accumulates
+    every pair that version ever graded, including WP6's 280-pair calibration
+    sample (drawn from the labeled input's historical hits, not from any sweep
+    pool). Those pairs have no passage in this run's `pool-texts.jsonl`, so a
+    conflict among them could never be escalated — and they are irrelevant to
+    scoring this run anyway, since no config retrieved them.
+
+    Restricting here rather than tolerating the mismatch downstream keeps
+    `_write_tiebreak_pool`'s "conflict absent from the pool" check as a true
+    invariant: after this filter, a missing pair really does mean the two qrels
+    were judged over different pools.
+    """
+    out: dict[str, dict[str, int]] = {}
+    dropped = 0
+    for topic_id, chunks in grades.items():
+        kept = {c: g for c, g in chunks.items() if (topic_id, c) in pool_keys}
+        dropped += len(chunks) - len(kept)
+        if kept:
+            out[topic_id] = kept
+    if dropped:
+        log.info("[CONSENSUS] %s: ignoring %d graded pair(s) outside this run's "
+                 "pool (WP6 calibration-sample grades); they are not scoreable "
+                 "for this run", prompt_version, dropped)
+    return out
+
+
 def cmd_consensus(args: argparse.Namespace) -> int:
     """Combine per-prompt qrels into one consensus label set (PLAN §6.2b).
 
@@ -2092,9 +2123,16 @@ def cmd_consensus(args: argparse.Namespace) -> int:
     from . import consensus as consensus_mod
 
     try:
-        primary = _load_prompt_grades(cfg, args.primary)
-        secondary = _load_prompt_grades(cfg, args.secondary)
-        tiebreak = (_load_prompt_grades(cfg, args.tiebreak)
+        # Scoped to this run's pool: a prompt's snapshot is experiment-wide and
+        # also carries WP6's calibration-sample grades, which no config in this
+        # run retrieved (see `_restrict_to_pool`).
+        pool_keys = {e.key for e in pool_mod.read_pool(run_dir / POOL_BASENAME)}
+        primary = _restrict_to_pool(_load_prompt_grades(cfg, args.primary),
+                                    pool_keys, args.primary)
+        secondary = _restrict_to_pool(_load_prompt_grades(cfg, args.secondary),
+                                      pool_keys, args.secondary)
+        tiebreak = (_restrict_to_pool(_load_prompt_grades(cfg, args.tiebreak),
+                                      pool_keys, args.tiebreak)
                     if args.tiebreak else None)
     except ConfigError as exc:
         log.error("[CONSENSUS] %s", exc)

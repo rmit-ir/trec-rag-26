@@ -264,22 +264,52 @@ def test_the_per_pair_audit_trail_records_every_vote_and_status(
     assert rows["b"]["grades"] == [0, 3] and rows["b"]["consensus"] is None
 
 
-def test_a_conflict_absent_from_the_sweep_pool_is_refused_not_dropped(
-        bm25_config) -> None:
-    """A conflicting pair missing from the run's pool means the qrels were judged
-    over a different pool — refuse rather than silently drop it.
+def test_grades_outside_the_runs_pool_are_ignored_not_treated_as_conflicts(
+        bm25_config, caplog: pytest.LogCaptureFixture) -> None:
+    """A prompt's qrels snapshot is experiment-wide; only this run's pool counts.
 
-    A dropped conflict would revert to its unresolved primary grade in scoring,
-    a wrong label that looks like a resolved one.
+    The snapshots also hold WP6's 280-pair calibration-sample grades, drawn from
+    the labeled input rather than any sweep pool — this run's `pool-texts.jsonl`
+    has no passage for them, so a conflict among them could never be escalated,
+    and no config in the run retrieved them. They must be filtered out (loudly)
+    rather than becoming unresolvable pending conflicts.
     """
     cfg = bm25_config
-    _seed_pool(cfg, [("t1", "a")])  # pool has only 'a'
-    _seed_qrels(cfg, "facet-name-v1", {"t1": {"a": 2, "b": 1}})
-    _seed_qrels(cfg, "facet-rare3-v1", {"t1": {"a": 3, "b": 3}})  # b conflicts
+    _seed_pool(cfg, [("t1", "a")])          # the run's pool: just 'a'
+    # 'x' is a calibration-sample pair: graded by both, conflicting, out of pool.
+    _seed_qrels(cfg, "facet-name-v1", {"t1": {"a": 2, "x": 0}})
+    _seed_qrels(cfg, "facet-rare3-v1", {"t1": {"a": 3, "x": 3}})
 
-    code = cli.main(["consensus", "--run-id", RUN_ID, "--primary",
-                     "facet-name-v1", "--secondary", "facet-rare3-v1"])
-    assert code == cli.EXIT_ERROR
+    with caplog.at_level(logging.INFO):
+        code = cli.main(["consensus", "--run-id", RUN_ID, "--primary",
+                         "facet-name-v1", "--secondary", "facet-rare3-v1"])
+    assert code == cli.EXIT_OK
+
+    qrels = metrics.load_qrels(
+        cfg.run_dir(RUN_ID) / cli.CONSENSUS_QRELS_BASENAME)
+    assert qrels.grade("t1", "a") == 2      # in-pool pair resolved
+    assert qrels.grade("t1", "x") is None   # out-of-pool pair absent entirely
+    assert qrels.n_judged() == 1
+    assert any("outside this run's pool" in r.message for r in caplog.records)
+    # No escalation dir: the only conflict was out of pool, so nothing escalates.
+    assert not (cfg.run_dir(f"{RUN_ID}{cli.CONSENSUS_TIEBREAK_SUFFIX}")
+                / cli.POOL_BASENAME).exists()
+
+
+def test_writing_a_tiebreak_pool_for_an_unpooled_conflict_is_refused(
+        bm25_config) -> None:
+    """The escalation writer must refuse a conflict it has no pooled pair for.
+
+    `_restrict_to_pool` makes this unreachable from the CLI, which is the point:
+    the check stays as a hard invariant so that if the filter is ever removed or
+    bypassed, an unescalatable conflict fails loudly instead of silently
+    reverting to its unresolved primary grade during scoring.
+    """
+    cfg = bm25_config
+    run_dir = _seed_pool(cfg, [("t1", "a")])  # pool has only 'a'
+    with pytest.raises(cli.ConfigError, match="different pool"):
+        cli._write_tiebreak_pool(
+            cfg, run_dir, cfg.run_dir("tie-tmp"), [("t1", "b")])
 
 
 def test_a_missing_prompt_snapshot_is_a_hard_error_with_the_judge_command(
