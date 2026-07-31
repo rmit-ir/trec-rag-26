@@ -114,9 +114,9 @@ class Stub:
 #: PLAN §5.6's remaining subcommands, with the work package that delivers each.
 STUBS: tuple[Stub, ...] = (
     Stub("calibrate", "WP6 (needs WP3 + WP3b)",
-         "judge the 280-pair calibration sample under all four prompt "
-         "variants plus a 50-pair stability probe, then apply the §3.3 "
-         "grade-spread gate (exit 6 on failure)"),
+         "judge the 280-pair calibration sample under every registered "
+         "prompt variant plus a 50-pair stability probe, then apply the "
+         "§3.3 four-condition grade-spread gate (exit 6 on failure)"),
 )
 
 

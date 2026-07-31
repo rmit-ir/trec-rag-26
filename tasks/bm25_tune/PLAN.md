@@ -568,7 +568,7 @@ class ChunkSearcher:
 ### 5.3 `store.py` — judgment LOG vs CACHE (user-flagged as first-class)
 
 **Cache key: `(prompt_version, topic_id, chunk_id)`.** The prompt-version component is mandatory:
-WP0 judges the same pairs under four prompts, and without it calibration judgments would poison the
+WP0 judges the same pairs under all five prompts, and without it calibration judgments would poison the
 sweep. A key helper `jkey(prompt_version, topic_id, chunk_id) -> str` is the only way keys are made.
 `run_id` and `stage` (below) are cost-attribution metadata and are **deliberately NOT key
 components** — the whole reuse economy (§6.2) depends on a Stage-A judgment satisfying a Stage-B

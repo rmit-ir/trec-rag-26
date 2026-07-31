@@ -98,7 +98,8 @@ def test_jkey_is_prompt_version_qualified_so_rubrics_cannot_cross_contaminate(
 ) -> None:
     """Two rubrics judging the same pair must produce two different keys.
 
-    WP0 judges the same 280 pairs under four prompt variants. If `prompt_version`
+    WP0 judges the same 280 pairs under every registered variant (five as of
+    2026-07-31, and the count is expected to grow). If `prompt_version`
     were not in the key, the last variant judged would answer every lookup and
     the sweep would be scored against a blend of rubrics — a well-formed qrel for
     a label set that never existed, and undetectable after the fact.

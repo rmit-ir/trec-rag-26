@@ -314,6 +314,15 @@ or run). Browse the current architecture at `docs/architecture.html`.
   chunk jsonl out). Chunk ids are `<docid>_p<page>` (page from 1, e.g.
   `shard_00000_3908_p1`) so the parent docid is derivable downstream
   (`rsplit("_p", 1)[0]` — unambiguous, rows are pure digits).
+- **BM25 `k1`/`b` tuning** — working in `tasks/bm25_tune/`. Tunes BM25 on the
+  chunked ClimbMix index (read-only, under `BM25_TUNE_INDEX_DIR`) against
+  aus_agent's 1063 keyword queries with a `gpt-oss-20b` Bedrock judge (pooled
+  0–3 qrels, cached under `data/bm25-tune/judgments/`). JDK 21 conda env
+  in-folder; **`export JAVA_HOME="$PWD/tasks/bm25_tune/env/lib/jvm"`** — the
+  test suite needs it too. The plan is `tasks/bm25_tune/PLAN.md`; **WP0/WP6
+  judge calibration is a mandatory gate before any sweep spend**, and the
+  budget cap is a required operator input (`BM25_TUNE_BUDGET_USD`, currently
+  $50) with no default in code.
 
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 
