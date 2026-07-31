@@ -16,13 +16,19 @@ Four frozen variants, each identified by a `prompt_version` string that is a
   (code, JSON, `{{`), which `format` would either interpret or raise on.
 
 **Nothing here tells the judge how often each grade should occur, except
-`facet-rare3-v1`.** That is why the two measured variants land on opposite sides
-of the collection's real base rate (umbrela-v1: 10 % at grade >=2; facet-v1:
-75 %) — grade frequency is currently a side effect of rubric wording rather than
-something either prompt states. `facet-rare3-v1` (added 2026-07-31) is the one
-variant that says it outright, and PLAN §3.3's gate is two-sided so a judge that
-grades almost everything relevant is rejected as firmly as one that grades
-almost nothing.
+`facet-rare3-v1`.** The two measured variants land far apart (umbrela-v1: 10 % at
+grade >=2; facet-v1: 75 %) because grade frequency is a side effect of rubric
+wording rather than something either prompt states. `facet-rare3-v1` (added
+2026-07-31) is the one variant that says it outright.
+
+**Which of the five is right is an open question — see PLAN §3.3b.** A hand-read
+of 22 real keyword hits put ~65 % of the *judged pool* at grade >=2, because the
+pool is BM25 top-4-to-10 for agent-authored queries, not random crawl text. So
+`facet-v1`'s measured 75 % is closer to defensible than it looks, and
+`facet-rare3-v1`'s "MOST of them are not useful evidence" is a claim about the
+corpus that may be false of the pool. It is a hypothesis WP0 tests, not a fix
+already applied — do not treat it as the presumed winner, and do not tighten the
+other prompts toward it before the 280-pair measurement exists.
 
 `umbrela-v1`/`umbrela-kw-v1` reproduce the team's prior umbrela-bedrock prompt
 **character-for-character** from
