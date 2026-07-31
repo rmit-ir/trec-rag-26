@@ -5,9 +5,10 @@ Replaces upstream's web tools (Serper ``search``, ``visit``, ``google_scholar``,
 runtime:
 
 - ``search(query)``       — hybrid dense+sparse RRF retrieval over ClimbMix,
-  wired to ``tools.search_tool.run_search_tool``. Accepts a single query string
-  or a list of query strings (upstream's batched form); a list is de-duplicated
-  and fused into one ranked list.
+  wired to ``utils.search.search`` through the shared search-tool result
+  envelope. Accepts a single query string or a list of query strings
+  (upstream's batched form); a list is de-duplicated and fused into one ranked
+  list.
 - ``get_document(docid)`` — full document text, wired to ``utils.fetch_doc``.
 
 ``ClimbMixTools`` is **stateful**: like the reference trajectory's retriever it
@@ -23,8 +24,9 @@ from __future__ import annotations
 import json
 from typing import Any
 
-from tools.search_tool import run_search_tool
+from tools.search_tool import run_search_backend
 from utils.fetch_doc import fetch_doc
+from utils.search import search as hybrid_search
 
 # ClimbMix docids carry no titles; derive a short pseudo-title from the snippet
 # so the search block reads like the upstream "[Title]" line.
@@ -66,7 +68,14 @@ class ClimbMixTools:
         # keep the best score seen for each).
         cand: dict[str, dict[str, Any]] = {}
         for q in queries:
-            raw = json.loads(run_search_tool(q, k=k, max_chars=self.snippet_chars))
+            raw = json.loads(run_search_backend(
+                q,
+                hybrid_search,
+                engine="hybrid-rrf",
+                k=k,
+                max_chars=self.snippet_chars,
+                with_text=True,
+            ))
             if "error" in raw:
                 return f"Search error: {raw['error']}", {"failed": True}
             for r in raw.get("results", []):
@@ -96,6 +105,7 @@ class ClimbMixTools:
             "found_docids_before_search": found_before,
             "previous_queries_before_search": prev_queries,
             "k": k,
+            "search_engine": "hybrid-rrf",
             "query_style": "plain",
             "original_query": primary,
             "retrieval_query": primary,

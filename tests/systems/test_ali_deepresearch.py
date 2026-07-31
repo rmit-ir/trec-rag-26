@@ -4,9 +4,9 @@ Hermetic pytest port of ``src/systems/ali_deepresearch/test_mock.py``. The
 original drove the REAL ClimbMix ``search`` **and** ``get_document`` backends,
 so it needed credentials; here both are stubbed:
 
-- ``stub_search_tool`` (root conftest) replaces ``tools.search_tool``'s engine
-  dispatch — ``ClimbMixTools.search``'s own cross-step dedup, snippet
-  formatting, and meta assembly all stay under test;
+- ``stub_search_tool`` (root conftest) replaces both clients below the real
+  ``utils.search`` RRF layer — fusion, ``ClimbMixTools.search`` cross-step
+  dedup, snippet formatting, and meta assembly all stay under test;
 - ``stub_fetch_doc`` (systems conftest) replaces the *separate* urllib client
   ``ClimbMixTools.get_document`` reaches through.
 
@@ -235,6 +235,7 @@ def test_react_run_search_item_carries_sample_extras(
     assert "original_query" in item
     assert "k" in item
     assert item["k"] == 5
+    assert item["search_engine"] == "hybrid-rrf"
     assert item["previous_queries_before_search"] == []
     assert item["found_docids_before_search"] == []
 
@@ -261,12 +262,22 @@ def test_react_run_opened_document_is_cited_first(
 
 def test_react_run_search_routed_with_the_scripted_query(
         react_run: dict[str, Any]) -> None:
-    """``ClimbMixTools.search`` goes through the default (semantic) engine and
-    passes the model's query and k straight through."""
+    """Both retrieval legs receive the model query at the fusion depth; losing
+    either leg would recreate the dense-only run that this system mislabeled."""
     calls = react_run["calls"]
-    assert list(calls) == ["semantic"]
-    assert calls["semantic"] == [
-        {"query": "influenza vaccine effectiveness", "k": 5}]
+    assert set(calls) == {"semantic", "keyword"}
+    assert calls["semantic"] == [{
+        "query": "influenza vaccine effectiveness",
+        "k": 50,
+        "with_text": True,
+        "timeout": 30.0,
+    }]
+    assert calls["keyword"] == [{
+        "query": "influenza vaccine effectiveness",
+        "k": 50,
+        "timeout": 30.0,
+    }]
+    assert react_run["trajectory"]["metadata"]["searcher_type"] == "hybrid-rrf"
 
 
 def test_react_loop_uses_the_upstream_stop_sequence(
@@ -372,6 +383,7 @@ def test_loop_terminates_at_the_call_budget(
     assert llm.calls == 4
     assert result.answer_text is None
     assert len(stub_search_tool["semantic"]) == 4
+    assert len(stub_search_tool["keyword"]) == 4
 
 
 def test_budget_exhaustion_still_yields_saveable_artifacts(
@@ -422,6 +434,7 @@ def test_single_quoted_tool_call_payload_is_repaired(
     assert result.steps[1]["name"] == "search"
     assert result.steps[1]["failed"] is False
     assert stub_search_tool["semantic"][0]["query"] == "flu vaccine"
+    assert stub_search_tool["keyword"][0]["query"] == "flu vaccine"
 
 
 def test_unknown_tool_name_is_reported_not_fatal(
@@ -498,7 +511,7 @@ def test_answer_wins_over_a_same_turn_tool_call(
     result = agent.run(QUERY, query_id=QID)
     assert result.status == "completed"
     assert [s["kind"] for s in result.steps] == ["reasoning", "answer"]
-    assert "semantic" not in stub_search_tool
+    assert stub_search_tool == {}
 
 
 def test_context_guard_forces_a_final_answer(
@@ -553,12 +566,12 @@ def test_search_error_envelope_is_surfaced_as_tool_text(
     flaky search would lose the topic. Handing the error to the model lets it
     reword the query or fall back to what it already has.
     """
-    from tools import search_tool
+    from utils import search as search_mod
 
     def _boom(query: str, k: int = 10, **kw: Any) -> list[dict[str, Any]]:
         raise RuntimeError("backend down")
 
-    monkeypatch.setitem(search_tool._DISPATCH, "semantic", _boom)
+    monkeypatch.setattr(search_mod, "search_dense", _boom)
     text, meta, failed = dispatch(ClimbMixTools(), "search",
                                   {"query": "flu"}, k=3)
     assert failed is True
