@@ -1301,7 +1301,8 @@ def cmd_judge_pool(args: argparse.Namespace) -> int:
 
     log_store = JudgmentLog(cfg.log_dir)
     driver = judge_mod.JudgePoolDriver(
-        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region),
+        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region,
+                                     max_pool_connections=concurrency),
         spec=spec, log_store=log_store, cache=cache, meter=meter, guard=guard,
         rates=rates, pricing_mod=pricing_mod, run_id=run_id, stage=stage,
         concurrency=concurrency, snapshot_path=snapshot_path, run_dir=run_dir)
@@ -1460,7 +1461,8 @@ def _judge_variant(cfg: Config, args: argparse.Namespace, spec,
              cache_hits, len(pairs), len(pending))
 
     driver = judge_mod.JudgePoolDriver(
-        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region),
+        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region,
+                                     max_pool_connections=concurrency),
         spec=spec, log_store=JudgmentLog(cfg.log_dir), cache=cache, meter=meter,
         guard=guard, rates=rates, pricing_mod=pricing_mod,
         run_id="calibrate", stage=CALIBRATION_STAGE, concurrency=concurrency,
@@ -1575,7 +1577,8 @@ def _stability_probe(cfg: Config, args: argparse.Namespace, spec,
     # pollute the calibration the report is about to declare the winner.
     probe_cache = JudgmentCache(prompt_version=spec.version_id)
     driver = judge_mod.JudgePoolDriver(
-        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region),
+        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region,
+                                     max_pool_connections=concurrency),
         spec=spec, log_store=JudgmentLog(cfg.log_dir), cache=probe_cache,
         meter=meter, guard=guard, rates=rates, pricing_mod=pricing_mod,
         run_id="calibrate", stage="calib-probe", concurrency=concurrency,

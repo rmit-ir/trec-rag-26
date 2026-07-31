@@ -66,6 +66,12 @@ log = get_logger("judge")
 DEFAULT_MAX_TOKENS = 1024
 DEFAULT_TEMPERATURE = 0.0
 DEFAULT_MAX_ATTEMPTS = 8
+#: botocore's default HTTP connection pool is 10; a pool with more worker
+#: threads than that logs "Connection pool is full, discarding connection" and
+#: churns TCP/TLS setup on every discarded connection (harmless, but noisy and
+#: slightly wasteful). The driver passes its `concurrency` so the pool matches
+#: the number of in-flight Converse calls. Falls back to boto3's default of 10.
+DEFAULT_MAX_POOL_CONNECTIONS = 10
 
 # -- retry policy ------------------------------------------------------------
 BACKOFF_BASE_S = 1.0
@@ -393,6 +399,7 @@ class BedrockJudge:
                  max_tokens: int = DEFAULT_MAX_TOKENS,
                  temperature: float = DEFAULT_TEMPERATURE,
                  max_attempts: int = DEFAULT_MAX_ATTEMPTS,
+                 max_pool_connections: int = DEFAULT_MAX_POOL_CONNECTIONS,
                  converse: Callable[..., dict] | None = None,
                  sleep: Callable[[float], None] = time.sleep,
                  clock: Callable[[], float] = time.monotonic,
@@ -410,6 +417,7 @@ class BedrockJudge:
         self.max_tokens = int(max_tokens)
         self.temperature = float(temperature)
         self.max_attempts = max(1, int(max_attempts))
+        self.max_pool_connections = max(1, int(max_pool_connections))
         self._injected_converse = converse
         self._sleep = sleep
         self._clock = clock
@@ -428,9 +436,15 @@ class BedrockJudge:
         with self._client_lock:
             if self._client_obj is None:
                 import boto3  # noqa: PLC0415 - deliberately function-local
+                from botocore.config import \
+                    Config  # noqa: PLC0415 - function-local, with boto3
 
-                self._client_obj = boto3.client("bedrock-runtime",
-                                                region_name=self.region)
+                # Size the HTTP pool to the worker count so a pool wider than
+                # botocore's default 10 does not discard (and re-establish)
+                # connections on every extra in-flight Converse call.
+                self._client_obj = boto3.client(
+                    "bedrock-runtime", region_name=self.region,
+                    config=Config(max_pool_connections=self.max_pool_connections))
                 self._client_generation += 1
             return self._client_obj
 
