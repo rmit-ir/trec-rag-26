@@ -8,6 +8,7 @@
 # a `-k` expression, a marker — plus these shorthands:
 #
 #     contract  shared  systems  dummy-api  aus-agent   (directories under tests/)
+#     bm25-tune                                         (the tasks/bm25_tune harness)
 #     live                                              (only the live-marked tests)
 #
 # Examples:
@@ -52,6 +53,10 @@ for arg in "$@"; do
     systems)    args+=("tests/systems") ;;
     dummy-api)  args+=("tests/dummy_api") ;;
     aus-agent)  args+=("tests/aus_agent_context") ;;
+    # tasks/bm25_tune/ is a task, not a src/ package, so its modules are
+    # stdlib-only at import time and need no dep group of their own — see
+    # tests/bm25_tune/conftest.py. Hence: shorthand only, DEP_GROUPS unchanged.
+    bm25-tune)  args+=("tests/bm25_tune") ;;
     live)       args+=(-m live); mode="live" ;;
     *)          args+=("$arg") ;;
   esac

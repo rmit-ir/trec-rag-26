@@ -111,8 +111,13 @@ grid or the optional full continuity pass, at the user's direction.
   `not selected…` 6604, `voided…` 202, `not retained` 34). Never ground truth; used only as a
   secondary agreement smell test (§3.4).
 - `prefix_chars`: 3890/9208 hits have `prefix_chars > 0`; `text[prefix_chars:]` strips the leaked
-  `"Page N of document: <title>\n\n"` header (3859/3890 match that pattern; **31 outliers** — see
-  §8 risk R4). Judge always receives the stripped text.
+  `"Page N of document: <title>\n\n"` header. **[measured, WP1 — corrects an earlier planning
+  figure]** ALL **3890/3890** keyword hits match the header regex with `match.end() == prefix_chars`
+  exactly — there are **zero** outliers (8359/8359 across all engines; five regex variants tried).
+  The "31 outliers" claimed in an earlier draft is **not reproducible** on the committed input and
+  must not be treated as a fact. The passthrough branch and the `[PREFIX-MISS]` counter are retained
+  anyway (a future re-export could reintroduce a mismatch), but nothing may depend on a nonzero
+  count. Judge always receives the stripped text.
 
 ### 2.2 Secondary source — provenance only, headline EXCLUDES it
 
@@ -245,7 +250,14 @@ itself never imports boto3; the rate file is data). Every other module is
 stdlib-only at import time. `metrics.py`/`stats.py` deliberately avoid numpy/scipy (1063 floats —
 pure Python is fine) so the root test env needs no new dependency group.
 
-`tasks/bm25_tune/pyproject.toml`:
+`tasks/bm25_tune/pyproject.toml` — **as built in WP1. An earlier draft specified
+`[tool.uv] package = false`; that is wrong and was replaced**, because with nothing installed the
+plan's own canonical invocation (`uv run --project tasks/bm25_tune python -m bm25tune …` *from the
+repo root*) puts the **repo root** on `sys.path[0]` and fails with `No module named bm25tune`.
+Installing the package editable into its own `.venv` is the minimal fix and preserves the isolation
+CLAUDE.md requires (that isolation is the per-task `.venv`, which is untouched). The alternatives —
+`cd tasks/bm25_tune` or an exported `PYTHONPATH` — would make every command in the plan, the README
+and the worklogs differ from what actually runs.
 
 ```toml
 [project]
@@ -258,8 +270,12 @@ dependencies = [
   "boto3>=1.40",
 ]
 
-[tool.uv]
-package = false
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["bm25tune"]   # ships prices/*.json, which pricing.py loads at runtime (§5.7)
 ```
 
 Canonical invocation (all commands run from repo root):
@@ -289,7 +305,8 @@ data/bm25-tune/
 ├── inputs/                                # EXISTS: labeled jsonl + SHA256SUMS
 ├── queries/
 │   ├── keyword-1063.jsonl                 # {topic_id, topic, query, k_orig} — the full set
-│   └── subsample-250.jsonl                # stratified ~2/topic, seed 13
+│   └── subsample-250.jsonl                # stratified 2/topic, seed 13 — **238 rows** [measured, WP1]
+│                                          # (119 topics × 2; filename kept as the published name)
 ├── calibration/
 │   ├── sample-280.jsonl
 │   └── report.md + report.json            # §3.3 outputs
@@ -335,14 +352,27 @@ def load_observed_hits(path: Path) -> list[ObservedHit]          # for calibrati
 def strip_page_prefix(text: str, prefix_chars: int | None) -> tuple[str, bool]
 ```
 
-`strip_page_prefix`: if `prefix_chars` is known (labeled hits), slice `text[prefix_chars:]`.
-Otherwise (pool chunks fetched from the index) apply
-`re.match(r"Page \d+ of document: [^\n]*\n\n", text)` and strip the match; **if neither applies,
-pass the text through unmodified and count it** (the 31 known outliers land here; logged under
-`[PREFIX-MISS]`, reported in the manifest — §8 R4).
+`strip_page_prefix` (**as implemented in WP1 — this supersedes the earlier "slice unconditionally"
+wording, which contradicted R4**): `prefix_chars` is used **only when the header regex
+`re.match(r"Page \d+ of document: [^\n]*\n\n", text)` corroborates it** (`match.end() ==
+prefix_chars`). If `prefix_chars` is absent (pool chunks fetched from the index) the regex match
+alone drives the strip. **If neither applies, pass the text through unmodified and count it**
+(logged under `[PREFIX-MISS]`, reported in the manifest — §8 R4).
+
+Why corroborate rather than trust `prefix_chars` blindly: an unconditional slice would consume any
+future uncorroborated offset **silently**, and would make the `[PREFIX-MISS]` counter vacuously 0
+forever — an unfalsifiable check. The failure modes are asymmetric: a leaked header line is bounded,
+visible noise, whereas a wrong slice amputates real passage text undetectably. A companion
+`prefix_anomaly()` makes the "counter reads 0" assertion falsifiable. **On the committed input the
+two readings are behaviourally identical** (all 3890 corroborate), so this costs nothing today and
+protects a re-export tomorrow.
 
 `stratified_subsample` sorts topics, seeds `random.Random(13)`, picks 2/topic (topics with <2 keep
-all) → ~238–250 queries; the exact list is persisted so Stage A is reproducible byte-for-byte.
+all) → **exactly 238 queries [measured, WP1]** (all 119 topics have ≥2, so 119×2; the file is still
+named `subsample-250.jsonl` because that is the published name). sha256
+`edd21e43…67b9fc`, stable across re-runs — the exact list is persisted so Stage A is reproducible
+byte-for-byte. Wherever this plan says "~250 Stage-A queries", read **238**; the held-out Stage-B
+complement is therefore **825**, not 813 (§6.4).
 
 ### 5.2 `searcher.py`
 
@@ -878,9 +908,10 @@ needs no other change.
   (per-comparison α = 0.0167). Wilcoxon signed-rank (normal approximation, n > 100) reported
   alongside as the distribution-free check.
 - **Multiple-comparisons / selection-bias handling**: the top-3 were *selected* on the Stage-A
-  subsample, so the confirmatory p-values are computed on the **813 held-out queries** (the 1063
-  minus the ~250 Stage-A subsample). Full-1063 point estimates are reported too, clearly labeled
-  descriptive.
+  subsample, so the confirmatory p-values are computed on the **825 held-out queries**
+  (**[measured, WP1]** 1063 − 238; an earlier draft said 813 off the ~250 estimate). Full-1063 point
+  estimates are reported too, clearly labeled descriptive. The held-out list is derived by set
+  difference against the persisted subsample file, never recomputed from the seed.
 - **Effect sizes and CIs, not just p-values** (mandatory given mode-dominated labels): mean delta,
   Cohen's d on deltas, and a 95 % bootstrap CI (10,000 resamples over queries, seed 13).
 - **Clustering robustness**: queries within a topic are correlated, so a topic-level paired t-test
@@ -1046,9 +1077,12 @@ commit.
   comparability column, and the agent-label caveat (§3.3) preventing over-reading the smell test.
 - **R3 — Mid-run credential expiry.** Detect → drain → flush → exit 3 → re-run; cache guarantees
   zero re-judging (tested in `test_cli.py` resume case).
-- **R4 — 31 prefix outliers.** Pass through unmodified, count under `[PREFIX-MISS]`, report in the
-  manifest. Worst case ≈0.3 % of judged texts carry a leaked header line — negligible noise, but
-  visible, not silent.
+- **R4 — prefix outliers: RETIRED as a live risk.** **[measured, WP1]** there are none — all
+  3890/3890 keyword hits (8359/8359 all-engine) corroborate `prefix_chars` against the header regex
+  exactly. The earlier "31 outliers" figure is not reproducible (§2.1). The passthrough branch, the
+  `[PREFIX-MISS]` counter and the manifest field stay as cheap insurance against a future re-export;
+  the residual risk is now the *opposite* one — a silent blind slice — which §5.1's corroboration
+  rule closes.
 - **R5 — 202 voided/`unjudged` agent hits.** Irrelevant as ground truth (agent labels aren't
   ground truth at all); they participate in calibration strata like any hit and are simply excluded
   from the positive/negative agreement cross-tab.
@@ -1120,7 +1154,7 @@ after WP7; WP9 finalizes.
   — then the full `judge-pool` (~2–3.5 h, ~$2, tracked background + tee, command verbatim in chat
   per §5.6), then `score` and `cost-report`; commit the Stage-A score matrix and cost breakdown.
 - **WP8 — Stage B + statistics** (needs WP7): top-3 + baseline over 1063, `judge-pool --pilot 200`
-  then the cache delta (~2.5–4 h, ~$3.50), `score`, `stats` (held-out 813, Bonferroni, bootstrap),
+  then the cache delta (~2.5–4 h, ~$3.50), `score`, `stats` (held-out 825, Bonferroni, bootstrap),
   `cost-report`, optional umbrela-v1 continuity pass on the Stage-A pool.
 - **WP9 — Docs + publication** (needs WP8): README final (incl. the budget/cost section and exit-code
   table), both worklogs + `worklogs/assets/` log and `costs.md` copies, the experiment-wide

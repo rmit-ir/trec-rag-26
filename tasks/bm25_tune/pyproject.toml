@@ -1,0 +1,29 @@
+[project]
+name = "trec-rag-26-task-bm25-tune"
+version = "0.0.0"
+description = "BM25 k1/b tuning on the chunked ClimbMix index with an LLM judge."
+requires-python = ">=3.12"
+dependencies = [
+  "pyserini==2.3.0",
+  "boto3>=1.40",
+]
+
+# PLAN §4.1 specifies `[tool.uv] package = false`, but the canonical invocation
+# it also specifies —
+#     uv run --project tasks/bm25_tune python -m bm25tune <subcommand>
+# run *from the repo root* — needs `bm25tune` on sys.path, and with
+# `package = false` uv installs nothing, so `sys.path[0]` is the repo root and
+# the import fails. Installing this project (editable, into its own `.venv`)
+# is the minimal fix and costs nothing the plan cares about: the isolation
+# CLAUDE.md demands is the per-task `.venv`, which is untouched. The alternative
+# — `cd tasks/bm25_tune` or an exported `PYTHONPATH` — would make every command
+# in the plan, the README, and the worklogs differ from what actually runs.
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+# `prices/*.json` is committed rate data the package loads at runtime
+# (pricing.py, PLAN §5.7); it ships inside the package dir, so including the
+# package is enough.
+packages = ["bm25tune"]
