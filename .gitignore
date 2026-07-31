@@ -50,6 +50,10 @@ tasks/bm25_index/jars/
 
 # Logs, data, and run outputs
 *.log
+# ...except worklog assets: CLAUDE.md requires a raw sweep/judge log copied in
+# there to be committed, since it is the only surviving evidence behind an
+# experiment worklog's judgment calls. Was needing `git add -f` every time.
+!worklogs/assets/*.log
 *.bak
 # Per-run log folders (may hold non-.log artifacts too)
 tasks/search_serve/logs/
