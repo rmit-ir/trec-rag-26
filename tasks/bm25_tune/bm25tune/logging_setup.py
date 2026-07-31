@@ -36,6 +36,8 @@ LOG_PREFIXES = (
     "[NDCG]", "[HEARTBEAT]", "[BUDGET]", "[COST]", "[SIGNAL]", "[SUMMARY]",
     # WP6 calibration (`calibrate`): the driver stage and the gate verdict.
     "[CALIB]", "[GATE]",
+    # §6.2b consensus (`consensus`): the multi-prompt qrel combiner / cascade.
+    "[CONSENSUS]",
 )
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"

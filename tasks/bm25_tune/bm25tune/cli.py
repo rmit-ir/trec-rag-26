@@ -1851,6 +1851,16 @@ STATS_JSON_BASENAME = "stats.json"
 #: **[measured]** score-identical to the hosted server aus_agent actually used).
 BASELINE_CONFIG_NAME = "k1_0.9__b_0.4"
 
+#: `consensus` artifacts (PLAN §6.2b). The 4-column TREC qrels is the *published*
+#: form on purpose: it spans prompt versions, so `metrics.load_qrels_trec` reads
+#: it back without the single-prompt identity check a `.jsonl` snapshot imposes.
+CONSENSUS_QRELS_BASENAME = "qrels-consensus.txt"
+#: Per-pair audit trail (every vote + status) written next to the qrels.
+CONSENSUS_PAIRS_BASENAME = "consensus-pairs.jsonl"
+#: Suffix of the escalation run dir that holds ONLY the conflicting pairs the
+#: tiebreak prompt must judge — a normal run dir so `judge-pool` drives it.
+CONSENSUS_TIEBREAK_SUFFIX = "-consensus-tiebreak"
+
 
 def _qrels_path(cfg: Config, prompt_version: str,
                 override: Path | None) -> Path:
@@ -2022,6 +2032,178 @@ def cmd_score(args: argparse.Namespace) -> int:
                    for s in scored},
     })
     return EXIT_OK
+
+
+def _load_prompt_grades(cfg: Config, prompt_version: str) -> dict[str, dict[str, int]]:
+    """A prompt version's qrels snapshot as a `topic -> chunk -> grade` map.
+
+    Reads the same `qrels-<pv>.jsonl` `judge-pool` writes, through
+    `metrics.load_qrels` (so the single-prompt identity check applies — a
+    snapshot polluted with another version's grades raises rather than silently
+    entering the consensus). Missing snapshot is a hard error with the exact
+    `judge-pool` command that produces it, because a consensus over a prompt that
+    was never run is the one failure mode that looks like success.
+    """
+    path = _qrels_path(cfg, prompt_version, None)
+    if not path.is_file():
+        raise ConfigError(
+            f"no qrels for {prompt_version} at {path} — run `python -m bm25tune "
+            f"judge-pool --run-id <run> --prompt-version {prompt_version}` first "
+            "(the consensus combines each prompt's cached grades; it spends "
+            "nothing itself)")
+    qrels = metrics.load_qrels(path, prompt_version)
+    return {t: dict(qrels.topic(t)) for t in qrels.topics}
+
+
+def cmd_consensus(args: argparse.Namespace) -> int:
+    """Combine per-prompt qrels into one consensus label set (PLAN §6.2b).
+
+    **Spends nothing** — it only folds grades `judge-pool` already produced. The
+    cascade the operator specified runs in two invocations of this one command:
+
+    1. **Discover** (`--primary P --secondary S`, no tiebreak grades yet). Pairs
+       the two judges agree on within `consensus.CONFLICT_DELTA` grades are
+       resolved by the conservative rounded mean and written to the consensus
+       qrels immediately. Pairs `>= CONFLICT_DELTA` apart are genuine conflicts:
+       they are written to an escalation run dir as a normal `pool.jsonl` +
+       `pool-texts.jsonl`, and the exact metered `judge-pool` command to judge
+       *only that subset* with the tiebreak prompt is printed. It then STOPS —
+       the same pilot-gate discipline as `--pilot`, because the next step spends.
+    2. **Finalize** (`--tiebreak T`, after that judge-pool has run). The
+       conflicts now have a third grade; each is resolved by the median of the
+       three and folded in. The consensus qrels is rewritten complete.
+
+    Idempotent: re-running discover with the tiebreak grades present simply
+    finalizes, and scoring reads the 4-column TREC qrels this writes via
+    `score --qrels`.
+    """
+    cfg: Config = args.config
+    if not args.run_id:
+        log.error("[CONSENSUS] needs --run-id (the sweep run whose pool the "
+                  "prompts were judged over)")
+        return EXIT_ERROR
+    run_dir = cfg.run_dir(args.run_id)
+    if not run_dir.is_dir():
+        log.error("[CONSENSUS] no run dir at %s", run_dir)
+        return EXIT_ERROR
+    setup_logging(args.log_file or (run_dir / SWEEP_LOG_BASENAME),
+                  level=logging.DEBUG if args.verbose else logging.INFO)
+
+    from . import consensus as consensus_mod
+
+    try:
+        primary = _load_prompt_grades(cfg, args.primary)
+        secondary = _load_prompt_grades(cfg, args.secondary)
+        tiebreak = (_load_prompt_grades(cfg, args.tiebreak)
+                    if args.tiebreak else None)
+    except ConfigError as exc:
+        log.error("[CONSENSUS] %s", exc)
+        return EXIT_ERROR
+
+    log.info("[CONSENSUS] combining primary=%s (%d topics) secondary=%s "
+             "(%d topics)%s; conflict threshold |Δ|>=%d grades", args.primary,
+             len(primary), args.secondary, len(secondary),
+             f" tiebreak={args.tiebreak}" if tiebreak is not None else "",
+             consensus_mod.CONFLICT_DELTA)
+
+    result = consensus_mod.build_consensus(primary, secondary, tiebreak)
+    log.info("[CONSENSUS] %d pairs: %s", len(result.pairs),
+             dict(sorted(result.counts.items())))
+    log.info("[CONSENSUS] %d resolved (grades %s), %d conflicts pending a "
+             "tiebreak", result.n_resolved(), result.distribution(),
+             len(result.pending))
+
+    # The full per-pair audit trail — every vote and status — so a consensus
+    # label can always be traced back to the votes behind it (PLAN §7.2).
+    pairs_path = run_dir / CONSENSUS_PAIRS_BASENAME
+    extract.write_jsonl(pairs_path, (
+        {"topic_id": p.topic_id, "chunk_id": p.chunk_id,
+         "grades": list(p.grades), "consensus": p.consensus,
+         "status": p.status} for p in result.pairs))
+
+    qrels_path = run_dir / CONSENSUS_QRELS_BASENAME
+    store.write_lines(qrels_path, consensus_mod.trec_qrel_lines(result.grades))
+    log.info("[CONSENSUS] wrote %s (%d resolved labels) and %s", qrels_path,
+             result.n_resolved(), pairs_path)
+
+    if result.pending:
+        # Discover phase: emit the escalation pool and stop for authorization.
+        tie_dir = cfg.run_dir(f"{args.run_id}{CONSENSUS_TIEBREAK_SUFFIX}")
+        n = _write_tiebreak_pool(cfg, run_dir, tie_dir, result.pending)
+        log.info("[CONSENSUS] wrote escalation pool %s: %d conflicting pairs "
+                 "for the tiebreak prompt", tie_dir, n)
+        if args.tiebreak:
+            # A tiebreak prompt was named but has not judged these yet.
+            log.warning("[CONSENSUS] %d conflicts still lack a %s grade — run "
+                        "the judge-pool below, then re-run this command",
+                        len(result.pending), args.tiebreak)
+        tie_pv = args.tiebreak or "<tiebreak-prompt-version>"
+        log.info("[CONSENSUS] STOPS here BY DESIGN (PLAN §5.7): the tiebreak "
+                 "spends. Authorize, then run:")
+        log.info("[CONSENSUS]   python -m bm25tune judge-pool --run-id %s "
+                 "--prompt-version %s --stage %s", tie_dir.name, tie_pv,
+                 args.stage or "consensus-tiebreak")
+        log.info("[CONSENSUS] then finalize (no spend):")
+        log.info("[CONSENSUS]   python -m bm25tune consensus --run-id %s "
+                 "--primary %s --secondary %s --tiebreak %s", args.run_id,
+                 args.primary, args.secondary, tie_pv)
+        return EXIT_OK
+
+    log.info("[CONSENSUS] no conflicts pending — consensus qrels is complete. "
+             "Score with:")
+    log.info("[CONSENSUS]   python -m bm25tune score --run-id %s --qrels %s",
+             args.run_id, qrels_path)
+    _write_manifest(run_dir, {
+        "consensus_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
+        "consensus_primary": args.primary,
+        "consensus_secondary": args.secondary,
+        "consensus_tiebreak": args.tiebreak,
+        "consensus_conflict_delta": consensus_mod.CONFLICT_DELTA,
+        "consensus_status_counts": dict(sorted(result.counts.items())),
+        "consensus_resolved_labels": result.n_resolved(),
+        "consensus_grade_distribution": {str(k): v for k, v
+                                         in result.distribution().items()},
+        "consensus_qrels_file": str(qrels_path),
+    })
+    return EXIT_OK
+
+
+def _write_tiebreak_pool(cfg: Config, run_dir: Path, tie_dir: Path,
+                         pending: "Sequence[tuple[str, str]]") -> int:
+    """Slice the conflicting pairs out of the sweep's pool into `tie_dir`.
+
+    Reuses the sweep's `pool.jsonl` rows (their `text_sha256` and
+    `first_seen_config` provenance intact) and its `pool-texts.jsonl` passages,
+    filtered to `pending` — so the tiebreak `judge-pool` runs against byte-
+    identical text to what the first two prompts saw, and no index/JVM is
+    touched. The `text_sha256` digests carry over, so `judge-pool`'s passage
+    integrity check still guards the tiebreak.
+    """
+    _guard_derived_path(cfg, tie_dir, "consensus (tiebreak pool)")
+    src_pool = pool_mod.read_pool(run_dir / POOL_BASENAME)
+    by_key = {e.key: e for e in src_pool}
+    pending_set = set(pending)
+    subset = [by_key[k] for k in sorted(pending_set) if k in by_key]
+    missing = sorted(pending_set - {e.key for e in subset})
+    if missing:
+        # A conflict whose pair is absent from the sweep pool means the two
+        # qrels were judged over a different pool than this run — refuse rather
+        # than silently drop it, because the dropped conflict would revert to
+        # its (unresolved) primary grade in scoring.
+        raise ConfigError(
+            f"{len(missing)} conflicting pair(s) are not in {run_dir/POOL_BASENAME} "
+            f"(e.g. {missing[:3]}) — the qrels were judged over a different pool "
+            f"than run {run_dir.name}. Consensus must combine prompts judged on "
+            "the SAME pool.")
+    tie_dir.mkdir(parents=True, exist_ok=True)
+    pool_mod.write_pool(tie_dir / POOL_BASENAME, subset)
+
+    wanted = {chunk for _topic, chunk in pending_set}
+    texts = _read_pool_texts(run_dir / POOL_TEXTS_BASENAME) or {}
+    extract.write_jsonl(tie_dir / POOL_TEXTS_BASENAME, (
+        {"chunk_id": cid, "text": texts[cid]}
+        for cid in sorted(wanted) if cid in texts))
+    return len(subset)
 
 
 def _per_config_query_values(scored: "Sequence[metrics.ConfigScore]"
@@ -2394,6 +2576,33 @@ def build_parser() -> argparse.ArgumentParser:
     score_cmd.add_argument("--out-dir", type=Path, default=None,
                            help="where scores.csv/.md go (default: the run dir)")
     score_cmd.set_defaults(func=cmd_score)
+
+    consensus_cmd = subs.add_parser(
+        "consensus",
+        help="fold per-prompt qrels into one consensus label set with a "
+             "disagreement-triggered tiebreak (PLAN §6.2b); spends nothing "
+             "itself — the tiebreak is a normal metered judge-pool")
+    consensus_cmd.add_argument("--run-id", required=True,
+                               help="the sweep run whose pool the prompts were "
+                                    "judged over")
+    consensus_cmd.add_argument("--primary", default=DEFAULT_PROMPT_VERSION,
+                               choices=all_versions(),
+                               help="the reference prompt (the Stage-A judge)")
+    consensus_cmd.add_argument("--secondary", required=True,
+                               choices=all_versions(),
+                               help="the second full-pool prompt; its "
+                                    "disagreements with --primary drive the "
+                                    "cascade")
+    consensus_cmd.add_argument("--tiebreak", default=None,
+                               choices=all_versions(),
+                               help="the prompt that breaks >=2-grade conflicts "
+                                    "(omit on the first, discover pass; supply "
+                                    "once it has judged the escalation pool)")
+    consensus_cmd.add_argument("--stage", default=None,
+                               help="stage label printed in the tiebreak "
+                                    "judge-pool command (default: "
+                                    "consensus-tiebreak)")
+    consensus_cmd.set_defaults(func=cmd_consensus)
 
     stats_cmd = subs.add_parser(
         "stats",

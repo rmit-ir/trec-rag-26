@@ -371,7 +371,7 @@ def test_every_plan_subcommand_is_registered() -> None:
                and a.dest == "subcommand"]
     registered = set(actions[0].choices)
     expected = {"verify-inputs", "extract-queries", "calibrate",
-                "search-sweep", "judge-pool", "score", "stats",
+                "search-sweep", "judge-pool", "score", "consensus", "stats",
                 "rebuild-cache", "cost-report", "budget", "refresh-prices",
                 "smoke"}
     assert registered == expected
