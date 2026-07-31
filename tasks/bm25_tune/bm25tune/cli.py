@@ -577,6 +577,12 @@ CALIBRATION_SAMPLE_SEED = 7
 #: Stage label so the calibration spend is its own line in `costs/totals.json`
 #: (PLAN §5.7) and never contaminates the sweep's Stage-A/B cost split.
 CALIBRATION_STAGE = "calib"
+#: Judge sampling temperature. PLAN §5.4 fixes 0.0 for reproducible qrels — the
+#: cache/log key is prompt_version::topic_id::chunk_id, with NO temperature
+#: component, so grades from two temperatures are indistinguishable on disk. The
+#: `--temperature` flag exists only for a sensitivity experiment run in a
+#: throwaway data dir; production calibration must leave it at 0.0.
+CALIBRATION_JUDGE_TEMPERATURE = 0.0
 
 #: Queries `smoke --search-only` falls back to when no query file exists yet.
 #: Real-looking multi-word keyword strings, because the point of the smoke test
@@ -1462,6 +1468,7 @@ def _judge_variant(cfg: Config, args: argparse.Namespace, spec,
 
     driver = judge_mod.JudgePoolDriver(
         judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region,
+                                     temperature=args.temperature,
                                      max_pool_connections=concurrency),
         spec=spec, log_store=JudgmentLog(cfg.log_dir), cache=cache, meter=meter,
         guard=guard, rates=rates, pricing_mod=pricing_mod,
@@ -1578,6 +1585,7 @@ def _stability_probe(cfg: Config, args: argparse.Namespace, spec,
     probe_cache = JudgmentCache(prompt_version=spec.version_id)
     driver = judge_mod.JudgePoolDriver(
         judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region,
+                                     temperature=args.temperature,
                                      max_pool_connections=concurrency),
         spec=spec, log_store=JudgmentLog(cfg.log_dir), cache=probe_cache,
         meter=meter, guard=guard, rates=rates, pricing_mod=pricing_mod,
@@ -1652,8 +1660,14 @@ def cmd_calibrate(args: argparse.Namespace) -> int:
                                     CALIBRATION_LOG_BASENAME),
                   level=logging.DEBUG if args.verbose else logging.INFO)
     concurrency = args.concurrency or cfg.judge_concurrency
-    log.info("[CALIB] calibrating %d variants at concurrency %d, cap $%.2f",
-             len(all_versions()), concurrency, cap_usd)
+    log.info("[CALIB] calibrating %d variants at concurrency %d, "
+             "temperature %.2f, cap $%.2f",
+             len(all_versions()), concurrency, args.temperature, cap_usd)
+    if args.temperature != CALIBRATION_JUDGE_TEMPERATURE:
+        log.warning("[CALIB] temperature %.2f != the fixed %.2f — this is a "
+                    "sensitivity experiment; its grades must NOT feed the real "
+                    "qrels (run it in a throwaway BM25_TUNE_DATA_DIR)",
+                    args.temperature, CALIBRATION_JUDGE_TEMPERATURE)
 
     pairs, agent_class, sample_path = _calibration_pairs(cfg, args)
     sample_mix = Counter(agent_class.values())
@@ -2443,6 +2457,13 @@ def build_parser() -> argparse.ArgumentParser:
     calib_cmd.add_argument(
         "--concurrency", type=int, default=None,
         help="worker threads (default: BM25_TUNE_JUDGE_CONCURRENCY)")
+    calib_cmd.add_argument(
+        "--temperature", type=float, default=CALIBRATION_JUDGE_TEMPERATURE,
+        help="sampling temperature for the judge (PLAN §5.4 fixes "
+             f"{CALIBRATION_JUDGE_TEMPERATURE} for reproducible qrels; raise it "
+             "ONLY for a temperature-sensitivity experiment in a THROWAWAY "
+             "data dir — temperature is not in the cache key, so a temp>0 grade "
+             "written into the real judgments/log/ silently corrupts the qrels)")
     calib_cmd.add_argument(
         "--queries", type=Path, default=None,
         help=f"query file supplying the topic narratives (default: "
