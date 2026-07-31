@@ -1365,7 +1365,9 @@ after WP7; WP9 finalizes.
 - **WP6 — Calibration (= Work Package 0 of the science, §3)** (needs WP1+WP3+WP3b): this is the
   **pilot** the user asked for — smallest real spend first (1,450 calls, ~$0.23, ~20–25 min). Run
   `calibrate`, produce `calibration/report.md`, apply the **two-sided** §3.3 gate (four conditions;
-  a variant may fail from either direction, and both measured variants are expected to), report
+  a variant may fail from either direction, and on their priors the two `umbrela` variants are
+  expected to fail from below while all three `facet` variants are live — §3.3b Finding 4: the gate
+  is a floor on usability, not the selection criterion), report
   `[BUDGET]`/`[COST]` lines and
   the **measured** mean token counts (persisted in `costs/totals.json`, whence every later
   pre-flight reads them in place of the priors — §5.7 layer 1),
