@@ -155,6 +155,8 @@ def validate_rag_output(obj: dict[str, Any]) -> list[str]:
         if not isinstance(sent["text"], str):
             errs.append(f"answer[{i}].text must be a string, "
                         f"got {type(sent['text']).__name__}")
+        elif sent["text"] == "":
+            errs.append(f"answer[{i}].text must be non-empty")
         else:
             # The spec defines the count normatively as
             # sum(len(item["text"].split()) for item in answer) — do not change it.

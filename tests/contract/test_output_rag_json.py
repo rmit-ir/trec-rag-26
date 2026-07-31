@@ -564,6 +564,18 @@ def test_non_string_answer_text_is_a_violation_not_a_crash() -> None:
     assert validate_rag_output(obj) == ["answer[0].text must be a string, got int"]
 
 
+def test_empty_answer_text_is_rejected_without_stylistic_normalization() -> None:
+    """The spec says text is non-empty but otherwise opaque, so the validator
+    must reject ``""`` without treating whitespace or Markdown as grammar."""
+    empty = make_output(references=[CLIMBMIX_DOCIDS[0]],
+                        answer=[{"text": "", "citations": [0]}])
+    whitespace = make_output(references=[CLIMBMIX_DOCIDS[0]],
+                             answer=[{"text": " ", "citations": [0]}])
+
+    assert validate_rag_output(empty) == ["answer[0].text must be non-empty"]
+    assert validate_rag_output(whitespace) == []
+
+
 def test_a_non_string_text_does_not_suppress_the_citation_check() -> None:
     """Both problems in one answer object must both be reported.
 
