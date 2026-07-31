@@ -83,6 +83,12 @@ PARSE_FAIL_ABORT_RATIO = 0.01
 #: small enough that a genuine prompt/model regression still trips in seconds.
 PARSE_FAIL_MIN_CALLS = 100
 
+#: Typical projected total spend for the whole plan (PLAN §6.2b: $7.75 typical,
+#: $13.53 worst case). Used ONLY to phrase the budget-trip message as a share of
+#: whatever the live cap is, so lowering the cap cannot leave a stale percentage
+#: behind in the message an operator reads when the run stops.
+PLAN_EXPECTED_SPEND_USD = 8.0
+
 # -- error classes (defensive strings, matched case-sensitively) --------------
 THROTTLE_CODES = frozenset({
     "ThrottlingException", "TooManyRequestsException", "Throttling",
@@ -171,7 +177,7 @@ class PricingUnavailable(RuntimeError):
     PLAN §9 is explicit: metering is integrated **before** `judge-pool` makes a
     single real call — there must be no unmetered path to the model. Refusing to
     start is the only correct behaviour; the alternative (judge now, account
-    later) is exactly how a $200 ceiling becomes an aspiration.
+    later) is exactly how a spend ceiling becomes an aspiration.
     """
 
 
@@ -651,8 +657,9 @@ def load_pricing():
         raise PricingUnavailable(
             "bm25tune.pricing is not importable, so there is no metered path "
             f"to Bedrock ({exc}). judge-pool refuses to run un-metered: the "
-            "$200 ceiling and the report's cost analysis both read from the "
-            "meter (PLAN §5.7/§9). Land WP3b (pricing.py) first.") from exc
+            "operator-set ceiling and the report's cost analysis both read "
+            "from the meter (PLAN §5.7/§9). Land WP3b (pricing.py) "
+            "first.") from exc
     missing = [name for name in ("load_rates", "call_cost", "CostMeter",
                                  "BudgetGuard", "BudgetExceeded",
                                  "build_cost_report", "write_cost_artifacts")
@@ -1191,12 +1198,20 @@ class JudgePoolDriver:
                       "unjudged, %d judgments safe on disk)", prefix, unjudged,
                       self.stats.graded)
         elif trigger == TRIGGER_BUDGET:
+            cap = float(getattr(self.guard, "cap_usd", 0.0))
+            # The share is DERIVED from the live cap, never a literal: the cap is
+            # user-set (it moved $200 -> $50 on 2026-07-31) and a stale hardcoded
+            # percentage in the one message an operator reads at 3am is exactly
+            # the kind of quiet wrongness that gets the cap raised for no reason.
+            share = (f"~{100.0 * PLAN_EXPECTED_SPEND_USD / cap:.0f}%% of it"
+                     if cap > 0 else "far below it")
             log.error("%s HARD STOP — spent=$%.4f of cap=$%.2f; %d pairs "
                       "unjudged; a trip at this cap is prima facie a BUG "
-                      "(expected spend is ~4%% of it, PLAN §6.2b) — diagnose "
-                      "before raising BM25_TUNE_BUDGET_USD, then re-run the "
-                      "same command to resume", prefix, self.stats.spent_usd,
-                      getattr(self.guard, "cap_usd", 0.0), unjudged)
+                      "(expected total spend is ~$%.0f, " + share +
+                      ", PLAN §6.2b) — diagnose before raising "
+                      "BM25_TUNE_BUDGET_USD, then re-run the same command to "
+                      "resume", prefix, self.stats.spent_usd, cap, unjudged,
+                      PLAN_EXPECTED_SPEND_USD)
         elif trigger in (TRIGGER_SIGINT, TRIGGER_SIGTERM):
             log.error("%s %s — drained %d in-flight, checkpointed, resume with "
                       "the same command (%d pairs unjudged)", prefix,

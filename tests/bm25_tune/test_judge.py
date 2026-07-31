@@ -582,7 +582,7 @@ def test_an_unimportable_pricing_module_refuses_rather_than_judging_unmetered(
         monkeypatch: pytest.MonkeyPatch) -> None:
     """No metering, no Bedrock. There is deliberately no `--no-metering` flag.
 
-    The user's US$200 ceiling and the report's cost analysis both read from the
+    The user's spend ceiling and the report's cost analysis both read from the
     meter, so an un-metered judging run would spend real money that nothing
     counts and produce a cost section that cannot be reconstructed. Refusing is
     the only safe failure.
@@ -645,7 +645,7 @@ def rates() -> pricing.Rates:
 
 
 def _driver(tmp_path: Path, converse: Callable[..., dict], *,
-            rates: pricing.Rates, cap_usd: float = 200.0,
+            rates: pricing.Rates, cap_usd: float = 50.0,
             concurrency: int = 2, prompt_version: str = PV,
             cache: store.JudgmentCache | None = None,
             run_dir: Path | None = None,
@@ -1020,7 +1020,7 @@ def test_the_driver_accumulates_this_runs_usages_for_the_pilot_basis(
     assert len(driver.usages) == driver.stats.records
     assert None in driver.usages, "the unbilled throttle is recorded too"
     basis = pricing.pilot_basis(driver.usages, rates, pool_size=1000,
-                                meter=driver.meter, cap_usd=200.0)
+                                meter=driver.meter, cap_usd=50.0)
     assert basis["pilot_billed_calls"] == 2
     assert basis["mean_input_tokens"] == 800.0
     assert basis["projected_pool_usd"] > 0
@@ -1139,7 +1139,7 @@ def test_judge_pool_runs_end_to_end_and_publishes_every_artifact(
         encoding="utf-8"))
     assert manifest["judge"]["prompt_version"] == PV
     assert manifest["judge"]["graded"] == 6
-    assert manifest["budget"]["cap_usd"] == 200.0
+    assert manifest["budget"]["cap_usd"] == 50.0
     assert manifest["cost"]["rate_table_id"] == pricing.RATE_TABLE_ID
     assert (run_dir / "costs.json").is_file()
     assert "[BUDGET] stage=A" in caplog.text, "the pre-flight line must appear"

@@ -43,6 +43,12 @@ from pathlib import Path
 from typing import Mapping, Sequence
 
 #: PLAN §6.4: family-wise alpha and the number of candidate-vs-baseline tests.
+#: **This counts candidate CONFIGS, not metrics** — the family is the 3
+#: pre-registered candidate-vs-baseline comparisons, and adding a metric column
+#: (e.g. the exploratory `gp10`/`p10_bin2`, PLAN §5.5) does not enlarge it. Those
+#: metrics are secondary/exploratory by construction, so their p-values are not
+#: confirmatory claims and correcting for them would understate the power of the
+#: comparisons that are.
 FAMILY_ALPHA = 0.05
 N_COMPARISONS = 3
 #: The per-comparison threshold. Computed, not hardcoded to the plan's rounded
@@ -623,6 +629,12 @@ STANDING_NOTES: tuple[str, ...] = (
     "Where `significant` and `topic_significant` disagree, PLAN §6.4 makes the "
     "topic-level result the honest headline; `headline_note` states which case "
     "each comparison is in.",
+    "`gp10` and `p10_bin2` (added 2026-07-31, PLAN §5.5) are "
+    "SECONDARY/EXPLORATORY: they are not in PLAN §3.3's pre-registered family, "
+    "so a p-value quoted for either is exploratory and must say so. They are "
+    "tested here only so that re-optimizing the grid for them later needs no "
+    "re-judging and no re-run. `n_comparisons` counts candidate CONFIGS, not "
+    "metrics, so the Bonferroni divisor is unaffected by their presence.",
 )
 
 

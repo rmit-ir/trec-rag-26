@@ -928,11 +928,15 @@ def test_stats_records_its_parameters_in_the_manifest(
 
 def test_stats_tests_every_metric_when_none_is_named(
         testable_run: Path, monkeypatch: pytest.MonkeyPatch) -> None:
-    """The default is all six pre-registered metrics, not just the primary.
+    """The default is every metric in `METRIC_NAMES`, not just the primary.
 
     PLAN §3.3 pre-registers the secondaries precisely so they cannot be chosen
     after the primary disappoints. Running them by default is what makes the
-    pre-registration binding rather than aspirational.
+    pre-registration binding rather than aspirational. The two exploratory
+    precision columns (`gp10`/`p10_bin2`, PLAN §5.5) ride along for a different
+    reason: testing them now is what means re-optimizing for them later needs no
+    re-run. Asserted against the tuple rather than a literal count so adding a
+    metric cannot leave it silently untested.
     """
     from bm25tune.cli import EXIT_OK, main
     from bm25tune.metrics import METRIC_NAMES

@@ -21,9 +21,20 @@ Settled by the user — design to these, do not re-open:
 - Metric nDCG@10, graded 0–3, disk cache.
 - Baseline to beat: **k1=0.9, b=0.4** (pyserini default; **[measured]** reproduces the hosted
   production server's scores to 5 decimals — the local index is score-identical to what aus_agent saw).
-- **Hard budget ceiling: US$200 for the entire process**, enforced in code (§5.7) — not a
+- **Hard budget ceiling: US$50 for the entire process**, enforced in code (§5.7) — not a
   documented aspiration. Every judge call's cost is computed from its `usage` block and accumulated;
   the driver refuses to start, and aborts mid-run, rather than exceed it.
+  *(Lowered from $200 to $50 on 2026-07-31 at the user's direction. The projection is unchanged at
+  ≈$8–14, so this remains a circuit breaker with ~4–6× headroom, not a scope limiter — see below.)*
+- **The ceiling is passed in per run, never defaulted** (user requirement, 2026-07-31):
+  `BM25_TUNE_BUDGET_USD` has **no default in code**. Every subcommand that can spend — `judge-pool`,
+  `calibrate`, `smoke` without `--search-only` — and every one that reports against the cap
+  (`budget`, `cost-report`) calls `Config.require_budget_usd()` and exits 1 with the export to run if
+  it is unset. `config.APPROVED_BUDGET_USD = 50.0` exists **only** so that message can quote the
+  approved figure. Rationale: an unattended multi-hour job must be bounded by a decision a human made
+  *this* run, and money is the one resource the harness cannot roll back. The commands that cannot
+  spend (`verify-inputs`, `extract-queries`, `search-sweep`, `score`, `stats`, `rebuild-cache`,
+  `smoke --search-only`) never ask for it, so the refusal is never noise to be worked around.
 - **Every cost is recorded and persisted** for the scientific report: per-call token counts and
   US$ in the judgment log, per-stage and cumulative totals in `manifest.json` and a dedicated
   `costs.json`/`costs.md`, and the verbatim price table committed alongside (§5.7, §7.2).
@@ -32,16 +43,26 @@ Settled by the user — design to these, do not re-open:
   projection before the full spend is authorized (§5.7, §9).
 
 One **mandatory gate** was added after calibration probes (§3): the full sweep must not launch until
-a judge prompt variant passes the grade-spread gate in Work Package 0.
+a judge prompt variant passes the grade-spread gate in Work Package 0. That gate is **two-sided as of
+2026-07-31** (user requirement): a judge that grades almost everything relevant is rejected as firmly
+as one that grades almost nothing, because both destroy the metric's ability to separate configs
+(§3.3, R1).
 
 **Budget reality check [measured pricing, §5.7]:** the whole plan as written — ~49 k judge calls
 including the continuity pass (~30–36 k without it), at ~900 input / ~300 output tokens typical —
 prices at **≈ $8 (typical) to ≈ $14 (worst case)** on ap-southeast-2 standard on-demand (§6.2b).
-The $200 cap therefore has **~15–25× headroom** and is not a
+The $50 cap therefore has **~4–6× headroom** and is still not a
 binding design constraint: it is a runaway-cost circuit breaker (a prompt-length blow-up, an
 accidental un-cached re-judge, a retry storm), not a scope limiter. Executors must not shrink the
-grid or the query set to "save budget" — if anything, the headroom is available to spend on a finer
-grid or the optional full continuity pass, at the user's direction.
+grid or the query set to "save budget" — the plan as written fits, and a refusal means a bug.
+
+What the lower cap *does* change: the discretionary extras in §6.2b are no longer free. The full
+plan (≈$8–14) plus the optional 3-sample self-consistency vote (≈$16) plus a finer grid (≈+$1) would
+total ≈$25–31 — still inside $50, but no longer with an order of magnitude to spare. So those extras
+now need the user's explicit go-ahead with a cost line attached, rather than being waved through as
+noise against the ceiling. Order of preference if only one can be afforded: the self-consistency vote
+(it addresses R1, the one risk that could invalidate the whole result) over the finer grid (which
+buys resolution the labels probably cannot support anyway).
 
 ## 1. Key measured facts the design rests on
 
@@ -136,7 +157,7 @@ appendix run — with its three known gotchas baked in: (1) single-engine runs o
 
 ## 3. Work Package 0 — Judge calibration (MANDATORY, blocks the sweep)
 
-Cheap (~1,200 calls, ~20 min at concurrency 16) and decisive: the verbatim-UMBRELA-on-narrative
+Cheap (1,450 calls, ~20–25 min at concurrency 16) and decisive: the verbatim-UMBRELA-on-narrative
 judge is measured-degenerate (§1), and even the improved adapted rubric hasn't yet met the gate.
 The sweep must not spend 30k+ Bedrock calls on labels with no discriminative power.
 
@@ -156,6 +177,11 @@ classes at every topic where possible. Persist the sample to
 | `umbrela-kw-v1` | the keyword `search_query` | verbatim UMBRELA |
 | `facet-v1` | full narrative | the adapted multi-facet rubric, **verbatim as already measured** (see below) — the going-in PRIMARY candidate |
 | `facet-name-v1` | full narrative | `facet-v1` wording **plus**: before scoring, the judge must name in ≤10 words which facet of the need the passage addresses (or "none"); grade-2 wording tightened ("2 = relevant background or a partial treatment an answer would cite but could not rely on alone") and grade-3 tightened ("3 = a passage an answer writer would quote or directly build a section from"). Output format: `##facet: <words>` then `##final score: <0-3>`. Purpose: break the grade-2 pile-up by forcing a discrimination step |
+| `facet-rare3-v1` | full narrative | `facet-name-v1` wording **plus an explicit base-rate anchor**, added **2026-07-31 at the user's direction** ("most of the documents in the collection are not relevant, and only very few should receive the highest score… it shouldn't be too harsh either, as it wouldn't be very useful"). A `Calibration —` paragraph precedes the rubric: the passages come from a broad web crawl, so most are not useful evidence — expect 0/1 for the majority, 2 for a substantial minority, 3 for only a small minority; do not reward topicality alone; **and do not be stingy** — a passage that really would help an answer writer must not be pushed to 1 for being imperfect. Grade 3 relabelled "excellent and uncommon"; grade 0 extended to cover navigational/boilerplate/promotional text. Purpose: make grade *frequency* something the prompt states rather than an accident of rubric wording |
+
+The percentages in that paragraph are deliberately soft ("the majority", "a small minority") rather
+than a quota. Each call sees **one** passage with no batch to rank against, so an instruction like
+"grade exactly 20 % as 3" is unsatisfiable locally and would only add noise.
 
 `facet-v1` text, verbatim (already measured at n=60: `{0:7, 1:8, 2:36, 3:9}`):
 
@@ -177,36 +203,111 @@ any silent edit forces a new version id (the cache key depends on it — §5.3).
 
 ### 3.3 Selection criteria and gate
 
-Run all four variants over the same 280 pairs (temp 0, maxTokens 1024), plus a **stability probe**:
+Run all five variants over the same 280 pairs (temp 0, maxTokens 1024), plus a **stability probe**:
 re-judge 50 random pairs of the winning variant a second time at temp 0 and report exact-match rate
 (require ≥90 %). The probe **must bypass the cache lookup** (a `calibrate`-internal force-fresh
 path — without it the "re-judge" is a cache hit and the probe trivially reports 100 %); both calls
 are logged normally and latest-successful-wins applies, which is harmless at temp 0.
 
-- **Primary criterion: grade spread.** Gate to launch the sweep (deliberately relaxed from
-  "modal ≤50 %", which neither measured variant meets and a perfectly flat distribution is not
-  realistic): **modal grade ≤ 60 % AND all four grades used AND ≥ 20 % of pairs at grade ≥ 2.**
-  `facet-v1` already meets this (modal 60 %, all grades, 75 % ≥2); the question WP0 answers is
-  whether `facet-name-v1` beats it by breaking the grade-2 pile-up.
+- **Primary criterion: grade spread, bounded on BOTH sides.** Gate to launch the sweep — all four
+  conditions, evaluated on the 280-pair sample:
+
+  1. **modal grade ≤ 60 %** (relaxed from "modal ≤50 %", which neither measured variant meets and a
+     perfectly flat distribution is not realistic);
+  2. **all four grades used** (each ≥ 1 pair);
+  3. **15 % ≤ share at grade ≥ 2 ≤ 65 %**;
+  4. **share at grade 3 ≤ 25 %**.
+
+  **Every bound is inclusive** — this is not pedantry: `facet-v1`'s measured modal share is *exactly*
+  60 %, so a strict `<` would flip condition 1 for the going-in candidate on a rounding convention
+  rather than on evidence.
+
+  Conditions 3–4 are two-sided as of **2026-07-31**, at the user's direction: *"most of the documents
+  in the collection are not relevant, and only very few should receive the highest score. Of course,
+  it shouldn't be too harsh either."* The earlier one-sided form (`≥ 20 % at grade ≥ 2`, no ceiling)
+  is a **real defect**, not a conservatism: the distribution `{0:1, 1:1, 2:50, 3:48}` — 98 % of
+  passages relevant, 48 % of them maximally so — satisfies modal-≤60 %, all-four-grades, and
+  ≥20 %-at-≥2, so a judge with almost no discriminative power was admitted while the harsh failure
+  mode was correctly caught. A simulation over two configs sharing a candidate set puts mean
+  |ΔnDCG@10| at 0.069 under a 98 %-relevant label set against 0.105 under a base-rate-like 25 %:
+  saturation compresses the metric's dynamic range more than any other distribution tested. (Grades
+  there were drawn at random, so that measures dynamic range under each distribution, not judge
+  accuracy.)
+
+  **The band applies to the sample, which is deliberately not the pool.** §3.1 over-samples positives
+  so the agreement smell test has both classes per topic: the 280 pairs are **42.5 % agent-positive /
+  54.6 % negative / 2.9 % unjudged**, against **23.8 % / 73.9 % / 2.4 %** across the 8580 observed
+  pairs — positives enriched ~1.8×. A judge tracking the collection's real base rate should
+  therefore land near ~40 % at ≥2 *on this sample*, and the 15–65 % band brackets that with room on
+  each side (roughly 8–36 % if projected back onto the pool). Do **not** re-use these constants for a
+  differently-stratified sample without re-deriving them; `calibrate` prints both the sample's own
+  label mix and the pool's alongside the band so the comparison is auditable rather than assumed.
+
+  **This changes the going-in expectation.** `facet-v1`'s measured 75 % at ≥2 is *above* the new
+  ceiling, so on its n=60 prior it now **fails** condition 3 — and `umbrela-v1`'s measured 10 % fails
+  condition 3 from below (and condition 1 at modal 72.5 %). Both measured variants are expected to
+  fail, in opposite directions, which is precisely why `facet-rare3-v1` exists. Treat the n=60 figure
+  as a prior, not a verdict: it came from an ad-hoc sample, not from `sample-280.jsonl`, so WP0
+  re-measures all five on identical pairs before anything is concluded.
 - **Secondary smell test only: agent-label agreement.** Report AUC of grade separating
   agent-positive from agent-negative, and mean grade per class. **Caveat stated in the report:**
   `committed` vs `not selected` is a weak relevance proxy — the agent selects for non-duplication
   and context budget, not pure topical relevance — so poor separation on this axis is not by itself
   proof the judge is bad. A judge that *anti-correlates* with `committed` is suspect; mere overlap
   is not disqualifying.
-- Report per-variant: full grade distribution, modal share, entropy, share ≥2, agent-label
-  cross-tab + AUC, stability match rate, parse-failure count, token usage.
+- Report per-variant: full grade distribution, modal share, entropy, **share ≥2 and share =3 with the
+  band each is checked against**, agent-label cross-tab + AUC, stability match rate, parse-failure
+  count, token usage, and a per-condition pass/fail line for the four gate conditions (so a failure
+  says *which* bound was missed and in which direction, not just "gated").
 
-**Decision rule:** pick the gate-passing variant with the lowest modal share, tie-broken by AUC.
-Going-in expectation: `facet-v1` or `facet-name-v1` wins; `umbrela-v1` is scored on the winner's
-pool during the sweep anyway (cache makes this a pure re-prompt cost — see §6 budget) so results
-stay comparable with prior umbrela-bedrock runs.
+**Decision rule:** among gate-passing variants, pick the lowest modal share, tie-broken by AUC.
+`umbrela-v1` is scored on the winner's pool during the sweep regardless of whether it passes (cache
+makes this a pure re-prompt cost — see §6 budget) so results stay comparable with prior
+umbrela-bedrock runs; passing the gate is a condition for being the *judge*, not for being *reported*.
+Going-in expectation after the 2026-07-31 gate change: `facet-rare3-v1` is the leading candidate,
+because it is the only variant that states a base rate at all and both measured variants sit outside
+the new band. `facet-name-v1` is the plausible second — its tightened grade-2/3 wording may pull
+`facet-v1`'s 75 % down into the band without an explicit anchor.
 
 **Fallback if no variant passes the gate:** `calibrate` exits **code 6** so the launching agent
-escalates to the user rather than auto-launching the sweep; on the user's confirmation the
-experiment proceeds with the best variant but demotes graded nDCG@10; the **pre-registered** headline becomes **nDCG@10 with binarized relevance (grade ≥ 2)**,
+escalates to the user rather than auto-launching the sweep. With the gate now two-sided this is a
+**live outcome, not a formality** — both measured variants are expected to fail on their priors — so
+the report must rank the failures by *how far outside* the band each fell, in which direction, and
+name the least-bad candidate rather than just declaring "no pass". "Best variant" below means: closest
+to the band on condition 3, tie-broken by lowest modal share. On the user's confirmation the
+experiment proceeds with that variant but demotes graded nDCG@10; the **pre-registered** headline becomes **nDCG@10 with binarized relevance (grade ≥ 2)**,
 with Recall@10 and MAP (binarized ≥1 and ≥2) as secondaries. This is stated *now*, before any sweep
 result exists, so a null graded result stays interpretable rather than a dead end.
+
+**Pre-registered family, for the record.** The confirmatory metric family is exactly the six above:
+`ndcg10_exp` (primary), `ndcg10_lin`, `ndcg10_bin2`, `recall10_bin2`, `map30_bin1`, `map30_bin2`
+(`metrics.PRE_REGISTERED_METRICS`). Two further columns — `gp10` and `p10_bin2` (§5.5) — were added
+**2026-07-31, after this plan was written, at the user's request** and are **secondary /
+exploratory**: reported in every score table because they cost nothing to compute from the same
+cached grades, explicitly *not* confirmatory, and their addition does **not** change §6.4's
+Bonferroni family (which counts the 3 candidate-vs-baseline comparisons, not metrics). A p-value
+quoted for either must be labeled exploratory.
+
+**Gate constants are code, not prose (WP6 contract).** `calibrate` must not re-key these numbers by
+hand. Define them once as module constants and expose a pure function that WP6's tests can drive with
+synthetic distributions, so each bound is independently exercised:
+
+```python
+GATE_MAX_MODAL_SHARE   = 0.60
+GATE_MIN_SHARE_GE2     = 0.15
+GATE_MAX_SHARE_GE2     = 0.65
+GATE_MAX_SHARE_EQ3     = 0.25
+GATE_REQUIRE_ALL_GRADES = True
+
+def evaluate_gate(counts: Mapping[int, int]) -> GateResult:  # per-condition verdicts, not one bool
+```
+
+`GateResult` carries a verdict **per condition** with the observed value and the bound it was checked
+against, because "gated" alone does not tell an operator whether to reach for a stricter or a looser
+prompt. The tests must include the two distributions this gate exists for:
+`{0:1, 1:1, 2:50, 3:48}` (saturated — **must fail** conditions 3 and 4; it passed the pre-2026-07-31
+gate, which is the defect that motivated the change) and `{0:7, 1:29, 2:2, 3:2}` (`umbrela-v1` as
+measured — **must fail** conditions 1 and 3-from-below).
 
 ### 3.4 Honest consequence for the metric (goes in README + worklog verbatim)
 
@@ -236,7 +337,7 @@ tasks/bm25_tune/
     ├── judge.py              # Bedrock Converse client: retries, cred expiry, parsing
     ├── store.py              # JudgmentLog (append-only) + JudgmentCache (§5.3)
     ├── pool.py               # per-topic union pooling
-    ├── metrics.py            # nDCG@10 (both gain conventions), Recall@10, MAP — pure stdlib
+    ├── metrics.py            # nDCG@10 (both gains), P@10 + graded P@10, Recall@10, MAP — stdlib
     ├── stats.py              # paired t, Wilcoxon (normal approx), bootstrap CI — pure stdlib
     ├── pricing.py            # frozen rate table + CostMeter + BudgetGuard (§5.7) — pure stdlib
     ├── prices/bedrock-gpt-oss-20b-aps2-2026-07-30.json   # verbatim AWS Pricing API extract
@@ -291,7 +392,9 @@ uv run --project tasks/bm25_tune python -m bm25tune <subcommand> ...
 error if unset/unreadable), `BM25_TUNE_DATA_DIR` (default `<repo>/data/bm25-tune`),
 `BM25_TUNE_JUDGE_MODEL` (default `openai.gpt-oss-20b-1:0`), `BM25_TUNE_JUDGE_REGION` (default
 `ap-southeast-2`), `BM25_TUNE_JUDGE_CONCURRENCY` (default `16`),
-**`BM25_TUNE_BUDGET_USD` (default `200.0` — the hard ceiling, §5.7)**, and
+**`BM25_TUNE_BUDGET_USD` (the hard ceiling, §5.7 — *no default*; required by every command
+that can spend or that reports against the cap, via `Config.require_budget_usd()`, which refuses with
+exit 1 and quotes `export BM25_TUNE_BUDGET_USD=50.0`)**, and
 **`BM25_TUNE_PRICING_TIER` (default `standard`; one of `standard|batch|flex|priority`)**.
 The tier only selects which committed rate is used for *accounting* — the Converse path always
 bills at standard, so setting any other tier under-records real spend; `judge-pool` warns loudly
@@ -327,7 +430,7 @@ data/bm25-tune/
 ```
 
 **`costs/totals.json` is the budget's durable state** and lives *outside* `runs/` deliberately: the
-$200 ceiling spans the whole experiment (calibration + Stage A + Stage B + any continuity pass), so
+$50 ceiling spans the whole experiment (calibration + Stage A + Stage B + any continuity pass), so
 it must survive a crash, a re-run, and a new `run_id`. It is rebuildable from `costs/ledger.jsonl`,
 which is itself rebuildable from the judgment log (`usage` is recorded per call, §5.3) — three
 levels of derivability so a lost file never loses the accounting.
@@ -566,6 +669,33 @@ depth 30 gives 3× headroom for rank movement between configs while union inflat
 - Secondaries (pre-registered, §3.3): nDCG@10 binarized at ≥2, Recall@10 (binarized ≥2, denominator
   = topic's judged-relevant count), MAP@30 (binarized at ≥1 and at ≥2 — both thresholds, matching
   §3.3's pre-registration).
+- **Secondary / exploratory — "how much relevant material is in the top 10", added 2026-07-31 at
+  the user's request; NOT part of §3.3's pre-registered confirmatory family.** Two columns, both
+  computed in the *same* scoring pass as nDCG@10 and persisted in `scores.csv` /
+  `scores-per-query.csv`, so re-optimizing the grid for either later needs **no re-judging and no
+  re-run**:
+  - `p10_bin2` — plain **Precision@10 binarized at grade ≥ 2**: `#{top-10 grades ≥ 2} / 10`. The
+    legible form of "how many relevant docs are in the top 10", and equal to `trec_eval`'s `P_10`.
+  - `gp10` — **graded precision@10**: `sum(top-10 grades) / (10 × 3)`, i.e. the mean of `grade/3`
+    over the ten slots. Bounded [0,1]; reduces to P@10 when every relevant chunk is grade 3;
+    retains the signal `p10_bin2` discards (a top-10 of grade-1s scores 0 on `p10_bin2` but >0
+    here); **not** normalized by any ideal, so unlike every other column its absolute value is
+    interpretable and comparable across topics. Rejected alternatives: mean exponential gain
+    `(2^g−1)/7` (dominated by grade 3s, and §3.4 says the labels pile at 2, so it compresses the
+    region where all the between-config movement is), and normalizing by the topic's best
+    achievable top-10 (reintroduces the very deflation that makes nDCG's absolutes unquotable).
+  - **Denominator: a flat 10, not `min(retrieved, 10)`.** A config that retrieved 4 chunks left six
+    slots empty and that is a property of the config; `min(retrieved, 10)` would let one relevant
+    hit out of one retrieved score 1.0 and beat a config that filled all ten with nine relevant
+    ones. (`judged@10` coverage keeps `min(retrieved, 10)` — it asks "of what was shown, how much
+    was judged", where a slot that was never filled cannot be unjudged.)
+  - **Both are rank-indifferent within the cutoff, deliberately.** nDCG@10 is the rank-sensitive
+    measure; a rank-flat companion isolates *set quality* from *ordering*, so a cell where nDCG
+    moves and these do not merely reshuffled the same ten chunks. Pinned by a rank-permutation test
+    in `test_metrics.py`.
+  - The `stats` subcommand tests them by default (it iterates every metric), but §6.4's Bonferroni
+    family stays at **3** — it counts candidate *configs*, not metrics — and any p-value quoted for
+    these two must be labeled exploratory.
 - Aggregation: mean over queries (primary), plus mean-of-topic-means (robustness — topics
   contribute 3–16 queries each).
 
@@ -574,7 +704,7 @@ depth 30 gives 3× headroom for rank movement between configs while union inflat
 ```
 python -m bm25tune verify-inputs      # sha256 check of inputs/ against SHA256SUMS; row/count asserts (§2.1 numbers)
 python -m bm25tune extract-queries    # → queries/keyword-1063.jsonl + subsample-250.jsonl
-python -m bm25tune calibrate          # WP0: 4 variants × 280 pairs + stability probe → calibration/report.{md,json}
+python -m bm25tune calibrate          # WP0: 5 variants × 280 pairs + stability probe → calibration/report.{md,json}
 python -m bm25tune search-sweep  --stage A|B [--configs ...]   # run files + pool.jsonl (search only; minutes)
 python -m bm25tune judge-pool    --run-id <id> --prompt-version <pv> [--pilot N]  # the long job; fully resumable
 python -m bm25tune score         --run-id <id> --prompt-version <pv>  # scores.csv/.md from cache
@@ -607,7 +737,7 @@ taken, every parse failure with the raw text, per-config nDCG as scoring complet
 `[SUMMARY]` table. **Heartbeat thread, every 60 s** — spend is a first-class heartbeat field so the
 operator watching `tail -f` sees cost accrue in real time, never only at the end:
 `[HEARTBEAT] judged 4312/11250 (38.3%) rate=1.52/s cache_hits=2103 throttles=0 parse_fails=3
-spent=$0.68 proj=$1.94 cap=$200.00 eta=76m`.
+spent=$0.68 proj=$1.94 cap=$50.00 eta=76m`.
 The `[BUDGET]` pre-flight line is logged before the first call and repeated in the final `[SUMMARY]`;
 `[COST]` carries the per-stage roll-up at shutdown (clean or aborted).
 
@@ -624,9 +754,9 @@ uv run --project tasks/bm25_tune python -m bm25tune judge-pool \
 # then: tail -f /tmp/bm25-tune-judge-stageA.log
 ```
 
-### 5.7 `pricing.py` — cost recording and the hard $200 ceiling
+### 5.7 `pricing.py` — cost recording and the hard $50 ceiling
 
-Two user requirements land here: *"this entire process should not cost more than \$200"* and
+Two user requirements land here: *"this entire process should not cost more than \$50"* and
 *"ensure that the costs are recorded and stored — we will need the cost analysis for later for the
 scientific report."* They are one module because the ceiling is enforced from the same numbers the
 report is written from.
@@ -714,7 +844,7 @@ ledger or lost log segment).
    later pre-flight automatically uses the *measured* means (`input_tokens / calls` etc.); with an
    empty meter it falls back to the **[measured]** 900 in / 300 out priors and says so in the
    `[BUDGET]` line (`basis=prior` vs `basis=measured`). It logs, and writes to `costs.json`:
-   `[BUDGET] stage=A est_calls=12500 basis=measured est_usd=$1.97 spent=$0.18 cap=$200.00 remaining=$199.82 → OK`.
+   `[BUDGET] stage=A est_calls=12500 basis=measured est_usd=$1.97 spent=$0.18 cap=$50.00 remaining=$49.82 → OK`.
    If `spent + est > cap`, it **refuses to start**, prints the shortfall and the exact env var to
    raise, and exits **code 4** — before spending anything.
 2. **Continuous, on every completed call.** There is no "batch" in the judging loop — the
@@ -859,7 +989,8 @@ queries/topic (Stage B) all share one narrative. For the *observed* hits alone t
   heavy intra-topic overlap ⇒ ~25,000–30,000 unique pairs, of which the ~10–13k Stage-A pairs
   (drawn from the same topics and the densest configs) are already cached ⇒ **~15,000–22,000 new
   calls ⇒ ~2.5–4 h**. The cache delta is reported at judge start (`[CACHE] hits=…`), not assumed.
-- **Calibration**: 4 × 280 + 50 stability ≈ 1,170 calls ⇒ **~15–20 min**.
+- **Calibration**: 5 × 280 + 50 stability = 1,450 calls ⇒ **~20–25 min** (five variants as of
+  2026-07-31 — `facet-rare3-v1` added, §3.2).
 - **umbrela-v1 continuity scoring** on the Stage-B pool (optional, decided post-WP0): a second
   prompt version over the same pool = a full extra pass (~25–30k calls, ~4 h). Default: run it on
   the Stage-A pool only (~10–13k calls) unless the user asks for full coverage.
@@ -868,30 +999,41 @@ queries/topic (Stage B) all share one narrative. For the *observed* hits alone t
   ≈ 27–36 M input tokens, ≈ 10–14 M output tokens (**[measured]** ~760–1040 in / 58–648 out per
   call). Wall-clock end-to-end: **one working day**, dominated by two 2.5–4 h judge jobs.
 
-### 6.2b Cost arithmetic against the $200 ceiling [measured rates, §5.7]
+### 6.2b Cost arithmetic against the $50 ceiling [measured rates, §5.7]
 
 At standard on-demand ap-southeast-2 rates, a typical call (900 in / 300 out) costs
 **$0.000158** — i.e. **$0.158 per 1 000 judgments**. Worst case (1040 in / 648 out): $0.000275/call.
 
 | Stage | calls | typical US$ | worst-case US$ |
 |---|---|---|---|
-| WP0 calibration (4 × 280 + 50 stability) | 1,170 | $0.18 | $0.32 |
+| WP0 calibration (5 × 280 + 50 stability) | 1,450 | $0.23 | $0.40 |
 | Stage A judging (upper est.) | 13,000 | $2.05 | $3.58 |
 | Stage B judging, new pairs (upper est.) | 22,000 | $3.47 | $6.05 |
 | umbrela-v1 continuity on the Stage-A pool | 13,000 | $2.05 | $3.58 |
-| **TOTAL (everything, upper estimates)** | **49,170** | **$7.75** | **$13.53** |
+| **TOTAL (everything, upper estimates)** | **49,450** | **$7.80** | **$13.61** |
 
-**$200 buys ~727,000 worst-case calls — 15× the entire plan.** Two consequences the executors must
+**$50 buys ~182,000 worst-case calls — 3.7× the entire plan.** Two consequences the executors must
 internalize: (a) the ceiling will not be reached by the plan as designed, so any `[BUDGET]` trip is
 *prima facie* a bug (runaway prompt length, cache miss storm, retry loop) and must be investigated,
 not worked around by raising the cap; (b) there is no cost argument for cutting corners — judge the
-full pool, keep depth 30, run the continuity pass.
+full pool, keep depth 30, run the continuity pass. The plan costs **16 % of the cap typical, 27 %
+worst case**.
 
-**Optional spends the headroom makes affordable** (user's call, not the executor's):
-a 7×7 grid instead of 5×5 (≈ +$1), the full-pool umbrela-v1 continuity pass instead of Stage-A-only
-(≈ +$4), a 3-sample self-consistency vote per judgment to attack the grade-compression risk R1
-(≈ 3× judge cost, ≈ +$16 — still under 10 % of the cap, and the single most valuable use of the
-headroom if WP0's calibration remains marginal). Surface these to the user with the WP0 report.
+**Optional spends, and what the $50 cap does to them** (user's call, not the executor's). At $200
+these were rounding errors; at $50 they are real fractions of the ceiling and must be requested with
+a cost line, not assumed:
+
+| optional extra | ≈ cost | cumulative with the base plan | % of $50 cap (worst case) |
+|---|---|---|---|
+| 7×7 grid instead of 5×5 | +$1 | $8.75 / $14.53 | 29 % |
+| full-pool umbrela-v1 continuity instead of Stage-A-only | +$4 | $11.75 / $17.53 | 35 % |
+| **3-sample self-consistency vote (attacks R1)** | **+$16** | **$23.75 / $29.53** | **59 %** |
+| all three together | +$21 | $28.75 / $34.53 | 69 % |
+
+Even all three at once fits inside $50 with ~30 % to spare, so the cap does not force a choice —
+but it does mean the executor must **ask, with the number, rather than proceed**. If only one can be
+justified, take the self-consistency vote: it is the only one that addresses R1, the single risk that
+could invalidate the entire result. Surface this table to the user with the WP0 report.
 
 ### 6.3 Throughput/throttling posture
 
@@ -928,8 +1070,9 @@ create command for the record, `JAVA_HOME` value, `pyserini==2.3.0` + the `pyser
 AttributeError gotcha); the canonical env-var block and every subcommand with a copy-paste example;
 artifact layout map (§4.2) and where the durable copy of the /tmp input lives; **how to resume**
 (re-run the same command; the exit-code table — 3 = refresh SSO creds, 4/5 = budget, 6 = calibration
-gate, 130/143 = signalled drain); **the budget and cost section**: the $200 cap and
-`BM25_TUNE_BUDGET_USD`, `python -m bm25tune budget` to check spend before launching anything, the
+gate, 130/143 = signalled drain); **the budget and cost section**: the $50 approved cap, the fact that
+`BM25_TUNE_BUDGET_USD` has no default and must be exported per run (a spending command exits 1 without
+it), `python -m bm25tune budget` to check spend before launching anything, the
 committed rate table and how to refresh it, where costs are recorded (log → ledger → totals →
 `costs.md`), the measured $0.158/1000-judgments basis, and the standing instruction that a
 `[BUDGET]` trip means *investigate a bug*, not raise the cap (§6.2b);
@@ -1006,7 +1149,10 @@ prose, per CLAUDE.md):
 - `test_metrics.py` — hand-computed nDCG@10 for both gain conventions (a 3-doc worked example in
   the docstring); unjudged→0; ideal-from-topic-qrel (a chunk judged for the topic but absent from
   this query's ranking still shapes the ideal — the deflation property §5.5 documents); perfect
-  ranking scores 1.0; Recall/MAP binarization thresholds.
+  ranking scores 1.0; Recall/MAP binarization thresholds; the two precision@10 columns (§5.5)
+  hand-computed, their flat-10 denominator pinned from the direction it can be got wrong, a
+  **rank-permutation test** (shuffling the top 10 moves nDCG and leaves both precisions fixed), and a
+  grade-1-only ranking where `p10_bin2` is 0 while `gp10` is not (the signal binarization discards).
 - `test_stats.py` — paired t on a known-answer vector; Wilcoxon normal-approx sanity; bootstrap CI
   determinism under seed; Bonferroni threshold.
 - `test_pricing.py` — `call_cost` against a hand-computed figure from the committed rate file (pins
@@ -1050,12 +1196,12 @@ commit.
   pattern (copy + manifest with `excluded` list).
 - **Worklog** `worklogs/2026-07-30-bm25-tune-harness.md` (code) and
   `worklogs/<run-date>-bm25-tune-sweep.md` (experiment — self-contained per CLAUDE.md): the
-  **verbatim** prompt texts of all four variants, query-set provenance (file, sha256, the
+  **verbatim** prompt texts of all five variants, query-set provenance (file, sha256, the
   keyword-filter and dedupe counts, subsample seed), the calibration result matrix, the **full**
   grid result matrix, how relevance was judged (model, region, maxTokens, temp, parsing rule),
   the statistics with effect sizes/CIs, **the complete cost accounting** (the §6.2b table with
   *actual* alongside estimated, rate table id and tier, US$/1000 judgments, cost per judged pair,
-  US$ saved by the cache, billed-but-wasted spend, and total spend against the $200 cap — this is
+  US$ saved by the cache, billed-but-wasted spend, and total spend against the $50 cap — this is
   the source material for the report's cost section, so it goes in verbatim rather than summarized),
   artifact paths, and copies of the raw sweep log into
   `worklogs/assets/2026-07-XX-bm25-tune-stageA.log` (+ stageB) and of `costs.md`.
@@ -1068,10 +1214,15 @@ commit.
 ## 8. Risks and mitigations
 
 - **R1 — Judge grade compression (the primary threat, [measured]).** Mode-dominated labels flatten
-  DCG and IDCG; neighbouring cells tie; the paired test may find nothing. Mitigations: WP0 gate
-  (§3.3) before any sweep spend; exponential gain as primary; effect sizes + CIs + pre-registered
-  binarized/Recall/MAP secondaries so a null is interpretable; the measured 0.72 top-10 overlap
-  floor proves rank movement exists for labels to reward. Honest framing pre-committed in §3.4.
+  DCG and IDCG; neighbouring cells tie; the paired test may find nothing. **It threatens from both
+  ends**: a harsh judge (umbrela-v1, 10 % at ≥2) leaves too few relevant chunks to separate configs,
+  and a saturated one (facet-v1's 75 %, or worse) makes nearly every chunk relevant so the ranking
+  barely matters — simulated mean |ΔnDCG@10| 0.069 at 98 % relevant vs 0.105 at a base-rate-like
+  25 % (§3.3). That is why the gate became two-sided on 2026-07-31 and why `facet-rare3-v1` states a
+  base rate outright. Mitigations: the WP0 gate (§3.3) before any sweep spend; exponential gain as
+  primary; effect sizes + CIs + pre-registered binarized/Recall/MAP secondaries so a null is
+  interpretable; the measured 0.72 top-10 overlap floor proves rank movement exists for labels to
+  reward. Honest framing pre-committed in §3.4.
 - **R2 — UMBRELA-on-narrative soundness.** Confirmed unsound in its verbatim form (§1); the design
   answer is the adapted rubric family + calibration gate, with verbatim UMBRELA retained as a
   comparability column, and the agent-label caveat (§3.3) preventing over-reading the smell test.
@@ -1098,11 +1249,11 @@ commit.
   documented warning; parallelism only via `batch_search(threads=16)`.
 - **R10 — Bedrock throttling under sustained multi-hour load** (unseen so far at C=20, but the
   probes were short). Backoff+jitter, heartbeat-visible rate, tunable concurrency env var.
-- **R11 — Runaway spend.** The named risk behind the $200 cap. Plausible mechanisms: a cache-key bug
+- **R11 — Runaway spend.** The named risk behind the $50 cap. Plausible mechanisms: a cache-key bug
   re-judging everything (would cost 2× — still trivial), a prompt-assembly bug pasting the whole
   narrative *per passage* into a batch (10–100× input tokens), or a retry loop billing every attempt.
   Mitigated by the three-layer guard (§5.7) whose per-call check keys off *observed* cost, so any of
-  these trips within seconds rather than at the end. Because expected spend is ~4 % of the cap
+  these trips within seconds rather than at the end. Because expected spend is ~16 % of the cap
   (§6.2b), a trip is a **bug signal**: the runbook says investigate before raising
   `BM25_TUNE_BUDGET_USD`.
 - **R12 — Wrong price rates silently corrupting the cost analysis.** A per-token/per-1K units slip
@@ -1143,8 +1294,10 @@ after WP7; WP9 finalizes.
   three land): everything in §7.3 + the `scripts/test.sh` shorthand; `bash scripts/test.sh` full
   suite green.
 - **WP6 — Calibration (= Work Package 0 of the science, §3)** (needs WP1+WP3+WP3b): this is the
-  **pilot** the user asked for — smallest real spend first (~1,170 calls, ~$0.18, ~15–20 min). Run
-  `calibrate`, produce `calibration/report.md`, apply the gate, report `[BUDGET]`/`[COST]` lines and
+  **pilot** the user asked for — smallest real spend first (1,450 calls, ~$0.23, ~20–25 min). Run
+  `calibrate`, produce `calibration/report.md`, apply the **two-sided** §3.3 gate (four conditions;
+  a variant may fail from either direction, and both measured variants are expected to), report
+  `[BUDGET]`/`[COST]` lines and
   the **measured** mean token counts (persisted in `costs/totals.json`, whence every later
   pre-flight reads them in place of the priors — §5.7 layer 1),
   and **the user reviews the report and confirms the prompt version before WP7 launches**. Surface
@@ -1166,7 +1319,8 @@ Commit checkpoints: after WP5 (harness + tests), after WP6 (calibration report),
 (Stage A results), after WP9 (final). Each commit runs the full offline suite via the pre-commit
 hook; no commit touches `src/` so the architecture-diagram check never fires.
 
-**Standing rule for every executing agent:** run `python -m bm25tune budget` before launching any
+**Standing rule for every executing agent:** `export BM25_TUNE_BUDGET_USD=50.0` (it has no default
+— every spending command refuses without it, §0), run `python -m bm25tune budget` before launching any
 job that calls Bedrock, and include the `[BUDGET]` pre-flight line in the chat message that reports
-the launch. No agent may raise `BM25_TUNE_BUDGET_USD` on its own initiative — a trip is escalated to
-the user with the diagnosis, per R11.
+the launch. No agent may raise `BM25_TUNE_BUDGET_USD` above the approved figure on its own initiative
+— a trip is escalated to the user with the diagnosis, per R11.

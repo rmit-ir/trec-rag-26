@@ -23,7 +23,7 @@ Three invariants this file exists to defend:
    metadata* and are deliberately not key components — the entire reuse economy
    of PLAN §6.2 rests on a Stage-A judgment satisfying a Stage-B lookup. The dual
    invariant is just as load-bearing: a `umbrela-v1` grade must never satisfy a
-   `facet-v1` lookup, or WP0's four-variant calibration silently poisons the
+   `facet-v1` lookup, or WP0's multi-variant calibration silently poisons the
    sweep with labels made under a different rubric. Both are pinned in
    `tests/bm25_tune/test_store.py`.
 2. **Crash safety in bounded time.** `flush()` per line plus `os.fsync()` every

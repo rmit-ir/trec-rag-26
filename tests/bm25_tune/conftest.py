@@ -71,6 +71,13 @@ def bm25_config(tmp_path: Path,
     target.write_bytes(mini_labeled_path.read_bytes())
     monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(tmp_path))
     monkeypatch.delenv("BM25_TUNE_INDEX_DIR", raising=False)
+    # The spend ceiling has no default (PLAN §0) — every spending subcommand
+    # refuses without it — so the fixture exports one, standing in for the
+    # operator who must. It is set HERE rather than defaulted in `config.py`
+    # precisely so that the refusal stays testable: the tests that assert it
+    # (`test_the_spend_ceiling_has_no_default_and_must_be_exported`,
+    # `test_config_defaults_match_the_plan`) go around this fixture.
+    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "50.0")
     return Config.from_env()
 
 

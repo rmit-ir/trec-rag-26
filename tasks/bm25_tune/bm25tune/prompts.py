@@ -15,6 +15,15 @@ Four frozen variants, each identified by a `prompt_version` string that is a
   `str.format`. Passages are arbitrary web text and routinely contain braces
   (code, JSON, `{{`), which `format` would either interpret or raise on.
 
+**Nothing here tells the judge how often each grade should occur, except
+`facet-rare3-v1`.** That is why the two measured variants land on opposite sides
+of the collection's real base rate (umbrela-v1: 10 % at grade >=2; facet-v1:
+75 %) — grade frequency is currently a side effect of rubric wording rather than
+something either prompt states. `facet-rare3-v1` (added 2026-07-31) is the one
+variant that says it outright, and PLAN §3.3's gate is two-sided so a judge that
+grades almost everything relevant is rejected as firmly as one that grades
+almost nothing.
+
 `umbrela-v1`/`umbrela-kw-v1` reproduce the team's prior umbrela-bedrock prompt
 **character-for-character** from
 `evaluation-results/aus-agent/umbrela-bedrock/tasks.jsonl` so the sweep keeps a
@@ -123,6 +132,61 @@ FACET_NAME_V1_TEMPLATE = (
     "Judge usefulness for one or more facets, NOT whether the passage answers "
     "the whole need. A passage that thoroughly covers a single facet deserves "
     "3.\n"
+    "Information need: {q}\n"
+    "Passage: {p}\n"
+    "Answer in exactly this format and nothing else:\n"
+    "##facet: <10 words or fewer, or none>\n"
+    "##final score: <0-3>"
+)
+
+# ---------------------------------------------------------------------------
+# facet-rare3-v1 — facet-name-v1 plus an explicit BASE RATE anchor. Added
+# 2026-07-31 at the user's direction: "most of the documents in the collection
+# are not relevant, and only very few should receive the highest score... Of
+# course, it shouldn't be too harsh either, as it wouldn't be very useful."
+#
+# The two measured variants sit on opposite sides of that instruction —
+# umbrela-v1 is too harsh (10 % at >=2, mode 1) and facet-v1 is too lenient
+# (75 % at >=2), and NEITHER prompt tells the judge anything about how often
+# relevance should occur. Grade frequency is currently an accident of wording.
+# This variant states the target distribution as a calibration instruction and
+# reserves 3 explicitly, while naming the failure mode in the other direction so
+# it does not simply trade leniency for harshness.
+#
+# The percentages are deliberately soft ("roughly", "a small minority") rather
+# than a quota: a hard "grade exactly 20 % as 3" would make the judge rank
+# within the batch, but each call sees ONE passage with no batch to rank against,
+# so a quota it cannot satisfy locally would just add noise.
+# ---------------------------------------------------------------------------
+FACET_RARE3_V1_TEMPLATE = (
+    "You are judging whether a retrieved passage is useful evidence for "
+    "answering a complex, multi-part information need. The need is a narrative "
+    "that usually spans several facets; no single passage is expected to cover "
+    "all of it.\n"
+    "Calibration — this matters as much as the rubric below. These passages come "
+    "from a broad web crawl retrieved by a keyword search, so MOST of them are "
+    "not useful evidence: expect to give 0 or 1 to the majority, 2 to a "
+    "substantial minority, and 3 to only a small minority of genuinely "
+    "excellent passages. Do NOT reward a passage merely for being on the right "
+    "topic or containing the right words. Equally, do not be stingy: a passage "
+    "that really would help an answer writer must not be pushed down to 1 just "
+    "because it is imperfect or covers only part of the need.\n"
+    "Before scoring, name in 10 words or fewer which facet of the need this "
+    "passage addresses, or write \"none\" if it addresses no facet.\n"
+    "Then score on an integer scale of 0 to 3:\n"
+    "3 = excellent and uncommon: a passage an answer writer would quote or "
+    "directly build a section from, addressing a named facet with specific, "
+    "concrete, usable content (data, methods, recommendations, or detailed "
+    "explanation).\n"
+    "2 = genuinely useful: relevant background or a partial treatment an answer "
+    "would cite but could not rely on alone.\n"
+    "1 = on the same broad topic, but contributes little or nothing an answer "
+    "could actually use.\n"
+    "0 = unrelated to the need, or purely navigational, boilerplate, or "
+    "promotional text.\n"
+    "Judge usefulness for one or more facets, NOT whether the passage answers "
+    "the whole need. A passage that thoroughly covers a single facet well "
+    "deserves 3.\n"
     "Information need: {q}\n"
     "Passage: {p}\n"
     "Answer in exactly this format and nothing else:\n"
@@ -271,12 +335,24 @@ PROMPTS: dict[str, PromptSpec] = {
                    "tightened grade-2/grade-3 wording, aimed at breaking the "
                    "measured 60% grade-2 pile-up."),
         ),
+        PromptSpec(
+            version_id="facet-rare3-v1",
+            template=FACET_RARE3_V1_TEMPLATE,
+            query_slot="narrative",
+            emits_facet=True,
+            notes=("facet-name-v1 plus an explicit base-rate anchor (most "
+                   "passages are 0/1, grade 3 is uncommon) with a stated "
+                   "do-not-be-stingy counterweight. Added 2026-07-31 at the "
+                   "user's direction; the only variant that says anything about "
+                   "how OFTEN each grade should occur. Untested — WP0 measures "
+                   "it against the two-sided gate."),
+        ),
     )
 }
 
 #: PLAN §3.2's table order — what `calibrate` iterates and the report rows use.
 CALIBRATION_ORDER = ("umbrela-v1", "umbrela-kw-v1", "facet-v1",
-                     "facet-name-v1")
+                     "facet-name-v1", "facet-rare3-v1")
 #: PLAN §0's going-in primary; `judge-pool --prompt-version` defaults to it, but
 #: WP6's gate decides the real winner.
 DEFAULT_PROMPT_VERSION = "facet-v1"

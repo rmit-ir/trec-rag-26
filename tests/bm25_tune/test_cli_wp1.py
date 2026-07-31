@@ -439,11 +439,22 @@ def test_config_describe_is_logged_so_a_run_is_explainable(
     defaults — and that difference changes what the cost accounting means.
     """
     monkeypatch.setenv("BM25_TUNE_JUDGE_CONCURRENCY", "4")
+    monkeypatch.delenv("BM25_TUNE_BUDGET_USD", raising=False)
     with caplog.at_level(logging.INFO):
         _run(["verify-inputs"], seeded_data_dir, monkeypatch)
     assert "concurrency=4" in caplog.text
     assert "BM25_TUNE_JUDGE_CONCURRENCY" in caplog.text
-    assert "budget=$200.00" in caplog.text
+    # `<unset>`, never the approved figure: this line is the operator's evidence
+    # of what bounds the run, so printing a cap nobody exported would be a lie in
+    # the very record used to reconstruct what happened.
+    assert "budget=<unset>" in caplog.text
+
+    caplog.clear()
+    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "50.0")
+    with caplog.at_level(logging.INFO):
+        _run(["verify-inputs"], seeded_data_dir, monkeypatch)
+    assert "budget=$50.00" in caplog.text
+    assert "BM25_TUNE_BUDGET_USD" in caplog.text
 
 
 def test_config_defaults_match_the_plan(monkeypatch: pytest.MonkeyPatch,
@@ -464,7 +475,10 @@ def test_config_defaults_match_the_plan(monkeypatch: pytest.MonkeyPatch,
     assert cfg.judge_model == "openai.gpt-oss-20b-1:0"
     assert cfg.judge_region == "ap-southeast-2"
     assert cfg.judge_concurrency == 16
-    assert cfg.budget_usd == 200.0
+    # The ONE var with no default (2026-07-31): the cap must be exported per run,
+    # because a ceiling inherited from a constant is a ceiling nobody re-confirmed
+    # — and money is the one resource the harness cannot roll back.
+    assert cfg.budget_usd is None
     assert cfg.pricing_tier == "standard"
     assert cfg.index_dir is None
     assert cfg.data_dir.parts[-2:] == ("data", "bm25-tune")

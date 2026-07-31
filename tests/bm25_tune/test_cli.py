@@ -582,7 +582,7 @@ def test_a_midrun_budget_trip_exits_five_and_the_next_run_pays_only_the_rest(
     calls_after_stop = len(harness.converse.calls)
 
     caplog.clear()
-    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "200.0")
+    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "50.0")
     assert harness.judge_pool() == cli.EXIT_OK
     resumed = harness.chunks_sent(since=calls_after_stop)
     assert resumed & billed == set(), (

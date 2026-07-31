@@ -392,7 +392,8 @@ def calibration_sample(hits: Sequence[ObservedHit], n: int = 280,
     per-topic quota; the round-robin fill then tops the sample up to `n` without
     letting one class monopolize a topic.
 
-    All four variants judge this same persisted list, which is the point: a
+    Every registered variant judges this same persisted list, which is the point:
+    a
     grade-distribution comparison across prompts is only meaningful on identical
     pairs.
     """

@@ -17,6 +17,13 @@ Design rules this file obeys, each of which is load-bearing elsewhere:
   is to stop, not to update the expected number. So the expectations live in one
   frozen table (`EXPECTED_INPUT`) and a failure prints expected-vs-actual for
   every field before exiting non-zero.
+- **The spend ceiling must be exported, never defaulted.** Every subcommand that
+  can reach Bedrock or report against the cap calls `cfg.require_budget_usd()`,
+  which raises `ConfigError` (exit 1) when `BM25_TUNE_BUDGET_USD` is unset. The
+  cap is the user's live decision (PLAN §0), so it is resolved *early* — before
+  the pool loads and the cache replays — and the commands that cannot spend
+  (`verify-inputs`, `extract-queries`, `search-sweep`, `score`, `stats`,
+  `rebuild-cache`, `smoke --search-only`) never call it and run with it unset.
 - **Exit codes are a contract** (PLAN §5.7): `0` ok, `1` unexpected, `2`
   not-yet-implemented, `3` credential expiry, `4` pre-flight budget refusal, `5`
   mid-run budget stop, `6` calibration gate failure, `130`/`143` signalled drain.
@@ -351,7 +358,7 @@ def cmd_budget(args: argparse.Namespace) -> int:
     if rates is None:
         return EXIT_ERROR
     meter = CostMeter.load(cfg.costs_dir)
-    guard = BudgetGuard(meter, cfg.budget_usd, cfg.judge_concurrency,
+    guard = BudgetGuard(meter, cfg.require_budget_usd(), cfg.judge_concurrency,
                         rates=rates)
     status = guard.status()
     log.info("[BUDGET] spent=$%.4f cap=$%.2f remaining=$%.4f "
@@ -406,7 +413,8 @@ def cmd_cost_report(args: argparse.Namespace) -> int:
         out_dir = args.out_dir
 
     report = build_cost_report(
-        cfg.log_dir, meter, cap_usd=cfg.budget_usd, run_id=args.run_id,
+        cfg.log_dir, meter, cap_usd=cfg.require_budget_usd(),
+        run_id=args.run_id,
         cache_hits=int(args.cache_hits
                        if args.cache_hits is not None
                        else (manifest.get("cache") or {}).get("hits", 0) or 0),
@@ -912,6 +920,11 @@ def cmd_smoke(args: argparse.Namespace) -> int:
     """
     cfg: Config = args.config
     index_dir = cfg.require_index_dir()
+    if not args.search_only:
+        # The judgment half spends, so the ceiling is demanded up front — not
+        # after two minutes of JVM warm-up. `--search-only` is free and must keep
+        # working with the variable unset, which is why this is conditional.
+        cfg.require_budget_usd()
     queries = _smoke_queries(cfg, args.n)
     chunk_searcher = searcher_mod.ChunkSearcher(index_dir,
                                                 threads=args.threads)
@@ -1201,6 +1214,11 @@ def cmd_judge_pool(args: argparse.Namespace) -> int:
     except judge_mod.PricingUnavailable as exc:
         log.error("[BUDGET] %s", exc)
         return EXIT_ERROR
+    # Resolved HERE, before the pool is loaded and the cache replayed, for the
+    # same reason step 1 loads pricing first: no path to the model may exist that
+    # is not bounded by a ceiling the operator set this run. Failing after two
+    # minutes of cache replay would also train people to skip reading it.
+    cap_usd = cfg.require_budget_usd()
 
     spec = get_prompt(args.prompt_version)
     run_id = args.run_id or _default_run_id("A")
@@ -1260,7 +1278,7 @@ def cmd_judge_pool(args: argparse.Namespace) -> int:
     meter = pricing_mod.CostMeter.load(cfg.costs_dir)
     meter.reconcile(cfg.log_dir)
     concurrency = args.concurrency or cfg.judge_concurrency
-    guard = pricing_mod.BudgetGuard(meter, cfg.budget_usd, concurrency,
+    guard = pricing_mod.BudgetGuard(meter, cap_usd, concurrency,
                                     rates=rates)
     pending, cache_hits = judge_mod.pending_pairs(pairs, cache,
                                                   spec.version_id)
@@ -1284,7 +1302,7 @@ def cmd_judge_pool(args: argparse.Namespace) -> int:
     if args.pilot:
         basis = pricing_mod.pilot_basis(
             driver.usages, rates, pool_size=pool_size, meter=meter,
-            cap_usd=cfg.budget_usd)
+            cap_usd=cap_usd)
         log.info("%s", pricing_mod.format_pilot_basis(basis))
         log.info("[SUMMARY] --pilot stops here BY DESIGN (PLAN §5.7): paste the "
                  "[COST] line above into chat and get the full run authorized "
@@ -1460,9 +1478,13 @@ def cmd_score(args: argparse.Namespace) -> int:
     rather than for ranking.
 
     The **full** matrix is always written — every cell, both gain conventions,
-    all pre-registered secondaries (PLAN §7.4). Reporting only the winner would
-    make the sweep unfalsifiable; the neighbouring cells are the evidence that a
-    peak is a peak and not noise.
+    all pre-registered secondaries, and the exploratory `gp10`/`p10_bin2`
+    precision columns (PLAN §7.4). Reporting only the winner would make the sweep
+    unfalsifiable; the neighbouring cells are the evidence that a peak is a peak
+    and not noise. Every metric in `metrics.METRIC_NAMES` is computed in this one
+    pass and persisted, so choosing a different objective later — maximizing
+    `gp10` instead of `ndcg10_exp`, say — is a re-read of `scores.csv`, not a
+    re-judge and a re-sweep.
     """
     cfg: Config = args.config
     if not args.run_id:
@@ -1531,6 +1553,24 @@ def cmd_score(args: argparse.Namespace) -> int:
         log.info("[SUMMARY] absolute values are deflated by the topic-level "
                  "ideal DCG — only differences between cells are meaningful "
                  "(PLAN §5.5); see the caveat at the top of %s", md_path)
+        # The primary stays `ndcg10_exp`, but the whole point of computing the
+        # secondaries in the same pass is that a different objective needs no
+        # re-run — so name each one's argmax cell here rather than making the
+        # next reader re-sort scores.csv to find it.
+        for name in metrics.METRIC_NAMES:
+            if name == metrics.PRIMARY_METRIC:
+                continue
+            ranked = [s for s in scored if s.by_query.get(name) is not None]
+            if not ranked:
+                continue
+            # `scored` is already sorted deterministically (by primary, then
+            # config name), and `max` keeps the first maximum — so a tie on this
+            # metric resolves to the better primary, reproducibly.
+            top = max(ranked, key=lambda s: s.by_query[name])
+            log.info("[SUMMARY] best %s: %s=%.4f%s", name, top.config,
+                     top.by_query[name],
+                     "" if name in metrics.PRE_REGISTERED_METRICS
+                     else " (secondary/exploratory, not pre-registered)")
 
     _write_manifest(run_dir, {
         "scored_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

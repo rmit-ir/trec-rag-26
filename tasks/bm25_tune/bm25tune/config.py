@@ -16,12 +16,20 @@ Variables read (defaults per PLAN §4.1):
 | `BM25_TUNE_JUDGE_MODEL` | `openai.gpt-oss-20b-1:0` | `judge` |
 | `BM25_TUNE_JUDGE_REGION` | `ap-southeast-2` | `judge` |
 | `BM25_TUNE_JUDGE_CONCURRENCY` | `16` | `judge-pool` |
-| `BM25_TUNE_BUDGET_USD` | `200.0` | `pricing` |
+| `BM25_TUNE_BUDGET_USD` | *(none — REQUIRED by every command that spends or reports spend)* | `pricing` |
 | `BM25_TUNE_PRICING_TIER` | `standard` | `pricing` |
 
 The budget is **cumulative across the whole experiment**, not per-run: its
 durable state lives in `costs/totals.json` under the data dir, deliberately
 outside `runs/` (PLAN §4.2).
+
+`BM25_TUNE_BUDGET_USD` is the one variable with **no default**. It must be
+exported by whoever launches a command that can spend money, so the ceiling is
+always a live decision by a human rather than a constant a reader assumes is
+still current. `Config.require_budget_usd()` raises `ConfigError` naming the
+approved figure (`APPROVED_BUDGET_USD`, currently US$50); commands that cannot
+spend (`verify-inputs`, `extract`, `score`, `stats`) never call it and so keep
+working with the variable unset.
 """
 from __future__ import annotations
 
@@ -36,7 +44,14 @@ DEFAULT_DATA_DIR = REPO_ROOT / "data" / "bm25-tune"
 DEFAULT_JUDGE_MODEL = "openai.gpt-oss-20b-1:0"
 DEFAULT_JUDGE_REGION = "ap-southeast-2"
 DEFAULT_JUDGE_CONCURRENCY = 16
-DEFAULT_BUDGET_USD = 200.0
+#: The cap the user approved on 2026-07-31 (down from $200), quoted in the
+#: "you must export this" message and nowhere else. It is **NOT a default**:
+#: `budget_usd` has none, because a spend ceiling silently inherited from a
+#: constant is the one setting an operator must never be able to get wrong by
+#: omission (PLAN §0). The typical projection is $7.75 and the worst case $13.53
+#: (PLAN §6.2b), so $50 is a runaway-cost circuit breaker with ~4-6x headroom,
+#: not a scope limiter — a refusal at this figure is prima facie a bug.
+APPROVED_BUDGET_USD = 50.0
 DEFAULT_PRICING_TIER = "standard"
 PRICING_TIERS = ("standard", "batch", "flex", "priority")
 
@@ -69,10 +84,15 @@ def _env_int(name: str, default: int) -> int:
         raise ConfigError(f"{name}={raw!r} is not an integer") from exc
 
 
-def _env_float(name: str, default: float) -> float:
+def _env_float_opt(name: str) -> float | None:
+    """Parse a float env var, or `None` when it is unset/blank.
+
+    No default parameter on purpose: the only float we read is the spend cap, and
+    a defaultable reader is exactly the shape that would let one back in.
+    """
     raw = os.environ.get(name)
     if raw is None or not raw.strip():
-        return default
+        return None
     try:
         return float(raw.strip())
     except ValueError as exc:
@@ -93,7 +113,9 @@ class Config:
     judge_model: str
     judge_region: str
     judge_concurrency: int
-    budget_usd: float
+    #: `None` when `BM25_TUNE_BUDGET_USD` is unset. Deliberately not defaulted —
+    #: read it through `require_budget_usd()`, which refuses rather than guesses.
+    budget_usd: float | None
     pricing_tier: str
     #: Fields whose value came from an env var rather than the default. Logged
     #: in the `[LOAD]` line so a surprising run is explainable from the log.
@@ -125,7 +147,7 @@ class Config:
                                   DEFAULT_JUDGE_REGION),
             judge_concurrency=_env_int("BM25_TUNE_JUDGE_CONCURRENCY",
                                        DEFAULT_JUDGE_CONCURRENCY),
-            budget_usd=_env_float("BM25_TUNE_BUDGET_USD", DEFAULT_BUDGET_USD),
+            budget_usd=_env_float_opt("BM25_TUNE_BUDGET_USD"),
             pricing_tier=tier,
             overridden=overridden,
         )
@@ -199,6 +221,37 @@ class Config:
                 "the mount and your read permission)")
         return self.index_dir
 
+    def require_budget_usd(self) -> float:
+        """Return the spend ceiling, or raise `ConfigError` naming the export.
+
+        Called by every subcommand that can spend money or report against the
+        cap, and by nothing else — `verify-inputs`, `extract`, `score` and
+        `stats` run fine with the variable unset.
+
+        The cap has no default because it is the user's decision and the whole
+        point of the three-layer guard (PLAN §5.7) is that it reflects a *live*
+        one. A default would let an unattended multi-hour job run against a
+        figure nobody re-confirmed — and the failure mode of a stale ceiling is
+        money, which is the one resource the harness cannot roll back. Zero and
+        negatives are refused here too, rather than at `BudgetGuard`, so the
+        message names the variable to fix instead of a constructor argument.
+        """
+        if self.budget_usd is None:
+            raise ConfigError(
+                "BM25_TUNE_BUDGET_USD is not set — the spend ceiling has no "
+                "default on purpose (PLAN §0/§5.7): it must be a live decision "
+                f"by whoever launches the run. The approved figure is "
+                f"${APPROVED_BUDGET_USD:.2f}, so unless you have agreed "
+                "otherwise:\n"
+                f"  export BM25_TUNE_BUDGET_USD={APPROVED_BUDGET_USD}")
+        if self.budget_usd <= 0:
+            raise ConfigError(
+                f"BM25_TUNE_BUDGET_USD={self.budget_usd!r} must be positive. A "
+                "zero or negative ceiling trips on the first call and reads in "
+                "the log exactly like a runaway, sending you hunting a bug in "
+                "the judge that isn't there.")
+        return self.budget_usd
+
     def ensure_dirs(self, *paths: Path) -> None:
         """`mkdir -p` the given artifact dirs. The only filesystem mutation here."""
         for path in paths:
@@ -207,8 +260,13 @@ class Config:
     def describe(self) -> str:
         """One-line summary for the `[LOAD]` log line."""
         index = self.index_dir if self.index_dir is not None else "<unset>"
+        # An unset cap prints `<unset>` rather than the approved figure: this
+        # line is the operator's evidence of what the run is actually bounded by,
+        # and printing a number nobody exported would be a lie in the log.
+        budget = ("<unset>" if self.budget_usd is None
+                  else f"${self.budget_usd:.2f}")
         return (f"data_dir={self.data_dir} index_dir={index} "
                 f"judge_model={self.judge_model} region={self.judge_region} "
                 f"concurrency={self.judge_concurrency} "
-                f"budget=${self.budget_usd:.2f} tier={self.pricing_tier} "
+                f"budget={budget} tier={self.pricing_tier} "
                 f"overridden={','.join(self.overridden) or 'none'}")

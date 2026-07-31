@@ -39,6 +39,14 @@ off-by-one in any one of them invalidates every number in the report:
   coverage dips is not "worse", it is not fully judged.
 - **Secondaries (pre-registered, PLAN §3.3):** nDCG@10 binarized at grade >= 2,
   Recall@10 (binarized >= 2), and MAP@30 binarized at **both** >= 1 and >= 2.
+- **Secondary / exploratory, added 2026-07-31 at the user's request (PLAN §5.5):**
+  `gp10` (graded precision@10) and `p10_bin2` (plain Precision@10 binarized at
+  grade >= 2) — "how much relevant material is in the ten slots a user sees".
+  They are computed in the *same* scoring pass as nDCG@10 and persisted in
+  `scores.csv` / `scores-per-query.csv`, so re-optimizing the grid for either one
+  later needs no re-judging and no re-run. They are **not** part of the
+  pre-registered confirmatory family (PLAN §3.3, 3 candidate-vs-baseline
+  comparisons); see `stats.py`.
 - **Aggregation:** mean over queries (primary) **and** mean-of-topic-means
   (robustness — a 16-query topic would otherwise carry 5x the weight of a
   3-query one).
@@ -47,6 +55,14 @@ off-by-one in any one of them invalidates every number in the report:
 §5.5), i.e. `trec_eval`'s `num_rel` rather than `min(num_rel, k)`. This deflates
 them exactly as the topic-level ideal deflates nDCG, and for the same reason:
 a per-config, per-query denominator would make the deltas uninterpretable.
+
+The two **precision** measures are the one place a *flat* denominator is right:
+they divide by `k` (10), not by `min(retrieved, 10)`. See `precision_at_k` for
+the argument — briefly, a config that returned 4 documents genuinely gave the
+user 6 empty slots, and `min(retrieved, k)` would let it beat a config that
+filled all ten. (`QueryScore.coverage_at_10` uses `min(retrieved, 10)` because it
+answers the opposite question — "of what was shown, how much was judged" — where
+slots that do not exist cannot be unjudged.)
 
 Where a metric is genuinely **undefined** — the topic has no judged-relevant
 chunk at all, so there is nothing to recall and no non-zero ideal — the value is
@@ -91,6 +107,8 @@ METRIC_NAMES: tuple[str, ...] = (
     "ndcg10_exp",
     "ndcg10_lin",
     "ndcg10_bin2",
+    "gp10",
+    "p10_bin2",
     "recall10_bin2",
     "map30_bin1",
     "map30_bin2",
@@ -99,10 +117,30 @@ METRIC_LABELS: dict[str, str] = {
     "ndcg10_exp": "nDCG@10 (exp gain, PRIMARY)",
     "ndcg10_lin": "nDCG@10 (linear gain, trec_eval ndcg_cut_10)",
     "ndcg10_bin2": "nDCG@10 (binarized >=2)",
+    "gp10": "Graded P@10 (mean grade/3 over 10 slots; rank-flat, secondary)",
+    "p10_bin2": "P@10 (binarized >=2; rank-flat, secondary)",
     "recall10_bin2": "Recall@10 (binarized >=2)",
     "map30_bin1": "MAP@30 (binarized >=1)",
     "map30_bin2": "MAP@30 (binarized >=2)",
 }
+
+#: The metrics PLAN §3.3 pre-registers as the confirmatory family. `gp10` and
+#: `p10_bin2` are deliberately absent: they were added after the plan was written
+#: (2026-07-31) and are secondary/exploratory. They are still tested by the
+#: `stats` subcommand — which runs every name in `METRIC_NAMES` — because the
+#: point of computing them in the same pass is that no re-run is needed later; but
+#: `stats.N_COMPARISONS` stays at 3 (it counts candidate *configs*, not metrics),
+#: and a p-value quoted for either of these is exploratory, not confirmatory.
+PRE_REGISTERED_METRICS: tuple[str, ...] = (
+    "ndcg10_exp",
+    "ndcg10_lin",
+    "ndcg10_bin2",
+    "recall10_bin2",
+    "map30_bin1",
+    "map30_bin2",
+)
+#: Added 2026-07-31 at the user's request; see the module docstring.
+EXPLORATORY_METRICS: tuple[str, ...] = ("gp10", "p10_bin2")
 
 #: The `kind` of the cache snapshot's header line (`store.CACHE_META_KIND`).
 #: Duplicated rather than imported to keep this module's import graph a leaf —
@@ -199,6 +237,90 @@ def ndcg_at_k(ranked_grades: Sequence[int], topic_grades: Mapping[str, int],
     if ideal <= 0.0:
         return None
     return dcg(list(ranked_grades)[:k], gain) / ideal
+
+
+def precision_at_k(ranked_grades: Sequence[int], k: int = NDCG_CUTOFF,
+                   threshold: int = BINARY_THRESHOLD_STRICT) -> float | None:
+    """Precision@`k` with relevance binarized at `grade >= threshold`.
+
+    `#{top-k grades >= threshold} / k` — **a flat `k`, not `min(retrieved, k)`.**
+    That is the load-bearing choice here, so the argument in full:
+
+    A user of this system is shown ten slots. A config that retrieved only 4
+    chunks left six of them empty, and those empty slots are a property of the
+    *config* (its query, its scoring), not of the evaluation. With `min(retrieved,
+    k)` a config returning one relevant chunk and nothing else would score
+    P@10 = 1.0 and beat a config that filled all ten slots with nine relevant
+    ones (0.9) — the brief's "a query returning 4 hits must not look better or
+    worse than it is" fails in the *better* direction. The flat `k` is also
+    `trec_eval`'s `P_10`, so this column can be lined up against published
+    numbers, unlike everything else in this module.
+
+    (`QueryScore.coverage_at_10` uses `min(retrieved, k)` for the opposite and
+    equally deliberate reason: it measures *judging* coverage of what was shown,
+    and a slot that was never filled cannot be unjudged. The two denominators
+    answer different questions and are not an inconsistency.)
+
+    Returns `None` only when `k < 1`; unlike Recall/MAP there is no qrel-derived
+    denominator that can vanish, so a topic with no relevant chunk yields a
+    well-defined 0.0 rather than an undefined value. Note the asymmetry that
+    creates in `scores.csv`: `p10_bin2_n` counts every query while
+    `recall10_bin2_n` does not.
+    """
+    if k < 1:
+        return None
+    hits = sum(1 for g in list(ranked_grades)[:k] if g >= threshold)
+    return hits / k
+
+
+def graded_precision_at_k(ranked_grades: Sequence[int], k: int = NDCG_CUTOFF
+                          ) -> float | None:
+    """Graded precision@`k`: mean of `grade / GRADE_MAX` over the `k` slots.
+
+    `sum(top-k grades) / (k * GRADE_MAX)` — i.e. "what fraction of the maximum
+    possible relevance mass did the top `k` actually deliver". Same flat-`k`
+    denominator as `precision_at_k`, for the same reason.
+
+    **Why this form, and not the alternatives considered:**
+
+    - *Binary P@10 alone* (`p10_bin2`) discards the whole point of paying for
+      graded labels: a top-10 of ten grade-3 chunks and a top-10 of ten grade-2
+      chunks are indistinguishable, and a top-10 of ten grade-1 chunks reads as
+      exactly as bad as ten grade-0 chunks. Both are reported precisely so that
+      loss is visible rather than assumed away.
+    - *Mean exponential gain* (`(2**g - 1) / 7`) was rejected: it is defensible
+      inside nDCG, where the same gain appears in numerator and ideal, but as a
+      standalone average it makes the measure dominated by grade 3s (a grade 2
+      contributes 3/7 = 0.43 of a grade 3, so ten grade-2s score 0.43 while
+      "obviously partially relevant" reads as nearly half-empty). Since PLAN §3.4
+      says the labels pile up at grade 2, that would compress the very region
+      where all the between-config movement lives.
+    - *Normalizing by the topic's best achievable top-10* (a "graded precision
+      normalized") was rejected because it reintroduces exactly the deflation
+      that makes nDCG's absolute values unquotable. The brief asks for a number
+      whose absolute value is interpretable.
+
+    **Properties, stated so the report cannot overclaim:**
+
+    - bounded [0, 1] (grades are validated to `GRADE_MIN`..`GRADE_MAX`);
+    - reduces to `precision_at_k` when every relevant chunk is grade
+      `GRADE_MAX` and every other is 0 — so it *is* P@10, generalized;
+    - **rank-indifferent within the cutoff.** Permuting the top 10 does not move
+      it. That is the design goal, not a defect: nDCG@10 is already the
+      rank-sensitive measure, so a rank-flat companion isolates *set quality*
+      ("did the config find good material at all") from *ordering* ("did it put
+      the best first"). When nDCG moves and `gp10` does not, the config only
+      reshuffled; when both move, it changed what it found;
+    - **not normalized by an ideal** — so, unlike every nDCG/Recall/MAP column
+      here, its absolute value is directly comparable across topics and can be
+      read as a percentage.
+
+    Returns `None` only when `k < 1` (see `precision_at_k`).
+    """
+    if k < 1:
+        return None
+    total = sum(list(ranked_grades)[:k])
+    return total / (k * GRADE_MAX)
 
 
 def recall_at_k(ranked_grades: Sequence[int], topic_grades: Mapping[str, int],
@@ -580,7 +702,13 @@ class QueryScore:
 
 def score_query(config: str, qkey: str, ranking: Sequence[str], qrels: Qrels,
                 topic_id: str | None = None) -> QueryScore:
-    """Compute all six pre-registered metrics for one query's ranking."""
+    """Compute every metric in `METRIC_NAMES` for one query's ranking.
+
+    One pass, all metrics — which is the whole reason the two precision measures
+    live here rather than in a follow-up script: they are derived from the same
+    cached grades, so persisting them now means re-optimizing the grid for `gp10`
+    or `p10_bin2` later costs nothing (no re-judging, no re-sweep).
+    """
     topic = topic_id if topic_id is not None else topic_of_qkey(qkey)
     topic_grades = qrels.topic(topic)
     graded = [qrels.graded(topic, chunk) for chunk in ranking]
@@ -591,6 +719,9 @@ def score_query(config: str, qkey: str, ranking: Sequence[str], qrels: Qrels,
         "ndcg10_lin": ndcg_at_k(graded, topic_grades, NDCG_CUTOFF, linear_gain),
         "ndcg10_bin2": ndcg_at_k(graded, topic_grades, NDCG_CUTOFF,
                                  binary_gain(BINARY_THRESHOLD_STRICT)),
+        "gp10": graded_precision_at_k(graded, NDCG_CUTOFF),
+        "p10_bin2": precision_at_k(graded, NDCG_CUTOFF,
+                                   BINARY_THRESHOLD_STRICT),
         "recall10_bin2": recall_at_k(graded, topic_grades, NDCG_CUTOFF,
                                      BINARY_THRESHOLD_STRICT),
         "map30_bin1": average_precision_at_k(graded, topic_grades, MAP_CUTOFF,
@@ -794,6 +925,15 @@ SCORES_MD_PREAMBLE = """\
 > `judged@10` is the mean judged fraction of the top 10. Unjudged chunks score
 > gain 0, so a value below 1.0 means part of a config's score is a coverage
 > artifact rather than a ranking result.
+>
+> **Two exceptions to the deflation caveat:** `gp10` and `p10_bin2` are *not*
+> normalized by any ideal — they divide by a flat 10 slots — so their absolute
+> values are interpretable and comparable across topics. They are also
+> **rank-indifferent within the top 10**: they measure the quality of the
+> retrieved *set*, while nDCG@10 measures its *ordering*. A cell where nDCG moves
+> but these do not merely reshuffled the same ten chunks. Both were added
+> 2026-07-31 as secondary/exploratory measures and are **not** part of PLAN
+> §3.3's pre-registered confirmatory family.
 """
 
 
@@ -839,16 +979,17 @@ def render_scores_md(scores: Sequence[ConfigScore], *, run_id: str,
 
 
 def summary_lines(scores: Sequence[ConfigScore]) -> list[str]:
-    """`[NDCG]`-prefixed log lines, one per config, best first (PLAN §5.6)."""
+    """`[NDCG]`-prefixed log lines, one per config, best first (PLAN §5.6).
+
+    Driven off `METRIC_NAMES` rather than a hand-written f-string, so a metric
+    added to the table cannot be missing from the log — the log is the live view
+    of a multi-hour run, and a metric only visible in the final CSV is a metric
+    nobody watches.
+    """
     out = []
     for score in scores:
-        out.append(
-            f"[NDCG] {score.config} n={score.n_queries} "
-            f"ndcg10_exp={_fmt(score.by_query.get('ndcg10_exp'), 4)} "
-            f"ndcg10_lin={_fmt(score.by_query.get('ndcg10_lin'), 4)} "
-            f"ndcg10_bin2={_fmt(score.by_query.get('ndcg10_bin2'), 4)} "
-            f"recall10_bin2={_fmt(score.by_query.get('recall10_bin2'), 4)} "
-            f"map30_bin1={_fmt(score.by_query.get('map30_bin1'), 4)} "
-            f"map30_bin2={_fmt(score.by_query.get('map30_bin2'), 4)} "
-            f"judged@10={_fmt(score.judged_at_10_mean, 3)}")
+        fields = " ".join(f"{name}={_fmt(score.by_query.get(name), 4)}"
+                          for name in METRIC_NAMES)
+        out.append(f"[NDCG] {score.config} n={score.n_queries} {fields} "
+                   f"judged@10={_fmt(score.judged_at_10_mean, 3)}")
     return out

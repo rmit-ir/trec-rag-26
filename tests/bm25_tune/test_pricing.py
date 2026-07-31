@@ -1,7 +1,8 @@
 """What `bm25tune/pricing.py` defends, and why every case here is load-bearing.
 
 This module is the only thing standing between the experiment and two hard user
-requirements: **spend must not exceed US$200**, and **every cost must be recorded
+requirements: **spend must not exceed the exported ceiling** (US$50 as approved
+on 2026-07-31; `BM25_TUNE_BUDGET_USD`, no default), and **every cost must be recorded
 for the scientific report**. Both are enforced from the same numbers, so a single
 arithmetic slip breaks the paper *and* the ceiling at once.
 
@@ -107,7 +108,7 @@ def test_call_cost_matches_a_hand_computed_figure_from_the_committed_table() -> 
     that the block the log stores is the one the plan documents. If a refactor
     ever reads `usd_per_unit` as per-token, this figure moves by three orders of
     magnitude — which would simultaneously misreport the paper's cost section and
-    make `BudgetGuard` unable to reach the $200 cap at all.
+    make `BudgetGuard` unable to reach the cap at all.
     """
     rates = _standard_rates()
     assert rates.input_per_1k == pytest.approx(INPUT_PER_1K, rel=0, abs=1e-12)
@@ -128,7 +129,7 @@ def test_call_cost_matches_a_hand_computed_figure_from_the_committed_table() -> 
 def test_typical_and_worst_case_per_call_costs_reproduce_the_plan_table() -> None:
     """Re-derives PLAN §6.2b's headline figures so a rate edit fails here first.
 
-    The whole "the $200 cap has 15-25x headroom, so a trip is a BUG not a scope
+    The whole "the cap has multiple-x headroom, so a trip is a BUG not a scope
     problem" argument (PLAN §0/§6.2b) rests on these three numbers. If a future
     rate table makes the plan's economics wrong, the executors need to know
     before they internalize the wrong posture — not after a `[BUDGET]` trip they
@@ -141,8 +142,13 @@ def test_typical_and_worst_case_per_call_costs_reproduce_the_plan_table() -> Non
     assert round(worst, 6) == 0.000275, worst
     assert round(49_170 * typical, 2) == 7.75
     assert round(49_170 * worst, 2) == 13.53
-    # $200 buys ~727k worst-case calls — 15x the entire plan.
-    assert 720_000 < 200.0 / worst < 730_000
+    # $50 (the cap since 2026-07-31) buys ~182k worst-case calls — 3.7x the
+    # entire plan. Still a circuit breaker rather than a scope limiter, which is
+    # the posture the executors are told to hold; if a rate change ever made this
+    # ratio approach 1x, that posture would be wrong and this assertion is where
+    # it surfaces.
+    assert 180_000 < 50.0 / worst < 184_000
+    assert 3.5 < (50.0 / worst) / 49_170 < 3.9
     # The measured worst-case prior that floors the guard's reserve must be the
     # worst case rounded up to 6 dp, not something looser.
     assert pricing.WORST_CASE_CALL_USD_PRIOR == round(worst, 6) == 0.000275
@@ -255,7 +261,7 @@ def test_meter_round_trips_load_add_checkpoint_reload(tmp_path: Path) -> None:
 
     Calibration, Stage A, Stage B and the continuity pass are separate
     invocations with different `run_id`s. If the meter reset on each one, the
-    "$200 for the entire process" requirement would silently become "$200 per
+    "$50 for the entire process" requirement would silently become "$50 per
     invocation" — the ceiling would still be *there* and would still never be
     reached, which is the worst kind of broken: untestable in production.
     """
@@ -338,7 +344,7 @@ def test_a_corrupt_totals_file_falls_back_to_the_ledger(tmp_path: Path) -> None:
 
     `totals.json` is rewritten atomically, but a full disk or an out-of-band
     edit can still leave junk. Treating that as "spend = 0" would silently hand
-    the experiment a fresh $200; refusing to start would block a resume. Falling
+    the experiment a fresh cap; refusing to start would block a resume. Falling
     back to the append-only ledger is the only answer that loses nothing.
     """
     rates = _standard_rates()
@@ -563,7 +569,7 @@ def test_preflight_refuses_before_spending_when_the_estimate_exceeds_the_cap(
 
     This is the only layer that can prevent spend rather than curtail it. The
     message must name the shortfall and point at the env var, and must say a
-    refusal is prima facie a bug (expected total is ~$8-14 against a $200 cap,
+    refusal is prima facie a bug (expected total is ~$8-14 against a $50 cap,
     PLAN §6.2b) — otherwise the reflex becomes "raise the cap", which is exactly
     what R11 forbids.
     """
@@ -604,7 +610,7 @@ def test_preflight_uses_measured_means_once_the_meter_has_data(
     usage = _usage(9_000, 3_000)   # 10x the prior — a prompt blow-up
     meter.add(call_cost(usage, rates), usage, run_id="r", stage="calib")
 
-    guard = BudgetGuard(meter, cap_usd=200.0, concurrency=16, rates=rates)
+    guard = BudgetGuard(meter, cap_usd=50.0, concurrency=16, rates=rates)
     estimate = guard.preflight(1_000, stage="A")
     assert estimate["basis"] == "measured"
     assert estimate["mean_input_tokens"] == pytest.approx(9_000.0)
@@ -626,7 +632,7 @@ def test_preflight_honours_explicit_token_estimates_over_the_meter(
     meter = CostMeter(tmp_path)
     usage = _usage(900, 300)
     meter.add(call_cost(usage, rates), usage, run_id="r", stage="calib")
-    guard = BudgetGuard(meter, cap_usd=200.0, concurrency=16, rates=rates)
+    guard = BudgetGuard(meter, cap_usd=50.0, concurrency=16, rates=rates)
 
     estimate = guard.preflight(100, 2_000, 600, stage="B")
     assert estimate["basis"] == "explicit"
@@ -641,7 +647,7 @@ def test_preflight_without_rates_is_a_programming_error_not_a_free_pass(
     Returning "$0, fits fine" would turn a wiring mistake into an unmetered
     launch — the one thing PLAN §9 says must never exist.
     """
-    guard = BudgetGuard(CostMeter(tmp_path), cap_usd=200.0, concurrency=16)
+    guard = BudgetGuard(CostMeter(tmp_path), cap_usd=50.0, concurrency=16)
     with pytest.raises(pricing.PricingError, match="rates"):
         guard.preflight(100, stage="A")
 
@@ -711,7 +717,7 @@ def test_check_tracks_observed_cost_drift_not_the_prior(tmp_path: Path) -> None:
     # And the reserve itself grew with the observed maximum, rather than
     # remaining the concurrency x prior floor.
     meter = CostMeter(tmp_path / "reserve")
-    guard = BudgetGuard(meter, cap_usd=200.0, concurrency=16, rates=rates)
+    guard = BudgetGuard(meter, cap_usd=50.0, concurrency=16, rates=rates)
     floor = guard.reserve_usd()
     assert floor == pytest.approx(16 * pricing.WORST_CASE_CALL_USD_PRIOR)
     meter.add(call_cost(fat, rates), fat, run_id="r", stage="A")
@@ -724,7 +730,7 @@ def test_the_reserve_is_concurrency_times_worst_call_not_a_fraction_of_the_cap(
         tmp_path: Path) -> None:
     """Pins the sizing an earlier design got ~900x wrong.
 
-    A fixed 2 % of a $200 cap is $4 — more than the entire plan's expected spend
+    A fixed 2 % of a $50 cap is $1 — a large fraction of the plan's expected spend
     — and it is not tied to what is actually in flight. The correct reserve is
     `concurrency x max_observed_cost_per_call`, floored at the measured
     worst-case prior: at concurrency 16 that is ~$0.0044, which provably covers
@@ -732,10 +738,10 @@ def test_the_reserve_is_concurrency_times_worst_call_not_a_fraction_of_the_cap(
     out of the cap.
     """
     meter = CostMeter(tmp_path)
-    guard = BudgetGuard(meter, cap_usd=200.0, concurrency=16)
+    guard = BudgetGuard(meter, cap_usd=50.0, concurrency=16)
     assert guard.reserve_usd() == pytest.approx(0.0044, abs=1e-4)
     assert guard.reserve_usd() < 0.0001 * guard.cap_usd
-    assert BudgetGuard(meter, 200.0, 32).reserve_usd() == pytest.approx(
+    assert BudgetGuard(meter, 50.0, 32).reserve_usd() == pytest.approx(
         2 * guard.reserve_usd())
 
 
@@ -785,7 +791,7 @@ def test_cost_report_splits_by_stage_and_prompt_version(tmp_path: Path) -> None:
         {**_judgment("c", 0.004, stage="A"), "prompt_version": "facet-v1"},
     ])
     meter = CostMeter(tmp_path / "costs")
-    report = pricing.build_cost_report(log_dir, meter, cap_usd=200.0,
+    report = pricing.build_cost_report(log_dir, meter, cap_usd=50.0,
                                        rates=_standard_rates())
     exp = report["experiment"]
     assert exp["usd_by_stage"] == {"A": 0.004, "calib": 0.003}
@@ -815,7 +821,7 @@ def test_usd_per_judged_pair_counts_unique_jkeys_so_re_prompts_count_twice(
         {**_judgment("facet-v1::t1::c1", 0.002), "attempt": 2},
     ])
     exp = pricing.build_cost_report(
-        log_dir, CostMeter(tmp_path / "costs"), cap_usd=200.0)["experiment"]
+        log_dir, CostMeter(tmp_path / "costs"), cap_usd=50.0)["experiment"]
     assert exp["judged_pairs"] == 2
     assert exp["total_usd"] == pytest.approx(0.004)
     assert exp["usd_per_judged_pair"] == pytest.approx(0.002)
@@ -833,7 +839,7 @@ def test_cache_savings_are_labeled_an_estimate_everywhere_they_appear(
     log_dir = tmp_path / "log"
     _log_segment(log_dir, [_judgment("a", 0.002), _judgment("b", 0.004)])
     report = pricing.build_cost_report(
-        log_dir, CostMeter(tmp_path / "costs"), cap_usd=200.0, cache_hits=1_000,
+        log_dir, CostMeter(tmp_path / "costs"), cap_usd=50.0, cache_hits=1_000,
         rates=_standard_rates())
     cache = report["experiment"]["cache"]
     assert cache["usd_saved_by_cache_estimate"] == pytest.approx(1_000 * 0.003)
@@ -843,7 +849,7 @@ def test_cache_savings_are_labeled_an_estimate_everywhere_they_appear(
     assert "ESTIMATE" in md
     assert "US$ saved by the cache" in md
 
-    fields = pricing.manifest_cost_fields(report, cap_usd=200.0,
+    fields = pricing.manifest_cost_fields(report, cap_usd=50.0,
                                           spent_before_usd=0.0)
     assert fields["cost"]["usd_saved_by_cache_is_estimate"] is True
 
@@ -865,7 +871,7 @@ def test_wasted_spend_is_categorised_and_de_duplicated(tmp_path: Path) -> None:
     ])
     wasted = pricing.build_cost_report(
         log_dir, CostMeter(tmp_path / "costs"),
-        cap_usd=200.0)["experiment"]["wasted_usd"]
+        cap_usd=50.0)["experiment"]["wasted_usd"]
     assert wasted["parse_failures"] == pytest.approx(0.002)
     assert wasted["truncations"] == pytest.approx(0.002)
     assert wasted["retries"] == pytest.approx(0.004)
@@ -893,7 +899,7 @@ def test_token_percentiles_are_nearest_rank_observed_values(
     _log_segment(log_dir, records)
     stats = pricing.build_cost_report(
         log_dir, CostMeter(tmp_path / "costs"),
-        cap_usd=200.0)["experiment"]["input_tokens"]
+        cap_usd=50.0)["experiment"]["input_tokens"]
     assert stats["n"] == 20
     assert stats["min"] == 100 and stats["max"] == 2000
     assert stats["median"] == pytest.approx(1050.0)
@@ -902,7 +908,7 @@ def test_token_percentiles_are_nearest_rank_observed_values(
 
 def test_cost_report_scoped_to_a_run_keeps_the_experiment_roll_up(
         tmp_path: Path) -> None:
-    """A per-run report alone could never answer "how much of the $200 is left".
+    """A per-run report alone could never answer "how much of the cap is left".
 
     The cap is experiment-wide, so `--run-id` must *add* a breakdown rather than
     narrow the report. This also pins the per-query / per-grid-cell figures,
@@ -916,7 +922,7 @@ def test_cost_report_scoped_to_a_run_keeps_the_experiment_roll_up(
     ])
     meter = CostMeter(tmp_path / "costs")
     report = pricing.build_cost_report(
-        log_dir, meter, cap_usd=200.0, run_id="run-A",
+        log_dir, meter, cap_usd=50.0, run_id="run-A",
         manifest={"query_count": 238, "grid": [[0.9, 0.4], [1.2, 0.75]]},
         rates=_standard_rates())
     assert report["run"]["total_usd"] == pytest.approx(0.001)
@@ -939,7 +945,7 @@ def test_cost_report_md_states_the_reconciliation_verdict_in_prose(
     # Well beyond the +-$0.001 rounding tolerance, so this is a real lag.
     _log_segment(log_dir, [_judgment("a", 0.05)])
     meter = CostMeter(tmp_path / "costs")   # ledger at $0 -> lagging
-    report = pricing.build_cost_report(log_dir, meter, cap_usd=200.0,
+    report = pricing.build_cost_report(log_dir, meter, cap_usd=50.0,
                                        rates=_standard_rates())
     assert report["reconciliation"]["status"] == "ledger_lagging"
     md = pricing.render_cost_report_md(report)
@@ -957,7 +963,7 @@ def test_write_cost_artifacts_emits_both_files(tmp_path: Path) -> None:
     log_dir = tmp_path / "log"
     _log_segment(log_dir, [_judgment("a", 0.001)])
     report = pricing.build_cost_report(
-        log_dir, CostMeter(tmp_path / "costs"), cap_usd=200.0,
+        log_dir, CostMeter(tmp_path / "costs"), cap_usd=50.0,
         rates=_standard_rates())
     json_path, md_path = pricing.write_cost_artifacts(tmp_path / "out", report)
     assert json.loads(json_path.read_text())["rate_table_id"] == RATE_TABLE_ID
@@ -975,10 +981,10 @@ def test_manifest_cost_fields_cover_every_plan_7_2_key(tmp_path: Path) -> None:
     log_dir = tmp_path / "log"
     _log_segment(log_dir, [_judgment("a", 0.001, run_id="run-A")])
     report = pricing.build_cost_report(
-        log_dir, CostMeter(tmp_path / "costs"), cap_usd=200.0, run_id="run-A",
+        log_dir, CostMeter(tmp_path / "costs"), cap_usd=50.0, run_id="run-A",
         cache_hits=7, rates=_standard_rates())
     fields = pricing.manifest_cost_fields(
-        report, cap_usd=200.0, spent_before_usd=0.0,
+        report, cap_usd=50.0, spent_before_usd=0.0,
         preflight_estimate_usd=0.0012, tripped=False)
     assert set(fields["cost"]) >= {
         "rate_table_id", "tier", "preflight_estimate_usd", "actual_usd",
@@ -1006,14 +1012,14 @@ def test_pilot_basis_extrapolates_measured_tokens_to_the_whole_pool(
     for usage in usages:
         meter.add(call_cost(usage, rates), usage, run_id="r", stage="A")
     basis = pricing.pilot_basis(usages, rates, pool_size=10_000, meter=meter,
-                               cap_usd=200.0)
+                               cap_usd=50.0)
     assert basis["mean_input_tokens"] == 900.0
     assert basis["mean_output_tokens"] == 300.0
     assert basis["usd_per_call"] == pytest.approx(rates.call_usd(900, 300))
     assert basis["projected_pool_usd"] == pytest.approx(
         10_000 * rates.call_usd(900, 300), rel=1e-6)
     line = pricing.format_pilot_basis(basis)
-    assert "[COST] pilot=2" in line and "proj=$" in line and "cap=$200.00" in line
+    assert "[COST] pilot=2" in line and "proj=$" in line and "cap=$50.00" in line
 
 
 def test_pricing_imports_no_boto3_or_numpy_in_a_fresh_interpreter() -> None:
@@ -1059,6 +1065,7 @@ def test_budget_subcommand_prints_the_state_and_makes_no_api_call(
     from bm25tune.cli import main
 
     monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "50.0")
     rates = _standard_rates()
     meter = CostMeter(tmp_path / "costs")
     usage = _usage(900, 300)
@@ -1068,9 +1075,43 @@ def test_budget_subcommand_prints_the_state_and_makes_no_api_call(
     with caplog.at_level("INFO"):
         assert main(["budget"]) == 0
     text = caplog.text
-    assert "[BUDGET] spent=$0.0002 cap=$200.00 remaining=$199.9998" in text
+    assert "[BUDGET] spent=$0.0002 cap=$50.00 remaining=$49.9998" in text
     assert "basis=measured" in text
     assert RATE_TABLE_ID in text
+
+
+def test_the_spend_ceiling_has_no_default_and_must_be_exported(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture) -> None:
+    """A cap nobody set this run is a cap nobody re-confirmed.
+
+    The user's requirement (2026-07-31) is that the ceiling be *passed in*, not
+    inherited: an unattended multi-hour job must be bounded by a live decision,
+    and money is the one thing the harness cannot undo after the fact. So
+    `budget` — the command PLAN §9 makes mandatory before any launch — refuses
+    with exit 1 rather than assuming the approved figure, and the message quotes
+    the export so the operator does not have to find it in the plan. Commands
+    that cannot spend are unaffected, which is what keeps the refusal from being
+    ignored as noise.
+    """
+    from bm25tune.cli import main
+    from bm25tune.config import APPROVED_BUDGET_USD
+
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("BM25_TUNE_BUDGET_USD", raising=False)
+    with caplog.at_level("ERROR"):
+        assert main(["budget"]) == 1
+    assert "BM25_TUNE_BUDGET_USD is not set" in caplog.text
+    assert f"export BM25_TUNE_BUDGET_USD={APPROVED_BUDGET_USD}" in caplog.text
+
+    # Nonpositive is refused here too, naming the variable rather than a
+    # constructor argument: with cap 0 every check trips at once, which reads in
+    # the log exactly like a runaway judge.
+    caplog.clear()
+    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "0")
+    with caplog.at_level("ERROR"):
+        assert main(["budget"]) == 1
+    assert "must be positive" in caplog.text
 
 
 def test_cost_report_subcommand_writes_both_artifacts_and_reconciles(
@@ -1085,6 +1126,7 @@ def test_cost_report_subcommand_writes_both_artifacts_and_reconciles(
     from bm25tune.cli import main
 
     monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("BM25_TUNE_BUDGET_USD", "50.0")
     log_dir = tmp_path / "judgments" / "log"
     _log_segment(log_dir, [_judgment("a", 0.001, run_id="run-A")])
     run_dir = tmp_path / "runs" / "run-A"
@@ -1191,19 +1233,19 @@ def test_reported_dollar_figures_keep_per_call_resolution(tmp_path: Path) -> Non
     meter.add(_judgment("a", 0.00010197)["cost"], _usage(900, 300),
               run_id="r1", stage="A")
 
-    report = pricing.build_cost_report(log_dir, meter, cap_usd=200.0,
+    report = pricing.build_cost_report(log_dir, meter, cap_usd=50.0,
                                        rates=_standard_rates())
     # The exact 8-dp figure survives; a 6-dp round would give 0.000102.
     assert report["budget"]["spent_usd"] == pytest.approx(0.00010197, abs=1e-10)
     assert report["budget"]["spent_usd"] != pytest.approx(0.000102, abs=1e-12)
 
-    guard = BudgetGuard(meter, 200.0, 16, rates=_standard_rates())
+    guard = BudgetGuard(meter, 50.0, 16, rates=_standard_rates())
     assert guard.status()["spent_usd"] == pytest.approx(0.00010197, abs=1e-10)
     assert guard.status()["by_stage"]["A"] == pytest.approx(0.00010197,
                                                             abs=1e-10)
 
     fields = pricing.manifest_cost_fields(
-        report, cap_usd=200.0, spent_before_usd=0.0,
+        report, cap_usd=50.0, spent_before_usd=0.0,
         preflight_estimate_usd=0.0002, tripped=False)
     assert fields["budget"]["spent_after_usd"] == pytest.approx(0.00010197,
                                                                 abs=1e-10)

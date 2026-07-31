@@ -17,8 +17,8 @@ Commits: `d9ce39c` (plan), `1dab631` (WP1), `63ca735` (WP2–WP4).
 | WP3b | `pricing.py` | 52 |
 | WP4 | `metrics.py`, `stats.py` | ~120 |
 
-Full suite: **1233 passed, 0 skipped, 5 deselected** (all deselected are
-`live`-marked). Everything is stdlib-only at import time; `pyserini` enters only
+Full suite at the end of WP4: **1233 passed, 0 skipped, 5 deselected** (all
+deselected are `live`-marked); **1270** after the 2026-07-31 follow-ups below. Everything is stdlib-only at import time; `pyserini` enters only
 inside `ChunkSearcher._open()` and `boto3` only inside `BedrockJudge._client()`,
 which is what keeps the suite hermetic with no dependency group.
 
@@ -209,6 +209,9 @@ held-out set is **825, not 813**.
 
 ## Cost position
 
+Superseded 2026-07-31 — see "Cost position (revised)" below. The figures as of
+WP4 were:
+
 | | |
 | --- | --- |
 | Cap (hard, user-set) | $200.00 |
@@ -218,10 +221,9 @@ held-out set is **825, not 813**.
 | Worst-case calls affordable at $200 | ~727,000 |
 
 Three independent derivations (mine, the plan review's, WP3b's) agree. The cap
-therefore has **~15–25× headroom** and functions as a **runaway-cost circuit
-breaker, not a scope limiter** — a `BudgetRefused` is prima facie a bug
-(runaway prompt length, cache-key miss storm, retry loop) and should be
-diagnosed, not worked around by raising the cap.
+functions as a **runaway-cost circuit breaker, not a scope limiter** — a
+`BudgetRefused` is prima facie a bug (runaway prompt length, cache-key miss
+storm, retry loop) and should be diagnosed, not worked around by raising the cap.
 
 Three enforcement layers are live and tested: pre-flight refusal (exit 4),
 continuous per-record `guard.check()` on the writer thread (exit 5, queue still
@@ -246,13 +248,208 @@ remains a genuine possible outcome.** If calibration comes back marginal, the
 strongest available lever is the ~$16 3-sample self-consistency vote — easily
 affordable inside the headroom above, and the user's call.
 
+## 2026-07-31 follow-ups (three user instructions)
+
+### 1. Cap lowered to $50 and made a required input
+
+User: *"Change the hard budget to 50$ cap"*, then *"The budget cap should be
+treated as a constant variable that has to be passed from the user before
+running."*
+
+`Config.budget_usd` is now `float | None` with **no default anywhere in code**.
+Every subcommand that can reach Bedrock or report against the cap calls
+`Config.require_budget_usd()`, which raises `ConfigError` (exit 1) naming the
+export. `config.APPROVED_BUDGET_USD = 50.0` exists solely so the refusal message
+can quote the approved figure — it is never read as a fallback. `describe()`
+prints `budget=<unset>` rather than inventing a number for the log.
+
+Verified live at four boundaries (probe dir removed afterwards):
+
+| condition | result |
+| --- | --- |
+| var unset, `budget` subcommand | exit 1; `[LOAD] … budget=<unset>`; message quotes `export BM25_TUNE_BUDGET_USD=50.0` |
+| `BM25_TUNE_BUDGET_USD=50.0` | exit 0; `[BUDGET] spent=$0.0000 cap=$50.00 remaining=$50.0000 (reserve=$0.0044 at concurrency 16)` |
+| `BM25_TUNE_BUDGET_USD=0` | exit 1, "must be positive" (a zero ceiling trips on call 1 and reads in the log exactly like a runaway) |
+| var unset, `verify-inputs` | proceeds past config — free subcommands unaffected |
+
+`tests/bm25_tune/conftest.py::bm25_config` exports `50.0` explicitly, standing in
+for the operator; the two tests that assert the refusal deliberately bypass the
+fixture.
+
+### Cost position (revised)
+
+| | |
+| --- | --- |
+| Cap (hard, **must be exported per run**) | $50.00 |
+| Spent to date | $0.00005525 |
+| Typical projection, 49,450 calls | **$7.80** |
+| Worst-case projection | **$13.61** |
+| Worst-case calls affordable at $50 | ~182,000 (3.7× the whole plan) |
+| Plan as % of cap | 16 % typical, 27 % worst case |
+
+Headroom drops from ~15–25× to ~3.7×, which is still comfortably a circuit
+breaker rather than a scope limiter. Two consequences now recorded in PLAN §6.2b:
+no cost argument exists for cutting corners (judge the full pool, keep depth 30,
+run the continuity pass), and the optional extras (finer grid, 3-sample
+self-consistency vote at ~$16) are now real fractions of the ceiling and must be
+requested with a cost line rather than assumed.
+
+### 2. Top-10 relevant-document measures added
+
+User asked for a P@10-style measure alongside nDCG@10, graded if possible, binary
+(grade ≥ 2) otherwise, **computed in the same pass** so re-optimizing later needs
+no re-judging. Both were added:
+
+- `p10_bin2` — `#{top-10 grades ≥ 2} / 10`, matching `trec_eval`'s `P_10`
+  (flat-10 denominator).
+- `gp10` — graded precision@10, `sum(top-10 grades) / (10 × 3)`.
+
+Verified independently of the authoring agent's tests, on a worked example:
+
+| case | `gp10` | `p10_bin2` | note |
+| --- | --- | --- | --- |
+| worked example (5 graded hits) | 5/30 | 0.2 | matches hand calculation |
+| one grade-3 hit only | 0.1 | 0.1 | flat-10 denominator confirmed, not "1.0 of 1 retrieved" |
+| ten grade-1s | 1/3 | 0.0 | exactly the signal binarization discards |
+| ten grade-2s | 0.667 | 1.0 | |
+| ten grade-3s | 1.0 | 1.0 | |
+| forward vs reversed ranking | 14/30 both | 0.5 both | rank-flat by design (`ndcg10_exp` 1.000000 vs 0.495883 on the same pair) |
+| all-zero qrel for the topic | 0.0 | 0.0 | while `ndcg10_exp` is `None` |
+
+End-to-end through real TREC run files → `load_run_dir` → `score_all` → all three
+writers: `scores.csv` carries 32 columns including `gp10`, `gp10_topicmean`,
+`gp10_n`, `p10_bin2`, `p10_bin2_topicmean`, `p10_bin2_n`; per-query.csv and
+scores.md carry them too. **argmax `gp10` is derivable from the persisted file
+alone** — the binding requirement.
+
+Both are marked **exploratory**, not confirmatory: the pre-registered family
+stays the six metrics in `metrics.PRE_REGISTERED_METRICS`, and `N_COMPARISONS=3`
+(Bonferroni `0.05/3`) counts **configs, not metrics**, so adding columns does not
+change the correction.
+
+### 3. Judge calibration against the collection's base rate
+
+User: *"Check whether calibration to the umbrella prompt is needed and it's part
+of the WP's or the plan. But, keep in mind that most of the documents in the
+collection are not relevant, and only very few should receive the highest score.
+Of course, it shouldn't be too harsh either, as it wouldn't be very useful."*
+
+**Answer to the question as asked:** yes, `umbrela-v1` calibration is already in
+the plan — PLAN §3.2/§3.3, WP0/WP6, and `prompts.CALIBRATION_ORDER`. It is scored
+on the same 280 pairs as every other variant and retained as a continuity column
+for the team's prior umbrela-bedrock runs regardless of whether it passes.
+
+Checking the base-rate constraint against what was written surfaced **two real
+gaps**:
+
+**Gap 1 — the §3.3 gate was one-sided (a defect, now fixed).** It read `modal
+≤ 60 % AND all four grades used AND ≥ 20 % at grade ≥ 2`. Probed directly: the
+distribution `{0:1, 1:1, 2:50, 3:48}` — 98 % of passages relevant, 48 %
+maximally so — **passes all three conditions**. A judge with almost no
+discriminative power was admitted, while the harsh mode was correctly rejected
+(`umbrela-v1`'s measured `{0:7, 1:29, 2:2, 3:2}` fails on both modal 72.5 % and
+10 % at ≥2). The gate is now four conditions, bounded on both sides:
+
+1. modal grade ≤ 60 %
+2. all four grades used
+3. **15 % ≤ share at grade ≥ 2 ≤ 65 %**
+4. **share at grade 3 ≤ 25 %**
+
+The four-condition form was then run against every distribution the plan makes a
+claim about, to check the claims rather than assert them (`≤` inclusive
+throughout):
+
+| distribution | modal | ≥2 | =3 | verdict |
+| --- | --- | --- | --- | --- |
+| saturated `{0:1,1:1,2:50,3:48}` | 0.500 ok | **0.980 FAIL** | **0.480 FAIL** | **FAIL** (passed the old gate) |
+| `umbrela-v1` measured `{0:7,1:29,2:2,3:2}` | **0.725 FAIL** | **0.100 FAIL** | 0.050 ok | **FAIL** (from below) |
+| `facet-v1` measured `{0:7,1:8,2:36,3:9}` | 0.600 ok | **0.750 FAIL** | 0.150 ok | **FAIL** (from above) |
+| hypothetical on-target `{0:90,1:78,2:82,3:30}` | 0.321 ok | 0.400 ok | 0.107 ok | **PASS** |
+
+So the new gate rejects both measured variants in opposite directions and admits a
+base-rate-faithful one — which is the intended behaviour, and also why WP6's
+outcome may legitimately be exit 6. Note `facet-v1` sits *exactly* on the modal
+bound (0.600), so condition 1 is inclusive by design; it fails only on the new
+ceiling.
+
+The band is stated against the **sample**, which deliberately is not the pool.
+Measured label mixes:
+
+| set | agent-positive | negative | unjudged |
+| --- | --- | --- | --- |
+| 8580 observed (topic, chunk) pairs | 23.8 % | 73.9 % | 2.4 % |
+| the 280-pair calibration sample | 42.5 % | 54.6 % | 2.9 % |
+
+Positives are enriched ~1.8× on purpose (§3.1 stratifies so the agreement smell
+test has both classes per topic), so a base-rate-faithful judge should land near
+~40 % at ≥2 *on this sample* — roughly 8–36 % projected back onto the pool. The
+15–65 % band brackets that with room either side. `calibrate` must print both
+mixes next to the band so this is auditable rather than assumed.
+
+Simulated cost of saturation — mean |ΔnDCG@10| between two configs sharing a
+candidate set, grades drawn at random under each distribution:
+
+| label distribution | share ≥2 | mean \|ΔnDCG@10\| |
+| --- | --- | --- |
+| base-rate-like | 25 % | 0.1047 |
+| umbrela-like | 10 % | 0.0960 |
+| facet-v1-like | 75 % | 0.0826 |
+| saturated | 98 % | 0.0687 |
+
+Saturation compresses the metric's dynamic range more than any other
+distribution tested. **Stated limitation:** grades were random, so this measures
+dynamic range under each distribution, not judge accuracy.
+
+**Gap 2 — no prompt stated a base rate at all.** Grepping all four templates:
+`umbrela-v1`/`umbrela-kw-v1` have no frequency cue whatsoever; `facet-v1` says
+only "unrelated"; `facet-name-v1` adds "few"/"unrelated". Grade frequency was an
+accident of rubric wording — which is precisely why the two measured variants
+land on opposite sides of the real base rate (10 % vs 75 % at ≥2).
+
+Fixed by adding a fifth variant, **`facet-rare3-v1`** (sha256
+`6c3898c45743441b78142ce25f4197a9efd35d828e897adae10e5102719e409c`, 1827 rendered
+chars, `query_slot="narrative"`, `emits_facet=True`). It is `facet-name-v1` plus a
+`Calibration —` paragraph, and nothing else — same forced facet-naming step, same
+scale, same output format — so WP0 reads the pair as a controlled contrast that
+isolates the anchor. Verbatim (the whole point of this worklog entry; the wording
+is what the n=280 measurement will be evidence about):
+
+```
+Calibration — this matters as much as the rubric below. These passages come from a broad web crawl retrieved by a keyword search, so MOST of them are not useful evidence: expect to give 0 or 1 to the majority, 2 to a substantial minority, and 3 to only a small minority of genuinely excellent passages. Do NOT reward a passage merely for being on the right topic or containing the right words. Equally, do not be stingy: a passage that really would help an answer writer must not be pushed down to 1 just because it is imperfect or covers only part of the need.
+```
+
+Grade 3 is relabelled "excellent and uncommon"; grade 0 extended to cover
+"purely navigational, boilerplate, or promotional text". The percentages are
+soft ("the majority", "a small minority") rather than a quota **because each call
+sees one passage with no batch to rank against** — an unsatisfiable local quota
+would only add noise. The "do not be stingy" clause is load-bearing on its own:
+without it the variant becomes a deliberately harsh judge that the new lower
+bound then rejects, and finding that out costs a full 280-pair pass. Both halves
+are pinned by `test_only_facet_rare3_states_a_base_rate_and_states_it_both_ways`.
+
+**This changes the going-in expectation.** `facet-v1`'s measured 75 % at ≥2 is
+*above* the new ceiling and `umbrela-v1`'s 10 % is below the floor, so on their
+priors both measured variants now fail — in opposite directions. `facet-rare3-v1`
+is the leading candidate and `facet-name-v1` the plausible second. Those priors
+came from an ad-hoc n=60 sample, not from `sample-280.jsonl`, so WP0 re-measures
+all five on identical pairs before anything is concluded.
+
+Calibration volume rises from 4 × 280 + 50 = 1,170 calls (~$0.18) to
+**5 × 280 + 50 = 1,450 calls (~$0.23)**, ~20–25 min.
+
+The gate constants live in PLAN §3.3 only — `calibrate` is still a stub
+(`EXIT_GATE_FAILED = 6` is its sole code trace), so **WP6 must implement the
+four-condition form, not the old three-condition one.**
+
+Full suite after all three follow-ups: **1270 passed, 0 skipped, 5 deselected**.
+
 ## Next
 
 - **WP5** — end-to-end `test_cli.py` (resume, budget-stop, `--fresh`
   protection, drain-code table). In flight.
-- **WP6 = the calibration pilot** (~1,170 calls, ~$0.18). Produces
-  `calibration/report.md` and applies the §3.3 gate. **The user reviews that
-  report and confirms the prompt version before WP7 launches** — no further
-  Bedrock spend before then.
+- **WP6 = the calibration pilot** (1,450 calls, ~$0.23). Implements and applies
+  the **four-condition two-sided** §3.3 gate over five variants, produces
+  `calibration/report.md`. **The user reviews that report and confirms the prompt
+  version before WP7 launches** — no further Bedrock spend before then.
 - WP7 Stage A (`--pilot 200` first, then the full job), WP8 Stage B +
   statistics over the 825 held-out queries, WP9 docs/publication.

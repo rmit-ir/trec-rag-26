@@ -315,6 +315,213 @@ def test_coverage_is_none_when_nothing_was_retrieved() -> None:
 
 
 # ---------------------------------------------------------------------------
+# The two precision@10 measures (secondary/exploratory, added 2026-07-31)
+# ---------------------------------------------------------------------------
+def test_precision10_and_graded_precision10_on_the_worked_example() -> None:
+    """Both hand-computed on the same {A:3, B:0, C:2, D:1} / [A, B, C] example.
+
+    Longhand, with the flat-10 denominator:
+
+        graded top-10 = [3, 0, 2] (three retrieved, seven empty slots)
+        p10_bin2 = #{g >= 2} / 10 = |{A(3), C(2)}| / 10 = 2 / 10  = 0.2
+        gp10     = sum(g) / (10 * 3) = (3 + 0 + 2) / 30 = 5 / 30 ~= 0.166667
+
+    Reusing the nDCG worked example on purpose: the same ranking scores 0.905 on
+    `ndcg10_exp` and 0.2 on `p10_bin2`, which is the deflation gap in one line —
+    nDCG is normalized by a topic-level ideal, these are not, so the two columns
+    must never be read on the same scale.
+    """
+    graded = [TOPIC_GRADES[c] for c in RANKING]
+    assert M.precision_at_k(graded, 10, 2) == pytest.approx(0.2, abs=1e-15)
+    assert M.graded_precision_at_k(graded, 10) == pytest.approx(5 / 30,
+                                                                abs=1e-15)
+
+
+def test_both_precisions_reach_1_only_on_a_full_top10_of_grade_3() -> None:
+    """`gp10 == p10_bin2 == 1.0` iff ten slots of the maximum grade.
+
+    This is the "reduces to P@10" property that justifies calling `gp10` a
+    precision at all: at the ceiling the graded and binary forms must agree
+    exactly, so a reader who only understands P@10 is not misled by the column
+    next to it. Ten grade-2s show they part company below the ceiling — `gp10`
+    reads 2/3 there while `p10_bin2` still claims a perfect 1.0.
+    """
+    assert M.graded_precision_at_k([3] * 10) == 1.0
+    assert M.precision_at_k([3] * 10) == 1.0
+    assert M.graded_precision_at_k([2] * 10) == pytest.approx(2 / 3)
+    assert M.precision_at_k([2] * 10) == 1.0
+
+
+def test_both_precisions_are_zero_on_an_all_grade_0_top10() -> None:
+    """The floor is 0.0 and it is a real 0.0, not `None`.
+
+    Unlike Recall/MAP there is no qrel-derived denominator that can vanish, so
+    "the config found nothing relevant" is a *measured* zero and belongs in the
+    mean. Reporting `None` here would quietly drop the worst configs from the
+    aggregate and flatter the grid.
+    """
+    assert M.graded_precision_at_k([0] * 10) == 0.0
+    assert M.precision_at_k([0] * 10) == 0.0
+
+
+def test_grade_1_only_ranking_keeps_signal_in_gp10_that_p10_discards() -> None:
+    """Ten grade-1 chunks: `p10_bin2 == 0.0` but `gp10 == 1/3`.
+
+    The single strongest reason to report both. Binarizing at >= 2 makes a ranking
+    of ten marginally-relevant chunks indistinguishable from ten irrelevant ones,
+    so a k1/b cell that trades grade-0s for grade-1s registers as *no change* on
+    `p10_bin2`; `gp10` sees it. Conversely `p10_bin2` is the one a reader can
+    interpret without knowing the rubric — hence both columns, not one.
+    """
+    assert M.precision_at_k([1] * 10, 10, 2) == 0.0
+    assert M.graded_precision_at_k([1] * 10) == pytest.approx(1 / 3)
+    # ...and the loose threshold is not a substitute: it flattens 1 and 3 again.
+    assert M.precision_at_k([1] * 10, 10, 1) == 1.0
+
+
+def test_both_precisions_are_indifferent_to_rank_while_ndcg_is_not() -> None:
+    """Permuting the top 10 moves `ndcg10_exp` and leaves both precisions fixed.
+
+    This is the property that earns them a place *next to* nDCG rather than
+    instead of it, so it is pinned rather than assumed: the precisions measure the
+    quality of the retrieved **set**, nDCG measures its **ordering**. A grid cell
+    where nDCG moves but these do not has only reshuffled the same ten chunks —
+    a diagnosis the report cannot make from nDCG alone. If a future refactor
+    sneaks a discount into either measure, this test is what fails.
+    """
+    topic = {f"c{i}": g for i, g in enumerate([3, 3, 2, 2, 2, 1, 1, 0, 0, 0])}
+    best = [3, 3, 2, 2, 2, 1, 1, 0, 0, 0]
+    worst = list(reversed(best))
+    assert M.graded_precision_at_k(best) == M.graded_precision_at_k(worst)
+    assert M.precision_at_k(best) == M.precision_at_k(worst)
+    # sum(3,3,2,2,2,1,1,0,0,0) = 14, over 10 slots x GRADE_MAX 3.
+    assert M.graded_precision_at_k(best) == pytest.approx(14 / 30)
+    assert M.precision_at_k(best) == pytest.approx(0.5)  # five chunks at >= 2
+    # Same multiset, and nDCG separates them by a wide margin.
+    ndcg_best = M.ndcg_at_k(best, topic)
+    ndcg_worst = M.ndcg_at_k(worst, topic)
+    assert ndcg_best == pytest.approx(1.0)  # `best` *is* the topic's ideal
+    assert ndcg_worst is not None and ndcg_worst < 0.75
+
+
+def test_precisions_divide_by_a_flat_10_not_by_what_was_retrieved() -> None:
+    """A 3-hit ranking is scored over 10 slots, not over 3 (PLAN §5.5).
+
+    The denominator decision, pinned from the direction it can be got wrong.
+    `[3, 0, 2]` scores 0.2 / 0.1667 over a flat 10; over `min(retrieved, 10) = 3`
+    it would score 0.667 / 0.556 — so a config that retrieved almost nothing but
+    got it right would *outrank* one that filled all ten slots with nine relevant
+    chunks (0.9). The empty slots belong to the config, not to the evaluation.
+    Contrast `coverage_at_10`, which deliberately does divide by `min(retrieved,
+    10)` because an unfilled slot cannot be unjudged.
+    """
+    graded = [3, 0, 2]
+    assert M.precision_at_k(graded, 10, 2) == pytest.approx(0.2)
+    assert M.precision_at_k(graded, 10, 2) != pytest.approx(2 / 3)
+    assert M.graded_precision_at_k(graded, 10) == pytest.approx(5 / 30)
+    assert M.graded_precision_at_k(graded, 10) != pytest.approx(5 / 9)
+    # An empty ranking is 0.0 on both — a query the config failed on scored
+    # nothing, and must not be silently excluded from the mean.
+    assert M.precision_at_k([], 10, 2) == 0.0
+    assert M.graded_precision_at_k([], 10) == 0.0
+
+
+def test_precisions_ignore_everything_past_the_cutoff() -> None:
+    """Rank 11 contributes nothing at k=10, and widening k lets it in.
+
+    An off-by-one in the slice would silently make the columns P@11 while the
+    header still said 10 — undetectable in the output and enough to change which
+    grid cell wins.
+    """
+    ranked = [0] * 10 + [3, 3]
+    assert M.precision_at_k(ranked, 10, 2) == 0.0
+    assert M.graded_precision_at_k(ranked, 10) == 0.0
+    assert M.precision_at_k(ranked, 12, 2) == pytest.approx(2 / 12)
+    assert M.graded_precision_at_k(ranked, 12) == pytest.approx(6 / 36)
+
+
+def test_precisions_are_none_only_when_the_cutoff_itself_is_meaningless() -> None:
+    """`k < 1` -> `None`, matching the module's undefined-is-never-0.0 rule.
+
+    The only way to make these undefined is to ask for zero slots; a `0.0` there
+    would be a division-by-zero result dressed up as a measurement, and would
+    enter the mean as if a config had been evaluated.
+    """
+    assert M.precision_at_k([3, 3], 0, 2) is None
+    assert M.graded_precision_at_k([3, 3], 0) is None
+    assert M.precision_at_k([3, 3], -1, 2) is None
+    assert M.graded_precision_at_k([3, 3], -1) is None
+
+
+def test_gp10_is_bounded_by_the_validated_grade_range() -> None:
+    """`GRADE_MAX` is the divisor, so `gp10 <= 1` follows from grade validation.
+
+    The bound is not enforced in `graded_precision_at_k` — it is inherited from
+    `_coerce_grade` rejecting grades outside 0-3. This test states that
+    dependency explicitly, because relaxing the grade validation (e.g. to accept
+    a judge emitting 4) would silently make this measure exceed 1.0 rather than
+    raise.
+    """
+    assert M.GRADE_MAX == 3
+    with pytest.raises(M.MetricsError, match="outside the rubric"):
+        M._coerce_grade(4, "test")
+    # A hypothetical out-of-range grade would breach the bound — hence the guard.
+    assert M.graded_precision_at_k([4] * 10) > 1.0
+
+
+def test_the_two_precisions_are_exploratory_not_pre_registered() -> None:
+    """They are in `METRIC_NAMES` but out of `PRE_REGISTERED_METRICS`.
+
+    PLAN §3.3 pre-registers six metrics; these two were added 2026-07-31, after
+    the fact, at the user's request. Keeping the two tuples distinct is what stops
+    a later reader from quoting a `gp10` p-value as a confirmatory result, and
+    keeps §6.4's Bonferroni family at 3 candidate-vs-baseline comparisons — which
+    counts configs, not metrics.
+    """
+    from bm25tune import stats as S
+
+    assert set(M.EXPLORATORY_METRICS) == {"gp10", "p10_bin2"}
+    assert set(M.METRIC_NAMES) == (set(M.PRE_REGISTERED_METRICS)
+                                   | set(M.EXPLORATORY_METRICS))
+    assert not set(M.PRE_REGISTERED_METRICS) & set(M.EXPLORATORY_METRICS)
+    assert M.PRIMARY_METRIC == "ndcg10_exp"  # unchanged by the addition
+    assert S.N_COMPARISONS == 3
+    assert any("EXPLORATORY" in note for note in S.STANDING_NOTES)
+
+
+def test_the_precision_columns_sit_between_ndcg_and_recall() -> None:
+    """Column order: nDCG first, then the precisions, then Recall/MAP.
+
+    `ndcg10_exp` must stay column one because readers stop there, and the new
+    columns go next so they are seen without scrolling past six others. Order is
+    a single tuple used by every writer, so pinning it here covers `scores.csv`,
+    `scores.md` and `scores-per-query.csv` at once.
+    """
+    assert M.METRIC_NAMES == ("ndcg10_exp", "ndcg10_lin", "ndcg10_bin2",
+                              "gp10", "p10_bin2", "recall10_bin2",
+                              "map30_bin1", "map30_bin2")
+    assert M.METRIC_NAMES[0] == M.PRIMARY_METRIC
+    assert set(M.METRIC_LABELS) == set(M.METRIC_NAMES)
+
+
+def test_score_query_reports_the_precisions_even_on_an_unjudgeable_topic() -> None:
+    """They are defined on a topic where Recall/MAP are not — 0.0 vs `None`.
+
+    The asymmetry is deliberate and shows up in `scores.csv` as `p10_bin2_n`
+    counting more queries than `recall10_bin2_n`. A topic with no relevant chunk
+    has nothing to recall (undefined) but the config still filled ten slots with
+    nothing useful (a measured zero), so the two columns legitimately have
+    different `n` and a reader must not treat that as a bug.
+    """
+    qrels = M.Qrels(grades={"t1": {"A": 0, "B": 0}})
+    score = M.score_query("cfg", "t1::abc", ["A", "B"], qrels)
+    assert score.metrics["recall10_bin2"] is None
+    assert score.metrics["ndcg10_exp"] is None
+    assert score.metrics["gp10"] == 0.0
+    assert score.metrics["p10_bin2"] == 0.0
+
+
+# ---------------------------------------------------------------------------
 # Recall and MAP, at both thresholds
 # ---------------------------------------------------------------------------
 def test_recall10_divides_by_the_topics_relevant_count() -> None:
@@ -397,12 +604,15 @@ def test_map_is_none_when_the_topic_has_no_relevant_chunk() -> None:
     assert M.average_precision_at_k([0], {"A": 0}, 30, 2) is None
 
 
-def test_score_query_computes_all_six_pre_registered_metrics() -> None:
-    """All of PLAN §3.3's metrics come out of one call, none silently missing.
+def test_score_query_computes_every_metric_in_one_pass() -> None:
+    """All of `METRIC_NAMES` comes out of one call, none silently missing.
 
     `stats.py` iterates `METRIC_NAMES`, so a metric absent from this dict would
     be dropped from the report with no error — the pre-registration exists
-    precisely to stop metrics being chosen after seeing the results.
+    precisely to stop metrics being chosen after seeing the results. The same
+    single pass is what makes the secondaries free to re-optimize on later: every
+    column is derived from the cached grades at score time, so no metric ever
+    needs a second judging run.
     """
     qrels = M.Qrels(grades={"t1": TOPIC_GRADES})
     score = M.score_query("cfg", "t1::abc", RANKING, qrels)
@@ -867,6 +1077,82 @@ def test_score_records_its_inputs_in_the_manifest(
     assert manifest["score_query_count"] == 2
     assert manifest["primary_metric"] == "ndcg10_exp"
     assert set(manifest["scores"]) == {"k1_0.9__b_0.4", "k1_1.2__b_0.75"}
+
+
+def test_score_persists_the_precisions_so_no_re_run_is_ever_needed(
+        scoreable_run: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`gp10`/`p10_bin2` land in all three artifacts plus the manifest, in one pass.
+
+    This is the whole requirement behind adding them: someone who later decides
+    to pick k1/b by maximizing precision@10 must be able to do it from the
+    committed files, with no re-judging (which costs money) and no re-sweep. If
+    any writer here were driven by a hand-listed metric set instead of
+    `METRIC_NAMES`, that person would have to re-run the pipeline.
+
+    Hand-computed for `k1_0.9__b_0.4`, over 2 queries and a flat 10 slots:
+      t1::aaa ranks [A(3), B(0), C(2)] -> gp10 = 5/30, p10_bin2 = 2/10
+      t2::bbb ranks [Z(3)]             -> gp10 = 3/30, p10_bin2 = 1/10
+      means: gp10 = (5/30 + 3/30)/2 = 4/30 = 0.133333, p10_bin2 = 0.15
+    """
+    from bm25tune.cli import EXIT_OK, main
+
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(scoreable_run))
+    assert main(["score", "--run-id", "rid"]) == EXIT_OK
+    run_dir = scoreable_run / "runs" / "rid"
+
+    header = (run_dir / "scores.csv").read_text().splitlines()[0].split(",")
+    for name in ("gp10", "p10_bin2"):
+        assert [name, f"{name}_topicmean", f"{name}_n"] == [
+            c for c in header if c.startswith(name)]
+    # Immediately after the nDCG columns, before recall/MAP.
+    assert header.index("gp10") == header.index("ndcg10_bin2_n") + 1
+    assert header.index("p10_bin2") < header.index("recall10_bin2")
+
+    rows = dict(zip(header, next(
+        r.split(",") for r in (run_dir / "scores.csv").read_text().splitlines()
+        if r.startswith("k1_0.9__b_0.4,"))))
+    assert float(rows["gp10"]) == pytest.approx(4 / 30, abs=1e-6)
+    assert float(rows["p10_bin2"]) == pytest.approx(0.15, abs=1e-6)
+    assert rows["gp10_n"] == "2" and rows["p10_bin2_n"] == "2"
+
+    per_query = (run_dir / "scores-per-query.csv").read_text().splitlines()
+    assert "gp10" in per_query[0].split(",")
+    assert "gp10" in (run_dir / "scores.md").read_text()
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    assert manifest["scores"]["k1_0.9__b_0.4"]["gp10"] == pytest.approx(4 / 30)
+    assert manifest["scores"]["k1_0.9__b_0.4"]["p10_bin2"] == pytest.approx(0.15)
+
+
+def test_score_reports_the_precisions_as_rank_flat_end_to_end(
+        scoreable_run: Path, monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture) -> None:
+    """The two fixture configs differ on nDCG but tie on both precisions.
+
+    The rank-permutation property, asserted through the real pipeline rather than
+    only against the functions: `k1_0.9__b_0.4` ranks [A, B, C] and
+    `k1_1.2__b_0.75` ranks [C, A, B] — the same three chunks reordered. That is
+    exactly the case the two measures exist to identify, and it is also why the
+    `score` log now names each metric's argmax cell: with a rank-flat metric the
+    best cell is frequently *not* the primary's winner, and a reader who only
+    saw `[SUMMARY] best ndcg10_exp` would never learn that.
+    """
+    from bm25tune.cli import EXIT_OK, main
+
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(scoreable_run))
+    with caplog.at_level(logging.INFO):
+        assert main(["score", "--run-id", "rid"]) == EXIT_OK
+    manifest = json.loads(
+        (scoreable_run / "runs" / "rid" / "manifest.json").read_text())
+    a, b = manifest["scores"]["k1_0.9__b_0.4"], manifest["scores"][
+        "k1_1.2__b_0.75"]
+    assert a["gp10"] == pytest.approx(b["gp10"])
+    assert a["p10_bin2"] == pytest.approx(b["p10_bin2"])
+    assert a["ndcg10_exp"] != pytest.approx(b["ndcg10_exp"])
+    text = caplog.text
+    assert "best gp10" in text and "best p10_bin2" in text
+    assert "secondary/exploratory, not pre-registered" in text
+    # The primary's own line keeps its original, unqualified form.
+    assert "best ndcg10_exp" in text
 
 
 def test_score_merges_into_an_existing_manifest_rather_than_replacing_it(

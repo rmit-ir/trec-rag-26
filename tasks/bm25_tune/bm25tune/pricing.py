@@ -1,7 +1,15 @@
-"""Cost recording and the hard US$200 ceiling (PLAN §5.7).
+"""Cost recording and the hard spend ceiling (PLAN §5.7).
+
+The cap is **not hardcoded here, and it has no default anywhere** — it must be
+exported as `BM25_TUNE_BUDGET_USD` by whoever launches the run, is validated by
+`config.Config.require_budget_usd()`, and arrives here as `cap_usd`. Every
+message formats the live value rather than naming a figure, so changing the cap
+needs no edit in this module. The figure approved on 2026-07-31 is US$50 (down
+from $200), recorded once as `config.APPROVED_BUDGET_USD` purely so the
+"you must export this" message can quote it.
 
 Two user requirements land in this one module, deliberately: *"this entire
-process should not cost more than $200"* and *"ensure that the costs are
+process should not cost more than $50"* and *"ensure that the costs are
 recorded and stored — we will need the cost analysis for the scientific
 report."* They are one module because **the ceiling is enforced from exactly the
 numbers the report is written from**. If they were computed twice, one of the two
@@ -784,7 +792,7 @@ def judgment_log_total_usd(log_dir: Path) -> float:
 # BudgetGuard
 # ---------------------------------------------------------------------------
 class BudgetGuard:
-    """The US$200 ceiling: pre-flight refusal (exit 4) + per-call stop (exit 5).
+    """The spend ceiling: pre-flight refusal (exit 4) + per-call stop (exit 5).
 
     The reserve is `concurrency × max_observed_cost_per_call`, floored at the
     **[measured]** worst-case prior — *not* a fixed fraction of the cap. At the
@@ -1036,7 +1044,7 @@ def build_cost_report(log_dir: Path, meter: CostMeter, *,
 
     Scoped to one `run_id` when given, plus an always-present experiment-wide
     roll-up — the cap is experiment-wide, so a per-run report alone could never
-    answer "how much of the $200 is left".
+    answer "how much of the cap is left".
 
     Deliberate choices worth knowing when reading the output:
 
