@@ -1245,3 +1245,66 @@ def test_score_requires_a_run_id() -> None:
 
     with pytest.raises(SystemExit):
         build_parser().parse_args(["score"])
+
+
+def test_a_second_score_against_another_qrels_does_not_clobber_the_first(
+        scoreable_run: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """`--label` keeps both matrices; without it the second `score` overwrote.
+
+    One run dir is legitimately scored twice — against the single-prompt qrels
+    and then against §6.2b's consensus qrels — and having both is the only way to
+    show the consensus changed the ranking. The basenames are fixed, so the
+    consensus pass silently replaced the single-judge matrix it was supposed to
+    be compared against, and the loss is invisible in the output.
+    """
+    from bm25tune.cli import EXIT_OK, main
+
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(scoreable_run))
+    run_dir = scoreable_run / "runs" / "rid"
+    assert main(["score", "--run-id", "rid"]) == EXIT_OK
+    first = (run_dir / "scores.csv").read_text()
+
+    # A consensus-shaped qrels: TREC 4-column, no prompt version anywhere.
+    consensus = run_dir / "qrels-consensus.txt"
+    consensus.write_text("t1 0 A 3\nt1 0 B 0\nt1 0 C 0\nt2 0 Z 0\n")
+    assert main(["score", "--run-id", "rid", "--qrels", str(consensus),
+                 "--label", "consensus"]) == EXIT_OK
+
+    assert (run_dir / "scores.csv").read_text() == first, (
+        "the unlabelled matrix must survive a labelled re-score")
+    assert (run_dir / "scores-consensus.csv").is_file()
+    assert (run_dir / "scores-consensus.md").is_file()
+    assert (run_dir / "scores-per-query-consensus.csv").is_file()
+
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    assert manifest["qrels_judged_pairs"] == 5, (
+        "the first pass's manifest record must survive too")
+    assert manifest["score_consensus"]["qrels_judged_pairs"] == 4
+    assert manifest["score_consensus"]["qrels_file"] == str(consensus)
+
+
+def test_scoring_an_overridden_qrels_does_not_claim_a_prompt_version(
+        scoreable_run: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """A `--qrels` matrix must not be labelled with `--prompt-version`'s default.
+
+    `--prompt-version` keeps its default when `--qrels` overrides the path, so
+    the consensus matrix was headed `prompt version: facet-v1` — naming one of
+    three votes as if it were the whole label set, which reads as a single-judge
+    result. Worse, passing that default into `load_qrels` would apply the
+    single-prompt identity check to a file that spans versions by design.
+    """
+    from bm25tune.cli import EXIT_OK, main
+
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(scoreable_run))
+    run_dir = scoreable_run / "runs" / "rid"
+    consensus = run_dir / "qrels-consensus.txt"
+    consensus.write_text("t1 0 A 3\nt1 0 B 1\nt2 0 Z 2\n")
+    assert main(["score", "--run-id", "rid", "--qrels", str(consensus),
+                 "--label", "consensus"]) == EXIT_OK
+
+    text = (run_dir / "scores-consensus.md").read_text()
+    assert "facet-v1" not in text, (
+        "the header must not name a prompt version it cannot know")
+    assert "qrels-consensus.txt" in text, "it must name the label set it used"
+    manifest = json.loads((run_dir / "manifest.json").read_text())
+    assert manifest["score_consensus"]["prompt_version"] is None

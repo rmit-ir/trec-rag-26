@@ -939,11 +939,23 @@ SCORES_MD_PREAMBLE = """\
 
 def render_scores_md(scores: Sequence[ConfigScore], *, run_id: str,
                      prompt_version: str | None, qrels: Qrels,
-                     query_set: str = "all", n_queries: int | None = None
-                     ) -> str:
-    """Render `scores.md`: the caveat, the qrel's shape, then the full matrix."""
+                     query_set: str = "all", n_queries: int | None = None,
+                     qrels_path: Path | str | None = None) -> str:
+    """Render `scores.md`: the caveat, the qrel's shape, then the full matrix.
+
+    `prompt_version=None` means the label set is not one prompt's — the §6.2b
+    consensus qrels, say. The header then points at the qrels file instead of
+    naming a version, because naming one of several votes would read as a
+    single-judge matrix.
+    """
     lines = [f"# BM25 k1/b score matrix — `{run_id}`", ""]
-    lines.append(f"- prompt version: `{prompt_version or 'unknown'}`")
+    if prompt_version:
+        lines.append(f"- prompt version: `{prompt_version}`")
+    elif qrels_path is not None:
+        lines.append(f"- qrels file: `{Path(qrels_path).name}` (not a single "
+                     "prompt version — see the run manifest for its provenance)")
+    else:
+        lines.append("- prompt version: `unknown`")
     lines.append(f"- query set: {query_set}"
                  + (f" (n={n_queries})" if n_queries is not None else ""))
     lines.append(f"- qrels: {qrels.n_judged()} judged (topic, chunk) pairs over "

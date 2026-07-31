@@ -1847,6 +1847,20 @@ SCORES_MD_BASENAME = "scores.md"
 SCORES_PER_QUERY_BASENAME = "scores-per-query.csv"
 STATS_JSON_BASENAME = "stats.json"
 
+
+def _labelled(basename: str, label: str | None) -> str:
+    """`scores.csv` -> `scores-<label>.csv`, so a re-score cannot clobber.
+
+    One run dir is legitimately scored against more than one label set — the
+    single-prompt qrels and then the §6.2b consensus qrels — and the basenames
+    above are fixed, so the second `score` silently overwrote the first's matrix.
+    Both matrices are the evidence that the consensus changed the ranking, so
+    losing one is losing the comparison. `--label` names the variant; without it
+    the historical names are kept, so every existing invocation is unaffected.
+    """
+    stem, _, suffix = basename.rpartition(".")
+    return basename if not label else f"{stem}-{label}.{suffix}"
+
 #: The cell every candidate is tested against (PLAN §0: pyserini's default, and
 #: **[measured]** score-identical to the hosted server aus_agent actually used).
 BASELINE_CONFIG_NAME = "k1_0.9__b_0.4"
@@ -1875,6 +1889,19 @@ def _qrels_path(cfg: Config, prompt_version: str,
     from .store import cache_snapshot_path
 
     return cache_snapshot_path(cfg.cache_dir, prompt_version)
+
+
+def _qrels_label(args: argparse.Namespace) -> str | None:
+    """What produced the qrels being scored — `None` when it is not one prompt.
+
+    `--prompt-version` keeps its default even when `--qrels` points somewhere
+    else, so reporting it unconditionally labelled the §6.2b consensus matrix
+    `prompt version: facet-v1` — naming one of the three votes as if it were the
+    whole label set. A reader would take the matrix for a single-judge one. With
+    an override the version is unknown to this command, so say so rather than
+    guess: the manifest's `qrels_file` is the authoritative provenance.
+    """
+    return None if args.qrels is not None else args.prompt_version
 
 
 def _load_qkeys_for_scoring(cfg: Config, args: argparse.Namespace,
@@ -1945,7 +1972,11 @@ def cmd_score(args: argparse.Namespace) -> int:
                   "--prompt-version %s` first (or pass --qrels)", qrels_path,
                   args.run_id, args.prompt_version)
         return EXIT_ERROR
-    qrels = metrics.load_qrels(qrels_path, args.prompt_version)
+    # `--qrels` may point at a label set no single prompt version produced (the
+    # §6.2b consensus qrels), so the identity check only applies without it —
+    # passing the default through would reject the consensus file outright.
+    qrels_label = _qrels_label(args)
+    qrels = metrics.load_qrels(qrels_path, qrels_label)
     log.info("[CACHE] %s: %d judged (topic, chunk) pairs over %d topics, "
              "grades %s", qrels_path, qrels.n_judged(), len(qrels.topics),
              qrels.distribution())
@@ -1963,14 +1994,15 @@ def cmd_score(args: argparse.Namespace) -> int:
         log.info("%s", line)
 
     cfg.ensure_dirs(out_dir)
-    csv_path = metrics.write_scores_csv(out_dir / SCORES_CSV_BASENAME, scored)
-    md_path = out_dir / SCORES_MD_BASENAME
+    csv_path = metrics.write_scores_csv(
+        out_dir / _labelled(SCORES_CSV_BASENAME, args.label), scored)
+    md_path = out_dir / _labelled(SCORES_MD_BASENAME, args.label)
     md_path.write_text(metrics.render_scores_md(
-        scored, run_id=args.run_id, prompt_version=args.prompt_version,
+        scored, run_id=args.run_id, prompt_version=qrels_label,
         qrels=qrels, query_set=str(args.queries or "persisted query set"),
-        n_queries=len(qkeys)), encoding="utf-8")
+        n_queries=len(qkeys), qrels_path=qrels_path), encoding="utf-8")
     per_query_path = metrics.write_per_query_csv(
-        out_dir / SCORES_PER_QUERY_BASENAME, scored)
+        out_dir / _labelled(SCORES_PER_QUERY_BASENAME, args.label), scored)
     log.info("[SUMMARY] wrote %s, %s, %s", csv_path, md_path, per_query_path)
 
     coverage = [s.judged_at_10_mean for s in scored
@@ -2015,9 +2047,9 @@ def cmd_score(args: argparse.Namespace) -> int:
                      "" if name in metrics.PRE_REGISTERED_METRICS
                      else " (secondary/exploratory, not pre-registered)")
 
-    _write_manifest(run_dir, {
+    fields = {
         "scored_utc": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),
-        "prompt_version": args.prompt_version,
+        "prompt_version": qrels_label,
         "qrels_file": str(qrels_path),
         "qrels_judged_pairs": qrels.n_judged(),
         "qrels_grade_distribution": {str(k): v
@@ -2030,7 +2062,14 @@ def cmd_score(args: argparse.Namespace) -> int:
                               **{name: s.by_query.get(name)
                                  for name in metrics.METRIC_NAMES}}
                    for s in scored},
-    })
+    }
+    if args.label:
+        # A labelled re-score must not overwrite the manifest's record of the
+        # unlabelled one either — the whole point of `--label` is that the two
+        # matrices coexist, and a manifest describing only the newer one would
+        # leave the older `scores.csv` looking unaudited.
+        fields = {f"score_{args.label}": fields}
+    _write_manifest(run_dir, fields)
     return EXIT_OK
 
 
@@ -2295,7 +2334,10 @@ def cmd_stats(args: argparse.Namespace) -> int:
         log.error("[CACHE] no qrels at %s — run judge-pool first (or pass "
                   "--qrels)", qrels_path)
         return EXIT_ERROR
-    qrels = metrics.load_qrels(qrels_path, args.prompt_version)
+    # As in `score`: with `--qrels` the label set need not be one prompt's, so
+    # the single-prompt identity check does not apply (PLAN §6.2b).
+    qrels_label = _qrels_label(args)
+    qrels = metrics.load_qrels(qrels_path, qrels_label)
 
     # Run files may span two runs: PLAN §5.6's signature takes a second run id
     # so a baseline swept in an earlier run can be tested against candidates
@@ -2363,7 +2405,7 @@ def cmd_stats(args: argparse.Namespace) -> int:
         run_id=args.run_id, baseline=baseline, candidates=candidates,
         metrics=list(args.metrics) if args.metrics
         else list(metrics.METRIC_NAMES),
-        prompt_version=args.prompt_version, per_config=per_config,
+        prompt_version=qrels_label, per_config=per_config,
         held_out=held_out, full=full_qkeys, topics=topics,
         resamples=args.bootstrap, seed=args.seed)
     for line in stats_mod.summary_lines(report, metric=metrics.PRIMARY_METRIC):
@@ -2613,6 +2655,12 @@ def build_parser() -> argparse.ArgumentParser:
                                 "covers)")
     score_cmd.add_argument("--out-dir", type=Path, default=None,
                            help="where scores.csv/.md go (default: the run dir)")
+    score_cmd.add_argument("--label", default=None,
+                           help="suffix the outputs (scores-<label>.csv/.md and "
+                                "a score_<label> manifest block) so scoring one "
+                                "run against a second label set — e.g. "
+                                "--qrels qrels-consensus.txt --label consensus "
+                                "— does not overwrite the first matrix")
     score_cmd.set_defaults(func=cmd_score)
 
     consensus_cmd = subs.add_parser(
