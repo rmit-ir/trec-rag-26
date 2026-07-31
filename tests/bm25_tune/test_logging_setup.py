@@ -267,13 +267,13 @@ def test_timestamps_are_utc_and_iso8601(tmp_path: Path) -> None:
 
 
 def test_log_prefixes_are_the_documented_grep_contract() -> None:
-    """The 17 prefixes are fixed strings the README tells operators to grep.
+    """The 19 prefixes are fixed strings the README tells operators to grep.
 
     Renaming one breaks written instructions and any saved grep/alert over a run
     log, with no compile-time signal. PLAN §5.6 enumerates them; this pins the set
-    and its uniqueness.
+    and its uniqueness. (`[CALIB]`/`[GATE]` were added with WP6's `calibrate`.)
     """
-    assert len(LOG_PREFIXES) == len(set(LOG_PREFIXES)) == 17
+    assert len(LOG_PREFIXES) == len(set(LOG_PREFIXES)) == 19
     for prefix in LOG_PREFIXES:
         assert prefix.startswith("[") and prefix.endswith("]")
         assert prefix == prefix.upper()

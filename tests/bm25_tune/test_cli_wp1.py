@@ -318,10 +318,8 @@ def test_extract_queries_seed_changes_the_draw(
 # ---------------------------------------------------------------------------
 # Stubs and the exit-code contract
 # ---------------------------------------------------------------------------
-@pytest.mark.parametrize("name", [stub.name for stub in cli.STUBS])
 def test_unimplemented_subcommands_exit_2_naming_their_work_package(
-        name: str, seeded_data_dir: Path,
-        monkeypatch: pytest.MonkeyPatch,
+        seeded_data_dir: Path, monkeypatch: pytest.MonkeyPatch,
         caplog: pytest.LogCaptureFixture) -> None:
     """A premature invocation says which WP owns it and exits 2.
 
@@ -329,12 +327,20 @@ def test_unimplemented_subcommands_exit_2_naming_their_work_package(
     *will* be typed early. Exit 2 is distinct from every real failure code in
     PLAN §5.7, so a launching agent can tell "not built yet" from "budget
     refused" without reading the log.
+
+    Loops over `cli.STUBS` rather than parametrizing on it: as of WP6 the tuple is
+    empty (`calibrate` was the last stub), and an empty `parametrize` set is a
+    *skip*, which this suite forbids by design. A loop makes the fully-implemented
+    state a trivial pass while still covering the exit-2 path the moment PLAN §5.6
+    registers another stub.
     """
-    with caplog.at_level(logging.INFO):
-        code = _run([name], seeded_data_dir, monkeypatch)
-    assert code == EXIT_NOT_IMPLEMENTED
-    assert "not yet implemented" in caplog.text
-    assert "WP" in caplog.text
+    for stub in cli.STUBS:
+        caplog.clear()
+        with caplog.at_level(logging.INFO):
+            code = _run([stub.name], seeded_data_dir, monkeypatch)
+        assert code == EXIT_NOT_IMPLEMENTED
+        assert "not yet implemented" in caplog.text
+        assert "WP" in caplog.text
 
 
 def test_exit_codes_match_the_plans_canonical_table() -> None:

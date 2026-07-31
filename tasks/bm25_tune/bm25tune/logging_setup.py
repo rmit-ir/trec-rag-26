@@ -34,6 +34,8 @@ LOG_PREFIXES = (
     "[LOAD]", "[WARMUP]", "[SEARCH]", "[POOL]", "[CACHE]", "[JUDGE]",
     "[THROTTLE]", "[CRED]", "[PARSE-FAIL]", "[PREFIX-MISS]", "[LOG-TAIL]",
     "[NDCG]", "[HEARTBEAT]", "[BUDGET]", "[COST]", "[SIGNAL]", "[SUMMARY]",
+    # WP6 calibration (`calibrate`): the driver stage and the gate verdict.
+    "[CALIB]", "[GATE]",
 )
 
 LOG_FORMAT = "%(asctime)s %(levelname)s %(name)s %(message)s"

@@ -37,10 +37,13 @@ import json
 import logging
 import sys
 import time
+from collections import Counter
+from collections.abc import Mapping
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Callable, Sequence
 
+from . import calibration as calib
 from . import extract, metrics, pricing, store
 from . import pool as pool_mod
 from . import searcher as searcher_mod
@@ -112,12 +115,11 @@ class Stub:
 
 
 #: PLAN §5.6's remaining subcommands, with the work package that delivers each.
-STUBS: tuple[Stub, ...] = (
-    Stub("calibrate", "WP6 (needs WP3 + WP3b)",
-         "judge the 280-pair calibration sample under every registered "
-         "prompt variant plus a 50-pair stability probe, then apply the "
-         "§3.3 four-condition grade-spread gate (exit 6 on failure)"),
-)
+#: Empty as of 2026-07-31: `calibrate` (WP6) was the last stub and now has a real
+#: implementation (`cmd_calibrate`). Kept as an extension point rather than
+#: deleted — the machinery (parser registration, the `NotImplementedYet` exit-2
+#: path) is exactly what a future PLAN §5.6 command wants.
+STUBS: tuple[Stub, ...] = ()
 
 
 # ---------------------------------------------------------------------------
@@ -562,6 +564,19 @@ POOL_BASENAME = "pool.jsonl"
 TRECRUNS_DIRNAME = "trecruns"
 MANIFEST_BASENAME = "manifest.json"
 SWEEP_LOG_BASENAME = "sweep.log"
+
+#: WP6 (PLAN §3.3). The calibration sample is persisted once and every variant
+#: judges the *same* file — a grade-distribution comparison across prompts is
+#: only meaningful on identical pairs.
+CALIBRATION_SAMPLE_BASENAME = "sample-280.jsonl"
+CALIBRATION_REPORT_MD = "report.md"
+CALIBRATION_REPORT_JSON = "report.json"
+CALIBRATION_LOG_BASENAME = "calibrate.log"
+CALIBRATION_SAMPLE_N = 280
+CALIBRATION_SAMPLE_SEED = 7
+#: Stage label so the calibration spend is its own line in `costs/totals.json`
+#: (PLAN §5.7) and never contaminates the sweep's Stage-A/B cost split.
+CALIBRATION_STAGE = "calib"
 
 #: Queries `smoke --search-only` falls back to when no query file exists yet.
 #: Real-looking multi-word keyword strings, because the point of the smoke test
@@ -1359,6 +1374,407 @@ def _write_judge_manifest(run_dir: Path, driver, spec, stage: str,
     _write_manifest(run_dir, fields)
 
 
+# ---------------------------------------------------------------------------
+# calibrate (WP6 / WP0) — PLAN §3.3
+# ---------------------------------------------------------------------------
+def _calibration_pairs(cfg: Config, args: argparse.Namespace
+                       ) -> tuple[list["judge_mod.JudgePair"],
+                                  dict[str, str], Path]:
+    """Persist `calibration/sample-280.jsonl` and build its `JudgePair`s.
+
+    Unlike `judge-pool`, calibration reads the **historical** hit text straight
+    out of the labeled file (`ObservedHit.text`, already prefix-stripped): the
+    sample is drawn from what aus_agent actually saw, so it needs neither the
+    sweep's pool nor the 1.5 TB index (PLAN §3.1). Persisted once, so every
+    variant judges byte-identical pairs and the sampler's seed is auditable.
+
+    Returns `(pairs, agent_class_by_chunk, sample_path)` — the class map is the
+    stratum each pair's chunk belongs to, which the agreement smell test needs
+    but the `JudgePair` deliberately does not carry (it is agent metadata, not
+    judge input).
+    """
+    from . import judge as judge_mod
+
+    hits = extract.load_observed_hits(cfg.input_file)
+    sample = extract.calibration_sample(hits, n=args.n, seed=args.seed)
+    cfg.ensure_dirs(cfg.calibration_dir)
+    sample_path = cfg.calibration_dir / CALIBRATION_SAMPLE_BASENAME
+    extract.write_jsonl(sample_path, (hit.to_json() for hit in sample))
+    log.info("[CALIB] wrote %d/%d requested calibration pairs to %s (seed %d)",
+             len(sample), args.n, sample_path, args.seed)
+
+    context = _topic_context(cfg, args.queries)
+    pairs: list[judge_mod.JudgePair] = []
+    agent_class: dict[str, str] = {}
+    missing_topic: list[str] = []
+    for hit in sample:
+        narrative_keyword = context.get(hit.topic_id)
+        if narrative_keyword is None:
+            missing_topic.append(hit.topic_id)
+            continue
+        narrative, keyword = narrative_keyword
+        pairs.append(judge_mod.JudgePair(
+            topic_id=hit.topic_id, chunk_id=hit.chunk_id,
+            narrative=narrative, keyword=keyword, passage_text=hit.text))
+        agent_class[hit.chunk_id] = hit.agent_class
+    if missing_topic:
+        raise ConfigError(
+            f"{len(missing_topic)} calibration pair(s) name topics absent from "
+            f"the query file (e.g. {sorted(set(missing_topic))[:3]}) — the "
+            "sample and the query set come from different extractions. Re-run "
+            "`extract-queries` so the narratives match.")
+    if not pairs:
+        raise ConfigError(
+            "no judgeable calibration pairs — every sampled hit lacked a "
+            "narrative; nothing would be judged and nothing spent")
+    return pairs, agent_class, sample_path
+
+
+def _judge_variant(cfg: Config, args: argparse.Namespace, spec,
+                   pairs: Sequence["judge_mod.JudgePair"], *,
+                   rates, pricing_mod, meter, cap_usd: float,
+                   concurrency: int) -> int:
+    """Judge every calibration pair under one prompt variant; return the exit code.
+
+    A thin wrapper over the same `JudgePoolDriver` `judge-pool` uses — the whole
+    point is that calibration bills, meters, checkpoints, resumes, and drains
+    through *exactly* the audited path, never a second implementation. The
+    shared `meter` is threaded through all five variants so the running total
+    (and the budget guard) span the whole calibration, and the `calib` stage
+    keeps that spend on its own line in `costs/totals.json`.
+    """
+    from . import judge as judge_mod
+    from .store import (JudgmentCache, JudgmentLog, cache_snapshot_path,
+                        rename_superseded)
+
+    snapshot_path = cache_snapshot_path(cfg.cache_dir, spec.version_id)
+    if args.fresh:
+        rename_superseded(snapshot_path, log_dir=cfg.log_dir,
+                          costs_dir=cfg.costs_dir)
+    cache = JudgmentCache.load(cfg.log_dir, prompt_version=spec.version_id,
+                               snapshot_path=snapshot_path)
+    guard = pricing_mod.BudgetGuard(meter, cap_usd, concurrency, rates=rates)
+    pending, cache_hits = judge_mod.pending_pairs(pairs, cache, spec.version_id)
+    guard.preflight(len(pending), stage=CALIBRATION_STAGE)
+    log.info("[CALIB] %s: %d/%d pairs cached, %d to judge", spec.version_id,
+             cache_hits, len(pairs), len(pending))
+
+    driver = judge_mod.JudgePoolDriver(
+        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region),
+        spec=spec, log_store=JudgmentLog(cfg.log_dir), cache=cache, meter=meter,
+        guard=guard, rates=rates, pricing_mod=pricing_mod,
+        run_id="calibrate", stage=CALIBRATION_STAGE, concurrency=concurrency,
+        snapshot_path=snapshot_path, run_dir=None)
+    driver.install_signal_handlers()
+    try:
+        return driver.run(list(pairs))
+    finally:
+        driver.restore_signal_handlers()
+
+
+def _variant_result(cfg: Config, spec, pairs: Sequence["judge_mod.JudgePair"],
+                    agent_class: Mapping[str, str], *, rates, pricing_mod
+                    ) -> "calib.VariantResult":
+    """Read this variant's cached grades back into a `VariantResult` for the gate.
+
+    Reads from the cache snapshot (the log's replayable index), NOT from the
+    driver's in-memory state, so a resumed calibration whose grades were written
+    on an earlier invocation is scored identically to one judged in a single
+    run. Missing grades (a pair the budget stop never reached) are simply absent
+    from the histogram, which the `judged` count in the log surfaces separately.
+    """
+    from .store import JudgmentCache, cache_snapshot_path, jkey
+
+    cache = JudgmentCache.load(
+        cfg.log_dir, prompt_version=spec.version_id,
+        snapshot_path=cache_snapshot_path(cfg.cache_dir, spec.version_id))
+    grades_by_class: dict[str, list[int]] = {}
+    counts_by_class: dict[str, dict[int, int]] = {}
+    for pair in pairs:
+        grade = cache.get(jkey(spec.version_id, pair.topic_id, pair.chunk_id))
+        if grade is None:
+            continue
+        cls = agent_class.get(pair.chunk_id, "unjudged")
+        grades_by_class.setdefault(cls, []).append(grade)
+    all_grades = [g for gs in grades_by_class.values() for g in gs]
+    for cls, gs in grades_by_class.items():
+        counts_by_class[cls] = calib.counts_from_grades(gs)
+
+    cost = _variant_cost_from_log(cfg, spec.version_id, rates, pricing_mod)
+    return calib.VariantResult(
+        prompt_version=spec.version_id,
+        gate=calib.evaluate_gate(calib.counts_from_grades(all_grades)),
+        agreement=calib.agent_agreement(grades_by_class),
+        counts_by_class=counts_by_class,
+        parse_failures=cost["parse_failures"], calls=cost["calls"],
+        input_tokens=cost["input_tokens"], output_tokens=cost["output_tokens"],
+        cost_usd=cost["cost_usd"])
+
+
+def _variant_cost_from_log(cfg: Config, version_id: str, rates, pricing_mod
+                           ) -> dict:
+    """Sum this variant's billed calls / tokens / cost straight from the log.
+
+    The judgment log is the ground truth for spend (PLAN §5.3), so the report's
+    per-variant cost is summed here rather than carried out of the driver — a
+    resumed calibration then reports the *total* cost of a variant across every
+    invocation that judged it, not just the last one.
+    """
+    calls = parse_failures = input_tokens = output_tokens = 0
+    cost_usd = 0.0
+    for record in pricing_mod.iter_log_records(cfg.log_dir):
+        if record.get("prompt_version") != version_id:
+            continue
+        if record.get("stage") != CALIBRATION_STAGE:
+            continue
+        usage = record.get("usage")
+        if usage:
+            calls += 1
+            input_tokens += int(usage.get("inputTokens") or 0)
+            output_tokens += int(usage.get("outputTokens") or 0)
+        cost = record.get("cost")
+        if cost:
+            cost_usd += float(cost.get("usd") or 0.0)
+        if record.get("error") == "parse_failure":
+            parse_failures += 1
+    return {"calls": calls, "parse_failures": parse_failures,
+            "input_tokens": input_tokens, "output_tokens": output_tokens,
+            "cost_usd": cost_usd}
+
+
+def _stability_probe(cfg: Config, args: argparse.Namespace, spec,
+                     pairs: Sequence["judge_mod.JudgePair"], *,
+                     rates, pricing_mod, meter, cap_usd: float,
+                     concurrency: int) -> tuple[float | None, int]:
+    """Re-judge N pairs of the winner, **bypassing the cache**, return match rate.
+
+    PLAN §3.3: the probe measures whether the judge is stable at temperature 0.
+    It MUST NOT consult the cache — a cache hit would trivially report 1.000 —
+    so it runs against a *fresh, empty* `JudgmentCache` and writes to a probe
+    stage (`calib-probe`) so its records never seed the winner's qrels snapshot.
+    The comparison is against the winner's committed grades, read from that
+    snapshot before the probe runs.
+    """
+    from . import judge as judge_mod
+    from .store import (JudgmentCache, JudgmentLog, cache_snapshot_path, jkey)
+
+    n = min(args.stability_pairs, len(pairs))
+    if n <= 0:
+        return None, 0
+    probe_pairs = judge_mod.sample_pairs(list(pairs), n)
+    committed = JudgmentCache.load(
+        cfg.log_dir, prompt_version=spec.version_id,
+        snapshot_path=cache_snapshot_path(cfg.cache_dir, spec.version_id))
+    baseline = {p.chunk_id: committed.get(
+        jkey(spec.version_id, p.topic_id, p.chunk_id)) for p in probe_pairs}
+
+    guard = pricing_mod.BudgetGuard(meter, cap_usd, concurrency, rates=rates)
+    guard.preflight(len(probe_pairs), stage="calib-probe")
+    # A fresh empty cache and snapshot_path=None: nothing is read from or written
+    # to the winner's qrels, so the re-judge is genuinely fresh and cannot
+    # pollute the calibration the report is about to declare the winner.
+    probe_cache = JudgmentCache(prompt_version=spec.version_id)
+    driver = judge_mod.JudgePoolDriver(
+        judge=judge_mod.BedrockJudge(cfg.judge_model, cfg.judge_region),
+        spec=spec, log_store=JudgmentLog(cfg.log_dir), cache=probe_cache,
+        meter=meter, guard=guard, rates=rates, pricing_mod=pricing_mod,
+        run_id="calibrate", stage="calib-probe", concurrency=concurrency,
+        snapshot_path=None, run_dir=None)
+    log.info("[CALIB] stability probe: re-judging %d pair(s) of %s "
+             "(cache-bypassing)", len(probe_pairs), spec.version_id)
+    driver.install_signal_handlers()
+    try:
+        driver.run(probe_pairs)
+    finally:
+        driver.restore_signal_handlers()
+
+    matches = compared = 0
+    for pair in probe_pairs:
+        before = baseline.get(pair.chunk_id)
+        after = probe_cache.get(jkey(spec.version_id, pair.topic_id,
+                                     pair.chunk_id))
+        if before is None or after is None:
+            continue
+        compared += 1
+        if before == after:
+            matches += 1
+    rate = matches / compared if compared else None
+    log.info("[CALIB] stability: %d/%d exact matches (rate=%s)", matches,
+             compared, f"{rate:.3f}" if rate is not None else "n/a")
+    return rate, compared
+
+
+def cmd_calibrate(args: argparse.Namespace) -> int:
+    """WP6/WP0 judge calibration: the mandatory gate before any sweep spend.
+
+    The order below is the safety argument, mirroring `judge-pool` (PLAN §5.7):
+
+    1. **Pricing, then the cap, before anything is judged.** No path to the model
+       may exist that is not bounded by the operator-set ceiling
+       (`BM25_TUNE_BUDGET_USD`, no default — PLAN §0). One shared `CostMeter`
+       spans all five variants and the probe, so the budget guard sees the whole
+       calibration's spend, not each variant's in isolation.
+    2. **Judge every registered variant on the same persisted sample.** Each runs
+       through the audited `JudgePoolDriver`, so calibration bills, checkpoints,
+       resumes, and drains through exactly the path the sweep uses.
+    3. **Decide, then probe the winner.** The gate (`calib.decide`) picks the
+       lowest-modal-share passing variant; only then is the stability probe run,
+       and only on that winner (PLAN §3.3), so the ~50 extra calls are not spent
+       on variants that failed the gate anyway.
+    4. **Write the report, then set the exit code from the gate.** Exit 6 when no
+       variant passes, so the launching agent escalates to the user rather than
+       auto-starting the sweep (PLAN §3.3 fallback). The report is written on
+       *both* paths — a gated calibration still produces the artifact the user
+       reviews.
+
+    Resume is "re-run the same command": every completed judgment is cached and
+    will not be re-billed; the sample file and its seed are pinned.
+    """
+    from . import judge as judge_mod
+
+    cfg: Config = args.config
+    try:
+        pricing_mod = judge_mod.load_pricing()
+    except judge_mod.PricingUnavailable as exc:
+        log.error("[BUDGET] %s", exc)
+        return EXIT_ERROR
+    cap_usd = cfg.require_budget_usd()
+    rates = _load_rates_or_fail(cfg)
+    if rates is None:
+        return EXIT_ERROR
+
+    cfg.ensure_dirs(cfg.calibration_dir, cfg.log_dir, cfg.cache_dir,
+                    cfg.costs_dir)
+    setup_logging(args.log_file or (cfg.calibration_dir /
+                                    CALIBRATION_LOG_BASENAME),
+                  level=logging.DEBUG if args.verbose else logging.INFO)
+    concurrency = args.concurrency or cfg.judge_concurrency
+    log.info("[CALIB] calibrating %d variants at concurrency %d, cap $%.2f",
+             len(all_versions()), concurrency, cap_usd)
+
+    pairs, agent_class, sample_path = _calibration_pairs(cfg, args)
+    sample_mix = Counter(agent_class.values())
+
+    meter = pricing_mod.CostMeter.load(cfg.costs_dir)
+    meter.reconcile(cfg.log_dir)
+
+    results: list[calib.VariantResult] = []
+    stop_code = EXIT_OK
+    for version_id in all_versions():
+        spec = get_prompt(version_id)
+        if spec.query_slot == "keyword":
+            log.warning("[CALIB] %s puts the KEYWORD query in {q}; on the "
+                        "topic-level cache key every chunk of a topic is judged "
+                        "against one representative query (PLAN §5.3). It is a "
+                        "§3.2 diagnostic — measured here, not a sweep judge.",
+                        version_id)
+        code = _judge_variant(cfg, args, spec, pairs, rates=rates,
+                              pricing_mod=pricing_mod, meter=meter,
+                              cap_usd=cap_usd, concurrency=concurrency)
+        results.append(_variant_result(cfg, spec, pairs, agent_class,
+                                       rates=rates, pricing_mod=pricing_mod))
+        for line in calib.gate_log_lines(results[-1]):
+            log.info("%s", line)
+        if code in (EXIT_BUDGET_STOP, EXIT_CRED_EXPIRY, EXIT_SIGINT,
+                    EXIT_SIGTERM):
+            # A stop mid-calibration is not a gate failure: report what we have
+            # and propagate the driver's code so resume semantics hold.
+            log.error("[CALIB] variant %s stopped (exit %d) — writing a partial "
+                      "report and stopping; re-run to resume", version_id, code)
+            stop_code = code
+            break
+
+    decision = calib.decide(results)
+    if stop_code == EXIT_OK and decision.winner is not None \
+            and args.stability_pairs > 0:
+        winner_spec = get_prompt(decision.winner)
+        rate, probed = _stability_probe(
+            cfg, args, winner_spec, pairs, rates=rates,
+            pricing_mod=pricing_mod, meter=meter, cap_usd=cap_usd,
+            concurrency=concurrency)
+        results = [
+            calib.VariantResult(
+                **{**vars(r), "stability_match_rate": rate,
+                   "stability_pairs": probed})
+            if r.prompt_version == decision.winner else r
+            for r in results]
+        decision = calib.decide(results)
+
+    _write_calibration_report(cfg, results, decision, sample_path=sample_path,
+                              n_pairs=len(pairs), sample_mix=sample_mix)
+
+    if stop_code != EXIT_OK:
+        return stop_code
+    if decision.gated:
+        log.error("[GATE] no variant passed — exit %d. The sweep must NOT "
+                  "launch. Review %s and confirm with the user (PLAN §3.3).",
+                  EXIT_GATE_FAILED,
+                  cfg.calibration_dir / CALIBRATION_REPORT_MD)
+        return EXIT_GATE_FAILED
+    log.info("[GATE] PASS — recommended judge: %s. Review %s and confirm the "
+             "prompt version before launching the sweep (PLAN §3.3).",
+             decision.winner, cfg.calibration_dir / CALIBRATION_REPORT_MD)
+    return EXIT_OK
+
+
+def _write_calibration_report(cfg: Config,
+                              results: Sequence["calib.VariantResult"],
+                              decision: "calib.Decision", *, sample_path: Path,
+                              n_pairs: int, sample_mix: Mapping[str, int]
+                              ) -> None:
+    """Render `calibration/report.{md,json}` — the artifacts the user reviews.
+
+    Both are written from the same `results`: the markdown is what a human reads,
+    the JSON is what a launching agent branches on without re-parsing prose.
+    """
+    md = calib.render_report_md(
+        results, decision, run_id="calibrate", sample_path=str(sample_path),
+        n_pairs=n_pairs, sample_label_mix=dict(sample_mix),
+        model_id=cfg.judge_model, region=cfg.judge_region)
+    md_path = cfg.calibration_dir / CALIBRATION_REPORT_MD
+    md_path.write_text(md, encoding="utf-8")
+
+    payload = {
+        "run_id": "calibrate",
+        "sample_path": str(sample_path),
+        "n_pairs": n_pairs,
+        "sample_label_mix": dict(sample_mix),
+        "pool_label_mix": dict(calib.POOL_LABEL_MIX),
+        "winner": decision.winner,
+        "best_effort": decision.best_effort,
+        "gated": decision.gated,
+        "passing": list(decision.passing),
+        "ranked": list(decision.ranked),
+        "rationale": decision.rationale,
+        "variants": [{
+            "prompt_version": r.prompt_version,
+            "passed": r.gate.passed,
+            "counts": r.gate.counts,
+            "modal_grade": r.gate.modal_grade,
+            "modal_share": r.gate.modal_share,
+            "share_ge2": r.gate.share_ge2,
+            "share_eq3": r.gate.share_eq3,
+            "entropy": r.gate.entropy,
+            "pool_share_ge2": r.pool_share_ge2,
+            "failed_conditions": [{"name": c.name, "observed": c.observed,
+                                   "direction": c.direction, "bound": c.bound}
+                                  for c in r.gate.failures],
+            "auc": r.agreement.auc,
+            "mean_by_class": r.agreement.mean_by_class,
+            "n_by_class": r.agreement.n_by_class,
+            "stability_match_rate": r.stability_match_rate,
+            "stability_pairs": r.stability_pairs,
+            "calls": r.calls,
+            "parse_failures": r.parse_failures,
+            "cost_usd": r.cost_usd,
+        } for r in results],
+    }
+    json_path = cfg.calibration_dir / CALIBRATION_REPORT_JSON
+    json_path.write_text(json.dumps(payload, indent=2, sort_keys=True),
+                         encoding="utf-8")
+    log.info("[CALIB] wrote %s and %s", md_path, json_path)
+
+
 def cmd_rebuild_cache(args: argparse.Namespace) -> int:
     """Full rescan of the append-only judgment log into fresh cache snapshots.
 
@@ -2005,16 +2421,38 @@ def build_parser() -> argparse.ArgumentParser:
                            help="where stats.json goes (default: the run dir)")
     stats_cmd.set_defaults(func=cmd_stats)
 
+    calib_cmd = subs.add_parser(
+        "calibrate",
+        help="WP6/WP0 judge calibration: judge the 280-pair sample under every "
+             "registered prompt variant, apply the §3.3 grade-spread gate "
+             "(exit 6 on failure), and write calibration/report.md")
+    calib_cmd.add_argument(
+        "--n", type=int, default=CALIBRATION_SAMPLE_N,
+        help=f"calibration sample size (PLAN §3.1 fixes {CALIBRATION_SAMPLE_N})")
+    calib_cmd.add_argument(
+        "--seed", type=int, default=CALIBRATION_SAMPLE_SEED,
+        help=f"sampler seed (PLAN §3.1 fixes {CALIBRATION_SAMPLE_SEED})")
+    calib_cmd.add_argument(
+        "--stability-pairs", type=int, default=calib.STABILITY_PROBE_PAIRS,
+        help="pairs re-judged (cache-bypassing) to measure the winner's "
+             f"stability (PLAN §3.3 fixes {calib.STABILITY_PROBE_PAIRS}); "
+             "0 disables the probe")
+    calib_cmd.add_argument(
+        "--concurrency", type=int, default=None,
+        help="worker threads (default: BM25_TUNE_JUDGE_CONCURRENCY)")
+    calib_cmd.add_argument(
+        "--queries", type=Path, default=None,
+        help=f"query file supplying the topic narratives (default: "
+             f"queries/{QUERIES_FULL_BASENAME})")
+    calib_cmd.add_argument(
+        "--fresh", action="store_true",
+        help="rename each variant's qrels snapshot aside first; NEVER touches "
+             "judgments/log/ or costs/ (PLAN §5.8)")
+    calib_cmd.set_defaults(func=cmd_calibrate)
+
     for stub in STUBS:
         sub = subs.add_parser(stub.name,
                               help=f"[{stub.work_package}] {stub.summary}")
-        # `--prompt-version` is accepted now so PLAN §5.6's recorded launch
-        # command parses (and fails on the stub message) rather than dying on an
-        # unrecognized argument. `calibrate` is the last remaining stub and takes
-        # no `--run-id` — it writes to `calibration/`, not to a run dir.
-        if stub.name == "calibrate":
-            sub.add_argument("--prompt-version", default=DEFAULT_PROMPT_VERSION,
-                             choices=all_versions())
         sub.set_defaults(func=stub.run)
 
     return parser
