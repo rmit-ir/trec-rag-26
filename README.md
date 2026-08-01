@@ -79,7 +79,7 @@ mkdir -p .claude && cp scripts/hooks/claude-settings.example.json .claude/settin
 # run a system — each has its own dep group
 uv run --group facet-rag python src/systems/facet_rag/run.py --qid <topic-id>
 
-# tests (~7s, hermetic)
+# tests (~16s, hermetic)
 bash scripts/test.sh
 ```
 
