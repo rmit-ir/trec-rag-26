@@ -44,6 +44,7 @@ from pathlib import Path
 from typing import Callable, Sequence
 
 from . import calibration as calib
+from . import config as config_mod
 from . import extract, metrics, pricing, store
 from . import pool as pool_mod
 from . import searcher as searcher_mod
@@ -86,8 +87,13 @@ EXPECTED_INPUT: dict[str, object] = {
 #: Filenames PLAN §4.2 fixes for the query artifacts. `subsample-250` keeps its
 #: name even though 119 topics x 2 yields 238 rows: it is the *published* name
 #: of the Stage-A set and appears in the plan, the manifest, and every log line.
-QUERIES_FULL_BASENAME = "keyword-1063.jsonl"
-QUERIES_SUBSAMPLE_BASENAME = "subsample-250.jsonl"
+#:
+#: These are the **defaults** only — every code path resolves the real names
+#: through `cfg.queries_full_file` / `cfg.queries_subsample_file`, which honour
+#: `BM25_TUNE_QUERIES_FULL` / `_SUBSAMPLE`. They survive here because argparse
+#: help strings are built before any `Config` exists.
+QUERIES_FULL_BASENAME = config_mod.DEFAULT_QUERIES_FULL_BASENAME
+QUERIES_SUBSAMPLE_BASENAME = config_mod.DEFAULT_QUERIES_SUBSAMPLE_BASENAME
 SUBSAMPLE_PER_TOPIC = 2
 SUBSAMPLE_SEED = 13
 
@@ -201,10 +207,30 @@ def cmd_verify_inputs(args: argparse.Namespace) -> int:
     """
     cfg: Config = args.config
     path = cfg.input_file
+    if cfg.input_file_override is not None:
+        # Every count in `EXPECTED_INPUT` is a fingerprint of one file, so
+        # checking another file against them reports a dozen failures that all
+        # mean "this is a different file" — which the operator already knows.
+        log.error("[LOAD] verify-inputs checks the *committed* labeled log "
+                  "against a frozen fingerprint (sha256 + the PLAN §2.1 "
+                  "counts), so it cannot verify %s.", path)
+        log.error("[LOAD] For another corpus this command has nothing to do: "
+                  "build queries with `make-queries` (or write "
+                  f"queries/{cfg.queries_full_basename} yourself) and go "
+                  "straight to `search-sweep`.")
+        return EXIT_ERROR
     if not path.is_file():
         log.error("[LOAD] input not found: %s", path)
         log.error("[LOAD] expected the durable copy of the labeled search log; "
                   "see PLAN §2.1")
+        # The likeliest reader of this message is an operator on their own index,
+        # for whom the labeled log does not exist and never will. Without this
+        # line they would go looking for a file that is not theirs to have.
+        log.error("[LOAD] If you are tuning another corpus, this command has "
+                  "nothing to verify: build the query set with `make-queries "
+                  "<your query file>` and go straight to `search-sweep`. "
+                  "(The check is a frozen sha256 + the PLAN §2.1 counts of one "
+                  "specific file.)")
         return EXIT_ERROR
     sums_path = cfg.sha256sums_file
     if not sums_path.is_file():
@@ -268,32 +294,68 @@ def cmd_extract_queries(args: argparse.Namespace) -> int:
     sampler and trusting the seed.
     """
     cfg: Config = args.config
-    path = cfg.input_file
-    if not path.is_file():
-        log.error("[LOAD] input not found: %s (run verify-inputs)", path)
+    try:
+        path = cfg.require_input_file()
+    except ConfigError as exc:
+        log.error("[LOAD] %s", exc)
         return EXIT_ERROR
 
     queries = extract.load_keyword_queries(path)
     topics = sorted({q.topic_id for q in queries})
     log.info("[LOAD] %d unique keyword (topic, query) pairs over %d topics",
              len(queries), len(topics))
-    if len(queries) != EXPECTED_INPUT["unique_pairs"]:
-        log.error("[LOAD] expected %s unique pairs, got %d — run verify-inputs "
-                  "and STOP; the query set defines the whole experiment",
-                  EXPECTED_INPUT["unique_pairs"], len(queries))
-        return EXIT_ERROR
+    # The 1063-pair assertion belongs to *this* input, not to the method: a
+    # different labeled log legitimately has a different count, and refusing it
+    # would be the harness insisting on a corpus it no longer has. So it is
+    # asserted when the input is the committed one and only warned about
+    # otherwise — the operator who exported BM25_TUNE_INPUT_FILE knows their pair
+    # count is theirs, and the count is still logged either way.
+    expected_pairs = EXPECTED_INPUT["unique_pairs"]
+    if len(queries) != expected_pairs:
+        if cfg.input_file_override is None:
+            log.error("[LOAD] expected %s unique pairs, got %d — run "
+                      "verify-inputs and STOP; the query set defines the whole "
+                      "experiment", expected_pairs, len(queries))
+            return EXIT_ERROR
+        log.warning("[LOAD] %d unique pairs, not the committed input's %s — "
+                    "expected, since BM25_TUNE_INPUT_FILE points at %s. Every "
+                    "volume and cost estimate in PLAN §6 is keyed to %s pairs "
+                    "and does not apply here; re-run `budget --preflight` "
+                    "against this set before judging.",
+                    len(queries), expected_pairs, path, expected_pairs)
 
+    # Overwrite refusal, the qkey round-trip check, and the summary counts are
+    # shared with `make-queries` — the artifacts are the experiment's, not the
+    # adapter's (PLAN §5.8).
+    return _write_query_artifacts(cfg, queries, args)
+
+
+def _write_query_artifacts(cfg: Config, queries: "Sequence[extract.QueryRec]",
+                           args: argparse.Namespace) -> int:
+    """Persist the full set + the stratified subsample, then verify the round trip.
+
+    Shared by `extract-queries` and `make-queries` so the two input adapters
+    cannot diverge in what they *write* — the artifacts, their names, the
+    overwrite refusal, and the qkey round-trip check are properties of the
+    experiment, not of where the queries came from.
+    """
     subsample = extract.stratified_subsample(
         queries, per_topic=args.per_topic, seed=args.seed)
+    topics = sorted({q.topic_id for q in queries})
     sub_topics = sorted({q.topic_id for q in subsample})
 
     cfg.ensure_dirs(cfg.queries_dir)
-    full_path = cfg.queries_dir / QUERIES_FULL_BASENAME
-    sub_path = cfg.queries_dir / QUERIES_SUBSAMPLE_BASENAME
+    full_path = cfg.queries_full_file
+    sub_path = cfg.queries_subsample_file
+    if full_path == sub_path:
+        # Both names come from env vars, so one typo would have the subsample
+        # overwrite the full set — and `stats` would then compute a held-out set
+        # of zero queries and report a paired test on nothing.
+        log.error("[LOAD] BM25_TUNE_QUERIES_FULL and _SUBSAMPLE are the same "
+                  "file (%s); the held-out set is their set difference, so "
+                  "they must differ", full_path)
+        return EXIT_ERROR
     if (full_path.exists() or sub_path.exists()) and not args.force:
-        # Rewriting is harmless (the output is deterministic), but refusing
-        # keeps the "existing output is never silently replaced" rule of
-        # PLAN §5.8 uniform across subcommands.
         log.error("[LOAD] refusing to overwrite existing query files; pass "
                   "--force. Present: %s",
                   ", ".join(str(p) for p in (full_path, sub_path)
@@ -307,21 +369,82 @@ def cmd_extract_queries(args: argparse.Namespace) -> int:
     log.info("[LOAD] wrote %s (%d rows, %d topics, per_topic=%d seed=%d)",
              sub_path, n_sub, len(sub_topics), args.per_topic, args.seed)
 
-    # Read back and re-derive the tags: cheap, and it pins that the persisted
-    # file is what later stages will actually load (a qkey/query mismatch would
-    # silently misattribute run files).
     reloaded = extract.read_query_file(sub_path)
     if [r.qkey for r in reloaded] != [r.qkey for r in subsample]:
         log.error("[LOAD] round-trip of %s does not match what was written",
                   sub_path)
         return EXIT_ERROR
 
-    per_topic_counts = {t: sum(1 for q in queries if q.topic_id == t)
-                        for t in topics}
+    per_topic_counts = Counter(q.topic_id for q in queries)
     log.info("[SUMMARY] queries/topic min=%d max=%d",
              min(per_topic_counts.values()), max(per_topic_counts.values()))
+    log.info("[SUMMARY] full sha256=%s", extract.sha256_file(full_path))
     log.info("[SUMMARY] subsample sha256=%s", extract.sha256_file(sub_path))
+    if n_sub == n_full:
+        # `stats` computes the held-out set as full MINUS subsample (PLAN §6.4),
+        # so an exhaustive subsample makes it empty — and the confirmatory test
+        # then either has nothing to run or, worse, re-tests the queries the
+        # winner was selected on. Loud here, because by the time `stats` reports
+        # it the judging has been paid for.
+        log.warning("[SUMMARY] the subsample IS the full set (%d queries, "
+                    "per_topic=%d) — the held-out set is a set difference "
+                    "against it, so it will be EMPTY and there is no "
+                    "confirmatory stage. Lower --per-topic, or accept that "
+                    "Stage A's winner cannot be validated on unseen queries "
+                    "(selecting and testing on one set overstates the winner).",
+                    n_full, args.per_topic)
     return EXIT_OK
+
+
+def cmd_make_queries(args: argparse.Namespace) -> int:
+    """Build the query artifacts from a plain query file (any corpus).
+
+    The corpus-independent counterpart to `extract-queries`: that command parses
+    one specific aus_agent search log, while this one accepts JSONL / TSV / CSV /
+    one-per-line (see `extract.load_plain_queries`). Everything downstream —
+    `search-sweep`, `judge-pool`, `score`, `stats` — reads only the two artifacts
+    written here, so this is the whole of what tuning a new index requires on the
+    query side.
+
+    Two things it warns about rather than refusing, because both are legitimate
+    and both change what the numbers mean:
+
+    - **No narratives.** The judge is then shown the query as its own target,
+      which measures topical similarity rather than usefulness (PLAN §0).
+    - **One query per topic.** The Stage-A subsample is then the full set, so
+      `stats`' held-out set is empty and there is no confirmatory stage to run.
+    """
+    cfg: Config = args.config
+    path = Path(args.queries_in)
+    if not path.is_file():
+        log.error("[LOAD] query file not found: %s", path)
+        return EXIT_ERROR
+    try:
+        queries = extract.load_plain_queries(
+            path, default_topic_prefix=args.topic_prefix)
+    except extract.ExtractError as exc:
+        log.error("[LOAD] %s", exc)
+        return EXIT_ERROR
+
+    topics = {q.topic_id for q in queries}
+    log.info("[LOAD] %d queries over %d topics from %s", len(queries),
+             len(topics), path)
+
+    without_narrative = sum(1 for q in queries if q.topic == q.query)
+    if without_narrative:
+        log.warning("[LOAD] %d/%d queries have no separate narrative — the "
+                    "judge will be shown the query text as its own target, "
+                    "which grades topical similarity rather than usefulness to "
+                    "an information need (PLAN §0). Supply a `narrative` / "
+                    "`description` column if you have one.",
+                    without_narrative, len(queries))
+    if len(topics) == len(queries):
+        log.warning("[LOAD] every query is its own topic, so judgments are "
+                    "never shared between queries and `stats`' held-out set "
+                    "will be empty (the subsample is the full set). That is "
+                    "fine for a one-shot grid, but there is no Stage B to run: "
+                    "supply a topic id column to group related queries.")
+    return _write_query_artifacts(cfg, queries, args)
 
 
 # ---------------------------------------------------------------------------
@@ -662,8 +785,8 @@ def _load_sweep_queries(cfg: Config, args: argparse.Namespace,
     if args.queries is not None:
         path = Path(args.queries)
     else:
-        path = cfg.queries_dir / (QUERIES_SUBSAMPLE_BASENAME if stage == "A"
-                                  else QUERIES_FULL_BASENAME)
+        path = (cfg.queries_subsample_file if stage == "A"
+                else cfg.queries_full_file)
     if not path.is_file():
         raise ConfigError(
             f"query file {path} not found — run `python -m bm25tune "
@@ -683,9 +806,9 @@ def _load_sweep_queries(cfg: Config, args: argparse.Namespace,
     return queries
 
 
-def _sweep_configs(args: argparse.Namespace,
+def _sweep_configs(cfg: Config, args: argparse.Namespace,
                    stage: str) -> list[tuple[float, float]]:
-    """The grid cells to sweep: `--configs` if given, else PLAN §6.1's 26.
+    """The grid cells to sweep: `--configs` if given, else the configured grid.
 
     Stage B has no default on purpose. Its cells are *the top 3 from Stage A plus
     the baseline*, which is only known once Stage A has been scored — defaulting
@@ -695,11 +818,12 @@ def _sweep_configs(args: argparse.Namespace,
     if args.configs:
         return searcher_mod.parse_configs(args.configs)
     if stage == "B":
+        base = f"{cfg.baseline[0]:g}:{cfg.baseline[1]:g}"
         raise ConfigError(
             "Stage B needs an explicit --configs (PLAN §6.1: the top 3 Stage-A "
-            "cells plus the 0.9:0.4 baseline), e.g.\n"
-            "  --configs 0.7:0.35,0.9:0.5,1.2:0.35,0.9:0.4")
-    return searcher_mod.stage_a_grid()
+            f"cells plus the {base} baseline), e.g.\n"
+            f"  --configs 0.7:0.35,0.9:0.5,1.2:0.35,{base}")
+    return searcher_mod.stage_a_grid(cfg.grid_k1, cfg.grid_b, cfg.baseline)
 
 
 def cmd_search_sweep(args: argparse.Namespace) -> int:
@@ -733,13 +857,15 @@ def cmd_search_sweep(args: argparse.Namespace) -> int:
              stage, run_id, args.depth, run_dir)
 
     queries = _load_sweep_queries(cfg, args, stage)
-    configs = _sweep_configs(args, stage)
+    configs = _sweep_configs(cfg, args, stage)
     log.info("[SEARCH] %d configs x %d queries = %d executions at depth %d",
              len(configs), len(queries), len(configs) * len(queries),
              args.depth)
 
     index_dir = cfg.require_index_dir()
-    chunk_searcher = searcher_mod.ChunkSearcher(index_dir, threads=args.threads)
+    chunk_searcher = searcher_mod.ChunkSearcher(
+        index_dir, threads=args.threads,
+        expected_num_docs=cfg.expected_num_docs)
     rankings: dict[str, dict[str, list[tuple[str, float]]]] = {}
     searched = skipped = 0
     search_started = time.monotonic()
@@ -947,11 +1073,12 @@ def cmd_smoke(args: argparse.Namespace) -> int:
         # working with the variable unset, which is why this is conditional.
         cfg.require_budget_usd()
     queries = _smoke_queries(cfg, args.n)
-    chunk_searcher = searcher_mod.ChunkSearcher(index_dir,
-                                                threads=args.threads)
+    chunk_searcher = searcher_mod.ChunkSearcher(
+        index_dir, threads=args.threads,
+        expected_num_docs=cfg.expected_num_docs)
     try:
         warmup_s = chunk_searcher.warmup()
-        chunk_searcher.set_config(*searcher_mod.BASELINE_CONFIG)
+        chunk_searcher.set_config(*cfg.baseline)
         result = chunk_searcher.run_config(queries, k=args.depth)
         top_ids = [ranking[0][0] for ranking in result.values() if ranking]
         texts = chunk_searcher.fetch_texts(top_ids) if top_ids else {}
@@ -1007,7 +1134,7 @@ def _smoke_queries(cfg: Config, n: int) -> list[extract.QueryRec]:
     not the first `n` rows, because a topic's queries are near-duplicates and
     would all fault in the same postings.
     """
-    path = cfg.queries_dir / QUERIES_FULL_BASENAME
+    path = cfg.queries_full_file
     if path.is_file():
         queries = extract.read_query_file(path)
         by_topic: dict[str, extract.QueryRec] = {}
@@ -1080,8 +1207,7 @@ def _topic_context(cfg: Config, override: Path | None
     """
     path = override
     if path is None:
-        for basename in (QUERIES_FULL_BASENAME, QUERIES_SUBSAMPLE_BASENAME):
-            candidate = cfg.queries_dir / basename
+        for candidate in (cfg.queries_full_file, cfg.queries_subsample_file):
             if candidate.is_file():
                 path = candidate
                 break
@@ -1384,16 +1510,79 @@ def _write_judge_manifest(run_dir: Path, driver, spec, stage: str,
 # ---------------------------------------------------------------------------
 # calibrate (WP6 / WP0) — PLAN §3.3
 # ---------------------------------------------------------------------------
+def _pool_calibration_hits(cfg: Config,
+                           args: argparse.Namespace) -> list[extract.ObservedHit]:
+    """Draw the calibration sample from a sweep run's pool (`--from-pool`).
+
+    The any-corpus path into the mandatory gate. It reads the same two artifacts
+    `judge-pool` reads, so a gate run here is judging exactly the kind of passage
+    the sweep will judge — arguably a better sample than the historical one, at
+    the cost of the agent labels the smell test needs.
+
+    Deliberately *not* falling back to this when the labeled log is missing: an
+    operator who mistyped `BM25_TUNE_INPUT_FILE` on ClimbMix would silently lose
+    the agreement column and never know to look for it.
+    """
+    run_dir = cfg.run_dir(args.from_pool)
+    pool_path = run_dir / POOL_BASENAME
+    texts_path = run_dir / POOL_TEXTS_BASENAME
+    if not pool_path.is_file():
+        raise ConfigError(
+            f"{pool_path} not found — `--from-pool {args.from_pool}` calibrates "
+            "on a completed sweep's pool, so run `python -m bm25tune "
+            f"search-sweep --stage A --run-id {args.from_pool}` first")
+    if not texts_path.is_file():
+        raise ConfigError(
+            f"{texts_path} not found — the sweep for {args.from_pool} ran with "
+            "--no-fetch-texts, so no passages were saved and there is nothing "
+            "to calibrate on. Re-run search-sweep without that flag "
+            "(already-written run files are skipped, so it only fetches text).")
+    entries = pool_mod.read_pool(pool_path)
+    texts = _read_pool_texts(texts_path) or {}
+    queries = extract.read_query_file(
+        args.queries or _existing_query_file(cfg))
+    sample = extract.pool_calibration_sample(entries, texts, queries,
+                                             n=args.n, seed=args.seed)
+    log.info("[CALIB] sampled %d/%d requested pairs from %s's pool of %d "
+             "(seed %d); NO agent labels exist on a pooled sample, so the "
+             "agreement smell test will read '—' and the gate rests on its four "
+             "grade-distribution conditions alone",
+             len(sample), args.n, args.from_pool, len(entries), args.seed)
+    return sample
+
+
+def _existing_query_file(cfg: Config) -> Path:
+    """The persisted full query file, else the subsample; else a clean refusal."""
+    for candidate in (cfg.queries_full_file, cfg.queries_subsample_file):
+        if candidate.is_file():
+            return candidate
+    raise ConfigError(
+        f"no query file under {cfg.queries_dir} — run `python -m bm25tune "
+        "make-queries <file>` (or `extract-queries`) first; the narratives it "
+        "persists are the judge target (PLAN §0)")
+
+
 def _calibration_pairs(cfg: Config, args: argparse.Namespace
                        ) -> tuple[list["judge_mod.JudgePair"],
                                   dict[str, str], Path]:
     """Persist `calibration/sample-280.jsonl` and build its `JudgePair`s.
 
-    Unlike `judge-pool`, calibration reads the **historical** hit text straight
-    out of the labeled file (`ObservedHit.text`, already prefix-stripped): the
-    sample is drawn from what aus_agent actually saw, so it needs neither the
-    sweep's pool nor the 1.5 TB index (PLAN §3.1). Persisted once, so every
-    variant judges byte-identical pairs and the sampler's seed is auditable.
+    Two sources, because the gate is mandatory on every corpus (PLAN §3.3) while
+    the labeled log exists on exactly one:
+
+    - **default** — the **historical** hit text straight out of the labeled file
+      (`ObservedHit.text`, already prefix-stripped): the sample is drawn from what
+      aus_agent actually saw, so it needs neither the sweep's pool nor the 1.5 TB
+      index (PLAN §3.1), and it carries agent labels so the agreement smell test
+      is computable.
+    - **`--from-pool RUN_ID`** — a sweep's `pool.jsonl` + `pool-texts.jsonl`. No
+      agent labels exist, so the smell test is undefined and the gate rests on
+      its four grade-distribution conditions alone. That is the whole of what is
+      lost, and it is why this path is a flag rather than a fallback: on ClimbMix
+      the labels are free evidence and should not be silently discarded.
+
+    Persisted once either way, so every variant judges byte-identical pairs and
+    the sampler's seed is auditable.
 
     Returns `(pairs, agent_class_by_chunk, sample_path)` — the class map is the
     stratum each pair's chunk belongs to, which the agreement smell test needs
@@ -1402,8 +1591,11 @@ def _calibration_pairs(cfg: Config, args: argparse.Namespace
     """
     from . import judge as judge_mod
 
-    hits = extract.load_observed_hits(cfg.input_file)
-    sample = extract.calibration_sample(hits, n=args.n, seed=args.seed)
+    if getattr(args, "from_pool", None):
+        sample = _pool_calibration_hits(cfg, args)
+    else:
+        hits = extract.load_observed_hits(cfg.require_input_file())
+        sample = extract.calibration_sample(hits, n=args.n, seed=args.seed)
     cfg.ensure_dirs(cfg.calibration_dir)
     sample_path = cfg.calibration_dir / CALIBRATION_SAMPLE_BASENAME
     extract.write_jsonl(sample_path, (hit.to_json() for hit in sample))
@@ -1863,7 +2055,10 @@ def _labelled(basename: str, label: str | None) -> str:
 
 #: The cell every candidate is tested against (PLAN §0: pyserini's default, and
 #: **[measured]** score-identical to the hosted server aus_agent actually used).
-BASELINE_CONFIG_NAME = "k1_0.9__b_0.4"
+#: The **default** only — `stats` resolves the real name from `cfg.baseline`, so
+#: `BM25_TUNE_BASELINE` reaches it. Kept as a constant because argparse builds its
+#: help text before any `Config` exists.
+BASELINE_CONFIG_NAME = searcher_mod.config_key(*searcher_mod.BASELINE_CONFIG)
 
 #: `consensus` artifacts (PLAN §6.2b). The 4-column TREC qrels is the *published*
 #: form on purpose: it spans prompt versions, so `metrics.load_qrels_trec` reads
@@ -1919,8 +2114,7 @@ def _load_qkeys_for_scoring(cfg: Config, args: argparse.Namespace,
         log.info("[LOAD] %d qkeys from %s", len(keys), args.queries)
         return keys
     union = sorted({qkey for run in runs for qkey in run.rankings})
-    for basename in (QUERIES_FULL_BASENAME, QUERIES_SUBSAMPLE_BASENAME):
-        path = cfg.queries_dir / basename
+    for path in (cfg.queries_full_file, cfg.queries_subsample_file):
         if not path.is_file():
             continue
         keys = stats_mod.load_qkeys(path)
@@ -2355,10 +2549,9 @@ def cmd_stats(args: argparse.Namespace) -> int:
     log.info("[LOAD] %d configs across run(s) %s", len(runs),
              [args.run_id] + ([args.run_id_b] if args.run_id_b else []))
 
-    full_path = Path(args.queries) if args.queries \
-        else cfg.queries_dir / QUERIES_FULL_BASENAME
-    sub_path = Path(args.subsample) if args.subsample \
-        else cfg.queries_dir / QUERIES_SUBSAMPLE_BASENAME
+    full_path = Path(args.queries) if args.queries else cfg.queries_full_file
+    sub_path = (Path(args.subsample) if args.subsample
+                else cfg.queries_subsample_file)
     for path, what in ((full_path, "full query file"),
                        (sub_path, "Stage-A subsample file")):
         if not path.is_file():
@@ -2375,7 +2568,10 @@ def cmd_stats(args: argparse.Namespace) -> int:
 
     scored = metrics.score_all(runs, qrels, full_qkeys)
     per_config = _per_config_query_values(scored)
-    baseline = args.baseline
+    # `--baseline` beats BM25_TUNE_BASELINE beats the plan's cell. Resolved here
+    # rather than as an argparse default because the env var is only read once a
+    # `Config` exists, which is after the parser is built.
+    baseline = args.baseline or searcher_mod.config_key(*cfg.baseline)
     if baseline not in per_config:
         log.error("[LOAD] baseline config %r not among the run files %s — pass "
                   "--baseline", baseline, sorted(per_config))
@@ -2478,6 +2674,27 @@ def build_parser() -> argparse.ArgumentParser:
                              help="overwrite existing query files")
     extract_cmd.set_defaults(func=cmd_extract_queries)
 
+    make_cmd = subs.add_parser(
+        "make-queries",
+        help="build the same query artifacts from a plain query file (JSONL / "
+             "TSV / CSV / one-per-line) — the any-corpus alternative to "
+             "extract-queries")
+    make_cmd.add_argument("queries_in", metavar="QUERY_FILE",
+                          help="JSONL ({topic_id, query, narrative}), TSV/CSV "
+                               "(topic_id, query[, narrative]), or one query "
+                               "per line")
+    make_cmd.add_argument("--topic-prefix", default="q",
+                          help="topic id prefix when the file has no topic "
+                               "column, giving each query its own topic "
+                               "(default: q, so q-1, q-2, ...)")
+    make_cmd.add_argument("--per-topic", type=int, default=SUBSAMPLE_PER_TOPIC,
+                          help="queries per topic in the Stage-A subsample")
+    make_cmd.add_argument("--seed", type=int, default=SUBSAMPLE_SEED,
+                          help="subsample seed")
+    make_cmd.add_argument("--force", action="store_true",
+                          help="overwrite existing query files")
+    make_cmd.set_defaults(func=cmd_make_queries)
+
     # -- WP2: search-sweep / smoke (PLAN §5.2, §5.5, §6.1) -------------------
     sweep = subs.add_parser(
         "search-sweep",
@@ -2562,9 +2779,14 @@ def build_parser() -> argparse.ArgumentParser:
                                 "costs/ (PLAN §5.8) and never the run dir, "
                                 "which holds this command's input pool")
     judge_cmd.add_argument("--allow-partial-texts", action="store_true",
+                           # `%%`, not a `:.0%` format: argparse %-expands help
+                           # text, so a bare `%` here makes `--help` die with
+                           # `TypeError: %o format` — the one place a help string
+                           # can crash the CLI without any test noticing.
                            help="judge even when under "
-                                f"{MIN_POOL_TEXT_COVERAGE:.0%} of pooled "
-                                "chunks have a passage in pool-texts.jsonl; "
+                                f"{MIN_POOL_TEXT_COVERAGE * 100:.0f}%% of "
+                                "pooled chunks have a passage in "
+                                "pool-texts.jsonl; "
                                 "the missing ones score as unjudged, which "
                                 "deflates judged@10 for every config")
     judge_cmd.set_defaults(func=cmd_judge_pool)
@@ -2700,8 +2922,10 @@ def build_parser() -> argparse.ArgumentParser:
                            help="a second run to pull configs from (e.g. the "
                                 "baseline swept in an earlier run); the first "
                                 "run wins on a config collision")
-    stats_cmd.add_argument("--baseline", default=BASELINE_CONFIG_NAME,
-                           help="the config every candidate is compared to")
+    stats_cmd.add_argument("--baseline", default=None,
+                           help="the config every candidate is compared to "
+                                f"(default: {BASELINE_CONFIG_NAME}, or "
+                                "BM25_TUNE_BASELINE)")
     stats_cmd.add_argument("--candidates", nargs="+", default=None,
                            metavar="CONFIG",
                            help="candidate config names (default: every other "
@@ -2763,6 +2987,13 @@ def build_parser() -> argparse.ArgumentParser:
         "--queries", type=Path, default=None,
         help=f"query file supplying the topic narratives (default: "
              f"queries/{QUERIES_FULL_BASENAME})")
+    calib_cmd.add_argument(
+        "--from-pool", metavar="RUN_ID", default=None,
+        help="draw the sample from this sweep run's pool.jsonl + "
+             "pool-texts.jsonl instead of the labeled search log — the "
+             "any-corpus path into this mandatory gate. No agent labels exist "
+             "on a pooled sample, so the agreement smell test reads '—' and the "
+             "gate rests on its four grade-distribution conditions alone")
     calib_cmd.add_argument(
         "--fresh", action="store_true",
         help="rename each variant's qrels snapshot aside first; NEVER touches "

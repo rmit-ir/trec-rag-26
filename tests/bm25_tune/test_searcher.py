@@ -13,10 +13,11 @@ JVM call — and each of these has a silent failure mode:
   of a batch under the wrong config, producing a run file that is well-formed and
   wrong, with nothing downstream able to detect it (PLAN R9). The rule is
   enforced, so it is tested.
-- **`doc(id).contents()` vs `.raw()`.** `.raw()` is None on this index
-  (**[measured]**), so a `.raw()`-based implementation would hand the judge empty
-  passages — graded 0 across the board, sweep still producing a plausible score
-  matrix.
+- **`doc(id).contents()` vs `.raw()`.** `.raw()` is None on the ClimbMix index and
+  `contents()` is None on a stock `--storeRaw` one (both **[measured]**) — exact
+  opposites, so reading only one accessor hands the judge empty passages on half
+  the indexes it may be pointed at: graded 0 across the board, sweep still
+  producing a plausible score matrix. `_document_text` tries both.
 - **The `num_docs` assertion.** A moved or re-chunked index would silently make
   every cached judgment refer to text that is no longer there.
 - **Warmup.** Without it the first grid cell's 9.4 s cold start reads as a
@@ -36,6 +37,7 @@ plumbing check were both in the resumed path, not the searching one.
 """
 from __future__ import annotations
 
+import json
 import subprocess
 import sys
 from pathlib import Path
@@ -529,6 +531,73 @@ def test_fetch_texts_uses_contents_because_raw_is_unusable(
     assert chunk_searcher.fetch_texts(["c1"]) == {"c1": "the stored chunk text"}
 
 
+def test_document_text_reads_raw_when_contents_is_none() -> None:
+    """A stock `--storeRaw` Anserini index is the exact mirror of ClimbMix's.
+
+    Measured on a `pyserini.index.lucene --storeRaw` index: `contents()` is None
+    and `raw()` holds the source JSON — the opposite of `climbmix-bm25-chunked`.
+    A `contents()`-only reader therefore fetched 0 of 49 pooled passages on the
+    first foreign index the harness was pointed at, which is silent: empty
+    passages grade 0 uniformly and the score matrix still looks complete.
+    """
+    from bm25tune.searcher import _document_text
+
+    class RawOnlyDoc:
+        def contents(self) -> None:
+            return None
+
+        def raw(self) -> str:
+            return json.dumps({"id": "doc_7_p1", "contents": "the real text"})
+
+    assert _document_text(RawOnlyDoc()) == "the real text"
+
+
+def test_document_text_unwraps_the_json_record_rather_than_judging_braces() -> None:
+    """The judge must see the passage, not `{"id": ..., "contents": ...}`.
+
+    `raw()` on a JsonCollection index is the serialized source record. Handing it
+    over verbatim would put field names, braces and the docid into the prompt —
+    which grades as *something* rather than failing, so no downstream check would
+    catch it. A record with no recognised text field is reported as missing (None)
+    for the same reason.
+    """
+    from bm25tune.searcher import _document_text
+
+    class Doc:
+        def __init__(self, raw: str) -> None:
+            self._raw = raw
+
+        def contents(self) -> None:
+            return None
+
+        def raw(self) -> str:
+            return self._raw
+
+    assert _document_text(Doc('{"id": "d1", "text": "body here"}')) == "body here"
+    assert _document_text(Doc('{"id": "d1", "notes": "unrecognised"}')) is None
+    # Not JSON at all (a plain-text collection) — passed through unchanged.
+    assert _document_text(Doc("just text")) == "just text"
+
+
+def test_document_text_prefers_contents_over_raw() -> None:
+    """ClimbMix's shape still wins when both accessors have something.
+
+    `contents()` is the extracted passage; `raw()` is the wrapper around it. If
+    the fallback ever took precedence, every ClimbMix judgment would silently be
+    made on a JSON blob instead of the chunk text.
+    """
+    from bm25tune.searcher import _document_text
+
+    class BothDoc:
+        def contents(self) -> str:
+            return "the passage"
+
+        def raw(self) -> str:
+            return json.dumps({"contents": "the wrapper"})
+
+    assert _document_text(BothDoc()) == "the passage"
+
+
 def test_fetch_texts_strips_the_leaked_page_header(
         tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     """Pool text is header-stripped before it can reach the judge (PLAN §2.1).
@@ -615,6 +684,31 @@ def test_stage_a_grid_is_the_plans_26_cells_including_the_baseline() -> None:
     assert grid[:2] == [(0.5, 0.2), (0.5, 0.35)]
     assert set(searcher_mod.GRID_K1) == {0.5, 0.7, 0.9, 1.2, 1.6}
     assert set(searcher_mod.GRID_B) == {0.2, 0.35, 0.5, 0.65, 0.8}
+
+
+def test_stage_a_grid_appends_a_custom_baseline_the_axes_miss() -> None:
+    """The cell you compare against must be swept, whatever the axes are.
+
+    Generalized for `BM25_TUNE_GRID_*` / `BM25_TUNE_BASELINE`: on a new index the
+    operator picks their own axes and their own baseline, and the two need not
+    intersect. If the baseline were only appended for the plan's `(0.9, 0.4)`,
+    `stats` would exit 1 with "baseline not among the run files" after the whole
+    sweep and the whole judging spend.
+    """
+    grid = stage_a_grid([0.6, 1.0], [0.3, 0.7], (1.2, 0.75))
+    assert grid == [(0.6, 0.3), (0.6, 0.7), (1.0, 0.3), (1.0, 0.7), (1.2, 0.75)]
+
+
+def test_stage_a_grid_does_not_duplicate_a_baseline_already_on_the_axes() -> None:
+    """A baseline the axes already cross must not be swept twice.
+
+    Both cells would share one run-file name, so the second search would silently
+    overwrite the first — and the cell count in the manifest would disagree with
+    the number of files on disk.
+    """
+    grid = stage_a_grid([0.9, 1.2], [0.4, 0.75], (0.9, 0.4))
+    assert grid == [(0.9, 0.4), (0.9, 0.75), (1.2, 0.4), (1.2, 0.75)]
+    assert len(set(grid)) == len(grid)
 
 
 def test_stage_a_grid_order_is_stable() -> None:

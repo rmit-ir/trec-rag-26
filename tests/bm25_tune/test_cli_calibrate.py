@@ -35,6 +35,8 @@ What it defends, in order of what it costs to get wrong:
 4. **The report the human reads carries its own caveats.** Both label mixes and
    the three §3.3b warnings travel with the numbers, so the artifact cannot be
    misread in isolation as an accuracy measure or a pool-level share.
+5. **The gate is runnable on a corpus with no labeled log** (`--from-pool`), and
+   says out loud which measurement it lost by being so.
 """
 from __future__ import annotations
 
@@ -133,13 +135,15 @@ class CalibHarness:
 
     def __init__(self, cfg, converse: _CalibConverse, texts: dict[str, str],
                  sampled_ids: list[str], agent_class: dict[str, str],
-                 pass_map: dict[str, int], driver_box: dict) -> None:
+                 pass_map: dict[str, int], topic_of: dict[str, str],
+                 driver_box: dict) -> None:
         self.cfg = cfg
         self.converse = converse
         self.texts = texts
         self.sampled_ids = sampled_ids
         self.agent_class = agent_class
         self.pass_map = pass_map
+        self.topic_of = topic_of
         self._driver_box = driver_box
 
     # -- commands -----------------------------------------------------------
@@ -210,6 +214,31 @@ class CalibHarness:
 
     def spent(self) -> float:
         return pricing.CostMeter.load(self.cfg.costs_dir).spent_usd()
+
+    # -- the any-corpus path ------------------------------------------------
+    def seed_pool(self, run_id: str, *, with_texts: bool = True) -> Path:
+        """Write a sweep run's `pool.jsonl` (+ sidecar) over the sampled chunks.
+
+        Reuses the *same* chunk ids and passages as the historical sample, so
+        `_CalibConverse`'s text-keyed grade map applies unchanged and a
+        `--from-pool` run is comparable to the default one pair for pair. That is
+        the only way to attribute a difference in the report to the *source* of
+        the sample rather than to different passages.
+        """
+        run_dir = self.cfg.run_dir(run_id)
+        run_dir.mkdir(parents=True, exist_ok=True)
+        rows = [{"topic_id": topic_id, "chunk_id": chunk_id,
+                 "first_seen_config": "k1_0.9__b_0.4", "text_sha256": None}
+                for chunk_id, topic_id in sorted(self.topic_of.items())]
+        (run_dir / cli.POOL_BASENAME).write_text(
+            "".join(json.dumps(r, sort_keys=True) + "\n" for r in rows),
+            encoding="utf-8")
+        if with_texts:
+            (run_dir / cli.POOL_TEXTS_BASENAME).write_text(
+                "".join(json.dumps({"chunk_id": c, "text": self.texts[c]},
+                                   sort_keys=True) + "\n"
+                        for c in sorted(self.texts)), encoding="utf-8")
+        return run_dir
 
 
 class _CredError(Exception):
@@ -288,8 +317,9 @@ def calib(tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
         return driver
 
     monkeypatch.setattr(judge, "JudgePoolDriver", _driver_factory)
+    topic_of = {h.chunk_id: h.topic_id for h in sample}
     return CalibHarness(bm25_config, converse, texts, sampled_ids, agent_class,
-                        pass_map, driver_box)
+                        pass_map, topic_of, driver_box)
 
 
 # ---------------------------------------------------------------------------
@@ -527,6 +557,78 @@ def test_the_report_carries_both_label_mixes_and_the_caveats(
 
     from bm25tune import calibration as calib_mod
     assert calib.report_json()["pool_label_mix"] == calib_mod.POOL_LABEL_MIX
+
+
+# ---------------------------------------------------------------------------
+# The any-corpus path: calibrating off a sweep pool instead of a labeled log
+# ---------------------------------------------------------------------------
+def test_from_pool_runs_the_whole_gate_with_no_labeled_log_present(
+        calib: CalibHarness, caplog: pytest.LogCaptureFixture) -> None:
+    """`--from-pool` must gate a corpus that has no aus_agent log at all.
+
+    This is the generalization claim: the gate is mandatory before any sweep
+    spend (PLAN §3.3), and every corpus except ClimbMix reaches it only this way.
+    So the labeled log is *deleted* before the run rather than merely ignored —
+    if any code path still reached for it, this test fails instead of passing on
+    a file that happens to be lying around.
+    """
+    calib.seed_pool("stage-a")
+    calib.cfg.input_file.unlink()
+
+    with caplog.at_level("INFO"):
+        assert calib.calibrate("--from-pool", "stage-a") == cli.EXIT_OK
+    assert "NO agent labels exist on a pooled sample" in caplog.text
+    assert "[GATE] PASS — recommended judge:" in caplog.text
+
+    report = calib.report_json()
+    assert report["winner"] in all_versions()
+    # Same pairs, same grades, so billing is unchanged by the sample's source.
+    assert len(calib.converse.calls) == N_VARIANTS * CALIB_N
+
+
+def test_from_pool_reports_the_agreement_column_as_absent_not_as_failing(
+        calib: CalibHarness) -> None:
+    """A labels-free sample must yield `auc: null` and a report that says why.
+
+    `ordered` is False and every AUC cell is a dash on this path. Read without
+    the note, that table looks like a judge which cannot separate relevant from
+    irrelevant — the opposite of the truth, which is that the sample carries no
+    labels to separate. Getting this wrong would gate a healthy judge by human
+    escalation, so the explanation is asserted verbatim-ish here.
+    """
+    calib.seed_pool("stage-a")
+    assert calib.calibrate("--from-pool", "stage-a") == cli.EXIT_OK
+
+    report = calib.report_json()
+    for variant in report["variants"]:
+        assert variant["auc"] is None, "a launcher must see null, never 0.5"
+        assert variant["n_by_class"].get("unjudged") == CALIB_N
+        assert not variant["n_by_class"].get("positive")
+
+    md = calib.report_md()
+    assert "Not computable for this sample: no agent labels." in md
+    assert "This is an absent measurement, not a failed one" in md
+
+
+def test_from_pool_names_the_missing_artifact_instead_of_crashing(
+        calib: CalibHarness, caplog: pytest.LogCaptureFixture) -> None:
+    """Both missing-input cases refuse with the command that would fix them.
+
+    An operator arrives here having just built an index, so the two likely
+    mistakes are calibrating before the sweep and having swept with
+    `--no-fetch-texts`. A traceback would send them into the harness source; the
+    error must name `search-sweep` and the flag respectively. Exit 1 (not 6): the
+    gate did not fail, it never ran.
+    """
+    with caplog.at_level("ERROR"):
+        assert calib.calibrate("--from-pool", "stage-a") == cli.EXIT_ERROR
+    assert "search-sweep" in caplog.text and "stage-a" in caplog.text
+
+    caplog.clear()
+    calib.seed_pool("stage-a", with_texts=False)
+    with caplog.at_level("ERROR"):
+        assert calib.calibrate("--from-pool", "stage-a") == cli.EXIT_ERROR
+    assert "--no-fetch-texts" in caplog.text
 
 
 # ---------------------------------------------------------------------------

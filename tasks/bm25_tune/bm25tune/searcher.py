@@ -30,10 +30,12 @@ moved or rebuilt index cannot silently change what the experiment measured.
 """
 from __future__ import annotations
 
+import json
 import time
 from pathlib import Path
 from typing import Any, Iterable, Sequence
 
+from . import config as config_mod
 from .extract import QueryRec, strip_page_prefix
 from .logging_setup import get_logger
 
@@ -42,8 +44,9 @@ log = get_logger("searcher")
 #: **[measured]** chunk count of `climbmix-bm25-chunked`. Asserted on open, and
 #: recorded in the run manifest, because a different number means a different
 #: corpus — which would invalidate every cached judgment keyed on a chunk id
-#: (PLAN R7).
-EXPECTED_NUM_DOCS = 921_892_634
+#: (PLAN R7). Override per-index with `BM25_TUNE_EXPECTED_NUM_DOCS`; this is the
+#: default so the ClimbMix experiment keeps its guard with nothing exported.
+EXPECTED_NUM_DOCS = config_mod.DEFAULT_EXPECTED_NUM_DOCS
 
 #: Retrieval depth per config. Metric is nDCG@10, so 30 leaves 3x headroom for
 #: rank movement between configs while pool inflation stays modest (PLAN §5.5).
@@ -60,13 +63,19 @@ BATCH_SIZE = 64
 
 #: pyserini's default, and **[measured]** score-identical to the hosted
 #: production server aus_agent actually queried — hence the baseline to beat.
-BASELINE_CONFIG: tuple[float, float] = (0.9, 0.4)
+#: Override with `BM25_TUNE_BASELINE`.
+BASELINE_CONFIG: tuple[float, float] = config_mod.parse_cell(
+    "", config_mod.DEFAULT_BASELINE)
 
 #: PLAN §6.1's 5x5 coarse grid. Extends two steps below the pyserini default on
 #: both axes (chunks are length-controlled, so low `b`/low `k1` is the plausible
 #: winning direction) while still covering Lucene's 1.2/0.75 corner region.
-GRID_K1: tuple[float, ...] = (0.5, 0.7, 0.9, 1.2, 1.6)
-GRID_B: tuple[float, ...] = (0.2, 0.35, 0.5, 0.65, 0.8)
+#: Override with `BM25_TUNE_GRID_K1` / `BM25_TUNE_GRID_B`; these are the defaults
+#: those vars fall back to, kept as module constants because they are the *plan's*
+#: grid and are quoted as such in the report.
+GRID_K1: tuple[float, ...] = config_mod.parse_grid_axis(
+    "", config_mod.DEFAULT_GRID_K1)
+GRID_B: tuple[float, ...] = config_mod.parse_grid_axis("", config_mod.DEFAULT_GRID_B)
 
 #: Throwaway queries for `warmup()`. Deliberately generic English so the call
 #: touches ordinary postings lists rather than a rare-term shortcut — the point
@@ -76,6 +85,62 @@ WARMUP_QUERIES: tuple[str, ...] = (
     "soil moisture irrigation scheduling",
     "workplace training and development policy",
 )
+
+
+def _document_text(doc: Any) -> str | None:
+    """The passage text of a Lucene document, or `None` if it has none stored.
+
+    **Which accessor works depends on how the index was built, and the two common
+    cases are exact opposites** — so trying only one silently hands the judge
+    empty passages, which grade 0 uniformly and still produce a plausible score
+    matrix (the failure this whole function exists to prevent):
+
+    - `climbmix-bm25-chunked` (built with a custom generator): `contents()`
+      returns the text and **[measured]** `.raw()` is `None`.
+    - a stock `pyserini.index.lucene --storeRaw` index: `.raw()` holds the source
+      JSON and **[measured]** `contents()` is `None`.
+
+    So: `contents()`, else `raw()` — and when `raw()` is a JSON object with a
+    `contents`/`text`/`body` field, that field rather than the serialized record,
+    because the judge must not be shown `{"id": ..., "contents": ...}` wrapped in
+    braces. A `raw()` that is not JSON is passed through as text, which is what a
+    plain-text `--storeRaw` collection gives.
+
+    Returns `None` only when the document is absent or stores no text at all;
+    callers distinguish that from an empty passage.
+    """
+    if doc is None:
+        return None
+    for accessor in ("contents", "raw"):
+        method = getattr(doc, accessor, None)
+        if not callable(method):
+            continue
+        try:
+            value = method()
+        except Exception:  # pragma: no cover - defensive across pyserini versions
+            continue
+        if value is None:
+            continue
+        text = str(value)
+        if not text.strip():
+            continue
+        if accessor == "raw" and text.lstrip().startswith("{"):
+            try:
+                payload = json.loads(text)
+            except json.JSONDecodeError:
+                return text
+            if isinstance(payload, dict):
+                for field in ("contents", "text", "body", "passage", "segment"):
+                    inner = payload.get(field)
+                    if isinstance(inner, str) and inner.strip():
+                        return inner
+                # A JSON record with no recognised text field: returning the
+                # serialized object would put field names and braces in front of
+                # the judge, so treat it as "no text stored" and let the caller
+                # report it as missing.
+                return None
+        return text
+    return None
 
 
 class SearcherError(RuntimeError):
@@ -116,18 +181,32 @@ def run_file_name(k1: float, b: float) -> str:
     return f"{config_key(k1, b)}.txt"
 
 
-def stage_a_grid() -> list[tuple[float, float]]:
-    """PLAN §6.1's 26 cells: the 5x5 grid plus the `(0.9, 0.4)` baseline.
+def stage_a_grid(k1_values: Sequence[float] | None = None,
+                 b_values: Sequence[float] | None = None,
+                 baseline: tuple[float, float] | None = None
+                 ) -> list[tuple[float, float]]:
+    """The cross of the two axes plus the baseline — PLAN §6.1's 26 cells.
 
     The baseline is appended rather than folded into the axes because `b=0.4` is
     not one of the five `b` values — it is pyserini's default and the config
     aus_agent's production runs used, so it must be swept even though the grid
-    would otherwise skip it. Order is stable (k1-major) so `first_seen_config`
-    in the pool file is reproducible across re-runs.
+    would otherwise skip it. That is a *general* rule, not a ClimbMix one: on any
+    corpus the cell you are trying to beat has to be measured under the same
+    conditions as its challengers, so it is appended whatever the axes are.
+
+    Order is stable (k1-major) so `first_seen_config` in the pool file is
+    reproducible across re-runs.
+
+    The arguments default to the module constants (PLAN §6.1's grid), so a caller
+    with no `Config` — a test, a REPL — behaves exactly as before; `cli.py` passes
+    the resolved config so `BM25_TUNE_GRID_*` reaches it.
     """
-    cells = [(k1, b) for k1 in GRID_K1 for b in GRID_B]
-    if BASELINE_CONFIG not in cells:
-        cells.append(BASELINE_CONFIG)
+    axis_k1 = GRID_K1 if k1_values is None else tuple(k1_values)
+    axis_b = GRID_B if b_values is None else tuple(b_values)
+    cell_baseline = BASELINE_CONFIG if baseline is None else tuple(baseline)
+    cells = [(k1, b) for k1 in axis_k1 for b in axis_b]
+    if cell_baseline not in cells:
+        cells.append(cell_baseline)  # type: ignore[arg-type]
     return cells
 
 
@@ -260,9 +339,13 @@ class ChunkSearcher:
                 and num_docs != self.expected_num_docs):
             raise SearcherError(
                 f"index at {self.index_dir} holds {num_docs} docs, expected "
-                f"{self.expected_num_docs} — this is not the chunked ClimbMix "
-                "index the experiment was measured against; STOP rather than "
-                "updating the expectation (PLAN R7)")
+                f"{self.expected_num_docs} — this is not the index this "
+                "experiment's judgments were made against. STOP rather than "
+                "updating the expectation (PLAN R7): the judgment cache is keyed "
+                "on chunk id, so scoring a re-chunked corpus would compare new "
+                "passages against grades given to old ones. If this really is a "
+                "different, intended index, it needs its own BM25_TUNE_DATA_DIR "
+                f"(and BM25_TUNE_EXPECTED_NUM_DOCS={num_docs}).")
 
         log.info("[LOAD] opened %s num_docs=%d in %.1fs threads=%d",
                  self.index_dir, num_docs, self.open_seconds, self.threads)
@@ -398,10 +481,11 @@ class ChunkSearcher:
                     strip_prefix: bool = True) -> dict[str, str]:
         """Stored text for pooled chunks. `chunk_id -> text`.
 
-        Uses `doc(id).contents()`: **[measured]** `.raw()` is None/False on this
-        index, so the obvious call returns nothing and a naive implementation
-        would hand the judge empty passages — graded 0 across the board, with the
-        sweep still producing a plausible-looking score matrix.
+        Text extraction is `_document_text` — read its docstring before touching
+        this: which pyserini accessor holds the text depends on how the index was
+        built, and picking the wrong one hands the judge empty passages that grade
+        0 across the board while the sweep still produces a plausible-looking
+        score matrix.
 
         `strip_prefix` removes a leaked `"Page N of document: <title>"` header
         (PLAN §5.1). It defaults to True because this method is the *only* way
@@ -452,7 +536,7 @@ class ChunkSearcher:
 
     def _fetch_batch(self, searcher: Any,
                      chunk_ids: Sequence[str]) -> Iterable[tuple[str, Any]]:
-        """Yield `(chunk_id, contents_or_None)` for a batch of ids.
+        """Yield `(chunk_id, text_or_None)` for a batch of ids.
 
         Prefers `batch_doc(ids, threads)` (the JVM fans the random reads out
         across threads — the stored-fields file is ~1 TB, so these are real disk
@@ -463,12 +547,10 @@ class ChunkSearcher:
         if callable(batch_doc):
             docs = batch_doc(list(chunk_ids), self.threads) or {}
             for chunk_id in chunk_ids:
-                doc = docs.get(chunk_id)
-                yield chunk_id, None if doc is None else doc.contents()
+                yield chunk_id, _document_text(docs.get(chunk_id))
             return
         for chunk_id in chunk_ids:
-            doc = searcher.doc(chunk_id)
-            yield chunk_id, None if doc is None else doc.contents()
+            yield chunk_id, _document_text(searcher.doc(chunk_id))
 
     # -- teardown -----------------------------------------------------------
     def close(self) -> None:

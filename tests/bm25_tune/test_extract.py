@@ -126,6 +126,164 @@ def test_malformed_line_names_its_line_number(tmp_path: Path) -> None:
 
 
 # ---------------------------------------------------------------------------
+# Bring-your-own-queries loading (`load_plain_queries`)
+# ---------------------------------------------------------------------------
+def test_plain_queries_read_bare_one_per_line(tmp_path: Path) -> None:
+    """A hand-typed list is a valid query set; each line becomes its own topic.
+
+    This is the cheapest possible input, so it is the one an operator reaches for
+    first — and the shape with the least information. Every query must get a
+    *distinct* `topic_id`: ids group qrels (the cache key is
+    `prompt::topic_id::chunk_id`) and ideal DCG is per topic, so collapsing
+    unrelated queries into one topic would pool judgements that were never meant
+    to be shared and deflate nDCG for all of them.
+    """
+    path = tmp_path / "queries.txt"
+    path.write_text("soil moisture probes\n\nbushfire fuel load mapping\n")
+    recs = extract.load_plain_queries(path)
+    # File order survives: synthesised ids are numbered as the lines are read and
+    # the sort is numeric on that suffix, so the artifact reads like the input.
+    assert [r.query for r in recs] == ["soil moisture probes",
+                                       "bushfire fuel load mapping"]
+    assert [r.topic_id for r in recs] == ["q-1", "q-2"]
+    # No narrative available, so the query stands in as the judge's target.
+    assert all(r.topic == r.query for r in recs)
+    assert all(r.qkey.startswith(r.topic_id + "::") for r in recs)
+
+
+def test_plain_queries_read_positional_tsv(tmp_path: Path) -> None:
+    """`topic_id<TAB>query` with no header keeps the operator's ids.
+
+    A first row that is not entirely alias names is *data*: reading it as a
+    header would silently drop one query, which is exactly the kind of off-by-one
+    that survives every downstream check.
+    """
+    path = tmp_path / "queries.tsv"
+    path.write_text("t-1\tsoil moisture probes\nt-1\tsoil water content\n"
+                    "t-2\tbushfire fuel load\n")
+    recs = extract.load_plain_queries(path)
+    assert len(recs) == 3, "the first row is data, not a header"
+    assert {r.topic_id for r in recs} == {"t-1", "t-2"}
+    # Two queries under one id share a topic — and therefore share judgements.
+    assert sum(r.topic_id == "t-1" for r in recs) == 2
+
+
+def test_plain_queries_read_a_headed_csv_with_a_narrative(
+        tmp_path: Path) -> None:
+    """Aliases are matched case- and separator-insensitively.
+
+    Operators hand over exports with `Topic ID` and `narrative` rather than the
+    harness' own spellings. Getting `narrative` wrong is the expensive miss: the
+    judge prompt asks "is this passage useful for <topic>" (PLAN §0), so falling
+    back to the keyword text quietly changes what was judged for every passage,
+    and the resulting qrels look perfectly well-formed.
+    """
+    path = tmp_path / "queries.csv"
+    path.write_text("Topic ID,query,narrative\n"
+                    "rag2026-7,soil moisture,"
+                    "How is soil moisture measured at paddock scale?\n")
+    recs = extract.load_plain_queries(path)
+    assert len(recs) == 1
+    assert recs[0].topic_id == "rag2026-7"
+    assert recs[0].query == "soil moisture"
+    assert recs[0].topic.startswith("How is soil moisture measured")
+
+
+def test_plain_queries_read_jsonl_with_trec_style_keys(tmp_path: Path) -> None:
+    """`qid`/`query_id` and `description` are accepted as-is.
+
+    A TREC topics file converted to JSONL is the most likely real input, and
+    requiring a rename step first is what pushes an operator into writing a
+    one-off converter — the thing this loader exists to make unnecessary.
+    """
+    path = tmp_path / "topics.jsonl"
+    path.write_text(json.dumps({"qid": "301", "text": "hubble telescope",
+                                "description": "Hubble achievements"}) + "\n"
+                    + json.dumps({"query_id": "302", "query": "mars rover",
+                                  "narrative": "Rover science returns"}) + "\n")
+    recs = extract.load_plain_queries(path)
+    assert [(r.topic_id, r.query) for r in recs] == [
+        ("301", "hubble telescope"), ("302", "mars rover")]
+    assert recs[0].topic == "Hubble achievements"
+    assert recs[1].topic == "Rover science returns"
+
+
+def test_plain_queries_dedupe_repeated_pairs(tmp_path: Path) -> None:
+    """The same (topic, query) twice collapses, as in the aus_agent loader.
+
+    `qkey` is `topic_id::sha1(query)`, so a duplicate pair is not merely
+    redundant: both rows claim one key, and the second run-file row would
+    overwrite the first instead of being counted.
+    """
+    path = tmp_path / "dupes.tsv"
+    path.write_text("t-1\tsoil moisture\nt-1\tsoil moisture\n")
+    recs = extract.load_plain_queries(path)
+    assert len(recs) == 1
+    assert len({r.qkey for r in recs}) == 1
+
+
+def test_plain_queries_refuse_a_row_with_no_query_text(tmp_path: Path) -> None:
+    """A row naming no query aborts, listing the keys it did see.
+
+    Silently skipping would hand back a shorter query set than the operator
+    supplied, and nothing downstream knows the intended count on a foreign
+    corpus — the 1063-row assertion that catches this for ClimbMix does not apply.
+    """
+    path = tmp_path / "bad.jsonl"
+    path.write_text(json.dumps({"topic_id": "t-1", "notes": "n/a"}) + "\n")
+    with pytest.raises(extract.ExtractError, match="no query text"):
+        extract.load_plain_queries(path)
+
+    empty = tmp_path / "empty.txt"
+    empty.write_text("\n\n")
+    with pytest.raises(extract.ExtractError, match="no queries"):
+        extract.load_plain_queries(empty)
+
+
+def test_plain_queries_sniff_content_rather_than_the_extension(
+        tmp_path: Path) -> None:
+    """A `.txt` holding JSONL is parsed as JSONL.
+
+    Trusting the extension would read each JSON object as one query string, and
+    the run would proceed — searching for literal braces and scoring nothing.
+    That failure is invisible in the sweep output, so the dispatch is on the
+    first non-blank character instead.
+    """
+    path = tmp_path / "actually-jsonl.txt"
+    path.write_text(json.dumps({"qid": "t-1", "query": "soil moisture"}) + "\n")
+    recs = extract.load_plain_queries(path)
+    assert [(r.topic_id, r.query) for r in recs] == [("t-1", "soil moisture")]
+
+
+def test_plain_queries_never_use_the_topic_id_as_the_narrative(
+        tmp_path: Path) -> None:
+    """When `topic` doubles as the id, the query — not the id — is the target.
+
+    `topic` is an alias for *both* fields (a TREC "topic" number and a narrative),
+    so a file using it as an id would otherwise send the judge the string
+    `"t-1"` as the information need and grade every passage against nothing.
+    """
+    path = tmp_path / "ambiguous.jsonl"
+    path.write_text(json.dumps({"topic": "t-1", "query": "soil moisture"})
+                    + "\n")
+    recs = extract.load_plain_queries(path)
+    assert recs[0].topic_id == "t-1"
+    assert recs[0].topic == "soil moisture"
+
+
+def test_plain_queries_honour_the_topic_prefix(tmp_path: Path) -> None:
+    """`--topic-prefix` names the synthesised ids so two sets never collide.
+
+    Ids reach the judgment cache key. Two unrelated query files both defaulting
+    to `q-1` inside one data dir would have their grades read as each other's.
+    """
+    path = tmp_path / "queries.txt"
+    path.write_text("soil moisture\n")
+    recs = extract.load_plain_queries(path, default_topic_prefix="agri")
+    assert recs[0].topic_id == "agri-1"
+
+
+# ---------------------------------------------------------------------------
 # Observed hits
 # ---------------------------------------------------------------------------
 def test_observed_hits_dedupe_per_topic_keeping_best_rank(
@@ -362,6 +520,129 @@ def test_calibration_sample_never_repeats_a_pair(
     sample = calibration_sample(hits, n=99, seed=7)
     keys = [(h.topic_id, h.chunk_id) for h in sample]
     assert len(keys) == len(set(keys)) == len(hits)
+
+
+# ---------------------------------------------------------------------------
+# Pool-sourced calibration (`calibrate --from-pool`, the any-corpus gate)
+# ---------------------------------------------------------------------------
+class _Entry:
+    """Minimal `pool.PoolEntry` stand-in — the sampler duck-types on purpose.
+
+    `pool.py` imports `extract`, so `extract` cannot import `pool`; the sampler
+    reads `.topic_id`/`.chunk_id` off whatever it is handed. Using a local class
+    here proves that contract holds rather than assuming it.
+    """
+
+    def __init__(self, topic_id: str, chunk_id: str) -> None:
+        self.topic_id = topic_id
+        self.chunk_id = chunk_id
+
+
+def _pool_fixture(n_per_topic: int = 6) -> tuple[list[_Entry], dict[str, str],
+                                                 list[QueryRec]]:
+    entries, texts = [], {}
+    for topic in ("t-1", "t-2"):
+        for i in range(n_per_topic):
+            chunk = f"{topic}_doc{i}_p1"
+            entries.append(_Entry(topic, chunk))
+            texts[chunk] = f"passage {i} for {topic}"
+    queries = [QueryRec.make("t-1", "How do growers schedule irrigation?",
+                             "soil moisture", 0),
+               QueryRec.make("t-2", "How is library funding allocated?",
+                             "library funding", 0)]
+    return entries, texts, queries
+
+
+def test_pool_calibration_sample_makes_the_gate_runnable_without_a_log(
+        ) -> None:
+    """The mandatory judge gate must work on a corpus with no labeled log.
+
+    PLAN §3.3 forbids sweep spend before the gate passes, but the labeled
+    aus_agent log exists for exactly one corpus. Without this path an operator on
+    any other index has only bad options: skip the gate and spend on an
+    unvalidated judge, or fabricate a log. The sample must be drawn from
+    artifacts every sweep already produces.
+    """
+    entries, texts, queries = _pool_fixture()
+    sample = extract.pool_calibration_sample(entries, texts, queries, n=6,
+                                             seed=7)
+    assert len(sample) == 6
+    assert {h.topic_id for h in sample} == {"t-1", "t-2"}, "spread over topics"
+    # The narrative — the judge's actual target (PLAN §0) — comes off the query
+    # file, not the pool, which carries only ids.
+    assert all(h.topic.startswith("How ") for h in sample)
+    assert all(h.text for h in sample)
+
+
+def test_pool_calibration_sample_reports_every_pair_as_unjudged() -> None:
+    """No agent labels exist on a pooled sample, and it must not invent any.
+
+    `agent_class` drives the agreement smell test's strata. Guessing a class from
+    retrieval rank — the only signal available — would manufacture a correlation
+    between BM25 score and "agent decision" and make the AUC column a measure of
+    the sampler rather than of the judge. Reporting `unjudged` makes the AUC
+    `None`, which the report renders as an explicit "not computable".
+    """
+    entries, texts, queries = _pool_fixture()
+    sample = extract.pool_calibration_sample(entries, texts, queries, n=8,
+                                             seed=7)
+    assert {h.agent_class for h in sample} == {"unjudged"}
+    assert all(h.label == "" for h in sample)
+
+
+def test_pool_calibration_sample_is_a_pure_function_of_the_seed() -> None:
+    """Same seed, same pairs — regardless of the pool's row order.
+
+    Every prompt variant must judge byte-identical pairs or the cross-prompt
+    grade-distribution comparison the gate makes is meaningless. If the draw
+    could drift with the order `pool.jsonl` happened to be written in, a resumed
+    calibration would re-bill a different sample and silently compare two.
+    """
+    entries, texts, queries = _pool_fixture()
+    first = extract.pool_calibration_sample(entries, texts, queries, n=6, seed=7)
+    again = extract.pool_calibration_sample(list(reversed(entries)), texts,
+                                           queries, n=6, seed=7)
+    assert [h.chunk_id for h in first] == [h.chunk_id for h in again]
+    other = extract.pool_calibration_sample(entries, texts, queries, n=6,
+                                            seed=99)
+    assert [h.chunk_id for h in first] != [h.chunk_id for h in other]
+
+
+def test_pool_calibration_sample_skips_textless_chunks_and_refuses_an_empty_draw(
+        ) -> None:
+    """A chunk with no passage is skipped; nothing to sample at all is fatal.
+
+    Skipping is right per-chunk — a calibration sample needs only `n` usable
+    pairs out of thousands, and `judge-pool` has its own coverage floor for the
+    scoring problem a partial sidecar causes. But an *entirely* textless pool
+    means the sweep ran `--no-fetch-texts`, and proceeding would judge empty
+    strings: every grade 0, the gate failing, and the operator debugging the
+    prompt instead of the sweep.
+    """
+    entries, texts, queries = _pool_fixture()
+    partial = {k: v for i, (k, v) in enumerate(texts.items()) if i % 2 == 0}
+    sample = extract.pool_calibration_sample(entries, partial, queries, n=99,
+                                             seed=7)
+    assert len(sample) == len(partial)
+
+    with pytest.raises(extract.ExtractError, match="no pooled pair"):
+        extract.pool_calibration_sample(entries, {}, queries, n=4, seed=7)
+
+
+def test_pool_calibration_sample_drops_topics_the_query_file_lacks() -> None:
+    """A pooled topic with no narrative cannot be judged, so it is not sampled.
+
+    The narrative is the judge target; a pair without one would be sent with an
+    empty information need and graded against nothing. This is the case where the
+    pool and the query file come from different extractions — cheaper to exclude
+    than to explain a topic whose grades are all 0.
+    """
+    entries, texts, queries = _pool_fixture()
+    entries.append(_Entry("t-99", "t-99_doc0_p1"))
+    texts["t-99_doc0_p1"] = "orphan passage"
+    sample = extract.pool_calibration_sample(entries, texts, queries, n=99,
+                                            seed=7)
+    assert "t-99" not in {h.topic_id for h in sample}
 
 
 # ---------------------------------------------------------------------------

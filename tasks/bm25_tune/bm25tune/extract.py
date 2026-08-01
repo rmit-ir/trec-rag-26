@@ -24,6 +24,7 @@ keyword hits, 8551 unique chunk ids, 8580 unique (topic, chunk) pairs.
 """
 from __future__ import annotations
 
+import csv
 import hashlib
 import json
 import random
@@ -31,7 +32,11 @@ import re
 from collections import Counter, defaultdict
 from dataclasses import asdict, dataclass
 from pathlib import Path
-from typing import Iterable, Iterator, Sequence
+from typing import Iterable, Iterator, Mapping, Sequence
+
+from .logging_setup import get_logger
+
+log = get_logger("extract")
 
 #: The leaked chunk header aus_agent's search layer prepends to pages > 1.
 #: `[measured]` all 3890 keyword hits with `prefix_chars > 0` match it and the
@@ -295,6 +300,138 @@ def load_keyword_queries(path: Path) -> list[QueryRec]:
     return recs
 
 
+#: Column names `load_plain_queries` accepts for each `QueryRec` field, in
+#: priority order. Deliberately generous: the point of the bring-your-own-queries
+#: path is that an operator with a TREC topics file, a CSV export, or a hand-typed
+#: list does not have to write a converter first — and every one of these spellings
+#: appeared in a real file we were handed.
+QUERY_FIELD_ALIASES: dict[str, tuple[str, ...]] = {
+    "query": ("query", "text", "title", "keywords", "keyword_query",
+              "search_query", "question"),
+    "topic_id": ("topic_id", "qid", "query_id", "topic", "id", "number"),
+    "topic": ("topic", "narrative", "description", "desc", "topic_text"),
+}
+
+
+def load_plain_queries(path: Path, *,
+                       default_topic_prefix: str = "q") -> list[QueryRec]:
+    """Read a plain query file — JSONL, TSV/CSV, or one query per line.
+
+    This is the **corpus-independent** input path: `load_keyword_queries` parses
+    one specific aus_agent search log, but tuning BM25 needs only `(topic, query)`
+    pairs, so anything that can name those is enough.
+
+    Recognised shapes, in the order they are tried per file:
+
+    1. **JSONL** — one object per line; keys matched by `QUERY_FIELD_ALIASES`.
+    2. **TSV / CSV** — 1 column = the query; 2 = `topic_id, query`;
+       3+ = `topic_id, query, topic`. A header row is detected and used for
+       aliasing rather than being read as data.
+    3. **Plain text** — one query per line.
+
+    Two fields need care, because getting either wrong is silent:
+
+    - **`topic_id` groups queries that share a relevance judgement.** The judgment
+      cache is keyed `prompt::topic_id::chunk_id` (PLAN §5.3) and ideal DCG is
+      computed per *topic*, so two queries sharing a `topic_id` share their qrels.
+      When the file gives no topic id, each query becomes its own topic
+      (`<prefix>-<n>`) — the safe reading, since it never merges judgements
+      across queries that might not deserve it.
+    - **`topic` is the judge's target** (PLAN §0): the narrative the prompt asks
+      "is this passage useful for". Absent one, the query text is used, which is
+      correct for keyword queries and *weak* for short ones — a judge shown only
+      `"soil moisture"` grades topical similarity, not usefulness. Supply a
+      narrative when you have one.
+    """
+    path = Path(path)
+    rows = _read_query_rows(path)
+    if not rows:
+        raise ExtractError(f"{path} contains no queries")
+    recs: list[QueryRec] = []
+    seen: set[tuple[str, str]] = set()
+    for index, row in enumerate(rows, start=1):
+        query = _first_field(row, QUERY_FIELD_ALIASES["query"])
+        if not query:
+            raise ExtractError(
+                f"{path}: row {index} has no query text — expected one of "
+                f"{list(QUERY_FIELD_ALIASES['query'])}, got {sorted(row)}")
+        topic_id = (_first_field(row, QUERY_FIELD_ALIASES["topic_id"])
+                    or f"{default_topic_prefix}-{index}")
+        # A `topic` alias that merely repeats the query is not a narrative;
+        # keeping it would make the fallback invisible in the artifact.
+        narrative = _first_field(row, QUERY_FIELD_ALIASES["topic"]) or query
+        if narrative == topic_id:
+            narrative = query
+        key = (topic_id, query)
+        if key in seen:
+            # Same (topic, query) twice is the aus_agent loader's dedup rule too:
+            # `qkey` is derived from the text, so a duplicate would collide and
+            # the second run-file row would overwrite the first.
+            continue
+        seen.add(key)
+        recs.append(QueryRec.make(topic_id, narrative, query, 0))
+    recs.sort(key=lambda r: (_topic_sort_key(r.topic_id), r.query))
+    return recs
+
+
+def _first_field(row: Mapping[str, object], names: Sequence[str]) -> str:
+    """First non-empty value among `names`, stripped; `""` if none match.
+
+    Case- and separator-insensitive on the key (`Topic ID` matches `topic_id`),
+    because a header row typed by a human is not normalised.
+    """
+    normalised = {str(k).strip().lower().replace(" ", "_").replace("-", "_"): v
+                  for k, v in row.items()}
+    for name in names:
+        value = normalised.get(name)
+        if value is not None and str(value).strip():
+            return str(value).strip()
+    return ""
+
+
+def _read_query_rows(path: Path) -> list[dict[str, object]]:
+    """Dispatch on content, not on the extension.
+
+    Extensions lie — we have been handed `.txt` holding JSONL and `.jsonl`
+    holding TSV. Sniffing the first non-blank character is both more reliable and
+    what makes a wrong guess loud (a JSON parse error names the line) rather than
+    quiet (a whole JSON object read as one query string).
+    """
+    text = path.read_text(encoding="utf-8")
+    lines = [line for line in text.splitlines() if line.strip()]
+    if not lines:
+        return []
+    if lines[0].lstrip().startswith("{"):
+        return [dict(row) for row in iter_rows(path)]
+
+    delimiter = "\t" if "\t" in lines[0] else ("," if "," in lines[0] else None)
+    if delimiter is None:
+        return [{"query": line.strip()} for line in lines]
+
+    reader = list(csv.reader(lines, delimiter=delimiter))
+    header = [cell.strip() for cell in reader[0]]
+    # A header is a row whose cells all match a known alias: any other first row
+    # is data, and consuming it as a header would silently drop a query.
+    known = {alias for names in QUERY_FIELD_ALIASES.values() for alias in names}
+    normalised_header = [c.lower().replace(" ", "_").replace("-", "_")
+                         for c in header]
+    if header and all(cell in known for cell in normalised_header):
+        return [dict(zip(normalised_header, (c.strip() for c in cells)))
+                for cells in reader[1:] if any(c.strip() for c in cells)]
+
+    positional = ("topic_id", "query", "topic")
+    rows: list[dict[str, object]] = []
+    for cells in reader:
+        cells = [c.strip() for c in cells]
+        if not any(cells):
+            continue
+        if len(cells) == 1:
+            rows.append({"query": cells[0]})
+        else:
+            rows.append(dict(zip(positional, cells[:3])))
+    return rows
+
+
 def _topic_sort_key(topic_id: str) -> tuple[int, str]:
     """Sort `rag2026-N` numerically, anything else lexically after it."""
     _, _, tail = topic_id.rpartition("-")
@@ -437,6 +574,98 @@ def calibration_sample(hits: Sequence[ObservedHit], n: int = 280,
             queue = queues[(topic_id, cls)]
             if queue:
                 picked.append(queue.pop())
+    picked.sort(key=lambda h: (_topic_sort_key(h.topic_id), h.chunk_id))
+    return picked[:n]
+
+
+def pool_calibration_sample(entries: Sequence[object],
+                            texts: Mapping[str, str],
+                            queries: Sequence[QueryRec],
+                            n: int = 280,
+                            seed: int = 7) -> list[ObservedHit]:
+    """Draw a calibration sample from a **sweep pool** instead of a labeled log.
+
+    The corpus-independent counterpart to `calibration_sample`. The judge gate
+    (PLAN §3.3) is mandatory before any sweep spend, but `calibration_sample`
+    reads `ObservedHit`s out of one specific aus_agent search log — so on any
+    other index the gate would be unrunnable and the operator's only options
+    would be to skip it (spending on an unvalidated judge) or to fabricate a log.
+    Neither is acceptable, so the same gate runs off `pool.jsonl` +
+    `pool-texts.jsonl`, which every sweep produces.
+
+    Two consequences the caller must carry through to the report, because both
+    change what the gate's numbers mean:
+
+    - **There are no agent labels**, so every hit's `agent_class` is
+      `"unjudged"`. The agreement smell test (AUC, mean-by-class) is then
+      undefined — correctly reported as `—` rather than as 0.5 — and the gate
+      rests entirely on the grade-distribution conditions. That is the intended
+      degradation: those four conditions are the ones that decide whether a judge
+      can separate grid cells at all, and the smell test was always secondary.
+    - **The sample is retrieval-biased.** These are top-30 BM25 hits, so they are
+      enriched for relevance relative to any wider notion of the corpus, in the
+      same direction (not the same magnitude) as §3.1's positive enrichment.
+      A share-at->=2 read here is an upper bound.
+
+    Stratified per topic and shuffled from a seed, like `calibration_sample`, so
+    the draw is a pure function of `seed` and every prompt variant judges
+    byte-identical pairs. `entries` is a `pool.PoolEntry` sequence (duck-typed to
+    keep this module free of a `pool` import, which imports this one).
+    """
+    if n < 1:
+        raise ValueError(f"n must be >= 1, got {n}")
+    topic_of_query = {rec.topic_id: rec for rec in queries}
+    rng = random.Random(seed)
+
+    by_topic: dict[str, list[ObservedHit]] = defaultdict(list)
+    missing_text = 0
+    for entry in entries:
+        topic_id = str(getattr(entry, "topic_id"))
+        chunk_id = str(getattr(entry, "chunk_id"))
+        text = texts.get(chunk_id) or ""
+        if not text:
+            # Silently dropping would be wrong to hide, but fatal here would be
+            # wrong too: `judge-pool` has its own coverage floor for that, and a
+            # calibration sample only needs `n` usable pairs out of thousands.
+            missing_text += 1
+            continue
+        rec = topic_of_query.get(topic_id)
+        if rec is None:
+            continue
+        by_topic[topic_id].append(ObservedHit(
+            topic_id=topic_id, topic=rec.topic, query=rec.query,
+            chunk_id=chunk_id, parent_docid=parent_docid(chunk_id),
+            rank=0, score=0.0,
+            # No agent label exists on a foreign corpus; `""` maps to
+            # `agent_class == "unjudged"`, which is the honest stratum.
+            label="", reason="pooled (no agent label)", text=text,
+            prefix_stripped=False))
+    if not by_topic:
+        raise ExtractError(
+            "no pooled pair had both a passage and a topic narrative — nothing "
+            "to calibrate on. Check that the sweep ran without --no-fetch-texts "
+            "and that the query file matches the run's pool.")
+    if missing_text:
+        log.warning("[CALIB] %d pooled chunk(s) had no passage text and were "
+                    "skipped when drawing the calibration sample", missing_text)
+
+    topic_ids = sorted(by_topic, key=_topic_sort_key)
+    queues: dict[str, list[ObservedHit]] = {}
+    for topic_id in topic_ids:
+        pool = sorted(by_topic[topic_id], key=lambda h: h.chunk_id)
+        rng.shuffle(pool)
+        queues[topic_id] = pool
+
+    picked: list[ObservedHit] = []
+    # Round-robin one hit per topic per round, so per-topic counts stay uniform
+    # to within one — the same shape `calibration_sample` produces, which is what
+    # keeps a gate reading comparable between the two sources.
+    while len(picked) < n and any(queues[t] for t in topic_ids):
+        for topic_id in topic_ids:
+            if len(picked) >= n:
+                break
+            if queues[topic_id]:
+                picked.append(queues[topic_id].pop())
     picked.sort(key=lambda h: (_topic_sort_key(h.topic_id), h.chunk_id))
     return picked[:n]
 

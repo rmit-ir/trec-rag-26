@@ -370,11 +370,27 @@ def test_every_plan_subcommand_is_registered() -> None:
     actions = [a for a in parser._actions if hasattr(a, "choices")
                and a.dest == "subcommand"]
     registered = set(actions[0].choices)
-    expected = {"verify-inputs", "extract-queries", "calibrate",
+    expected = {"verify-inputs", "extract-queries", "make-queries", "calibrate",
                 "search-sweep", "judge-pool", "score", "consensus", "stats",
                 "rebuild-cache", "cost-report", "budget", "refresh-prices",
                 "smoke"}
     assert registered == expected
+
+
+def test_every_subcommand_can_render_its_own_help() -> None:
+    """`<subcommand> --help` must not raise. It did (`judge-pool`, 2026-07-31).
+
+    argparse `%`-expands help strings, so an f-string using a percent format
+    (`f"{x:.0%}"`) leaves a bare `%` that `format_help()` reads as a conversion
+    specifier and dies with `TypeError: %o format: an integer is required`. The
+    subcommand becomes completely undocumented and unrunnable-by-reading, and
+    nothing else notices: the flag itself still parses, so every test that
+    exercises behaviour passes. Rendering all of them is the only cheap check.
+    """
+    parser = build_parser()
+    actions = [a for a in parser._actions if a.dest == "subcommand"]
+    for name, sub in actions[0].choices.items():
+        assert sub.format_help(), f"{name} rendered empty help"
 
 
 def test_judge_pool_accepts_the_flags_the_plans_launch_command_uses() -> None:
@@ -489,6 +505,173 @@ def test_config_defaults_match_the_plan(monkeypatch: pytest.MonkeyPatch,
     assert cfg.index_dir is None
     assert cfg.data_dir.parts[-2:] == ("data", "bm25-tune")
     assert cfg.overridden == ()
+
+
+def test_grid_axes_baseline_and_query_names_come_from_the_environment(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """The sweep's shape is configuration, not a constant in `searcher.py`.
+
+    This is what lets the harness tune an index it has never seen: a different
+    corpus wants a different grid, a different cell to beat, and query artifacts
+    whose names do not claim a query count they do not have (`keyword-1063.jsonl`
+    would be a lie in every log line). The values must reach `Config` from the
+    env, because the alternative — editing module constants per corpus — makes
+    every run's provenance a function of the working tree rather than of the log.
+    """
+    monkeypatch.setenv("BM25_TUNE_GRID_K1", "0.6, 1.0")
+    monkeypatch.setenv("BM25_TUNE_GRID_B", "0.3 0.7")
+    monkeypatch.setenv("BM25_TUNE_BASELINE", "1.2:0.75")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_FULL", "topics-50.jsonl")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_SUBSAMPLE", "topics-sub.jsonl")
+    cfg = Config.from_env()
+    # Comma- and space-separated both parse, since a copied-out grid arrives both
+    # ways and a silent single-value axis would sweep one column.
+    assert cfg.grid_k1 == (0.6, 1.0)
+    assert cfg.grid_b == (0.3, 0.7)
+    assert cfg.baseline == (1.2, 0.75)
+    assert cfg.queries_full_file.name == "topics-50.jsonl"
+    assert cfg.queries_subsample_file.name == "topics-sub.jsonl"
+    assert cfg.queries_full_file.parent == cfg.queries_dir
+
+
+def test_a_malformed_grid_or_baseline_is_refused_not_silently_narrowed(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Junk in an axis stops the run instead of dropping the bad value.
+
+    Dropping it would sweep a *smaller* grid than the operator asked for and the
+    report would still look complete — the winner would simply be chosen from
+    cells nobody knows are missing. A one-value baseline is refused for the same
+    reason: `stats` compares every candidate against it, so a half-parsed cell
+    would silently retarget every significance test.
+    """
+    from bm25tune.config import ConfigError
+
+    monkeypatch.setenv("BM25_TUNE_GRID_K1", "0.6,banana")
+    with pytest.raises(ConfigError, match="is not a number"):
+        Config.from_env()
+
+    monkeypatch.delenv("BM25_TUNE_GRID_K1")
+    monkeypatch.setenv("BM25_TUNE_BASELINE", "0.9")
+    with pytest.raises(ConfigError, match="not a single k1:b cell"):
+        Config.from_env()
+
+
+def test_the_index_identity_guard_is_disablable_only_in_words(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """`BM25_TUNE_EXPECTED_NUM_DOCS=none` turns off the `num_docs` assertion.
+
+    A first run on a new index cannot know its chunk count, so the guard has to
+    be disablable — but it is the check that makes a cached judgment safe to
+    reuse (the cache key is `prompt::topic_id::chunk_id`, with no corpus
+    component), so "off" must be spelled as a word an operator typed on purpose
+    and must be visible in the `[LOAD]` line afterwards.
+    """
+    monkeypatch.setenv("BM25_TUNE_EXPECTED_NUM_DOCS", "none")
+    assert Config.from_env().expected_num_docs is None
+    assert "expected_num_docs=any" in Config.from_env().describe()
+
+    monkeypatch.setenv("BM25_TUNE_EXPECTED_NUM_DOCS", "1_234_567")
+    assert Config.from_env().expected_num_docs == 1_234_567
+
+
+def test_describe_reports_the_sweep_shape_so_a_run_is_reconstructable(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """The `[LOAD]` line names the grid, baseline, and query files.
+
+    A run file records `k1_0.6__b_0.3` but not which grid it came from, so
+    without this line a log from a foreign-corpus run cannot be told apart from a
+    default one — and the two mean different things when the results are compared.
+    """
+    monkeypatch.setenv("BM25_TUNE_GRID_K1", "0.6,1.0")
+    monkeypatch.setenv("BM25_TUNE_BASELINE", "1.2:0.75")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_FULL", "topics-50.jsonl")
+    text = Config.from_env().describe()
+    assert "grid_k1=0.6,1" in text
+    assert "baseline=1.2:0.75" in text
+    assert "queries=topics-50.jsonl/" in text
+    assert "BM25_TUNE_GRID_K1" in text and "BM25_TUNE_BASELINE" in text
+
+
+def test_input_file_override_resolves_bare_names_under_the_inputs_dir(
+        monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A bare `BM25_TUNE_INPUT_FILE` is a name; anything with a `/` is a path.
+
+    Another corpus' search log will not live under this experiment's data dir, so
+    the override has to accept an absolute path — while the common in-place case
+    (a second log beside the first) stays a filename rather than a full path
+    retyped.
+    """
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(tmp_path))
+    monkeypatch.setenv("BM25_TUNE_INPUT_FILE", "other-log.jsonl")
+    cfg = Config.from_env()
+    assert cfg.input_file == tmp_path / "inputs" / "other-log.jsonl"
+
+    elsewhere = tmp_path / "elsewhere" / "log.jsonl"
+    monkeypatch.setenv("BM25_TUNE_INPUT_FILE", str(elsewhere))
+    assert Config.from_env().input_file == elsewhere
+
+
+def test_require_input_file_points_at_make_queries_rather_than_a_download(
+        monkeypatch: pytest.MonkeyPatch, tmp_path: Path) -> None:
+    """A missing search log names the bring-your-own-queries path.
+
+    On any index but ClimbMix there *is* no labeled log, and a bare "file not
+    found" reads like a missing download — sending the operator hunting for an
+    artifact that was never part of the method. The log is an input adapter;
+    `make-queries` is the general path, and the message has to say so.
+    """
+    from bm25tune.config import ConfigError
+
+    monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(tmp_path))
+    monkeypatch.delenv("BM25_TUNE_INPUT_FILE", raising=False)
+    with pytest.raises(ConfigError, match="make-queries"):
+        Config.from_env().require_input_file()
+
+
+def test_make_queries_writes_both_artifacts_from_a_plain_file(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch,
+        caplog: pytest.LogCaptureFixture) -> None:
+    """`make-queries` is the whole query-side requirement for a new index.
+
+    Every later stage reads only `queries/<full>` and `queries/<subsample>`, so
+    if this one command can produce them from an arbitrary query file then no
+    stage depends on the aus_agent log at all. It must also warn when narratives
+    are missing: that silently changes the judge's target from an information
+    need to a keyword string, and nothing downstream can detect it.
+    """
+    data_dir = tmp_path / "data"
+    queries_in = tmp_path / "queries.tsv"
+    queries_in.write_text("t-1\tsoil moisture\nt-1\tsoil water\n"
+                          "t-2\tbushfire fuel load\n")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_FULL", "topics.jsonl")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_SUBSAMPLE", "topics-sub.jsonl")
+    with caplog.at_level(logging.INFO):
+        rc = _run(["make-queries", str(queries_in), "--per-topic", "1"],
+                  data_dir, monkeypatch)
+    assert rc == EXIT_OK
+    full = data_dir / "queries" / "topics.jsonl"
+    sub = data_dir / "queries" / "topics-sub.jsonl"
+    assert full.is_file() and sub.is_file()
+    assert len(full.read_text().splitlines()) == 3
+    assert len(sub.read_text().splitlines()) == 2, "one query per topic"
+    assert "no separate narrative" in caplog.text
+
+
+def test_make_queries_refuses_to_write_one_file_as_both_artifacts(
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """The full and subsample basenames must differ.
+
+    `stats`' held-out set is *full MINUS subsample* (PLAN §6.4), so pointing both
+    names at one file makes it empty — and the confirmatory stage would then
+    report on nothing while looking like it ran. Cheaper to refuse here than to
+    explain an empty Stage B later.
+    """
+    queries_in = tmp_path / "queries.txt"
+    queries_in.write_text("soil moisture\nbushfire fuel\n")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_FULL", "topics.jsonl")
+    monkeypatch.setenv("BM25_TUNE_QUERIES_SUBSAMPLE", "topics.jsonl")
+    rc = _run(["make-queries", str(queries_in)], tmp_path / "data", monkeypatch)
+    assert rc == EXIT_ERROR
 
 
 def test_require_index_dir_fails_fast_with_the_export_to_run(

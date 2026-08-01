@@ -842,11 +842,15 @@ def test_stats_defaults_the_baseline_to_the_pyserini_default_cell(
     score-identical to the hosted server the RAG systems actually used. A different
     default would make "improves on the baseline" mean something else, and the
     number would still look publishable.
-    """
-    from bm25tune.cli import EXIT_OK, build_parser, main
 
-    assert build_parser().parse_args(
-        ["stats", "--run-id", "x"]).baseline == "k1_0.9__b_0.4"
+    `--baseline` parses as `None` (it is resolved from the config at run time, so
+    `BM25_TUNE_BASELINE` can reach it) — so what this pins is the *resolved*
+    value, via the cell that lands in `stats.json`.
+    """
+    from bm25tune.cli import BASELINE_CONFIG_NAME, EXIT_OK, build_parser, main
+
+    assert BASELINE_CONFIG_NAME == "k1_0.9__b_0.4"
+    assert build_parser().parse_args(["stats", "--run-id", "x"]).baseline is None
     monkeypatch.setenv("BM25_TUNE_DATA_DIR", str(testable_run))
     assert main(["stats", "--run-id", "rid", "--bootstrap", "200",
                  "--metrics", "ndcg10_exp"]) == EXIT_OK

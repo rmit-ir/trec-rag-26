@@ -18,7 +18,8 @@ python scripts/check_vendored_skills.py --update   # re-vendor in place
 ```
 
 Never hand-edit these copies — `--update` overwrites them wholesale.
-`skills/trec-rag-new-system/` is ours and is skipped. CI re-checks weekly
+`skills/trec-rag-new-system/` and `skills/bm25-parameter-tuning/` are ours and
+are skipped (`LOCAL_ONLY` in that script). CI re-checks weekly
 (`.github/workflows/vendored-skills.yml`); it is not in the pytest suite because
 it needs network.
 
@@ -322,7 +323,13 @@ or run). Browse the current architecture at `docs/architecture.html`.
   test suite needs it too. The plan is `tasks/bm25_tune/PLAN.md`; **WP0/WP6
   judge calibration is a mandatory gate before any sweep spend**, and the
   budget cap is a required operator input (`BM25_TUNE_BUDGET_USD`, currently
-  $50) with no default in code.
+  $50) with no default in code. The harness is **corpus-agnostic**: seven
+  `BM25_TUNE_*` vars carry the ClimbMix values as defaults (so an unset
+  environment reproduces the published run), `make-queries` takes any
+  JSONL/TSV/CSV/one-per-line query file, and `calibrate --from-pool` runs the
+  mandatory gate on a corpus with no labeled log. Running it on **another index**
+  is the **`bm25-parameter-tuning`** skill (`skills/bm25-parameter-tuning/` —
+  ours, not vendored, so `check_vendored_skills.py` skips it).
 
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 

@@ -588,8 +588,21 @@ def render_report_md(results: Sequence[VariantResult], decision: Decision, *,
             lines.append(f"- {cond.describe()}")
         lines.append("")
 
-    lines += ["## Agent-label agreement (smell test — see the caveat above)", "",
-              "| variant | AUC | mean grade: committed | rejected | unjudged | "
+    lines += ["## Agent-label agreement (smell test — see the caveat above)", ""]
+    # A pooled sample (`calibrate --from-pool`, the any-corpus path) carries no
+    # agent labels, so every cell below is a dash. Saying so once is the
+    # difference between "this judge failed the smell test" and "this corpus has
+    # no smell test" — opposite conclusions from an identical table.
+    if not any(r.agreement.auc is not None for r in results):
+        lines += [
+            "**Not computable for this sample: no agent labels.** Every pair "
+            "falls in the `unjudged` class, which happens when the sample was "
+            "drawn from a sweep pool (`calibrate --from-pool`) rather than from "
+            "a labeled search log. This is an absent measurement, not a failed "
+            "one — the gate above rests on its four grade-distribution "
+            "conditions, which are the ones that decide whether a judge can "
+            "separate grid cells.", ""]
+    lines += ["| variant | AUC | mean grade: committed | rejected | unjudged | "
               "share>=2: committed | rejected | ordered? |",
               "|---|---|---|---|---|---|---|---|"]
     for r in results:

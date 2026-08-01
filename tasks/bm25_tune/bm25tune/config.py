@@ -18,6 +18,20 @@ Variables read (defaults per PLAN §4.1):
 | `BM25_TUNE_JUDGE_CONCURRENCY` | `16` | `judge-pool` |
 | `BM25_TUNE_BUDGET_USD` | *(none — REQUIRED by every command that spends or reports spend)* | `pricing` |
 | `BM25_TUNE_PRICING_TIER` | `standard` | `pricing` |
+| `BM25_TUNE_GRID_K1` | `0.5,0.7,0.9,1.2,1.6` | `search-sweep` |
+| `BM25_TUNE_GRID_B` | `0.2,0.35,0.5,0.65,0.8` | `search-sweep` |
+| `BM25_TUNE_BASELINE` | `0.9:0.4` | `search-sweep`, `smoke`, `stats` |
+| `BM25_TUNE_EXPECTED_NUM_DOCS` | `921892634` (`none` disables) | `searcher` |
+| `BM25_TUNE_QUERIES_FULL` | `keyword-1063.jsonl` | every stage |
+| `BM25_TUNE_QUERIES_SUBSAMPLE` | `subsample-250.jsonl` | `search-sweep`, `stats` |
+| `BM25_TUNE_INPUT_FILE` | `inputs/trec-rag26-test119-search-labeled.jsonl` | `verify-inputs`, `extract-queries`, `calibrate` |
+
+**The last six exist so the harness runs on an index and query set it has never
+seen** (the `bm25-parameter-tuning` skill). Their defaults are the values the
+ClimbMix experiment was run with, so leaving them unset reproduces it exactly;
+overriding any of them is a deliberate act by an operator who has a different
+corpus. `BM25_TUNE_EXPECTED_NUM_DOCS` is the one to be careful with — see
+`Config.expected_num_docs`.
 
 The budget is **cumulative across the whole experiment**, not per-run: its
 durable state lives in `costs/totals.json` under the data dir, deliberately
@@ -60,6 +74,24 @@ PRICING_TIERS = ("standard", "batch", "flex", "priority")
 INPUT_BASENAME = "trec-rag26-test119-search-labeled.jsonl"
 SHA256SUMS_BASENAME = "SHA256SUMS"
 
+#: Query-artifact basenames PLAN §4.2 fixes. Overridable because a different
+#: corpus has a different number of queries and `keyword-1063.jsonl` would then
+#: be a lie in every log line; `cli.py` re-exports these for its help text.
+DEFAULT_QUERIES_FULL_BASENAME = "keyword-1063.jsonl"
+DEFAULT_QUERIES_SUBSAMPLE_BASENAME = "subsample-250.jsonl"
+
+#: PLAN §6.1's coarse grid and the cell every candidate is measured against.
+#: Strings, not tuples, because they are parsed by `searcher.parse_configs` /
+#: `_env_floats` — which is also what the env vars accept.
+DEFAULT_GRID_K1 = "0.5,0.7,0.9,1.2,1.6"
+DEFAULT_GRID_B = "0.2,0.35,0.5,0.65,0.8"
+DEFAULT_BASELINE = "0.9:0.4"
+
+#: **[measured]** chunk count of `climbmix-bm25-chunked`, asserted when the index
+#: opens (PLAN R7). See `Config.expected_num_docs` for why this is a guard rather
+#: than a constant to be edited.
+DEFAULT_EXPECTED_NUM_DOCS = 921_892_634
+
 
 class ConfigError(RuntimeError):
     """A required env var is missing, or points somewhere unusable.
@@ -99,6 +131,70 @@ def _env_float_opt(name: str) -> float | None:
         raise ConfigError(f"{name}={raw!r} is not a number") from exc
 
 
+def parse_grid_axis(name: str, default: str) -> tuple[float, ...]:
+    """Parse a `0.5,0.7,0.9` grid axis, de-duplicated with order preserved.
+
+    Order matters: `stage_a_grid()` is k1-major and the pool file records the
+    `first_seen_config`, so a reordered axis silently changes an artifact that is
+    supposed to be reproducible. Duplicates are dropped rather than refused
+    because `0.5,0.5` would otherwise re-search a cell and overwrite its own run
+    file — the same reasoning as `searcher.parse_configs`.
+    """
+    raw = _env_str(name, default)
+    values: list[float] = []
+    for item in raw.replace(",", " ").split():
+        try:
+            value = float(item)
+        except ValueError as exc:
+            raise ConfigError(
+                f"{name}={raw!r}: {item!r} is not a number (expected a "
+                "comma- or space-separated list, e.g. 0.5,0.7,0.9)") from exc
+        if value not in values:
+            values.append(value)
+    if not values:
+        raise ConfigError(f"{name}={raw!r} lists no values")
+    return tuple(values)
+
+
+def parse_cell(name: str, default: str) -> tuple[float, float]:
+    """Parse a single `k1:b` cell (the baseline)."""
+    raw = _env_str(name, default)
+    parts = raw.replace(":", " ").replace("/", " ").replace(",", " ").split()
+    if len(parts) != 2:
+        raise ConfigError(
+            f"{name}={raw!r} is not a single k1:b cell (e.g. 0.9:0.4)")
+    try:
+        return (float(parts[0]), float(parts[1]))
+    except ValueError as exc:
+        raise ConfigError(f"{name}={raw!r}: k1 and b must be numbers") from exc
+
+
+def _env_num_docs(name: str, default: int) -> int | None:
+    """Parse the index-identity guard; `none`/`0`/`off` disables it.
+
+    Disabling is spelled out as a word rather than left to an empty string so it
+    is visible in the `[LOAD]` line and in shell history what the operator turned
+    off — this is the one override that removes a safety check rather than
+    retargeting one.
+    """
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    text = raw.strip().lower()
+    if text in ("none", "off", "0", "any", "disabled"):
+        return None
+    try:
+        value = int(text.replace("_", "").replace(",", ""))
+    except ValueError as exc:
+        raise ConfigError(
+            f"{name}={raw!r} is not an integer (or `none` to disable the "
+            "index-identity check)") from exc
+    if value <= 0:
+        raise ConfigError(
+            f"{name}={raw!r} must be positive, or `none` to disable the check")
+    return value
+
+
 @dataclass(frozen=True)
 class Config:
     """Resolved settings for one CLI invocation.
@@ -117,6 +213,28 @@ class Config:
     #: read it through `require_budget_usd()`, which refuses rather than guesses.
     budget_usd: float | None
     pricing_tier: str
+    #: The `k1`/`b` axes `stage_a_grid()` crosses, and the cell every candidate
+    #: is compared against (which is appended to the grid if the axes miss it).
+    grid_k1: tuple[float, ...] = (0.5, 0.7, 0.9, 1.2, 1.6)
+    grid_b: tuple[float, ...] = (0.2, 0.35, 0.5, 0.65, 0.8)
+    baseline: tuple[float, float] = (0.9, 0.4)
+    #: `num_docs` the index must report on open, or `None` to accept any.
+    #:
+    #: Keep it set. It is what makes a cached judgment safe to reuse: the cache
+    #: key is `prompt::topic::chunk_id`, so pointing the harness at a re-chunked
+    #: corpus where the same chunk id names different text would silently score
+    #: new passages against old grades. `None` is correct only for a first run on
+    #: a new index whose count is not yet known — and the count it then logs is
+    #: the value to set for every run after (PLAN R7).
+    expected_num_docs: int | None = DEFAULT_EXPECTED_NUM_DOCS
+    #: Basenames of the two persisted query artifacts, under `queries_dir`.
+    queries_full_basename: str = DEFAULT_QUERIES_FULL_BASENAME
+    queries_subsample_basename: str = DEFAULT_QUERIES_SUBSAMPLE_BASENAME
+    #: The labeled search log, when one exists. `None` once
+    #: `BM25_TUNE_QUERIES_FULL` is supplied directly (the bring-your-own-queries
+    #: path): the log is an *input adapter* for one corpus, not a requirement of
+    #: the method, so commands that need it must say so via `require_input_file`.
+    input_file_override: Path | None = None
     #: Fields whose value came from an env var rather than the default. Logged
     #: in the `[LOAD]` line so a surprising run is explainable from the log.
     overridden: tuple[str, ...] = field(default=())
@@ -136,8 +254,12 @@ class Config:
                 "BM25_TUNE_INDEX_DIR", "BM25_TUNE_DATA_DIR",
                 "BM25_TUNE_JUDGE_MODEL", "BM25_TUNE_JUDGE_REGION",
                 "BM25_TUNE_JUDGE_CONCURRENCY", "BM25_TUNE_BUDGET_USD",
-                "BM25_TUNE_PRICING_TIER")
+                "BM25_TUNE_PRICING_TIER", "BM25_TUNE_GRID_K1",
+                "BM25_TUNE_GRID_B", "BM25_TUNE_BASELINE",
+                "BM25_TUNE_EXPECTED_NUM_DOCS", "BM25_TUNE_QUERIES_FULL",
+                "BM25_TUNE_QUERIES_SUBSAMPLE", "BM25_TUNE_INPUT_FILE")
             if os.environ.get(name, "").strip())
+        raw_input_file = os.environ.get("BM25_TUNE_INPUT_FILE", "").strip()
         return cls(
             data_dir=Path(_env_str("BM25_TUNE_DATA_DIR",
                                    str(DEFAULT_DATA_DIR))).expanduser(),
@@ -149,6 +271,18 @@ class Config:
                                        DEFAULT_JUDGE_CONCURRENCY),
             budget_usd=_env_float_opt("BM25_TUNE_BUDGET_USD"),
             pricing_tier=tier,
+            grid_k1=parse_grid_axis("BM25_TUNE_GRID_K1", DEFAULT_GRID_K1),
+            grid_b=parse_grid_axis("BM25_TUNE_GRID_B", DEFAULT_GRID_B),
+            baseline=parse_cell("BM25_TUNE_BASELINE", DEFAULT_BASELINE),
+            expected_num_docs=_env_num_docs("BM25_TUNE_EXPECTED_NUM_DOCS",
+                                            DEFAULT_EXPECTED_NUM_DOCS),
+            queries_full_basename=_env_str(
+                "BM25_TUNE_QUERIES_FULL", DEFAULT_QUERIES_FULL_BASENAME),
+            queries_subsample_basename=_env_str(
+                "BM25_TUNE_QUERIES_SUBSAMPLE",
+                DEFAULT_QUERIES_SUBSAMPLE_BASENAME),
+            input_file_override=(Path(raw_input_file).expanduser()
+                                 if raw_input_file else None),
             overridden=overridden,
         )
 
@@ -159,7 +293,27 @@ class Config:
 
     @property
     def input_file(self) -> Path:
-        return self.inputs_dir / INPUT_BASENAME
+        """The labeled search log, honouring `BM25_TUNE_INPUT_FILE`.
+
+        A bare filename resolves under `inputs_dir` so the common override is
+        just a name; anything with a separator is taken as given (absolute or
+        relative to the cwd), because another corpus' log will not live under
+        this experiment's data dir.
+        """
+        override = self.input_file_override
+        if override is None:
+            return self.inputs_dir / INPUT_BASENAME
+        if len(override.parts) == 1:
+            return self.inputs_dir / override
+        return override
+
+    @property
+    def queries_full_file(self) -> Path:
+        return self.queries_dir / self.queries_full_basename
+
+    @property
+    def queries_subsample_file(self) -> Path:
+        return self.queries_dir / self.queries_subsample_basename
 
     @property
     def sha256sums_file(self) -> Path:
@@ -221,6 +375,29 @@ class Config:
                 "the mount and your read permission)")
         return self.index_dir
 
+    def require_input_file(self) -> Path:
+        """Return the labeled search log, or raise naming the two ways forward.
+
+        Only `verify-inputs`, `extract-queries` and `calibrate` need it: it is an
+        *adapter* for one corpus' aus_agent search log, not part of the tuning
+        method. On any other index the operator writes `queries/<full>.jsonl`
+        directly (`{topic_id, topic, query, qkey, k_orig}`), and then no stage
+        reads a log at all — so this must fail with that instruction rather than
+        with a bare "file not found" that reads like a missing download.
+        """
+        path = self.input_file
+        if path.is_file():
+            return path
+        raise ConfigError(
+            f"labeled search log not found: {path}\n"
+            "Either point BM25_TUNE_INPUT_FILE at one, or skip this command "
+            "entirely: `extract-queries` only exists to derive "
+            f"queries/{self.queries_full_basename} from such a log. If you have "
+            "queries already, write that file yourself — one JSON object per "
+            'line, {"topic_id", "topic", "query", "qkey", "k_orig"}, with '
+            "qkey = \"<topic_id>::<sha1(query)[:12]>\" — and run search-sweep "
+            "directly (`python -m bm25tune make-queries` does it for you).")
+
     def require_budget_usd(self) -> float:
         """Return the spend ceiling, or raise `ConfigError` naming the export.
 
@@ -265,8 +442,39 @@ class Config:
         # and printing a number nobody exported would be a lie in the log.
         budget = ("<unset>" if self.budget_usd is None
                   else f"${self.budget_usd:.2f}")
+        # num_docs=any is spelled out rather than omitted: a run with the index
+        # identity check off must be identifiable as such from its log alone,
+        # since that is the run whose cached judgments could belong to another
+        # corpus.
+        num_docs = ("any" if self.expected_num_docs is None
+                    else str(self.expected_num_docs))
         return (f"data_dir={self.data_dir} index_dir={index} "
                 f"judge_model={self.judge_model} region={self.judge_region} "
                 f"concurrency={self.judge_concurrency} "
                 f"budget={budget} tier={self.pricing_tier} "
+                f"grid_k1={','.join(format(v, 'g') for v in self.grid_k1)} "
+                f"grid_b={','.join(format(v, 'g') for v in self.grid_b)} "
+                f"baseline={self.baseline[0]:g}:{self.baseline[1]:g} "
+                f"expected_num_docs={num_docs} "
+                f"queries={self.queries_full_basename}/"
+                f"{self.queries_subsample_basename} "
                 f"overridden={','.join(self.overridden) or 'none'}")
+
+
+# The dataclass defaults above are literals (so `Config()` needs no environment)
+# while the documented defaults are the `DEFAULT_*` strings the env parsers use.
+# Two spellings of one fact drift silently, and the failure mode is a grid that
+# differs between an explicit `Config()` and a `Config.from_env()` — so pin them
+# together at import, where a mismatch is a hard, immediate error.
+_DEFAULTS = Config(data_dir=DEFAULT_DATA_DIR, index_dir=None,
+                   judge_model=DEFAULT_JUDGE_MODEL,
+                   judge_region=DEFAULT_JUDGE_REGION,
+                   judge_concurrency=DEFAULT_JUDGE_CONCURRENCY,
+                   budget_usd=None, pricing_tier=DEFAULT_PRICING_TIER)
+assert _DEFAULTS.grid_k1 == parse_grid_axis("", DEFAULT_GRID_K1), (
+    "Config.grid_k1's default disagrees with DEFAULT_GRID_K1")
+assert _DEFAULTS.grid_b == parse_grid_axis("", DEFAULT_GRID_B), (
+    "Config.grid_b's default disagrees with DEFAULT_GRID_B")
+assert _DEFAULTS.baseline == parse_cell("", DEFAULT_BASELINE), (
+    "Config.baseline's default disagrees with DEFAULT_BASELINE")
+del _DEFAULTS
