@@ -28,8 +28,8 @@ demand:
 ``--update`` overwrites the vendored copies wholesale. That is safe *only*
 because we never locally edit them; if you ever need a local deviation, record
 it here as an exception rather than letting ``--update`` silently revert it.
-Local-only skills (``trec-rag-new-system``) are ignored — anything upstream does
-not publish is ours.
+Local-only skills (``trec-rag-new-system``, ``bm25-parameter-tuning``) are
+ignored — anything upstream does not publish is ours.
 """
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ SKILLS_DIR = REPO_ROOT / "skills"
 
 # Skills authored in this repo, not vendored from upstream. Everything else
 # under skills/ that upstream also publishes is expected to match byte for byte.
-LOCAL_ONLY = {"trec-rag-new-system"}
+LOCAL_ONLY = {"trec-rag-new-system", "bm25-parameter-tuning"}
 
 _VERSION_RE = re.compile(r"^\s*version:\s*(\S+)\s*$", re.MULTILINE)
 

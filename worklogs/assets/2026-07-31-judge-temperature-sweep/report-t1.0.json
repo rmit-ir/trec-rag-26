@@ -1,0 +1,218 @@
+{
+  "best_effort": null,
+  "gated": false,
+  "n_pairs": 280,
+  "passing": [
+    "facet-name-v1",
+    "umbrela-v1"
+  ],
+  "pool_label_mix": {
+    "negative": 6638,
+    "positive": 2368,
+    "unjudged": 202
+  },
+  "ranked": [
+    "umbrela-kw-v1",
+    "facet-name-v1",
+    "umbrela-v1",
+    "facet-rare3-v1",
+    "facet-v1"
+  ],
+  "rationale": "`facet-name-v1` has the lowest modal share (0.489) among the 2 gate-passing variants (also passing: `umbrela-v1`). The gate is a floor on usability, not the selection criterion \u2014 the user confirms this choice before WP7 launches.",
+  "run_id": "calibrate",
+  "sample_label_mix": {
+    "negative": 153,
+    "positive": 119,
+    "unjudged": 8
+  },
+  "sample_path": "/tmp/bm25-temp-sweep/t1.0/calibration/sample-280.jsonl",
+  "variants": [
+    {
+      "auc": 0.6588400065908716,
+      "calls": 280,
+      "cost_usd": 0.03902394000000001,
+      "counts": {
+        "0": 55,
+        "1": 164,
+        "2": 55,
+        "3": 6
+      },
+      "entropy": 1.493219187482805,
+      "failed_conditions": [],
+      "mean_by_class": {
+        "negative": 0.8627450980392157,
+        "positive": 1.2941176470588236,
+        "unjudged": 0.75
+      },
+      "modal_grade": 1,
+      "modal_share": 0.5857142857142857,
+      "n_by_class": {
+        "negative": 153,
+        "positive": 119,
+        "unjudged": 8
+      },
+      "parse_failures": 0,
+      "passed": true,
+      "pool_share_ge2": 0.18852103902667353,
+      "prompt_version": "umbrela-v1",
+      "share_eq3": 0.02142857142857143,
+      "share_ge2": 0.21785714285714286,
+      "stability_match_rate": null,
+      "stability_pairs": 0
+    },
+    {
+      "auc": 0.54091832811556,
+      "calls": 282,
+      "cost_usd": 0.033685419999999966,
+      "counts": {
+        "0": 92,
+        "1": 134,
+        "2": 30,
+        "3": 24
+      },
+      "entropy": 1.6854634835015736,
+      "failed_conditions": [
+        {
+          "bound": 0.2,
+          "direction": "low",
+          "name": "share_ge2",
+          "observed": 0.19285714285714287
+        }
+      ],
+      "mean_by_class": {
+        "negative": 0.9084967320261438,
+        "positive": 1.0336134453781514,
+        "unjudged": 0.5
+      },
+      "modal_grade": 1,
+      "modal_share": 0.4785714285714286,
+      "n_by_class": {
+        "negative": 153,
+        "positive": 119,
+        "unjudged": 8
+      },
+      "parse_failures": 2,
+      "passed": false,
+      "pool_share_ge2": 0.18301505369016996,
+      "prompt_version": "umbrela-kw-v1",
+      "share_eq3": 0.08571428571428572,
+      "share_ge2": 0.19285714285714287,
+      "stability_match_rate": null,
+      "stability_pairs": 0
+    },
+    {
+      "auc": 0.6645246333827649,
+      "calls": 282,
+      "cost_usd": 0.04038154999999996,
+      "counts": {
+        "0": 42,
+        "1": 18,
+        "2": 177,
+        "3": 43
+      },
+      "entropy": 1.4984560576608583,
+      "failed_conditions": [
+        {
+          "bound": 0.6,
+          "direction": "high",
+          "name": "modal_share",
+          "observed": 0.6321428571428571
+        }
+      ],
+      "mean_by_class": {
+        "negative": 1.5294117647058822,
+        "positive": 2.1176470588235294,
+        "unjudged": 1.875
+      },
+      "modal_grade": 2,
+      "modal_share": 0.6321428571428571,
+      "n_by_class": {
+        "negative": 153,
+        "positive": 119,
+        "unjudged": 8
+      },
+      "parse_failures": 2,
+      "passed": false,
+      "pool_share_ge2": 0.7422216026578602,
+      "prompt_version": "facet-v1",
+      "share_eq3": 0.15357142857142858,
+      "share_ge2": 0.7857142857142857,
+      "stability_match_rate": null,
+      "stability_pairs": 0
+    },
+    {
+      "auc": 0.6523040588784533,
+      "calls": 281,
+      "cost_usd": 0.04211991999999997,
+      "counts": {
+        "0": 37,
+        "1": 11,
+        "2": 137,
+        "3": 95
+      },
+      "entropy": 1.6029608723367035,
+      "failed_conditions": [],
+      "mean_by_class": {
+        "negative": 1.7973856209150327,
+        "positive": 2.3529411764705883,
+        "unjudged": 1.875
+      },
+      "modal_grade": 2,
+      "modal_share": 0.48928571428571427,
+      "n_by_class": {
+        "negative": 153,
+        "positive": 119,
+        "unjudged": 8
+      },
+      "parse_failures": 1,
+      "passed": true,
+      "pool_share_ge2": 0.8007319275813425,
+      "prompt_version": "facet-name-v1",
+      "share_eq3": 0.3392857142857143,
+      "share_ge2": 0.8285714285714286,
+      "stability_match_rate": 0.66,
+      "stability_pairs": 50
+    },
+    {
+      "auc": 0.7045092546822651,
+      "calls": 280,
+      "cost_usd": 0.04345989000000001,
+      "counts": {
+        "0": 45,
+        "1": 51,
+        "2": 169,
+        "3": 15
+      },
+      "entropy": 1.537214926083543,
+      "failed_conditions": [
+        {
+          "bound": 0.6,
+          "direction": "high",
+          "name": "modal_share",
+          "observed": 0.6035714285714285
+        }
+      ],
+      "mean_by_class": {
+        "negative": 1.261437908496732,
+        "positive": 1.915966386554622,
+        "unjudged": 1.625
+      },
+      "modal_grade": 2,
+      "modal_share": 0.6035714285714285,
+      "n_by_class": {
+        "negative": 153,
+        "positive": 119,
+        "unjudged": 8
+      },
+      "parse_failures": 0,
+      "passed": false,
+      "pool_share_ge2": 0.5949740959227594,
+      "prompt_version": "facet-rare3-v1",
+      "share_eq3": 0.05357142857142857,
+      "share_ge2": 0.6571428571428571,
+      "stability_match_rate": null,
+      "stability_pairs": 0
+    }
+  ],
+  "winner": "facet-name-v1"
+}

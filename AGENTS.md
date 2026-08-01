@@ -18,7 +18,8 @@ python scripts/check_vendored_skills.py --update   # re-vendor in place
 ```
 
 Never hand-edit these copies — `--update` overwrites them wholesale.
-`skills/trec-rag-new-system/` is ours and is skipped. CI re-checks weekly
+`skills/trec-rag-new-system/` and `skills/bm25-parameter-tuning/` are ours and
+are skipped (`LOCAL_ONLY` in that script). CI re-checks weekly
 (`.github/workflows/vendored-skills.yml`); it is not in the pytest suite because
 it needs network.
 
@@ -314,6 +315,21 @@ or run). Browse the current architecture at `docs/architecture.html`.
   chunk jsonl out). Chunk ids are `<docid>_p<page>` (page from 1, e.g.
   `shard_00000_3908_p1`) so the parent docid is derivable downstream
   (`rsplit("_p", 1)[0]` — unambiguous, rows are pure digits).
+- **BM25 `k1`/`b` tuning** — working in `tasks/bm25_tune/`. Tunes BM25 on the
+  chunked ClimbMix index (read-only, under `BM25_TUNE_INDEX_DIR`) against
+  aus_agent's 1063 keyword queries with a `gpt-oss-20b` Bedrock judge (pooled
+  0–3 qrels, cached under `data/bm25-tune/judgments/`). JDK 21 conda env
+  in-folder; **`export JAVA_HOME="$PWD/tasks/bm25_tune/env/lib/jvm"`** — the
+  test suite needs it too. The plan is `tasks/bm25_tune/PLAN.md`; **WP0/WP6
+  judge calibration is a mandatory gate before any sweep spend**, and the
+  budget cap is a required operator input (`BM25_TUNE_BUDGET_USD`, currently
+  $50) with no default in code. The harness is **corpus-agnostic**: seven
+  `BM25_TUNE_*` vars carry the ClimbMix values as defaults (so an unset
+  environment reproduces the published run), `make-queries` takes any
+  JSONL/TSV/CSV/one-per-line query file, and `calibrate --from-pool` runs the
+  mandatory gate on a corpus with no labeled log. Running it on **another index**
+  is the **`bm25-parameter-tuning`** skill (`skills/bm25-parameter-tuning/` —
+  ours, not vendored, so `check_vendored_skills.py` skips it).
 
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 
