@@ -176,7 +176,7 @@ network.
 skip (both are easy to get wrong by hand; see below). Two modes:
 
 ```bash
-bash scripts/test.sh                    # EVERYTHING (792 cases, ~7s) — before every commit
+bash scripts/test.sh                    # EVERYTHING (944 cases, ~16s) — before every commit
 bash scripts/test.sh contract           # just one area
 ```
 
@@ -194,7 +194,7 @@ bash scripts/test.sh live               # ONLY the live tests — needs creds, h
 **Run the full suite after ANY change under `src/utils/`, `src/tools/`,
 `src/ragrun/` or `src/systems/`**, and before committing. Those layers are shared
 by all five systems, so a subset can't clear a change to them — and the whole
-suite is ~7 seconds, cheaper than reasoning about which tests your edit reached.
+suite is ~16s, cheaper than reasoning about which tests your edit reached.
 A selective run prints this reminder on success.
 
 The equivalent by hand, if you need pytest flags the script doesn't pass through:
@@ -434,4 +434,3 @@ or run). Browse the current architecture at `docs/architecture.html`.
   - `query`
   - `candidates`
   - each candidate should contain `docid` and `doc.segment`
-
