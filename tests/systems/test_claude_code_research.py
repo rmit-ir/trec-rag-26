@@ -253,40 +253,53 @@ def test_a_multi_word_query_is_logged_as_one_string(
     corpus.cmd_search(_search_args(task_dir, ["congestion", "pricing", "revenue"]))
 
     record, = log_records(task_dir)
-    assert record["arguments"] == {"query": "congestion pricing revenue", "k": 3}
-    engine, = stub_search_tool
-    assert stub_search_tool[engine][0]["query"] == "congestion pricing revenue"
+    assert record["arguments"] == {
+        "query": "congestion pricing revenue",
+        "k": 3,
+        "search_engine": "hybrid-rrf",
+    }
+    assert set(stub_search_tool) == {"semantic", "keyword"}
+    assert all(calls[0]["query"] == "congestion pricing revenue"
+               for calls in stub_search_tool.values())
 
 
-def test_search_is_dense_only_despite_promising_hybrid_current_behaviour(
-        corpus: Any, task_dir: Path, stub_search_tool: dict[str, Any],
+def test_search_fans_out_to_dense_and_sparse_then_returns_rrf_order(
+        corpus: Any, task_dir: Path, monkeypatch: pytest.MonkeyPatch,
         capsys: pytest.CaptureFixture[str]) -> None:
-    """Pins a real mismatch: three docs promise hybrid RRF, the code runs dense.
+    """The agent is promised hybrid retrieval, so calling both backends is not
+    enough: the visible order must be RRF output rather than either input list."""
+    from utils import search as search_mod
+    from utils.search_types import make_hit
 
-    ``cmd_search`` calls ``run_search_tool(query, k=..., max_chars=...)`` with no
-    ``search_engine``, so it takes that function's ``"semantic"`` default —
-    dense-only. But the system dir's ``CLAUDE.md``, this script's own module
-    docstring, and its ``--help`` all tell the agent it is getting "hybrid
-    dense+sparse RRF". The agent is told hybrid, so it phrases queries for it;
-    it silently gets one leg, losing the sparse leg's recall on rare proper
-    names and verbatim strings — the exact case dense retrieval is weakest on.
+    calls: list[tuple[str, str, int]] = []
 
-    Not fixed here because there is no fix at this layer to make:
-    ``search_tool._DISPATCH`` has no fused entry, and ``search_tool``'s module
-    docstring says so deliberately ("There is deliberately no fused option: the
-    caller is the fusion layer"). ``utils.search.search`` is the hybrid RRF
-    function; wiring it in is a retrieval-effectiveness change, and
-    ``ali_deepresearch/tools.py:69`` has the identical omission, so the two
-    systems should change together and be measured. Tracked separately.
+    def ranking(source: str, ids: tuple[str, ...]) -> list[dict[str, Any]]:
+        return [make_hit(docid, score=10.0 - rank, rank=rank,
+                         text=f"{source} text for {docid}",
+                         meta={"source": source})
+                for rank, docid in enumerate(ids, start=1)]
 
-    Named ``*_current_behaviour`` so a fix fails this test rather than passing
-    silently.
-    """
+    def dense(query: str, k: int, **_kwargs: Any) -> list[dict[str, Any]]:
+        calls.append(("dense", query, k))
+        return ranking("dense", (A, B))
+
+    def sparse(query: str, k: int, **_kwargs: Any) -> list[dict[str, Any]]:
+        calls.append(("sparse", query, k))
+        return ranking("sparse", (B, C))
+
+    monkeypatch.setattr(search_mod, "search_dense", dense)
+    monkeypatch.setattr(search_mod, "search_sparse", sparse)
+
     corpus.cmd_search(_search_args(task_dir, ["congestion pricing"]))
 
-    assert list(stub_search_tool) == ["semantic"]      # NOT fused
+    payload = json.loads(capsys.readouterr().out)
+    assert {source for source, _, _ in calls} == {"dense", "sparse"}
+    assert all(query == "congestion pricing" and depth == 50
+               for _, query, depth in calls)
+    assert [hit["docid"] for hit in payload["results"]] == [B, A, C]
+    assert payload["engine"] == "hybrid-rrf"
     record, = log_records(task_dir)
-    assert record["tool_name"] == "search"             # ...and nothing says so
+    assert record["arguments"]["search_engine"] == "hybrid-rrf"
 
 
 def test_a_search_error_is_logged_as_a_failure_and_exits_non_zero(
@@ -299,15 +312,17 @@ def test_a_search_error_is_logged_as_a_failure_and_exits_non_zero(
     that spent half its budget on a broken retriever is visible afterwards
     rather than looking like a run that simply searched less.
     """
-    monkeypatch.setattr(corpus, "run_search_tool",
-                        lambda *a, **kw: json.dumps({"error": "backend 503"}))
+    def fail_search(*_args: Any, **_kwargs: Any) -> list[dict[str, Any]]:
+        raise RuntimeError("backend 503")
+
+    monkeypatch.setattr(corpus, "hybrid_search", fail_search)
 
     rc = corpus.cmd_search(_search_args(task_dir, ["congestion pricing"]))
 
     assert rc == 1
     record, = log_records(task_dir)
     assert record["failed"] is True
-    assert record["error"] == "backend 503"
+    assert record["error"] == "RuntimeError: backend 503"
     assert "returned" not in record
 
 

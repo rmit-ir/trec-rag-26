@@ -1,9 +1,10 @@
 """ClimbMix corpus access for the claude-code-research agent, with tool logging.
 
-Thin wrapper around ``tools.search_tool`` / ``utils.fetch_doc`` that prints the
-same output as the underlying CLIs and *additionally* appends one JSONL record
-per call to ``<task-dir>/scratchpad/tool_log.jsonl``. This gives every research
-task a faithful, machine-readable tool-call trace (consumed by
+Thin wrapper around shared ``utils.search.search`` dense+sparse RRF retrieval,
+the ``tools.search_tool`` result envelope, and ``utils.fetch_doc``. It prints
+the same output shape as the search-tool CLI and *additionally* appends one
+JSONL record per call to ``<task-dir>/scratchpad/tool_log.jsonl``. This gives
+every research task a faithful, machine-readable tool-call trace (consumed by
 ``scripts/save_run.py``) without relying on the agent to self-report.
 
 Usage (root env; run from the repo or the system dir):
@@ -39,8 +40,9 @@ from pathlib import Path
 from typing import Any
 
 from ragrun import now_iso
-from tools.search_tool import run_search_tool
+from tools.search_tool import run_search_backend
 from utils.fetch_doc import fetch_doc
+from utils.search import search as hybrid_search
 
 HEAD_CHARS = 200
 
@@ -81,9 +83,19 @@ def cmd_search(args: argparse.Namespace) -> int:
     """Hybrid dense+sparse RRF search; same JSON output as search_tool CLI."""
     task_dir = resolve_task_dir(args.task_dir)
     query = " ".join(args.query)
-    record = _base_record("search", {"query": query, "k": args.k})
+    record = _base_record(
+        "search",
+        {"query": query, "k": args.k, "search_engine": "hybrid-rrf"},
+    )
 
-    out = run_search_tool(query, k=args.k, max_chars=args.max_chars)
+    out = run_search_backend(
+        query,
+        hybrid_search,
+        engine="hybrid-rrf",
+        k=args.k,
+        max_chars=args.max_chars,
+        with_text=True,
+    )
     record["t_end"] = now_iso()
     data = json.loads(out)
     printed = json.dumps(data, indent=2, ensure_ascii=False)

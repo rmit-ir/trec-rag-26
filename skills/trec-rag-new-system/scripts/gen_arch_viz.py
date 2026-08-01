@@ -7,9 +7,10 @@ HTML file (inline SVG + vanilla JS + CSS, no server, no CDN).
 
 Two zoom levels in one page:
   - OVERVIEW  — every ``src/systems/<name>`` wired to the shared layers
-                (ragrun, tools.search_tool + the 4 engines, utils.fetch_doc,
-                ali_deepresearch.answer_format, aus_agent.make_provider) and the
-                output artifacts. Edges are colored + legended by type.
+                (ragrun, tools.search_tool + its 4 selectable engines,
+                utils.search dense+sparse RRF, utils.fetch_doc,
+                ali_deepresearch.answer_format, aus_agent.make_provider) and
+                the output artifacts. Edges are colored + legended by type.
   - DRILL-IN  — click a system card to see its per-stage pipeline.
 
 Stage flows come from a hand-authored ``STAGE_REGISTRY`` below, OVERRIDDEN per
@@ -55,6 +56,8 @@ SHARED = [
      "role": "answer-format", "detail": "ali_deepresearch.answer_format — prose -> references[] + per-sentence citations"},
     {"id": "search_tool", "label": "tools.search_tool",
      "role": "retrieval", "detail": "run_search_tool / build_search_tool over ClimbMix"},
+    {"id": "hybrid_search", "label": "utils.search.search",
+     "role": "retrieval", "detail": "concurrent dense + sparse retrieval, fused with RRF"},
     {"id": "fetch_doc", "label": "utils.fetch_doc",
      "role": "fetch-doc", "detail": "fetch_doc(docid) -> full document text"},
     {"id": "ragrun", "label": "ragrun",
@@ -95,7 +98,7 @@ STAGE_REGISTRY: dict[str, list[dict[str, str]]] = {
         {"id": "think", "label": "THINK", "kind": "llm",
          "note": "<think> -> reasoning step"},
         {"id": "tool_call", "label": "TOOL_CALL", "kind": "retrieval",
-         "note": "<tool_call> -> tools.dispatch (search / fetch_doc)"},
+         "note": "<tool_call> -> hybrid RRF search / fetch_doc"},
         {"id": "answer", "label": "ANSWER", "kind": "llm",
          "note": "<answer> -> final text"},
         {"id": "format", "label": "FORMAT", "kind": "format",
@@ -214,6 +217,8 @@ def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
                 add("ragrun", "artifacts")
             elif mod == "tools.search_tool":
                 add("search_tool", "retrieval")
+            elif mod == "utils.search":
+                add("hybrid_search", "retrieval")
             elif mod == "utils.fetch_doc":
                 add("fetch_doc", "fetch-doc")
             elif mod.startswith("ali_deepresearch.answer_format") or \
@@ -376,7 +381,7 @@ const crumb = document.getElementById('crumb');
 const backBtn = document.getElementById('back');
 
 const EDGE_TYPES = [
-  ['retrieval','Retrieval (search_tool)'],
+  ['retrieval','Retrieval (search layers)'],
   ['fetch-doc','fetch_doc'],
   ['answer-format','answer_format (reuse)'],
   ['provider','make_provider (reuse)'],
@@ -441,8 +446,10 @@ function drawOverview() {
   const edgesLayer = el('g'); svg.appendChild(edgesLayer);
   const nodesLayer = el('g'); svg.appendChild(nodesLayer);
 
-  // engines hang off the search_tool node
+  // All selectable engines hang off search_tool. The hybrid layer owns only
+  // its semantic + keyword fan-out, so draw those two links separately.
   const st = sharedPos['search_tool'];
+  const hybrid = sharedPos['hybrid_search'];
   MODEL.engines.forEach((e, i) => {
     const ey = st.y - ((MODEL.engines.length - 1) * 22) / 2 + i * 22;
     const g = el('g', { class: 'engine' });
@@ -455,6 +462,12 @@ function drawOverview() {
       class: 'edge', stroke: edgeColor('retrieval'),
       d: `M ${st.x+170} ${st.y} C ${engCol-30} ${st.y}, ${engCol-30} ${ey}, ${engCol} ${ey}`
     }));
+    if (hybrid && (e.id === 'semantic' || e.id === 'keyword')) {
+      edgesLayer.appendChild(el('path', {
+        class: 'edge', stroke: edgeColor('retrieval'),
+        d: `M ${hybrid.x+170} ${hybrid.y} C ${engCol-45} ${hybrid.y}, ${engCol-45} ${ey}, ${engCol} ${ey}`
+      }));
+    }
   });
 
   // system -> shared edges

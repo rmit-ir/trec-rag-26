@@ -17,6 +17,12 @@ it is worth pinning independently of the retrieval backends:
    converts a backend failure into ``{"error": ...}`` so the agent can retry a
    different engine/query instead of the loop crashing. That is a design
    property, not an implementation detail, hence a dedicated test.
+4. **``run_search_backend`` is the shared envelope.** ``run_search_tool``
+   delegates to it, and so do the caller-owned compositions that are
+   deliberately absent from ``ENGINE_INFO``/``_DISPATCH`` (``utils.search.search``
+   in ali_deepresearch and claude-code-research). All five systems' retrieval
+   passes through it, so it is pinned on its own — a caller supplying an
+   arbitrary ``backend`` reaches contracts no ``_DISPATCH`` engine exercises.
 
 All retrieval is stubbed via ``stub_search_tool`` (patches ``_DISPATCH``), so the
 real envelope/rounding/truncation code runs but no transport does.
@@ -31,7 +37,7 @@ import pytest
 from tools import search_tool
 from tools.search_tool import (ENGINE_INFO, SEARCH_ENGINES, SEARCH_TOOL,
                                _query_guidance, build_search_tool,
-                               run_search_tool)
+                               run_search_backend, run_search_tool)
 
 
 # ---------------------------------------------------------------------------
@@ -382,3 +388,55 @@ def test_dispatch_table_covers_exactly_the_declared_engines() -> None:
     an engine in the enum with no dispatch entry would surface to the model as
     a valid choice that always errors."""
     assert tuple(search_tool._DISPATCH) == SEARCH_ENGINES
+
+
+# ---------------------------------------------------------------------------
+# run_search_backend — the shared envelope, exercised directly
+# ---------------------------------------------------------------------------
+# ``run_search_tool`` delegates here, and so do the caller-owned compositions
+# (``utils.search.search`` in ali_deepresearch / claude-code-research). Every
+# system's retrieval now flows through this one function, so it is pinned
+# directly rather than only through its callers: a caller passing an arbitrary
+# ``backend`` reaches paths no ``_DISPATCH`` engine can.
+def test_backend_is_called_with_k_as_a_keyword() -> None:
+    """``k`` must go through by NAME. Every backend and the hybrid composition
+    declare ``(query, k=10, *, ...)``, so a positional ``k`` works only by
+    accident of ordering; a composition that took its depth as keyword-only
+    would silently retrieve its own default instead of the caller's ``k``."""
+    seen: dict[str, Any] = {}
+
+    def _backend(query: str, **kw: Any) -> list[dict[str, Any]]:
+        seen.update(query=query, **kw)
+        return []
+
+    run_search_backend("q", _backend, engine="hybrid-rrf", k=7, extra="x")
+    assert seen == {"query": "q", "k": 7, "extra": "x"}
+
+
+def test_envelope_labels_the_engine_the_caller_names() -> None:
+    """The ``engine`` label is the caller's, not looked up in ``ENGINE_INFO`` —
+    that is what lets a fused composition report ``hybrid-rrf`` honestly. It is
+    the provenance a trajectory reader trusts to know what actually ran."""
+    from utils.search_types import make_hit
+
+    def _backend(query: str, k: int = 10, **kw: Any) -> list[dict[str, Any]]:
+        return [make_hit("shard_00000_1", score=0.0164, rank=1, text="t",
+                         meta={"sources": {"dense": {"rank": 1, "score": 9.0}}})]
+
+    out = json.loads(run_search_backend("q", _backend, engine="hybrid-rrf", k=1))
+    assert out["engine"] == "hybrid-rrf"
+    assert out["query"] == "q" and out["k"] == 1
+    # Not an ENGINE_INFO key: a composition is deliberately not model-selectable.
+    assert "hybrid-rrf" not in ENGINE_INFO
+
+
+def test_a_composition_failure_is_an_error_envelope_too() -> None:
+    """A caller-owned composition gets the same resilience contract as a single
+    engine. ``utils.search.search`` fails the whole call if either leg raises,
+    so this is the path a one-leg outage takes to reach the agent."""
+    def _backend(query: str, k: int = 10, **kw: Any) -> list[dict[str, Any]]:
+        raise RuntimeError("sparse leg down")
+
+    out = json.loads(run_search_backend("q", _backend, engine="hybrid-rrf"))
+    assert set(out) == {"error"}
+    assert out["error"] == "RuntimeError: sparse leg down"
