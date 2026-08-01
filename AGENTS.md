@@ -176,7 +176,7 @@ network.
 skip (both are easy to get wrong by hand; see below). Two modes:
 
 ```bash
-bash scripts/test.sh                    # EVERYTHING (944 cases, ~16s) — before every commit
+bash scripts/test.sh                    # EVERYTHING (947 cases, ~16s) — before every commit
 bash scripts/test.sh contract           # just one area
 ```
 
