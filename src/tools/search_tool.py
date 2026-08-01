@@ -213,7 +213,7 @@ def run_search_backend(
     and agent-visible error handling identical to the single-engine tool path.
     """
     try:
-        hits = backend(query, k, **kwargs)
+        hits = backend(query, k=k, **kwargs)
     except Exception as exc:  # surface as tool output, not an exception
         return json.dumps({"error": f"{type(exc).__name__}: {exc}"})
 
