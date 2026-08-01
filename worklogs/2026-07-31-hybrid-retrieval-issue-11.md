@@ -82,3 +82,45 @@ Live retrieval and retrieval-effectiveness evaluation were not run in this
 session. The offline regressions verify routing, fusion, serialization, and
 provenance. Comparing answer/retrieval metrics is separate follow-up work after
 BM25 tuning and should use the evaluation workflow owned by those tasks.
+
+## Review follow-ups (2026-07-31, code review of PR #13)
+
+`run_search_backend` had no direct test: coverage reached it only through
+`run_search_tool` and the two systems. Since it is now the single execution path
+for all five systems' retrieval, and since a caller passing an arbitrary
+`backend` reaches contracts no `_DISPATCH` engine exercises, it is pinned
+directly in `tests/shared/test_search_tool.py`:
+
+- `test_backend_is_called_with_k_as_a_keyword` — pins the `k=k` fix in `8bb25c1`.
+  Verified to bite: reverting that line to positional `k` fails this test and
+  only this test.
+- `test_envelope_labels_the_engine_the_caller_names` — the `engine` label is the
+  caller's string, and `hybrid-rrf` is deliberately absent from `ENGINE_INFO`.
+- `test_a_composition_failure_is_an_error_envelope_too` — a raising composition
+  still reaches the agent as `{"error": ...}`.
+
+`test_react_run_search_routed_with_the_scripted_query` asserted the two legs'
+complete kwargs dicts, including `timeout: 30.0` — `utils.search.search`'s own
+default, so a timeout tune would have failed two system tests for no
+behavioural reason. Narrowed to query/depth plus the dense leg's `with_text`.
+
+Full offline suite after these additions: **947 passed, 6 deselected, 1 warning
+in 12.55s**.
+
+Two issues found in review are **not** fixed here, because both change retrieval
+behaviour rather than tests and deserve their own measurement:
+
+- **Either-leg failure sinks the whole search.** `utils.search.search` calls
+  `f_dense.result()`/`f_sparse.result()` bare, so one leg raising fails the call.
+  Confirmed by probe: a raising sparse leg yields
+  `{"error": "RuntimeError: sparse leg down"}`. Before this PR a `keyword`
+  outage was invisible to these two systems; now it zeroes their search, so
+  failure exposure roughly doubles. A partial-result fallback (return the
+  surviving leg, mark the degradation in `meta`) is the likely fix.
+- **`meta` is dropped from the envelope, discarding RRF provenance.**
+  `run_search_backend` projects six fields and omits `meta`, so the fused
+  `meta["sources"][name] = {rank, score}` — what `tests/shared/test_fusion.py`
+  calls "the provenance the analysis/worklog layer reads" — never reaches the
+  tool log. Both systems now record only the fused RRF score (~0.03), so nothing
+  downstream can tell whether a hit came from one leg or both. That is the main
+  analytical payoff of going hybrid.

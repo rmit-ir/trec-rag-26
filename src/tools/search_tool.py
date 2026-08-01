@@ -10,13 +10,18 @@ in isolation:
 - ``ssr``          Cottontail Shortest-Substring Ranking, GCL Boolean — Boolean syntax
 - ``lucene_bool``  full Lucene query-parser over the BM25 index       — Lucene syntax
 
-There is deliberately no fused option: the caller is the fusion layer.
+There is deliberately no fused option: the caller is the fusion layer. A caller
+that owns a composition (``utils.search.search``, dense+sparse RRF) runs it
+through ``run_search_backend`` to get this module's result envelope without
+becoming a model-selectable engine.
 
 Usage as a tool:
     from tools.search_tool import SEARCH_TOOL, build_search_tool, run_search_tool
     # SEARCH_TOOL           -> default (semantic+keyword) tool definition
     # build_search_tool([...]) -> tool definition restricted to the given engines
     # run_search_tool(**tool_input) -> JSON string to hand back as the tool result
+    # run_search_backend(q, backend, engine=...) -> same envelope for a
+    #   caller-owned composition (what the hybrid-RRF systems call)
 
 Usage as a CLI:
     python src/tools/search_tool.py "influenza vaccination" --k 5 --engine semantic

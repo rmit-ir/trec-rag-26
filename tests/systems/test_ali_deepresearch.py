@@ -263,20 +263,22 @@ def test_react_run_opened_document_is_cited_first(
 def test_react_run_search_routed_with_the_scripted_query(
         react_run: dict[str, Any]) -> None:
     """Both retrieval legs receive the model query at the fusion depth; losing
-    either leg would recreate the dense-only run that this system mislabeled."""
+    either leg would recreate the dense-only run that this system mislabeled.
+
+    Asserts query/depth only, not the whole kwargs dict: ``timeout`` is
+    ``utils.search.search``'s own default, so pinning it here would make a
+    timeout tune fail two system tests for no behavioural reason.
+    """
     calls = react_run["calls"]
     assert set(calls) == {"semantic", "keyword"}
-    assert calls["semantic"] == [{
-        "query": "influenza vaccine effectiveness",
-        "k": 50,
-        "with_text": True,
-        "timeout": 30.0,
-    }]
-    assert calls["keyword"] == [{
-        "query": "influenza vaccine effectiveness",
-        "k": 50,
-        "timeout": 30.0,
-    }]
+    for leg in ("semantic", "keyword"):
+        call, = calls[leg]
+        assert call["query"] == "influenza vaccine effectiveness"
+        assert call["k"] == 50
+    # The dense leg is opt-in on text (``with_text``), unlike sparse; without it
+    # the fused hit can only borrow sparse's snippet, so a dense-only hit would
+    # reach the agent with nothing to quote.
+    assert calls["semantic"][0]["with_text"] is True
     assert react_run["trajectory"]["metadata"]["searcher_type"] == "hybrid-rrf"
 
 
