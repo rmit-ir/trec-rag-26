@@ -1,5 +1,16 @@
 # trec-rag-26 — RMIT-ADM+S @ TREC RAG 2026
 
+[![TREC RAG 2026](https://img.shields.io/badge/TREC%20RAG-2026-0A66C2)](https://trec-rag.github.io/)
+[![Corpus: ClimbMix](https://img.shields.io/badge/corpus-ClimbMix-6E4AFF)](https://trec-rag.github.io/)
+[![Spec v0.6.0](https://img.shields.io/badge/track%20spec-v0.6.0-informational)](skills/trec-rag-2026-track-guidelines/)
+[![Python 3.13](https://img.shields.io/badge/Python-3.13-3776AB?logo=python&logoColor=white)](.python-version)
+[![uv](https://img.shields.io/badge/deps-uv-DE5FE9?logo=astral&logoColor=white)](https://docs.astral.sh/uv/)
+[![Tests](https://img.shields.io/badge/tests-944%20hermetic-brightgreen?logo=pytest&logoColor=white)](tests/)
+[![CI](https://img.shields.io/badge/CI-3%20workflows-2088FF?logo=githubactions&logoColor=white)](.github/workflows/)
+[![Systems](https://img.shields.io/badge/RAG%20systems-5-8A2BE2)](src/systems/)
+[![Retrieval](https://img.shields.io/badge/retrieval-dense%20%7C%20BM25%20%7C%20SSR%20%7C%20Pyserini-005571)](#retrieval)
+[![Architecture](https://img.shields.io/badge/architecture-interactive%20diagram-F9A03C)](docs/architecture.html)
+
 Retrieval and RAG systems built by the **RMIT-ADM+S** team for the
 [TREC RAG 2026](https://trec-rag.github.io/) shared task, over the **ClimbMix**
 corpus.
