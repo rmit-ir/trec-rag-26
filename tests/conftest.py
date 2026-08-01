@@ -16,8 +16,9 @@ Fixture layers, cheapest first:
 
 - ``fake_hits`` / ``fake_search_response`` — canonical ClimbMix search payloads
   in the exact shape the spec documents (see ``tests/contract``).
-- ``stub_search_tool`` — monkeypatches ``tools.search_tool``'s engine dispatch,
-  so a pipeline exercises REAL retrieval plumbing against fake transport.
+- ``stub_search_tool`` — monkeypatches ``tools.search_tool``'s engine dispatch
+  and ``utils.search``'s dense/sparse clients, so single-engine and hybrid
+  pipelines exercise REAL retrieval plumbing against fake transport.
 - ``ScriptedProvider`` — the ``aus_agent.providers.base.Provider`` contract,
   driven by a queued list of turns; the single mock every system's LLM stage
   is exercised through.
@@ -188,12 +189,13 @@ def fake_search_response() -> Callable[..., dict[str, Any]]:
 def stub_search_tool(monkeypatch: pytest.MonkeyPatch,
                      fake_hits: Callable[..., list[dict[str, Any]]]
                      ) -> dict[str, list[dict[str, Any]]]:
-    """Replace every engine in ``tools.search_tool._DISPATCH`` with a fake.
+    """Replace tool dispatch and the hybrid layer's two clients with fakes.
 
     Patching the dispatch table (not ``run_search_tool``) keeps the real
     serialization, truncation, and error-envelope logic under test while
-    removing the transport. Returns a ``calls`` dict recording what each engine
-    was asked for, so a test can assert engine routing:
+    removing the transport. Patching the aliases held by ``utils.search`` does
+    the same for its real concurrency and RRF fusion path. Returns a ``calls``
+    dict recording what each engine was asked for, so a test can assert routing:
 
         assert calls["semantic"][0]["query"] == "..."
 
@@ -204,6 +206,7 @@ def stub_search_tool(monkeypatch: pytest.MonkeyPatch,
     queries to three disjoint doc sets.
     """
     from tools import search_tool
+    from utils import search as hybrid_search
 
     calls: dict[str, list[dict[str, Any]]] = {}
 
@@ -216,6 +219,8 @@ def stub_search_tool(monkeypatch: pytest.MonkeyPatch,
 
     patched = {engine: _make(engine) for engine in search_tool._DISPATCH}
     monkeypatch.setattr(search_tool, "_DISPATCH", patched)
+    monkeypatch.setattr(hybrid_search, "search_dense", patched["semantic"])
+    monkeypatch.setattr(hybrid_search, "search_sparse", patched["keyword"])
     return calls
 
 

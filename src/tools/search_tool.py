@@ -10,13 +10,18 @@ in isolation:
 - ``ssr``          Cottontail Shortest-Substring Ranking, GCL Boolean — Boolean syntax
 - ``lucene_bool``  full Lucene query-parser over the BM25 index       — Lucene syntax
 
-There is deliberately no fused option: the caller is the fusion layer.
+There is deliberately no fused option: the caller is the fusion layer. A caller
+that owns a composition (``utils.search.search``, dense+sparse RRF) runs it
+through ``run_search_backend`` to get this module's result envelope without
+becoming a model-selectable engine.
 
 Usage as a tool:
     from tools.search_tool import SEARCH_TOOL, build_search_tool, run_search_tool
     # SEARCH_TOOL           -> default (semantic+keyword) tool definition
     # build_search_tool([...]) -> tool definition restricted to the given engines
     # run_search_tool(**tool_input) -> JSON string to hand back as the tool result
+    # run_search_backend(q, backend, engine=...) -> same envelope for a
+    #   caller-owned composition (what the hybrid-RRF systems call)
 
 Usage as a CLI:
     python src/tools/search_tool.py "influenza vaccination" --k 5 --engine semantic
@@ -25,12 +30,13 @@ Usage as a CLI:
 from __future__ import annotations
 
 import json
-from typing import Any
+from typing import Any, Callable
 
 from utils.search_dense import search_dense
 from utils.search_lucene_bool import search_lucene_bool
 from utils.search_sparse import search_sparse
 from utils.search_ssr import search_ssr
+from utils.search_types import SearchHit
 
 # All engines, in a stable order. ``kind`` selects the query-writing guidance
 # handed to the model; ``blurb`` is the one-line "when to use" for the tool
@@ -195,6 +201,43 @@ _DISPATCH = {
 }
 
 
+def run_search_backend(
+    query: str,
+    backend: Callable[..., list[SearchHit]],
+    *,
+    engine: str,
+    k: int = 10,
+    max_chars: int | None = 500,
+    **kwargs: Any,
+) -> str:
+    """Run one selected backend through the standard agent-tool envelope.
+
+    Callers that own a retrieval composition, such as dense+sparse RRF, pass
+    that shared composition here without adding it to the model-selectable
+    ``ENGINE_INFO``/``_DISPATCH`` table. This keeps serialization, truncation,
+    and agent-visible error handling identical to the single-engine tool path.
+    """
+    try:
+        hits = backend(query, k=k, **kwargs)
+    except Exception as exc:  # surface as tool output, not an exception
+        return json.dumps({"error": f"{type(exc).__name__}: {exc}"})
+
+    results = []
+    for hit in hits:
+        result_text = hit.get("text") or ""
+        results.append({
+            "rank": hit["rank"],
+            "id": hit["id"],
+            "docid": hit["docid"],
+            "kind": hit["kind"],
+            "score": round(hit["score"], 6),
+            "text": (result_text if max_chars is None
+                     else result_text[:max_chars]),
+        })
+    return json.dumps({"query": query, "k": k, "engine": engine,
+                       "results": results}, ensure_ascii=False)
+
+
 def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
                     search_engine: str = "semantic",
                     **kwargs: Any) -> str:
@@ -211,24 +254,14 @@ def run_search_tool(query: str, k: int = 10, max_chars: int | None = 500,
         return json.dumps({"error": (
             f"unknown search_engine: {search_engine!r} "
             f"(expected one of {list(_DISPATCH)})")})
-    try:
-        hits = _DISPATCH[search_engine](query, k, **kwargs)
-    except Exception as e:  # surface as tool output, not an exception
-        return json.dumps({"error": f"{type(e).__name__}: {e}"})
-
-    results = []
-    for h in hits:
-        text = h.get("text") or ""
-        results.append({
-            "rank": h["rank"],
-            "id": h["id"],
-            "docid": h["docid"],
-            "kind": h["kind"],
-            "score": round(h["score"], 6),
-            "text": text if max_chars is None else text[:max_chars],
-        })
-    return json.dumps({"query": query, "k": k, "engine": search_engine,
-                       "results": results}, ensure_ascii=False)
+    return run_search_backend(
+        query,
+        _DISPATCH[search_engine],
+        engine=search_engine,
+        k=k,
+        max_chars=max_chars,
+        **kwargs,
+    )
 
 
 def main() -> None:

@@ -35,7 +35,8 @@ prompts.SYSTEM_PROMPT ────┘        │
 - **`prompts.py`** — the DeepResearch system prompt with web tools swapped for
   `search` + `get_document`, plus the answer-formatting prompt.
 - **`tools.py`** — `ClimbMixTools` (stateful, cross-step de-duplication like the
-  reference retriever) wired to `tools.search_tool.run_search_tool` and
+  reference retriever) wired to `utils.search.search` for dense+sparse RRF, the
+  shared `tools.search_tool.run_search_backend` result envelope, and
   `utils.fetch_doc.fetch_doc`. `search` accepts a single query string or a list
   (upstream's batched form).
 - **`answer_format.py`** — free-text `<answer>` → strict TREC RAG sentences with
@@ -53,7 +54,7 @@ Tests live in `tests/systems/test_ali_deepresearch.py` (see `## Tests` below).
 | ReAct loop `MultiTurnReactAgent._run` | `react_agent.ReactAgent.run` | **Kept.** Same `<think>/<tool_call>/<tool_response>/<answer>` protocol, stop tokens, `<tool_response>` truncation, round budget, force-answer-on-limit. |
 | `call_server` (OpenAI client + retries) | `run.OpenAIChatLLM` | **Kept**, generalized behind the `ChatLLM` protocol so the loop is transport-agnostic and mockable. Sampling defaults `temperature 0.85 / top_p 0.95 / presence_penalty 1.1`. |
 | `SYSTEM_PROMPT` (web tools) | `prompts.SYSTEM_PROMPT` | **Replaced tools.** `search`/`visit`/`google_scholar`/`PythonInterpreter`/`parse_file` → `search` + `get_document` only. Docid rule relaxed from "numeric only" to "exact DocID string" for ClimbMix ids. |
-| `tool_search.Search` (Serper web search) | `tools.ClimbMixTools.search` | **Replaced.** Hybrid dense+sparse RRF over ClimbMix via `run_search_tool`. Keeps the batched-`query` array form and the `"A search for '…' found N results"` formatting; adds the sample's cross-step de-dup + "Already-seen" section. |
+| `tool_search.Search` (Serper web search) | `tools.ClimbMixTools.search` | **Replaced.** Hybrid dense+sparse RRF over ClimbMix via `utils.search.search`, while `run_search_backend` preserves the shared agent-tool envelope. Keeps the batched-`query` array form and the `"A search for '…' found N results"` formatting; adds the sample's cross-step de-dup + "Already-seen" section. |
 | `tool_visit.Visit` (fetch + summarize URLs) | `tools.ClimbMixTools.get_document` | **Replaced.** No URLs; retrieve full ClimbMix doc text by docid via `fetch_doc`. `Document <docid>:\n<text>` format matches the sample. |
 | `tool_scholar` / `tool_python` / `tool_file` | — | **Dropped.** Web/eval-only; out of scope for corpus-grounded RAG. |
 | `count_tokens` via HF `AutoTokenizer` | `_approx_tokens` (chars/4) | **Replaced.** We ship only the `openai` client, not `transformers`; a char heuristic guards the context window. |
@@ -113,11 +114,12 @@ bash scripts/test.sh tests/systems/test_ali_deepresearch.py
 
 Fully offline — no credentials, no network. A `ScriptedProvider` drives
 `think → search → think → get_document → answer` through the real loop, with
-retrieval stubbed by the `stub_search_tool` fixture, and asserts both JSONs are
-written with no violations, the per-tool call counts, a non-empty
+the dense and sparse clients below the real RRF layer stubbed by the
+`stub_search_tool` fixture. The suite asserts both retrieval legs ran, both
+JSONs were written with no violations, the per-tool call counts, a non-empty
 `retrieved_docids`, correctly interleaved reasoning/tool-call items, and that
-every reference is cited. The `answer_format` heuristic and LLM paths are covered
-separately.
+every reference is cited. The `answer_format` heuristic and LLM paths are
+covered separately.
 
 One `@pytest.mark.live` test keeps the real-endpoint path exercisable; it is
 deselected by default and needs `SEARCH_API_KEY` / `PYSERINI_API_TOKEN`:
