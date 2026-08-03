@@ -25,10 +25,15 @@ import json
 import numpy as np
 import torch
 
+from env_util import DEFAULT_MODEL, load_repo_env
+from st_embed import embed_features
+
+load_repo_env()  # HF_TOKEN for the private default model
+
 
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--model", default="jinaai/jina-embeddings-v5-text-nano")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--shard", required=True)
     ap.add_argument("--n", type=int, default=256)
     ap.add_argument("--max-seq-len", type=int, default=512)
@@ -84,10 +89,11 @@ def main() -> int:
     bs = 32
     for s in range(0, len(texts), bs):
         feats = {
-            "input_ids": torch.from_numpy(ids[s:s + bs]),
-            "attention_mask": torch.from_numpy(mask[s:s + bs]),
+            "input_ids": torch.from_numpy(ids[s:s + bs]).to(device),
+            "attention_mask": torch.from_numpy(mask[s:s + bs]).to(device),
         }
-        out = module.forward(feats, task=args.task)["sentence_embedding"]
+        # Same full-pipeline + truncate transform Stage B uses.
+        out = embed_features(model, feats, task=args.task)
         mine[s:s + bs] = out.float().cpu().numpy()
 
     cos = (ref * mine).sum(axis=1) / (

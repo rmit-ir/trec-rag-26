@@ -34,7 +34,7 @@ Run:
     tasks/custom_index/scripts/encode_pretokenized.py \
     --tokens-dir tasks/custom_index/work/climbmix-chunked/tokens \
     --out-dir    tasks/custom_index/work/climbmix-chunked/encoded \
-    --model jinaai/jina-embeddings-v5-text-nano \
+    --model RMIT-ADMS/jina-v5-nano-trecrag26-agent-256d \
     --batch-size 256 --dtype auto
 """
 from __future__ import annotations
@@ -46,6 +46,13 @@ import subprocess
 import sys
 import time
 from pathlib import Path
+
+from env_util import DEFAULT_MODEL, load_repo_env
+from st_embed import embed_features, resolve_out_dim
+
+# Pull HF_TOKEN from the repo .env so the private default model authenticates.
+# Must run before any HF download (parent spawns workers that inherit os.environ).
+load_repo_env()
 
 
 def parse_bool(s: str) -> bool:
@@ -199,7 +206,7 @@ def _load_shard(tokens_dir: Path, stem: str):
     return ids, lens, off, docids
 
 
-def encode_one_shard(tokens_dir, out_dir, stem, module, dim, pad_id, task,
+def encode_one_shard(tokens_dir, out_dir, stem, model, dim, pad_id, task,
                      batch_size, rank, log_every, shard_idx, n_shards,
                      total_shards, step_start, meta, model_name, normalize,
                      max_seq_len):
@@ -216,7 +223,7 @@ def encode_one_shard(tokens_dir, out_dir, stem, module, dim, pad_id, task,
 
     # length-descending order => uniform batches, ~zero pad waste, OOM fails fast
     order = np.argsort(-lens, kind="stable")
-    device = module.model.device
+    device = model.device
 
     vec_f = open(tmp_fbin, "wb")
     np.array([0, dim], dtype=np.uint32).tofile(vec_f)  # header placeholder
@@ -235,11 +242,12 @@ def encode_one_shard(tokens_dir, out_dir, stem, module, dim, pad_id, task,
             bids[j, :L] = ids[a:b]
             bmask[j, :L] = 1
         feats = {
-            "input_ids": torch.from_numpy(bids),
-            "attention_mask": torch.from_numpy(bmask),
+            "input_ids": torch.from_numpy(bids).to(device),
+            "attention_mask": torch.from_numpy(bmask).to(device),
         }
-        with torch.no_grad():
-            emb = module.forward(feats, task=task)["sentence_embedding"]
+        # Full ST pipeline + Matryoshka truncate/renorm — reproduces
+        # model.encode(prompt_name="document", task="retrieval") exactly.
+        emb = embed_features(model, feats, task=task)
         emb = emb.float().cpu().numpy().astype(np.float32, copy=False)
         emb.tofile(vec_f)
         out_docids.extend(docids[r] for r in rows)
@@ -296,14 +304,12 @@ def run_worker(args) -> int:
     tok = module.tokenizer
     pad_id = tok.pad_token_id if tok.pad_token_id is not None else 0
 
-    dim = model.get_sentence_embedding_dimension()
-    if dim is None:
-        probe = model.encode("test", convert_to_numpy=True,
-                             normalize_embeddings=normalize,
-                             show_progress_bar=False,
-                             task=args.task, prompt_name=args.prompt_name)
-        dim = int(probe.shape[-1])
-    print(f"[worker {args.worker_rank}] dim={dim} pad_id={pad_id}", flush=True)
+    # Final output dim = post-truncation dim encode() returns (256 for the
+    # matryoshka fine-tune; native pooling dim otherwise).
+    dim = resolve_out_dim(model)
+    td = getattr(model, "truncate_dim", None)
+    print(f"[worker {args.worker_rank}] dim={dim} "
+          f"truncate_dim={td} pad_id={pad_id}", flush=True)
 
     meta_extra = {
         "task": args.task or None,
@@ -315,7 +321,7 @@ def run_worker(args) -> int:
     stems = args.stems
     for i, stem in enumerate(stems, start=1):
         encode_one_shard(
-            tokens_dir=tokens_dir, out_dir=out_dir, stem=stem, module=module,
+            tokens_dir=tokens_dir, out_dir=out_dir, stem=stem, model=model,
             dim=dim, pad_id=pad_id, task=args.task, batch_size=args.batch_size,
             rank=args.worker_rank, log_every=args.log_every, shard_idx=i,
             n_shards=len(stems), total_shards=args.total_shards,
@@ -329,7 +335,7 @@ def build_argparser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser()
     ap.add_argument("--tokens-dir", required=True)
     ap.add_argument("--out-dir", required=True)
-    ap.add_argument("--model", default="jinaai/jina-embeddings-v5-text-nano")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--batch-size", type=int, default=256)
     ap.add_argument("--device", default="auto")
     ap.add_argument("--dtype", default="auto",

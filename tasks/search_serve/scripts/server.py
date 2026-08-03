@@ -36,6 +36,13 @@ from __future__ import annotations
 import os as _os
 import resource as _resource
 
+# Source HF_TOKEN from the repo .env before anything loads the (possibly
+# private) query-encoder model. huggingface_hub reads HF_TOKEN from the env;
+# doing this in the preamble covers both direct-uvicorn and per-gunicorn-worker
+# imports. No-op for public models or when HF_TOKEN is already set.
+from env_util import load_repo_env as _load_repo_env
+_load_repo_env()
+
 if _os.environ.get("SEARCH_DEVICE", "").lower().startswith("cpu"):
     _os.environ.setdefault("CUDA_VISIBLE_DEVICES", "")
 

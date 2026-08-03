@@ -16,6 +16,12 @@ import json
 import sys
 from pathlib import Path
 
+from env_util import load_repo_env
+
+# The index's model may be a private HF repo; make HF_TOKEN available for the
+# query-encoder load. No-op when the model is public or the token is preset.
+load_repo_env()
+
 
 def load_docids(path: Path) -> list[str]:
     with open(path, "rt", encoding="utf-8") as f:

@@ -50,6 +50,11 @@ from pathlib import Path
 
 import numpy as np
 
+from env_util import DEFAULT_MODEL, load_repo_env
+
+# Private default model -> tokenizer download needs HF_TOKEN (from repo .env).
+load_repo_env()
+
 # One tokenizer per worker process, lazily built.
 _TOK = None
 _TOK_MODEL = None
@@ -148,7 +153,7 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--corpus-dir", required=True)
     ap.add_argument("--out-dir", required=True)
-    ap.add_argument("--model", default="jinaai/jina-embeddings-v5-text-nano")
+    ap.add_argument("--model", default=DEFAULT_MODEL)
     ap.add_argument("--max-seq-len", type=int, default=1024)
     ap.add_argument("--prompt", default="Document: ")
     ap.add_argument("--workers", type=int, default=96)

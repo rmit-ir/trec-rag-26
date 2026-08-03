@@ -26,6 +26,7 @@ import time
 from pathlib import Path
 
 # Sibling helpers — formatting + on-disk progress reads.
+from env_util import load_repo_env
 from progress import (
     count_completed_shards,
     count_lines,
@@ -33,6 +34,9 @@ from progress import (
     shard_finished_line,
     shard_progress_line,
 )
+
+# Private default model -> make HF_TOKEN available before any Hub download.
+load_repo_env()
 
 
 def parse_bool(s: str) -> bool:

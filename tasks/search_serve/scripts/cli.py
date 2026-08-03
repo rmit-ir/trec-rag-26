@@ -25,8 +25,12 @@ import sys
 from pathlib import Path
 
 from encoder import EncoderConfig
+from env_util import load_repo_env
 from errors import EngineLoadError
 from search_engine import SearchEngine
+
+# HF_TOKEN for a private query-encoder model (from repo .env). No-op otherwise.
+load_repo_env()
 
 
 def build_parser() -> argparse.ArgumentParser:
