@@ -55,11 +55,39 @@ class _ProviderLLM:
         return one_shot(self._provider, system, "\n\n".join(user_parts))
 
 
+def _sandwich_order(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Reorder evidence so the strongest items sit at both edges, weakest in
+    the middle -- the standard mitigation for "lost in the middle" (models
+    under-weight the center of a long context).
+
+    Ranked by each item's own ``rank`` (1-indexed position within the search
+    call that surfaced it) ascending -- best first. ``rank`` is comparable
+    within one engine's result list but NOT calibrated across engines (a
+    dense cosine score and a BM25 score are different scales); using rank
+    instead of raw score sidesteps that, at the cost of only ordering within
+    each search's own confidence, not truly cross-engine. Items with no rank
+    (shouldn't happen; defensive) sort last.
+    """
+    ranked = sorted(
+        evidence,
+        key=lambda e: e.get("rank") if e.get("rank") is not None else float("inf"))
+    ordered: list[Any] = [None] * len(ranked)
+    lo, hi = 0, len(ranked) - 1
+    for i, item in enumerate(ranked):
+        if i % 2 == 0:
+            ordered[lo] = item
+            lo += 1
+        else:
+            ordered[hi] = item
+            hi -= 1
+    return ordered
+
+
 def _render_evidence_block(evidence: list[dict[str, Any]]) -> str:
     if not evidence:
         return "(no evidence retrieved)"
     blocks = []
-    for i, e in enumerate(evidence, 1):
+    for i, e in enumerate(_sandwich_order(evidence), 1):
         blocks.append(f"[{i}] docid={e['docid']} facet={e['facet']}\n"
                       f"note: {e['note']}\n{e['text']}")
     return "\n\n".join(blocks)

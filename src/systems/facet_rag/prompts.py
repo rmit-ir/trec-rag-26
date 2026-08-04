@@ -6,10 +6,14 @@ Two roles, five prompts:
   independent research FACETS: a name, a description of what needs to be
   found, and a complexity-driven iteration budget (1-10). No engine/query is
   prescribed here — the orchestrator decides retrieval strategy live, per
-  facet, in ``ORCHESTRATOR_SYSTEM_PROMPT``.
-- ``ORCHESTRATOR_SYSTEM_PROMPT`` / ``ORCHESTRATOR_TASK_PROMPT`` (orchestrator,
-  tool-calling loop) — search the corpus for one facet, choosing engines
-  itself; reacts to a coverage-gap note from the analyzer by searching again.
+  facet, in ``ORCHESTRATOR_QUERY_PROMPT``.
+- ``ORCHESTRATOR_QUERY_PROMPT`` (orchestrator, one-shot per loop iteration) —
+  write one query per mandatory engine (semantic/keyword/hybrid) plus an
+  optional Boolean-engine query, as structured JSON. NOT native tool-calling:
+  gpt-oss-120b via Bedrock Converse never batched more than one tool call per
+  turn regardless of prompt wording (checked empirically), so the code
+  executes every query in the parsed plan unconditionally instead of relying
+  on the model to decide how many/which tool calls to make.
 - ``ANALYZER_PROMPT`` (analyzer, one-shot per loop iteration) — read the
   newly retrieved passages against the facet's need, keep what's relevant
   with a supporting note, and report a coverage gap (or "satisfied").
@@ -43,41 +47,31 @@ RESEARCH NARRATIVE:
 {narrative}
 """
 
-ORCHESTRATOR_SYSTEM_PROMPT = """You are the search orchestrator for one facet \
-of a larger research task. Your ONLY data source is the ClimbMix document \
-corpus, reached through the `search` tool — there is no web search.
+ORCHESTRATOR_QUERY_PROMPT = """You are the search planner for one facet of a \
+larger research task. Your ONLY data source is the ClimbMix document corpus \
+— there is no web search.
 
-Each turn, call `search` to retrieve passages for the facet below. You choose \
-the engine (or call it more than once with different engines, in the same \
-turn, if you are unsure which will work best) and write the query in that \
-engine's language. PREFER `semantic`, `keyword`, and `hybrid` — they cover \
-almost every need and take a plain natural-language query. Only reach for \
-`ssr` or `lucene_bool` when the facet genuinely needs Boolean-precise \
-co-occurrence, a required term, or a phrase/proximity match that a natural- \
-language query can't express. After your search, an analyst reviews the results and \
-either accepts the facet as adequately covered or reports a specific \
-coverage gap — if you receive a coverage gap, issue a new, more targeted \
-search addressing exactly that gap. If you judge that no further search \
-would add anything, respond with no tool call and a short reason.
-
-AVAILABLE ENGINES:
-{engine_blurbs}
-
-QUERY-WRITING GUIDANCE (obey the guidance for the engine you pick):
-{query_guidance}
-"""
-
-ORCHESTRATOR_TASK_PROMPT = """FACET: {facet_name}
+FACET: {facet_name}
 
 {facet_description}
+{context_block}
+Write a DIFFERENT, natural-language query for EACH of these three engines, \
+each phrased in that engine's own style (not a copy of the others):
+- semantic: {semantic_blurb}
+- keyword: {keyword_blurb}
+- hybrid: {hybrid_blurb}
 
-Search now."""
+If (and only if) this facet genuinely needs Boolean-precise co-occurrence, a \
+required term, or a phrase/proximity match that natural language can't \
+express, ALSO write one query for a Boolean engine — otherwise leave both \
+boolean fields null:
+{boolean_blurbs}
 
-ORCHESTRATOR_GAP_PROMPT = """Coverage gap reported by the analyst:
-
-{gap}
-
-Search again to address this gap specifically."""
+Return ONLY a JSON object of this exact shape (no prose, no code fences):
+{{"queries": {{"semantic": "<query>", "keyword": "<query>", "hybrid": "<query>"}}, \
+"boolean_engine": "<engine name from the Boolean list above, or null>", \
+"boolean_query": "<query in that engine's language, or null>"}}
+"""
 
 ANALYZER_PROMPT = """You are the analyst for one facet of a corpus-grounded \
 research task. Read the newly retrieved passages below and judge them ONLY \

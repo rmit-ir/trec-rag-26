@@ -14,14 +14,17 @@ narrative ──> PLAN (orchestrator, 1 call)  planner.build_plan_prompt
               │                                                │
               │   loop.run_facet_loop  (<=10 iterations)       │
               │                                                │
-              │   orchestrator: native Bedrock tool-use turn   │
-              │     -> picks engine(s), calls `search`          │
+              │   orchestrator: one-shot query-plan JSON       │
+              │     -> writes >=1 query per MANDATORY engine    │
+              │        (semantic/keyword/hybrid, whichever      │
+              │        enabled) + an optional ssr/lucene_bool    │
+              │        query; code executes every one            │
               │            │                                    │
               │   analyzer: one-shot judge                      │
               │     -> keep relevant passages + note,            │
               │        report a gap or "satisfied"                │
               │            │                                    │
-              │   satisfied? / no search? / cap reached? ──stop  │
+              │   satisfied? / cap reached? ─────────────stop   │
               │   else: gap fed back to orchestrator, loop again │
               └────────────────────┬────────────────────┘
                                    │  evidence, deduped by docid across facets
@@ -38,20 +41,34 @@ narrative ──> PLAN (orchestrator, 1 call)  planner.build_plan_prompt
         ragrun.save_run ──────────┘  data/outputs/facet_rag/<ts>.<slug>.{trajectory,output}.json
 ```
 
-Retrieval is corpus-only — the orchestrator's only tool is `search`
-(`tools.search_tool`, the same four ClimbMix engines every other system in
-this repo uses) — no web search, no other external API. Every citation is a
+Retrieval is corpus-only — the orchestrator only ever calls
+`tools.search_tool.run_search_tool` (the same five ClimbMix engines every
+other system in this repo uses: semantic, keyword, hybrid, ssr,
+lucene_bool) — no web search, no other external API. Every citation is a
 ClimbMix docid the analyzer actually vetted as relevant, not just anything
 retrieved.
+
+**Every loop iteration mandates one query per enabled preferred engine**
+(semantic/keyword/hybrid) — checked empirically, not just prompted: earlier
+versions asked the orchestrator to use native Bedrock tool-calling and
+optionally batch multiple `search` calls per turn, but gpt-oss-120b via
+Bedrock Converse never issued more than one tool call per turn regardless of
+how directively that was worded. The orchestrator's per-iteration role is now
+a one-shot structured-JSON call (like the analyzer, not native tool-use) —
+code executes every query in the parsed plan unconditionally, so multi-engine
+coverage no longer depends on the model choosing to batch tool calls. `ssr`/
+`lucene_bool` stay optional, added only when the orchestrator judges the
+facet genuinely needs Boolean precision.
 
 ## Two fixed roles, not a pluggable single backend
 
 Unlike the old plan-then-execute version (single interchangeable
 `--backend`), this system has two distinct roles that always run together:
 
-- **ORCHESTRATOR** (default `openai.gpt-oss-120b-1:0`) — plans facets, drives
-  the search tool (chooses engine(s), writes the query, reacts to a
-  coverage-gap note by searching again), and drafts the final report.
+- **ORCHESTRATOR** (default `openai.gpt-oss-120b-1:0`) — plans facets, writes
+  the mandatory-engine query plan every loop iteration (reacting to a
+  coverage-gap note by writing different queries), and drafts the final
+  report.
 - **ANALYZER** (default `qwen.qwen3-next-80b-a3b`) — judges each round of
   retrieved passages against the facet's need, keeps what's relevant with a
   supporting note, reports a coverage gap (or "satisfied"), and fact-checks
@@ -88,24 +105,32 @@ that facet. A facet the planner judges simple gets a small budget
   the raw narrative, which gets the full iteration budget since it has no
   sibling facets to share retrieval cost with.
 - `loop.py` — `run_facet_loop`: the orchestrator/analyzer search-analyze-gap
-  loop for one facet. The orchestrator gets a native Bedrock tool-use
-  conversation with the `search` tool (`tools.search_tool.build_search_tool`,
-  `run_search_tool`); the analyzer is a fresh one-shot judge call every
-  iteration (`ANALYZER_PROMPT`). Stops on whichever comes first: the analyzer
-  says satisfied, the orchestrator issues no search, or the iteration cap.
-  Trace events are buffered per facet (`LoopEvent`/`FacetLoopResult`) rather
-  than written straight to `TrajectoryBuilder`, which is not thread-safe —
-  `pipeline.py` replays them sequentially once every facet has finished.
-- `prompts.py` — five prompts: `PLAN_PROMPT`, `ORCHESTRATOR_SYSTEM_PROMPT` /
-  `ORCHESTRATOR_TASK_PROMPT` / `ORCHESTRATOR_GAP_PROMPT` (the facet loop),
-  `ANALYZER_PROMPT` (per-iteration judgment), `SYNTH_DRAFT_PROMPT` +
-  `FACT_CHECK_PROMPT` (joint synthesis).
+  loop for one facet. Both roles are fresh one-shot calls every iteration:
+  the orchestrator writes a `QueryPlan` (`parse_query_plan`) — one query per
+  mandatory engine plus an optional Boolean one — which the code executes via
+  `tools.search_tool.run_search_tool` unconditionally; the analyzer judges
+  the results (`ANALYZER_PROMPT`). An unparseable/empty plan falls back to
+  searching the facet description on the run's first enabled engine, so a
+  round is never skipped. Stops on whichever comes first: the analyzer says
+  satisfied, or the iteration cap. Trace events are buffered per facet
+  (`LoopEvent`/`FacetLoopResult`) rather than written straight to
+  `TrajectoryBuilder`, which is not thread-safe — `pipeline.py` replays them
+  sequentially once every facet has finished.
+- `prompts.py` — five prompts: `PLAN_PROMPT`, `ORCHESTRATOR_QUERY_PROMPT`
+  (per-iteration query plan), `ANALYZER_PROMPT` (per-iteration judgment),
+  `SYNTH_DRAFT_PROMPT` + `FACT_CHECK_PROMPT` (joint synthesis).
 - `pipeline.py` — orchestrates plan -> concurrent facet loops -> merge
   evidence (dedup by docid, first facet to surface it wins) -> joint
   draft + fact-check synthesis, assembles the trajectory, maps prose to the
   strict sentence/citation shape via
   `ali_deepresearch.answer_format.format_answer`, and writes both artifacts
-  with `ragrun.save_run`.
+  with `ragrun.save_run`. Evidence handed to the draft prompt is
+  **sandwich-ordered** (`_sandwich_order`) by each item's own search rank —
+  strongest at both edges of the block, weakest in the middle — to counter
+  "lost in the middle" (models under-weight the center of a long context).
+  Rank is only comparable within the search call that produced it (a dense
+  cosine score and a BM25 score aren't on the same scale), so this orders
+  within-search confidence, not a true cross-engine ranking.
 - `run.py` — CLI (`--query | --qid | --all`, `--orchestrator-model` /
   `--orchestrator-region`, `--analyzer-model` / `--analyzer-region`,
   `--engines`, ...).

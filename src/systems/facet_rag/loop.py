@@ -3,17 +3,26 @@
 Two models, two roles, driven from Python (neither model owns the stop
 condition alone):
 
-- The ORCHESTRATOR (e.g. gpt-oss-120b) gets a native Bedrock tool-use
-  conversation with the shared ``search`` tool (``tools.search_tool``) and
-  decides which engine(s) to query.
-- The ANALYZER (e.g. Qwen) is a fresh one-shot call every iteration: it reads
-  the newly retrieved passages against the facet's need, keeps what's
+- The ORCHESTRATOR (e.g. gpt-oss-120b) is a fresh one-shot call every
+  iteration: it writes one query per mandatory engine (semantic/keyword/
+  hybrid) plus an optional Boolean-engine query, as structured JSON
+  (``ORCHESTRATOR_QUERY_PROMPT``). NOT native tool-calling: gpt-oss-120b via
+  Bedrock Converse never batched more than one ``search`` tool call per turn
+  regardless of how directively the system prompt asked for it (checked
+  empirically against real runs), so the code executes every query in the
+  parsed plan unconditionally instead of trusting the model's tool-call
+  choices.
+- The ANALYZER (e.g. Qwen) is also a fresh one-shot call every iteration: it
+  reads the newly retrieved passages against the facet's need, keeps what's
   relevant with a supporting note, and reports a coverage gap or
   ``satisfied``.
 
-The loop stops on whichever comes first: the analyzer says ``satisfied``, the
-orchestrator issues no search (nothing more to try), or the facet's
-iteration budget (clamped to ``planner.GLOBAL_ITERATION_CAP``) runs out.
+The loop stops on whichever comes first: the analyzer says ``satisfied``, or
+the facet's iteration budget (clamped to ``planner.GLOBAL_ITERATION_CAP``)
+runs out. There is no "orchestrator declines to search" stop path anymore —
+every iteration mandates at least the enabled mandatory-engine queries, with
+a description-only fallback if the orchestrator's JSON is unusable, so a
+round is never skipped.
 
 Trace events are buffered per facet (``FacetLoopResult.events``) rather than
 written straight to a shared ``TrajectoryBuilder`` — facets run concurrently
@@ -28,15 +37,17 @@ import re
 from dataclasses import dataclass, field
 from typing import Any
 
-from tools.search_tool import build_search_tool, run_search_tool
+from tools.search_tool import run_search_tool
 
 from .planner import Facet, GLOBAL_ITERATION_CAP
-from .prompts import (
-    ANALYZER_PROMPT,
-    ORCHESTRATOR_GAP_PROMPT,
-    ORCHESTRATOR_SYSTEM_PROMPT,
-    ORCHESTRATOR_TASK_PROMPT,
-)
+from .prompts import ANALYZER_PROMPT, ORCHESTRATOR_QUERY_PROMPT
+
+# The three engines every iteration must query (whichever of these the run
+# actually enables) -- the rest (ssr/lucene_bool) are the orchestrator's
+# optional Boolean-precision add-on. See prompts.ORCHESTRATOR_QUERY_PROMPT.
+MANDATORY_ENGINES = ("semantic", "keyword", "hybrid")
+BOOLEAN_ENGINES = ("ssr", "lucene_bool")
+DEFAULT_K = 10
 
 
 def usage_token_stats(usage: dict[str, Any]) -> dict[str, int] | None:
@@ -76,17 +87,58 @@ def one_shot(provider: Any, system_prompt: str, user_text: str) -> str:
     return turn.get("text") or ""
 
 
+def _strip_fences(raw: str) -> str:
+    raw = raw.strip()
+    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", raw, flags=re.DOTALL)
+    return fence.group(1).strip() if fence else raw
+
+
+@dataclass
+class QueryPlan:
+    queries: dict[str, str]          # engine -> query, only non-empty ones
+    boolean_engine: str | None
+    boolean_query: str | None
+
+
+def parse_query_plan(raw: str) -> QueryPlan:
+    """Parse the orchestrator's per-iteration query JSON.
+
+    Unparseable/empty output yields an all-empty plan; the caller falls back
+    to searching the facet description on the run's first enabled engine so
+    an iteration is never wasted.
+    """
+    try:
+        payload = json.loads(_strip_fences(raw))
+    except json.JSONDecodeError:
+        payload = None
+    if not isinstance(payload, dict):
+        return QueryPlan(queries={}, boolean_engine=None, boolean_query=None)
+
+    queries: dict[str, str] = {}
+    raw_queries = payload.get("queries")
+    if isinstance(raw_queries, dict):
+        for engine in MANDATORY_ENGINES:
+            q = raw_queries.get(engine)
+            if isinstance(q, str) and q.strip():
+                queries[engine] = q.strip()
+
+    boolean_engine = payload.get("boolean_engine")
+    boolean_engine = boolean_engine if boolean_engine in BOOLEAN_ENGINES else None
+    boolean_query = payload.get("boolean_query")
+    boolean_query = (boolean_query.strip()
+                     if isinstance(boolean_query, str) and boolean_query.strip()
+                     else None)
+    if not (boolean_engine and boolean_query):  # need both or neither
+        boolean_engine = boolean_query = None
+    return QueryPlan(queries=queries, boolean_engine=boolean_engine,
+                     boolean_query=boolean_query)
+
+
 @dataclass
 class Analysis:
     relevant: list[dict[str, str]]   # [{"docid", "note"}]
     gap: str | None
     satisfied: bool
-
-
-def _strip_fences(raw: str) -> str:
-    raw = raw.strip()
-    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", raw, flags=re.DOTALL)
-    return fence.group(1).strip() if fence else raw
 
 
 def parse_analysis(raw: str, valid_docids: set[str]) -> Analysis:
@@ -121,7 +173,7 @@ def parse_analysis(raw: str, valid_docids: set[str]) -> Analysis:
 
 @dataclass
 class LoopEvent:
-    """One replayable trace event — an orchestrator turn or an analysis call."""
+    """One replayable trace event — an orchestrator round or an analysis call."""
     kind: str  # "oss_turn" | "qwen_analysis"
     oss_text: str | None = None
     oss_stats: dict[str, int] | None = None
@@ -135,10 +187,10 @@ class LoopEvent:
 @dataclass
 class FacetLoopResult:
     facet: Facet
-    evidence: list[dict[str, Any]]   # [{"docid", "note", "text"}], first-seen wins
+    evidence: list[dict[str, Any]]   # [{"docid", "note", "text", "rank"}], first-seen wins
     events: list[LoopEvent]
     iterations_used: int
-    stop_reason: str  # "analyzer_satisfied" | "orchestrator_no_search" | "max_iterations"
+    stop_reason: str  # "analyzer_satisfied" | "max_iterations"
 
 
 def _render_passages(passages: list[dict[str, Any]]) -> str:
@@ -162,19 +214,21 @@ def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
     fresh ``Provider`` each call — required because a ``Provider`` owns its
     own conversation state and facets run concurrently in their own threads.
     """
-    from tools.search_tool import ENGINE_INFO, _query_guidance  # local: avoid
-    # a hard import-time dependency on tools.search_tool internals elsewhere.
+    from tools.search_tool import ENGINE_INFO  # local: avoid a hard
+    # import-time dependency on tools.search_tool internals elsewhere.
 
     orchestrator = make_orchestrator()
     analyzer = make_analyzer()
-    tool_def = build_search_tool(engines)
-    engine_blurbs = "\n".join(f"- {e}: {ENGINE_INFO[e]['blurb']}" for e in engines)
-    orchestrator.start(
-        ORCHESTRATOR_SYSTEM_PROMPT.format(
-            engine_blurbs=engine_blurbs, query_guidance=_query_guidance(engines)),
-        [tool_def])
-    orchestrator.add_user_message(ORCHESTRATOR_TASK_PROMPT.format(
-        facet_name=facet.name, facet_description=facet.description))
+
+    mandatory = [e for e in MANDATORY_ENGINES if e in engines]
+    boolean_available = [e for e in BOOLEAN_ENGINES if e in engines]
+    boolean_blurbs = ("\n".join(f"- {e}: {ENGINE_INFO[e]['blurb']}"
+                                for e in boolean_available)
+                      if boolean_available
+                      else "(no Boolean engine is enabled for this run)")
+
+    def blurb(engine: str) -> str:
+        return ENGINE_INFO[engine]["blurb"] if engine in ENGINE_INFO else engine
 
     cap = min(max(1, facet.max_iterations), GLOBAL_ITERATION_CAP)
     evidence: list[dict[str, Any]] = []
@@ -182,77 +236,91 @@ def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
     events: list[LoopEvent] = []
     stop_reason = "max_iterations"
     iterations_used = 0
+    gap: str | None = None
+    tried_queries: list[str] = []
 
     for _ in range(cap):
         iterations_used += 1
-        turn = orchestrator.run_turn()
-        tool_calls = turn.get("tool_calls") or []
-        ev = LoopEvent(kind="oss_turn", oss_text=turn.get("text"),
-                       oss_stats=usage_token_stats(turn.get("usage") or {}))
-        events.append(ev)
-        if not tool_calls:
-            stop_reason = "orchestrator_no_search"
-            break
+        context_block = ""
+        if gap:
+            tried = "; ".join(tried_queries[-6:]) or "(none)"
+            context_block = (f"\nCOVERAGE GAP TO ADDRESS: {gap}\n"
+                             f"QUERIES ALREADY TRIED (write different ones): "
+                             f"{tried}\n")
+        prompt = ORCHESTRATOR_QUERY_PROMPT.format(
+            facet_name=facet.name, facet_description=facet.description,
+            context_block=context_block, semantic_blurb=blurb("semantic"),
+            keyword_blurb=blurb("keyword"), hybrid_blurb=blurb("hybrid"),
+            boolean_blurbs=boolean_blurbs)
+        raw = one_shot(orchestrator, "", prompt)
+        oss_stats = usage_token_stats(getattr(orchestrator, "_last_usage", {}))
+        plan = parse_query_plan(raw)
 
-        tool_results = []
+        calls = [(engine, plan.queries[engine]) for engine in mandatory
+                if engine in plan.queries]
+        if plan.boolean_engine and plan.boolean_engine in engines:
+            calls.append((plan.boolean_engine, plan.boolean_query))
+        if not calls:
+            # Totally unparseable/empty plan -- never skip a round.
+            calls = [(engines[0], facet.description)]
+
+        ev = LoopEvent(kind="oss_turn", oss_text=raw, oss_stats=oss_stats)
+        events.append(ev)
+
         new_passages: list[dict[str, Any]] = []
-        for call in tool_calls:
-            args = call.get("arguments") or {}
-            output = run_search_tool(
-                query=str(args.get("query", "")),
-                k=int(args.get("k", 10) or 10),
-                max_chars=max_chars,
-                search_engine=str(args.get("search_engine") or engines[0]))
+        for engine, query in calls:
+            output = run_search_tool(query=query, k=DEFAULT_K,
+                                     max_chars=max_chars, search_engine=engine)
             data = json.loads(output)
             failed = "error" in data
             results = [] if failed else data.get("results", [])
             ev.tool_calls.append({
-                "arguments": args, "output": output,
+                "arguments": {"query": query, "search_engine": engine,
+                             "k": DEFAULT_K},
+                "output": output,
                 "returned_docids": [str(r["docid"]) for r in results],
                 "failed": failed,
             })
-            tool_results.append({"id": call["id"], "content": output,
-                                 "is_error": failed})
+            tried_queries.append(query)
             for r in results:
                 docid = str(r["docid"])
                 if docid in seen_docids:
                     continue
                 seen_docids.add(docid)
-                new_passages.append({"docid": docid, "text": r.get("text") or ""})
-        orchestrator.add_tool_results(tool_results)
+                new_passages.append({"docid": docid, "text": r.get("text") or "",
+                                     "rank": r.get("rank")})
 
         if not new_passages:
-            gap = ("The last search returned no new passages. Try a "
-                  "different engine or reformulate the query.")
+            gap = ("The last round of searches returned no new passages. "
+                  "Write different, more specific queries.")
             events.append(LoopEvent(kind="qwen_analysis", satisfied=False,
                                     gap=gap, relevant_count=0))
-            orchestrator.add_user_message(
-                ORCHESTRATOR_GAP_PROMPT.format(gap=gap))
             continue
 
         analysis_prompt = ANALYZER_PROMPT.format(
             facet_name=facet.name, facet_description=facet.description,
             evidence_so_far=_render_evidence(evidence),
             passages=_render_passages(new_passages))
-        raw = one_shot(analyzer, "", analysis_prompt)
+        raw2 = one_shot(analyzer, "", analysis_prompt)
         qstats = usage_token_stats(getattr(analyzer, "_last_usage", {}))
         analysis = parse_analysis(
-            raw, valid_docids={p["docid"] for p in new_passages})
+            raw2, valid_docids={p["docid"] for p in new_passages})
         events.append(LoopEvent(
             kind="qwen_analysis", qwen_stats=qstats,
             gap=analysis.gap, satisfied=analysis.satisfied,
             relevant_count=len(analysis.relevant)))
 
-        text_by_docid = {p["docid"]: p["text"] for p in new_passages}
+        passage_by_docid = {p["docid"]: p for p in new_passages}
         for item in analysis.relevant:
+            passage = passage_by_docid.get(item["docid"], {})
             evidence.append({"docid": item["docid"], "note": item["note"],
-                            "text": text_by_docid.get(item["docid"], "")})
+                            "text": passage.get("text", ""),
+                            "rank": passage.get("rank")})
 
         if analysis.satisfied:
             stop_reason = "analyzer_satisfied"
             break
-        orchestrator.add_user_message(ORCHESTRATOR_GAP_PROMPT.format(
-            gap=analysis.gap or "more evidence needed"))
+        gap = analysis.gap or "more evidence needed"
 
     return FacetLoopResult(facet=facet, evidence=evidence, events=events,
                            iterations_used=iterations_used,

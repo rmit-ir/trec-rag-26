@@ -2,15 +2,22 @@
 analyzer architecture.
 
 Two roles, two ``ScriptedProvider`` factories: ORCHESTRATOR (plans facets,
-drives the search tool, drafts the final report) and ANALYZER (judges
-retrieved passages per facet, reports coverage gaps, fact-checks the draft).
-Each factory hands out a FRESH ``ScriptedProvider`` instance per call — a
-``Provider`` owns its own conversation, and ``run_one`` constructs many of
-them (one per facet's orchestrator, one per facet's analyzer, plus plan/
+writes queries every loop iteration, drafts the final report) and ANALYZER
+(judges retrieved passages per facet, reports coverage gaps, fact-checks the
+draft). Each factory hands out a FRESH ``ScriptedProvider`` instance per call
+— a ``Provider`` owns its own conversation, and ``run_one`` constructs many
+of them (one per facet's orchestrator, one per facet's analyzer, plus plan/
 draft/fact-check/format calls). Responders route by the prompt's unique
-marker text (``FACET:``, ``Coverage gap reported``, ``EVIDENCE:``, etc., one
-per prompt template in ``prompts.py``) rather than by call order, which stays
-correct under ``run_one``'s concurrent per-facet execution.
+marker text (``FACET:``, ``COVERAGE GAP TO ADDRESS:``, ``EVIDENCE:``, etc.,
+one per prompt template in ``prompts.py``) rather than by call order, which
+stays correct under ``run_one``'s concurrent per-facet execution.
+
+The orchestrator is one-shot per iteration, not native tool-calling: it
+writes a query per mandatory engine (semantic/keyword/hybrid) as structured
+JSON, and ``loop.py`` executes every one unconditionally — there is no
+"declines to search" path to test anymore (see ``loop.py``'s module
+docstring for why: gpt-oss-120b never batched more than one tool call per
+turn regardless of prompt wording, checked against real runs).
 
 Loop-mechanics tests (stop conditions, gap feedback, evidence dedup within a
 facet) call ``run_facet_loop`` directly instead of going through the full
@@ -30,7 +37,8 @@ from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn
 from ragrun import validate_rag_output
 
 from facet_rag import parse_facets, run_facet_loop, run_one
-from facet_rag.loop import Analysis, parse_analysis, usage_token_stats
+from facet_rag.loop import Analysis, QueryPlan, parse_analysis, parse_query_plan, usage_token_stats
+from facet_rag.pipeline import _sandwich_order
 from facet_rag.planner import (
     DEFAULT_MAX_ITERATIONS,
     GLOBAL_ITERATION_CAP,
@@ -41,7 +49,11 @@ from facet_rag.planner import (
 
 NARRATIVE = "How effective are influenza vaccines at preventing illness?"
 QID = "mock_facet_001"
-ENGINES = ["semantic", "keyword"]
+# All three mandatory engines enabled -- stub_search_tool stubs every entry in
+# tools.search_tool._DISPATCH generically (including hybrid's own dense/sparse
+# calls via utils.search), so hybrid is exercisable with zero extra fixture work.
+ENGINES = ["semantic", "keyword", "hybrid"]
+MANDATORY_ENGINES = ("semantic", "keyword", "hybrid")
 
 _DOCID_RE = re.compile(r"\[docid=(\S+?)\]")
 _EVIDENCE_DOCID_RE = re.compile(r"docid=(\S+)")
@@ -51,10 +63,14 @@ _ALLOWED_DOCIDS_RE = re.compile(r"ALLOWED DOCIDS:\s*(\[.*?\])", re.DOTALL)
 # ---------------------------------------------------------------------------
 # Scripted responders — route by each prompt's unique marker text
 # ---------------------------------------------------------------------------
-def _search_call(*, call_id: str, query: str = "q", engine: str = "semantic",
-                 k: int = 5) -> list[dict[str, Any]]:
-    return [{"id": call_id, "name": "search",
-             "arguments": {"query": query, "search_engine": engine, "k": k}}]
+def _query_plan_text(*, suffix: str = "", boolean_engine: str | None = None,
+                     boolean_query: str | None = None) -> str:
+    """A valid orchestrator query-plan JSON: one distinct query per mandatory
+    engine (semantic/keyword/hybrid), optionally plus a Boolean one."""
+    return json.dumps({
+        "queries": {e: f"{e} query{suffix}" for e in MANDATORY_ENGINES},
+        "boolean_engine": boolean_engine, "boolean_query": boolean_query,
+    })
 
 
 def _format_text(pending: str) -> str:
@@ -74,23 +90,16 @@ def _cited_text(pending: str) -> str:
 
 
 def make_orchestrator_responder(
-        *, facets: list[dict[str, Any]], stop_on_gap: bool = True
+        *, facets: list[dict[str, Any]]
         ) -> Callable[[str, int], dict[str, Any]]:
-    """Plans, searches once per facet turn, drafts, and formats.
-
-    ``stop_on_gap=False`` makes it search again on a coverage-gap follow-up
-    instead of ending the loop, for tests that need more than one iteration.
-    """
+    """Plans, writes a fresh 3-engine query plan every loop iteration
+    (including gap follow-ups -- there's no "decline to search" path
+    anymore), drafts, and formats."""
     def _respond(pending: str, turn_index: int) -> dict[str, Any]:
         if "ALLOWED DOCIDS:" in pending:
             return model_turn(text=_format_text(pending))
-        if "Coverage gap reported" in pending:
-            if stop_on_gap:
-                return model_turn(text="No further search would help.")
-            return model_turn(tool_calls=_search_call(
-                call_id=f"call_gap_{turn_index}", query="follow-up query"))
         if "FACET:" in pending:
-            return model_turn(tool_calls=_search_call(call_id=f"call_{turn_index}"))
+            return model_turn(text=_query_plan_text(suffix=f"_{turn_index}"))
         if "EVIDENCE:" in pending:
             return model_turn(text=_cited_text(pending))
         if "RESEARCH NARRATIVE:" in pending:
@@ -188,12 +197,14 @@ def test_run_one_plans_both_facets(pipeline_run: dict[str, Any]) -> None:
     assert [f.max_iterations for f in facets] == [2, 2]
 
 
-def test_run_one_one_search_per_facet_when_satisfied_first_round(
+def test_run_one_three_searches_per_facet_when_satisfied_first_round(
         pipeline_run: dict[str, Any]) -> None:
     """The analyzer reports satisfied on the first pass, so each facet's loop
-    does exactly one search — no wasted follow-up rounds."""
+    does exactly one round — but a round is the 3-engine mandatory minimum
+    (semantic/keyword/hybrid), not a single search, so 2 facets means 6."""
     counts = pipeline_run["trajectory"]["tool_call_counts"]
-    assert counts.get("search") == len(pipeline_run["result"]["facets"]) == 2
+    facets = len(pipeline_run["result"]["facets"])
+    assert counts.get("search") == facets * len(MANDATORY_ENGINES) == 6
 
 
 def test_run_one_evidence_merged_and_deduped_across_facets(
@@ -246,7 +257,7 @@ def test_run_one_strict_result_starts_with_plan_reasoning(
     assert kinds[0] == "reasoning"
     assert kinds.count("reasoning") == 1
     assert kinds[-1] == "output_text"
-    assert kinds.count("tool_call") == 2
+    assert kinds.count("tool_call") == 2 * len(MANDATORY_ENGINES)
 
 
 def test_run_one_tool_call_items_name_their_facet(
@@ -269,7 +280,7 @@ def test_unparseable_plan_falls_back_in_the_pipeline(
         if "ALLOWED DOCIDS:" in pending:
             return model_turn(text=_format_text(pending))
         if "FACET:" in pending:
-            return model_turn(tool_calls=_search_call(call_id=f"c{turn_index}"))
+            return model_turn(text=_query_plan_text(suffix=f"_{turn_index}"))
         if "EVIDENCE:" in pending:
             return model_turn(text=_cited_text(pending))
         return model_turn(text="I could not produce a plan, sorry.")
@@ -306,11 +317,15 @@ def test_loop_stops_when_analyzer_is_satisfied(
     assert len(result.evidence) == 1
 
 
-def test_loop_stops_when_orchestrator_issues_no_search() -> None:
-    """If the orchestrator declines to search at all (no tool call on its
-    first turn), the loop must not spin — there is nothing to analyze."""
+def test_loop_falls_back_to_facet_description_when_plan_unparseable(
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """The orchestrator's per-iteration query plan is one-shot JSON, not
+    native tool-calling, so there's no "declines to search" turn anymore —
+    but its JSON can still fail to parse. A round must never be skipped: an
+    unparseable plan falls back to searching the facet description on the
+    run's first enabled engine."""
     def _orch(pending: str, turn_index: int) -> dict[str, Any]:
-        return model_turn(text="Nothing to search for.")
+        return model_turn(text="I have no idea what to search for.")
 
     facet = Facet(name="effectiveness", description="How effective?",
                   max_iterations=5)
@@ -319,28 +334,39 @@ def test_loop_stops_when_orchestrator_issues_no_search() -> None:
         make_analyzer_responder(satisfied=True))
     result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
                             facet=facet, engines=ENGINES, max_chars=800)
-    assert result.stop_reason == "orchestrator_no_search"
+    assert result.stop_reason == "analyzer_satisfied"
     assert result.iterations_used == 1
-    assert result.evidence == []
+    assert len(result.evidence) == 1
+    assert stub_search_tool["semantic"][0]["query"] == facet.description
 
 
 def test_loop_gap_is_fed_back_to_the_orchestrator(
         stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
     """A coverage gap from the analyzer must reach the orchestrator's NEXT
-    turn verbatim — otherwise "search again to fill the gap" has no effect."""
+    prompt verbatim — otherwise "search again to fill the gap" has no effect.
+
+    Uses a single pre-built ``ScriptedProvider`` instance (rather than a
+    factory) so its recorded ``user_messages`` can be inspected directly
+    after the loop finishes — safe here because ``run_facet_loop`` only ever
+    calls ``make_orchestrator`` once per facet. The stub returns identical
+    docids regardless of query, so iteration 2 never sees anything NEW and
+    the analyzer only runs once (iteration 1) -- the 2-iteration cap is what
+    ends the loop, but the gap still has to reach iteration 2's prompt
+    independently of whether that round finds anything.
+    """
     facet = Facet(name="effectiveness", description="How effective?",
-                  max_iterations=5)
-    orch_factory = lambda: ScriptedProvider(  # noqa: E731
-        make_orchestrator_responder(facets=ONE_FACET_PLAN, stop_on_gap=True))
-    analyzer_factory = lambda: ScriptedProvider(  # noqa: E731
-        make_analyzer_responder(satisfied=False, gap="need strain-match data"))
-    result = run_facet_loop(make_orchestrator=orch_factory,
+                  max_iterations=2)
+    orchestrator = ScriptedProvider(
+        make_orchestrator_responder(facets=ONE_FACET_PLAN))
+    analyzer_factory = lambda: ScriptedProvider([  # noqa: E731
+        model_turn(text=json.dumps({"relevant": [], "gap": "need strain-match data",
+                                    "satisfied": False}))])
+    result = run_facet_loop(make_orchestrator=lambda: orchestrator,
                             make_analyzer=analyzer_factory, facet=facet,
                             engines=ENGINES, max_chars=800)
-    # Iteration 1: search + gap reported (not satisfied). Iteration 2: the
-    # orchestrator responder ends the loop once it sees the gap (stop_on_gap).
-    assert result.stop_reason == "orchestrator_no_search"
+    assert result.stop_reason == "max_iterations"
     assert result.iterations_used == 2
+    assert "COVERAGE GAP TO ADDRESS: need strain-match data" in orchestrator.user_messages[1]
 
 
 def test_loop_caps_iterations_at_ten_regardless_of_facet_value(
@@ -349,7 +375,7 @@ def test_loop_caps_iterations_at_ten_regardless_of_facet_value(
     still stop at 10 — the planner's number is a request, not a grant."""
     facet = Facet(name="stubborn", description="Never satisfied", max_iterations=99)
     orch = lambda: ScriptedProvider(  # noqa: E731
-        make_orchestrator_responder(facets=ONE_FACET_PLAN, stop_on_gap=False))
+        make_orchestrator_responder(facets=ONE_FACET_PLAN))
     analyzer = lambda: ScriptedProvider(  # noqa: E731
         make_analyzer_responder(satisfied=False, gap="still missing something"))
     result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
@@ -367,12 +393,12 @@ def test_loop_no_new_passages_skips_analysis_and_keeps_going(
     exhausted queue instead of the run completing cleanly."""
     facet = Facet(name="effectiveness", description="How effective?",
                   max_iterations=2)
-    # stop_on_gap=False: the orchestrator searches again on EVERY gap prompt
-    # (from the analyzer on iteration 1, from the loop's own "no new
-    # passages" note on iteration 2) rather than ending the loop itself, so
-    # the cap is what stops it.
+    # Every iteration re-issues the mandatory-engine queries regardless of
+    # gap content (there's no "decline" path), so iteration 2 searches again
+    # -- the stub returns the SAME docids regardless of query, so nothing is
+    # NEW and the facet's 2-iteration cap is what ends the loop.
     orch = lambda: ScriptedProvider(  # noqa: E731
-        make_orchestrator_responder(facets=ONE_FACET_PLAN, stop_on_gap=False))
+        make_orchestrator_responder(facets=ONE_FACET_PLAN))
     analyzer = lambda: ScriptedProvider([  # noqa: E731
         model_turn(text=json.dumps({
             "relevant": [{"docid": CLIMBMIX_DOCIDS[0], "note": "supports it"}],
@@ -380,9 +406,8 @@ def test_loop_no_new_passages_skips_analysis_and_keeps_going(
     result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
                             facet=facet, engines=ENGINES, max_chars=800)
     # Iteration 1: search returns docids, analyzer keeps one, not satisfied.
-    # Iteration 2: orchestrator searches again (stub returns the SAME docids
-    # regardless of query -> nothing NEW), so no second analyzer call; the
-    # facet's 2-iteration cap is what ends the loop.
+    # Iteration 2: orchestrator searches again -> nothing NEW -> no second
+    # analyzer call; the facet's 2-iteration cap is what ends the loop.
     assert result.stop_reason == "max_iterations"
     assert result.iterations_used == 2
     assert len(result.evidence) == 1
@@ -431,6 +456,64 @@ def test_parse_analysis_strips_fences() -> None:
     raw = "```json\n" + json.dumps({"relevant": [], "gap": None,
                                     "satisfied": True}) + "\n```"
     assert parse_analysis(raw, valid_docids=set()).satisfied is True
+
+
+# ---------------------------------------------------------------------------
+# loop.parse_query_plan
+# ---------------------------------------------------------------------------
+def test_parse_query_plan_valid_json() -> None:
+    """The baseline contract: all three mandatory-engine queries plus a
+    Boolean one, all kept as-is."""
+    raw = json.dumps({
+        "queries": {"semantic": "sem q", "keyword": "kw q", "hybrid": "hyb q"},
+        "boolean_engine": "ssr", "boolean_query": '(^ a b)'})
+    assert parse_query_plan(raw) == QueryPlan(
+        queries={"semantic": "sem q", "keyword": "kw q", "hybrid": "hyb q"},
+        boolean_engine="ssr", boolean_query="(^ a b)")
+
+
+def test_parse_query_plan_drops_empty_or_missing_engine_queries() -> None:
+    """A model that skips or blanks one engine's query must not crash the
+    round — the loop just searches whichever engines it DID get a query for."""
+    raw = json.dumps({"queries": {"semantic": "sem q", "keyword": "   "},
+                      "boolean_engine": None, "boolean_query": None})
+    plan = parse_query_plan(raw)
+    assert plan.queries == {"semantic": "sem q"}
+
+
+def test_parse_query_plan_rejects_unknown_boolean_engine() -> None:
+    """``boolean_engine`` must be one of the actual Boolean engines — a
+    hallucinated value (e.g. "semantic" again, or a typo) is dropped along
+    with its query rather than routed to the wrong backend."""
+    raw = json.dumps({"queries": {"semantic": "q"},
+                      "boolean_engine": "semantic", "boolean_query": "q2"})
+    plan = parse_query_plan(raw)
+    assert plan.boolean_engine is None
+    assert plan.boolean_query is None
+
+
+def test_parse_query_plan_requires_both_boolean_fields_or_neither() -> None:
+    """A ``boolean_engine`` with no matching query (or vice versa) is half a
+    plan -- dropped entirely rather than searched with an empty string."""
+    raw = json.dumps({"queries": {}, "boolean_engine": "ssr", "boolean_query": None})
+    plan = parse_query_plan(raw)
+    assert plan.boolean_engine is None
+    assert plan.boolean_query is None
+
+
+def test_parse_query_plan_malformed_yields_empty_plan() -> None:
+    """Unparseable output yields an all-empty plan, letting the loop's own
+    "never skip a round" fallback (search the facet description) take over."""
+    assert parse_query_plan("not json at all") == QueryPlan(
+        queries={}, boolean_engine=None, boolean_query=None)
+
+
+def test_parse_query_plan_strips_fences() -> None:
+    """Models wrap JSON in Markdown fences unprompted, so it must be tolerated."""
+    raw = "```json\n" + json.dumps({"queries": {"semantic": "q"},
+                                    "boolean_engine": None,
+                                    "boolean_query": None}) + "\n```"
+    assert parse_query_plan(raw).queries == {"semantic": "q"}
 
 
 # ---------------------------------------------------------------------------
@@ -506,6 +589,31 @@ def test_build_plan_prompt_renders_facet_count_bounds_and_narrative() -> None:
     prompt = build_plan_prompt(NARRATIVE, min_facets=2, max_facets=4)
     assert "2-4 facets" in prompt
     assert NARRATIVE in prompt
+
+
+# ---------------------------------------------------------------------------
+# pipeline._sandwich_order
+# ---------------------------------------------------------------------------
+def test_sandwich_order_puts_best_rank_first_and_second_best_last() -> None:
+    """The lost-in-the-middle mitigation: strongest evidence (lowest rank) at
+    both edges of the block, weakest in the middle -- not just sorted best-
+    to-worst, which would bury the 2nd/3rd-best items past where models
+    reliably attend."""
+    evidence = [
+        {"docid": "d3", "rank": 3}, {"docid": "d1", "rank": 1},
+        {"docid": "d4", "rank": 4}, {"docid": "d2", "rank": 2},
+    ]
+    ordered = [e["docid"] for e in _sandwich_order(evidence)]
+    assert ordered == ["d1", "d3", "d4", "d2"]
+
+
+def test_sandwich_order_missing_rank_sorts_last() -> None:
+    """A defensive fallback: an evidence item with no rank (shouldn't happen
+    in practice) must not crash comparison against ranked items, and must not
+    be treated as the best (rank 1) by accident."""
+    evidence = [{"docid": "no_rank", "rank": None}, {"docid": "d1", "rank": 1}]
+    ordered = [e["docid"] for e in _sandwich_order(evidence)]
+    assert ordered[0] == "d1"
 
 
 # ---------------------------------------------------------------------------

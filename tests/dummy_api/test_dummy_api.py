@@ -280,9 +280,10 @@ def test_facet_rag_pipeline_over_dummy_api(monkeypatch, read_artifacts):
     Every external dependency is a dummy returning correctly-formatted data —
     retrieval over real HTTP, both models via ``ScriptedProvider`` — so this
     proves the whole orchestrator/analyzer pipeline works without a single
-    credential. The orchestrator pins facet "revenue" to the dense (semantic)
-    dummy and "equity" to the sparse (keyword) one via its scripted tool
-    calls, exactly like a real model choosing engines per facet.
+    credential. Only semantic+keyword are enabled (no hybrid), so every
+    facet's mandatory-engine round hits BOTH the dense (semantic) and sparse
+    (keyword) dummy endpoints, exactly like a real orchestrator writing one
+    query per enabled mandatory engine.
     """
     import json
     import re
@@ -306,15 +307,15 @@ def test_facet_rag_pipeline_over_dummy_api(monkeypatch, read_artifacts):
                  "citations": cite},
             ]}))
         if "FACET: revenue" in pending:
-            return model_turn(tool_calls=[{
-                "id": "c1", "name": "search",
-                "arguments": {"query": "congestion pricing MTA revenue",
-                             "search_engine": "semantic", "k": 3}}])
+            return model_turn(text=json.dumps({
+                "queries": {"semantic": "congestion pricing MTA revenue dense",
+                           "keyword": "congestion pricing MTA revenue sparse"},
+                "boolean_engine": None, "boolean_query": None}))
         if "FACET: equity" in pending:
-            return model_turn(tool_calls=[{
-                "id": "c1", "name": "search",
-                "arguments": {"query": "congestion pricing who pays equity",
-                             "search_engine": "keyword", "k": 3}}])
+            return model_turn(text=json.dumps({
+                "queries": {"semantic": "congestion pricing who pays equity dense",
+                           "keyword": "congestion pricing who pays equity sparse"},
+                "boolean_engine": None, "boolean_query": None}))
         if "EVIDENCE:" in pending:  # draft synthesis
             docids = re.findall(r"docid=(\S+)", pending)
             cite = f"[{docids[0]}]" if docids else ""
@@ -365,9 +366,10 @@ def test_facet_rag_pipeline_over_dummy_api(monkeypatch, read_artifacts):
             analyzer_model_id="scripted/test-model",
             max_chars=2000, min_facets=2, max_facets=2, format_llm=True)
 
-        # Each engine was reached over its own socket, once per facet.
-        assert len(dense.requests) == 1
-        assert len(sparse.requests) == 1
+        # Each engine was reached over its own socket, once per facet (both
+        # mandatory engines are enabled and queried every round now).
+        assert len(dense.requests) == 2
+        assert len(sparse.requests) == 2
 
     artifacts = read_artifacts(result["paths"])
     assert validate_rag_output(artifacts["output"]) == []
