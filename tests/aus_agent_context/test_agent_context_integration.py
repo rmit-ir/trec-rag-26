@@ -521,3 +521,61 @@ def test_a_report_is_accepted_while_a_staged_batch_is_still_open(
     assert captured["output"]["references"] == ["b"]
     assert REJECTION_PREFIX in provider.content_by_id["s2"]
     assert len(provider.user_messages) == 1
+
+
+# ---------------------------------------------------------------------------
+# get_documents stages like search — and records like search
+# ---------------------------------------------------------------------------
+def test_get_documents_records_parent_docids_not_unit_id_strings(
+        run_agent_capture, monkeypatch: pytest.MonkeyPatch) -> None:
+    """``returned`` must be hit DICTS here, exactly as the search branch builds.
+
+    ``add_tool_call`` derives the strict ``returned_docids`` with
+    ``hit["docid"]``, so a list of unit-id STRINGS makes it index a string with a
+    string and raise ``TypeError: string indices must be integers`` — outside the
+    branch's ``try``, so it kills the whole topic rather than degrading. That is
+    what happened on the 119-topic test runs, and it went unnoticed because
+    ``get_documents`` was invoked 0 times across the dev-30 runs: this is the
+    first test that drives the branch at all.
+
+    The two granularities are deliberately different and both are asserted: the
+    strict trajectory carries PARENT docids (the organizer-facing contract, so a
+    chunk hit reports the document it came from), while the rich trace's staged
+    context keeps the ``<docid>_p<page>`` unit ids the ledger actually addresses.
+    """
+    from aus_agent import agent
+
+    def fake_execute(arguments: dict[str, Any], **_: Any) -> tuple:
+        ids = list(arguments.get("ids") or [])
+        documents = [
+            {"id": uid, "docid": uid.rsplit("_p", 1)[0], "kind": "chunk",
+             "rank": rank, "score": None, "text": staged_text(uid),
+             "metadata": {"source": "get_documents"}}
+            for rank, uid in enumerate(ids, 1)]
+        out = json.dumps({"ids": ids, "missing": [], "results": [
+            {k: doc[k] for k in ("rank", "id", "docid", "kind", "text")}
+            for doc in documents]})
+        return out, documents, []
+
+    monkeypatch.setattr(agent, "execute_get_documents", fake_execute)
+
+    units = ["shard_1_2_p4", "shard_1_2_p5"]
+    provider = StrictScriptedProvider([
+        turn(text="Read the pages either side of the hit.",
+             calls=[call("g1", "get_documents", ids=units)], input_tokens=100),
+        turn(calls=[call("c1", "commit_context", documents=[
+            {"docid": units[0], "reason": "the page that answers it"}])],
+            input_tokens=100),
+        turn(text=f"Supported finding. [{units[0]}]", input_tokens=100),
+    ])
+    summary, captured = run_agent_capture(provider)
+    trajectory = captured["trajectory"]
+
+    assert summary["status"] == "completed"
+    item = next(i for i in trajectory["result"]
+                if i.get("tool_name") == "get_documents")
+    assert item["returned_docids"] == ["shard_1_2", "shard_1_2"]
+    step = next(s for s in trajectory.trace["steps"]
+                if s.get("tool_name") == "get_documents")
+    assert step["failed"] is False
+    assert step["context"]["staged"] == units

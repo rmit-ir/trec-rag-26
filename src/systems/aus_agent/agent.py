@@ -1229,9 +1229,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         documents, missing, failed = [], [], True
                     ct1 = now_iso()
                     out, feedback_stats = action_feedback(out, 0.0)
-                    returned = [str(d["id"]) for d in documents]
-                    context = {"staged": returned, "committed": [],
-                               "rejected": []}
+                    # ``returned`` mirrors the search branch's hit shape —
+                    # add_tool_call derives strict returned_docids via
+                    # hit["docid"], so it must be dicts, not id strings.
+                    returned = [{"docid": str(d["docid"]),
+                                 "score": d.get("score")} for d in documents]
+                    context = {
+                        "staged": [str(d["id"]) for d in documents],
+                        "committed": [], "rejected": []}
                     tb.add_tool_call(
                         call["name"], call["arguments"], out,
                         returned=returned, failed=failed,
