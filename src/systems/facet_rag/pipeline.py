@@ -1,59 +1,35 @@
-"""facet_rag pipeline — plan -> execute -> synthesize -> artifacts.
+"""facet_rag pipeline — plan -> per-facet orchestrator/analyzer loops ->
+joint draft + fact-check -> artifacts.
 
-Three deterministic stages, driven by the pluggable ``aus_agent.providers``
-backends (Bedrock / OpenAI) behind the shared ``Provider`` contract:
+1. PLAN        one orchestrator turn: narrative -> facets (planner.parse_facets).
+2. FACET LOOPS one orchestrator/analyzer loop per facet, run concurrently
+               (loop.run_facet_loop) — each facet accumulates its own
+               analyst-vetted evidence.
+3. SYNTHESIZE  orchestrator drafts the cited report from all facets' merged
+               evidence; the analyzer fact-checks/patches it in a second pass.
 
-1. PLAN       one LLM turn: narrative -> facets JSON (planner.parse_facets).
-2. EXECUTE    no LLM: one ClimbMix search per facet (search.execute_plan).
-3. SYNTHESIZE one LLM turn: retrieved passages -> grounded prose.
-
-The prose is then mapped to the strict TREC RAG sentence/citation shape by the
-shared ``ali_deepresearch.answer_format.format_answer`` (LLM stage reused from
-this system's synthesis provider, deterministic heuristic fallback), and both
-run artifacts are written via ``ragrun.save_run``. Every LLM turn is a fresh,
-tool-less conversation, so the provider's turn API is used single-shot.
+The final prose is then mapped to the strict TREC RAG sentence/citation shape
+by ``ali_deepresearch.answer_format.format_answer``, and both run artifacts
+are written via ``ragrun.save_run``.
 """
 from __future__ import annotations
 
-from typing import Any
+from concurrent.futures import ThreadPoolExecutor
+from typing import Any, Callable
 
 from ragrun import TrajectoryBuilder, build_rag_output, now_iso, save_run
 
 from ali_deepresearch.answer_format import format_answer
 
-from .planner import (
-    Facet,
-    build_plan_prompt,
-    fallback_facets,
-    parse_facets,
-)
-from .prompts import SYNTHESIZE_PROMPT
-from .search import Retrieval, execute_plan, format_passages_for_synthesis
+from .loop import FacetLoopResult, one_shot, run_facet_loop, usage_token_stats
+from .planner import build_plan_prompt, fallback_facets, parse_facets
+from .prompts import FACT_CHECK_PROMPT, SYNTH_DRAFT_PROMPT
 
 SYSTEM_NAME = "facet_rag"
 
-
-def _usage_token_stats(usage: dict[str, Any]) -> dict[str, int] | None:
-    """Normalize provider usage into the trace token block (or None).
-
-    Mirrors ``aus_agent.agent._usage_token_stats`` so token accounting is
-    consistent across systems (Bedrock excludes cache reads from inputTokens;
-    OpenAI's provider already subtracts them back out).
-    """
-    if not usage:
-        return None
-    uncached = int(usage.get("inputTokens", usage.get("input_tokens", 0)) or 0)
-    output = int(usage.get("outputTokens", usage.get("output_tokens", 0)) or 0)
-    cache_read = int(usage.get("cacheReadInputTokens",
-                               usage.get("cache_read_input_tokens", 0)) or 0)
-    cache_write = int(usage.get("cacheWriteInputTokens",
-                                usage.get("cache_write_input_tokens", 0)) or 0)
-    logical = uncached + cache_read + cache_write
-    processed = uncached + cache_write
-    return {"input": logical, "input_uncached": uncached, "output": output,
-            "cache_read": cache_read, "cache_write": cache_write,
-            "total": logical + output, "processed_input": processed,
-            "processed": processed + output}
+# Re-exported for callers/tests that want the token-normalization helper
+# under its historical name.
+_usage_token_stats = usage_token_stats
 
 
 class _ProviderLLM:
@@ -65,12 +41,10 @@ class _ProviderLLM:
 
     def __init__(self, provider: Any) -> None:
         self._provider = provider
-        self.last_usage: dict[str, Any] = {}
 
     def complete(self, messages: list[dict[str, str]], *,
                  stop: list[str] | None = None,
                  max_tokens: int | None = None) -> str:
-        # messages is a single user turn from format_answer.
         system = ""
         user_parts: list[str] = []
         for m in messages:
@@ -78,86 +52,162 @@ class _ProviderLLM:
                 system = m["content"]
             else:
                 user_parts.append(m["content"])
-        text = one_shot(self._provider, system, "\n\n".join(user_parts))
-        self.last_usage = getattr(self._provider, "_last_usage", {})
-        return text
+        return one_shot(self._provider, system, "\n\n".join(user_parts))
 
 
-def one_shot(provider: Any, system_prompt: str, user_text: str
-             ) -> tuple[str, dict[str, Any]] | str:
-    """Run one fresh, tool-less turn and return its text (+ usage on provider).
+def _sandwich_order(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Reorder evidence so the strongest items sit at both edges, weakest in
+    the middle -- the standard mitigation for "lost in the middle" (models
+    under-weight the center of a long context).
 
-    Returns just the text; the turn's usage is stashed on the provider as
-    ``_last_usage`` so callers that want token stats can read it without
-    changing the ``Provider`` contract.
+    Ranked by each item's own ``rank`` (1-indexed position within the search
+    call that surfaced it) ascending -- best first. ``rank`` is comparable
+    within one engine's result list but NOT calibrated across engines (a
+    dense cosine score and a BM25 score are different scales); using rank
+    instead of raw score sidesteps that, at the cost of only ordering within
+    each search's own confidence, not truly cross-engine. Items with no rank
+    (shouldn't happen; defensive) sort last.
     """
-    provider.start(system_prompt, [])
-    provider.add_user_message(user_text)
-    turn = provider.run_turn()
-    provider._last_usage = turn.get("usage", {})  # type: ignore[attr-defined]
-    return turn.get("text") or ""
+    ranked = sorted(
+        evidence,
+        key=lambda e: e.get("rank") if e.get("rank") is not None else float("inf"))
+    ordered: list[Any] = [None] * len(ranked)
+    lo, hi = 0, len(ranked) - 1
+    for i, item in enumerate(ranked):
+        if i % 2 == 0:
+            ordered[lo] = item
+            lo += 1
+        else:
+            ordered[hi] = item
+            hi -= 1
+    return ordered
 
 
-def run_one(provider: Any, *, qid: str, narrative: str, engines: list[str],
-            default_engine: str, run_id: str, run_desc: str,
-            model_id: str, backend: str, max_chars: int,
-            min_facets: int, max_facets: int,
-            format_llm: bool = True) -> dict[str, Any]:
-    """Execute the full plan->execute->synthesize pipeline for one narrative."""
+def _render_evidence_block(evidence: list[dict[str, Any]]) -> str:
+    if not evidence:
+        return "(no evidence retrieved)"
+    blocks = []
+    for i, e in enumerate(_sandwich_order(evidence), 1):
+        blocks.append(f"[{i}] docid={e['docid']} facet={e['facet']}\n"
+                      f"note: {e['note']}\n{e['text']}")
+    return "\n\n".join(blocks)
+
+
+def _merge_evidence(facet_results: list[FacetLoopResult]
+                    ) -> list[dict[str, Any]]:
+    """Dedup evidence by docid across facets — first facet to surface it wins."""
+    merged: list[dict[str, Any]] = []
+    seen: set[str] = set()
+    for fr in facet_results:
+        for item in fr.evidence:
+            if item["docid"] in seen:
+                continue
+            seen.add(item["docid"])
+            merged.append({**item, "facet": fr.facet.name})
+    return merged
+
+
+def _replay_events(tb: TrajectoryBuilder, facet_results: list[FacetLoopResult],
+                   turn_start: int) -> int:
+    """Write every facet's buffered loop events into ``tb``, in facet order.
+
+    Facets run concurrently in their own threads (``TrajectoryBuilder`` is not
+    thread-safe), so nothing touches ``tb`` until every facet has finished.
+    Returns the next free turn number.
+    """
+    turn = turn_start
+    for fr in facet_results:
+        for ev in fr.events:
+            if ev.kind == "oss_turn":
+                tb.add_model_step(
+                    output=ev.oss_text or "", input=fr.facet.description,
+                    turn=turn,
+                    stats={"tokens": ev.oss_stats} if ev.oss_stats else None)
+                for tc in ev.tool_calls:
+                    tb.add_tool_call(
+                        "search", tc["arguments"], tc["output"],
+                        returned_docids=tc["returned_docids"],
+                        failed=tc["failed"], turn=turn, facet=fr.facet.name)
+            else:  # "qwen_analysis"
+                tb.add_model_step(
+                    output=(f"satisfied={ev.satisfied} gap={ev.gap!r} "
+                           f"kept={ev.relevant_count}"),
+                    input=fr.facet.description, turn=turn,
+                    stats={"tokens": ev.qwen_stats} if ev.qwen_stats else None)
+            turn += 1
+    return turn
+
+
+def run_one(make_orchestrator: Callable[[], Any],
+           make_analyzer: Callable[[], Any], *, qid: str, narrative: str,
+           engines: list[str], run_id: str, run_desc: str,
+           orchestrator_model_id: str, analyzer_model_id: str,
+           max_chars: int, min_facets: int, max_facets: int,
+           format_llm: bool = True) -> dict[str, Any]:
+    """Execute the full plan -> facet loops -> synthesize pipeline."""
     started_at = now_iso()
     meta = {
-        "model": model_id,
-        "backend": backend,
+        "models": {"orchestrator": orchestrator_model_id,
+                   "analyzer": analyzer_model_id},
         "engines": engines,
         "run_id": run_id,
         "query_source": narrative,
-        "strategy": "plan-then-execute (multi-facet)",
+        "strategy": "orchestrator/analyzer facet loops",
     }
     tb = TrajectoryBuilder(qid, narrative, metadata=meta)
 
-    # -- stage 1: plan ------------------------------------------------------
+    # -- stage 1: plan --------------------------------------------------------
     t0 = now_iso()
-    plan_prompt = build_plan_prompt(narrative, engines,
-                                    min_facets=min_facets, max_facets=max_facets)
-    plan_raw = one_shot(provider, "", plan_prompt)
+    orchestrator = make_orchestrator()
+    plan_raw = one_shot(orchestrator, "", build_plan_prompt(
+        narrative, min_facets=min_facets, max_facets=max_facets))
     t1 = now_iso()
-    plan_stats = _usage_token_stats(getattr(provider, "_last_usage", {}))
+    plan_stats = usage_token_stats(getattr(orchestrator, "_last_usage", {}))
     tb.add_reasoning(f"Plan:\n{plan_raw}", t_start=t0, t_end=t1, turn=0,
                      stats={"tokens": plan_stats} if plan_stats else None)
 
-    facets = parse_facets(plan_raw, engines, default_engine=default_engine)
+    facets = parse_facets(plan_raw)
     if not facets:
-        facets = fallback_facets(narrative, default_engine=default_engine)
+        facets = fallback_facets(narrative)
 
-    # -- stage 2: execute (one search per facet) ----------------------------
-    retrieval = execute_plan(facets, max_chars=max_chars)
-    for i, fr in enumerate(retrieval.per_facet):
-        ts, te = now_iso(), now_iso()
-        tb.add_tool_call(
-            "search",
-            {"query": fr.facet.query, "search_engine": fr.facet.engine,
-             "k": fr.facet.k},
-            fr.output,
-            returned_docids=[p["docid"] for p in fr.passages],
-            failed=fr.failed, t_start=ts, t_end=te, turn=1,
-            facet=fr.facet.name)
+    # -- stage 2: per-facet orchestrator/analyzer loops, run concurrently -----
+    with ThreadPoolExecutor(max_workers=max(1, len(facets))) as pool:
+        facet_results = list(pool.map(
+            lambda facet: run_facet_loop(
+                make_orchestrator=make_orchestrator, make_analyzer=make_analyzer,
+                facet=facet, engines=engines, max_chars=max_chars),
+            facets))
+    next_turn = _replay_events(tb, facet_results, turn_start=1)
 
-    # -- stage 3: synthesize ------------------------------------------------
+    evidence = _merge_evidence(facet_results)
+    docids = [e["docid"] for e in evidence]
+
+    # -- stage 3: joint draft + fact-check synthesis ---------------------------
     t2 = now_iso()
-    synth_prompt = SYNTHESIZE_PROMPT.format(
-        narrative=narrative,
-        passages=format_passages_for_synthesis(retrieval.passages))
-    draft = one_shot(provider, "", synth_prompt)
-    t3 = now_iso()
-    synth_stats = _usage_token_stats(getattr(provider, "_last_usage", {}))
-    tb.add_model_step(output="synthesis", input="(passages)",
-                      t_start=t2, t_end=t3, turn=2,
-                      stats={"tokens": synth_stats} if synth_stats else None)
+    evidence_block = _render_evidence_block(evidence)
+    draft_provider = make_orchestrator()
+    draft = one_shot(draft_provider, "", SYNTH_DRAFT_PROMPT.format(
+        narrative=narrative, evidence=evidence_block))
+    draft_stats = usage_token_stats(getattr(draft_provider, "_last_usage", {}))
+    tb.add_model_step(output="draft", input="(evidence)", t_start=t2,
+                      t_end=now_iso(), turn=next_turn,
+                      stats={"tokens": draft_stats} if draft_stats else None)
+    next_turn += 1
 
-    # -- artifacts: strict sentence/citation shape --------------------------
-    llm = _ProviderLLM(provider) if format_llm else None
-    references, answer = format_answer(draft, retrieval.docids, llm=llm)
-    tb.add_output_text(draft, t_start=t3, t_end=now_iso(), turn=2)
+    t3 = now_iso()
+    check_provider = make_analyzer()
+    checked = one_shot(check_provider, "", FACT_CHECK_PROMPT.format(
+        narrative=narrative, draft=draft, evidence=evidence_block))
+    check_stats = usage_token_stats(getattr(check_provider, "_last_usage", {}))
+    tb.add_model_step(output="fact_check", input="(draft, evidence)",
+                      t_start=t3, t_end=now_iso(), turn=next_turn,
+                      stats={"tokens": check_stats} if check_stats else None)
+    final_text = checked.strip() or draft
+
+    # -- artifacts: strict sentence/citation shape ----------------------------
+    llm = _ProviderLLM(make_orchestrator()) if format_llm else None
+    references, answer = format_answer(final_text, docids, llm=llm)
+    tb.add_output_text(final_text, t_start=t3, t_end=now_iso(), turn=next_turn)
 
     ended_at = now_iso()
     status = "completed" if references else "no_references"
@@ -169,5 +219,5 @@ def run_one(provider: Any, *, qid: str, narrative: str, engines: list[str],
 
     paths = save_run(SYSTEM_NAME, narrative, trajectory=trajectory,
                      output=output)
-    return {"paths": paths, "facets": facets, "retrieval": retrieval,
-            "references": references, "status": status}
+    return {"paths": paths, "facets": facets, "facet_results": facet_results,
+            "evidence": evidence, "references": references, "status": status}

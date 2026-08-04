@@ -1,19 +1,20 @@
 """Agent tool wrapper around the ClimbMix retrieval backends.
 
 Exposes a single ``search`` tool that an LLM agent can call to retrieve passages
-from the ClimbMix corpus. Four engines are available, and a run can enable any
+from the ClimbMix corpus. Five engines are available, and a run can enable any
 subset (see ``build_search_tool``) so each method's effectiveness can be tested
 in isolation:
 
 - ``semantic``     dense embedding match (Jina-v5 DiskANN)          — natural language
 - ``keyword``      hosted BM25 bag-of-words OR (index-server)        — natural language
+- ``hybrid``       dense+sparse fused with RRF (``utils.search.search``) — natural language
 - ``ssr``          Cottontail Shortest-Substring Ranking, GCL Boolean — Boolean syntax
 - ``lucene_bool``  full Lucene query-parser over the BM25 index       — Lucene syntax
 
-There is deliberately no fused option: the caller is the fusion layer. A caller
-that owns a composition (``utils.search.search``, dense+sparse RRF) runs it
-through ``run_search_backend`` to get this module's result envelope without
-becoming a model-selectable engine.
+``hybrid`` is ``utils.search.search`` (dense+sparse RRF fusion) made
+model-selectable like any other engine; a caller that owns its OWN composition
+still runs it through ``run_search_backend`` directly instead of registering it
+here.
 
 Usage as a tool:
     from tools.search_tool import SEARCH_TOOL, build_search_tool, run_search_tool
@@ -21,7 +22,7 @@ Usage as a tool:
     # build_search_tool([...]) -> tool definition restricted to the given engines
     # run_search_tool(**tool_input) -> JSON string to hand back as the tool result
     # run_search_backend(q, backend, engine=...) -> same envelope for a
-    #   caller-owned composition (what the hybrid-RRF systems call)
+    #   caller-owned composition not registered as a selectable engine
 
 Usage as a CLI:
     python src/tools/search_tool.py "influenza vaccination" --k 5 --engine semantic
@@ -32,6 +33,7 @@ from __future__ import annotations
 import json
 from typing import Any, Callable
 
+from utils.search import search as search_hybrid
 from utils.search_dense import search_dense
 from utils.search_lucene_bool import search_lucene_bool
 from utils.search_sparse import search_sparse
@@ -52,6 +54,13 @@ ENGINE_INFO: dict[str, dict[str, str]] = {
         "blurb": ("keyword (hosted BM25, bag-of-words OR — operators are "
                   "ignored): rare proper names, IDs, and verbatim strings; "
                   "any query term may match, none is required"),
+    },
+    "hybrid": {
+        "kind": "nl",
+        "blurb": ("hybrid (dense+sparse fused with Reciprocal Rank Fusion): "
+                  "the safe general-purpose default — combines semantic's "
+                  "conceptual recall with keyword's exact-term precision, at "
+                  "roughly 2x the cost of a single-engine call"),
     },
     "ssr": {
         "kind": "gcl",
@@ -196,6 +205,7 @@ SEARCH_TOOL: dict[str, Any] = build_search_tool(["semantic", "keyword"])
 _DISPATCH = {
     "semantic": lambda q, k, **kw: search_dense(q, k, **kw),
     "keyword": lambda q, k, **kw: search_sparse(q, k, **kw),
+    "hybrid": lambda q, k, **kw: search_hybrid(q, k, **kw),
     "ssr": lambda q, k, **kw: search_ssr(q, k, **kw),
     "lucene_bool": lambda q, k, **kw: search_lucene_bool(q, k, **kw),
 }
