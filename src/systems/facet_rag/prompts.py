@@ -50,7 +50,11 @@ corpus, reached through the `search` tool — there is no web search.
 Each turn, call `search` to retrieve passages for the facet below. You choose \
 the engine (or call it more than once with different engines, in the same \
 turn, if you are unsure which will work best) and write the query in that \
-engine's language. After your search, an analyst reviews the results and \
+engine's language. PREFER `semantic`, `keyword`, and `hybrid` — they cover \
+almost every need and take a plain natural-language query. Only reach for \
+`ssr` or `lucene_bool` when the facet genuinely needs Boolean-precise \
+co-occurrence, a required term, or a phrase/proximity match that a natural- \
+language query can't express. After your search, an analyst reviews the results and \
 either accepts the facet as adequately covered or reports a specific \
 coverage gap — if you receive a coverage gap, issue a new, more targeted \
 search addressing exactly that gap. If you judge that no further search \

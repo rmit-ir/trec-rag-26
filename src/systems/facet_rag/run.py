@@ -66,9 +66,11 @@ DEFAULT_TOPICS = (_REPO_ROOT / "data/official/trec-rag-2026-data/trec-rag-2026/"
                   "development-data/topics/research-rubrics-topics-dev.tsv")
 DEFAULT_ORCHESTRATOR_MODEL = "openai.gpt-oss-120b-1:0"
 DEFAULT_ANALYZER_MODEL = "qwen.qwen3-next-80b-a3b"
-# qwen.* is only reachable in us-east-1/us-west-2 under this account, unlike
-# the repo's usual BEDROCK_REGION default (ap-southeast-2 or whatever .env
-# sets) -- see src/systems/aus_agent/providers/bedrock.py.
+# Both pinned to a region verified working for that model under this account
+# -- NOT left to fall back on the repo's BEDROCK_REGION env, which varies by
+# .env (e.g. ap-southeast-1) and 400s as "invalid model identifier" for both
+# of these non-Anthropic models. See src/systems/aus_agent/providers/bedrock.py.
+DEFAULT_ORCHESTRATOR_REGION = "ap-southeast-2"
 DEFAULT_ANALYZER_REGION = "us-east-1"
 DEFAULT_RUN_DESC = (
     "facet_rag: orchestrator/analyzer multi-facet RAG over ClimbMix. The "
@@ -98,9 +100,9 @@ def main() -> None:
     ap.add_argument("--orchestrator-model", default=DEFAULT_ORCHESTRATOR_MODEL,
                     help="Bedrock model id for the planner/search orchestrator "
                          f"(default: {DEFAULT_ORCHESTRATOR_MODEL})")
-    ap.add_argument("--orchestrator-region", default=None,
-                    help="Bedrock region for the orchestrator (else "
-                         "BEDROCK_REGION env or ap-southeast-2)")
+    ap.add_argument("--orchestrator-region", default=DEFAULT_ORCHESTRATOR_REGION,
+                    help="Bedrock region for the orchestrator (default: "
+                         f"{DEFAULT_ORCHESTRATOR_REGION})")
     ap.add_argument("--analyzer-model", default=DEFAULT_ANALYZER_MODEL,
                     help="Bedrock model id for the passage analyzer/fact-"
                          f"checker (default: {DEFAULT_ANALYZER_MODEL})")
