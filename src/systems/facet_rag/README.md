@@ -67,10 +67,22 @@ this package.
 
 Backends come straight from `aus_agent.providers` via `aus_agent.agent.make_provider`:
 
-- `--backend bedrock` (default) — AWS Bedrock Claude (region `ap-southeast-2`).
-  Config from the repo `.env`: `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY` /
-  `AWS_SESSION_TOKEN`, and optionally `BEDROCK_MODEL_ID` / `BEDROCK_REGION`.
-  Default model `au.anthropic.claude-sonnet-5`.
+- `--backend bedrock` (default) — AWS Bedrock (region `ap-southeast-2` by
+  default). Config from the repo `.env`: `AWS_ACCESS_KEY_ID` /
+  `AWS_SECRET_ACCESS_KEY` / `AWS_SESSION_TOKEN`, and optionally
+  `BEDROCK_MODEL_ID` / `BEDROCK_REGION` (or `--model` / `--region`).
+  Default model `au.anthropic.claude-sonnet-5`. Note the repo `.env`'s
+  `BEDROCK_REGION` may not be `ap-southeast-2` (e.g. `ap-southeast-1`) — check
+  it before assuming a model works with no `--region` override. Also verified
+  working: `qwen.qwen3-next-80b-a3b` and `moonshot.kimi-k2-thinking` — **both
+  need `--region us-east-1` (or `us-west-2`)**, they 400 as "invalid model
+  identifier" in `ap-southeast-2`/`ap-southeast-1` under this account even
+  though Claude profiles only work in `ap-southeast-2`.
+  `openai.gpt-oss-120b-1:0` (bare id, no `au.`/`us.` inference-profile
+  prefix) works in `ap-southeast-2` and `us-east-1`. Thinking
+  (`additionalModelRequestFields`) and prompt caching (`cachePoint`) are
+  Anthropic-only Converse extensions — `BedrockProvider` auto-disables both
+  for any non-`anthropic.*` model id.
 - `--backend openai` — OpenAI Responses API. Config: `OPENAI_API_KEY`, and
   optionally `OPENAI_MODEL_ID`.
 
@@ -102,6 +114,11 @@ uv run --group facet-rag python src/systems/facet_rag/run.py \
 uv run --group facet-rag python src/systems/facet_rag/run.py \
     --query "How effective are influenza vaccines?" \
     --backend openai --engines semantic ssr
+
+# ad-hoc narrative, Qwen on Bedrock (needs --region, see Backends above)
+uv run --group facet-rag python src/systems/facet_rag/run.py \
+    --query "How effective are influenza vaccines?" \
+    --model qwen.qwen3-next-80b-a3b --region us-east-1
 
 # every dev topic; wider facet budget; offline (heuristic) answer formatter
 uv run --group facet-rag python src/systems/facet_rag/run.py --all \

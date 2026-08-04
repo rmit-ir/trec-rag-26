@@ -1,13 +1,21 @@
 """Bedrock backend — boto3 ``bedrock-runtime`` Converse API.
 
-- Region defaults to ``ap-southeast-2`` (override: ``BEDROCK_REGION``).
+- Region defaults to ``ap-southeast-2`` (override: ``BEDROCK_REGION`` or the
+  ``region=`` kwarg / ``--region`` CLI flag where a caller exposes one).
 - Credentials come from the environment (root ``.env`` via python-dotenv:
   ``AWS_ACCESS_KEY_ID`` / ``AWS_SECRET_ACCESS_KEY`` / ``AWS_SESSION_TOKEN``).
 - Default model: ``BEDROCK_MODEL_ID`` env or ``au.anthropic.claude-sonnet-5``.
   Verified working under this role: au.anthropic.claude-sonnet-5,
   au.anthropic.claude-opus-4-8, au.anthropic.claude-haiku-4-5-20251001-v1:0,
   au.anthropic.claude-sonnet-4-6, au.anthropic.claude-opus-4-7,
-  au.anthropic.claude-opus-4-6-v1. (global.*/us.* profiles are AccessDenied.)
+  au.anthropic.claude-opus-4-6-v1 (global.*/us.* profiles are AccessDenied),
+  plus ``qwen.qwen3-next-80b-a3b`` and ``moonshot.kimi-k2-thinking`` — but
+  **only in ``us-east-1``/``us-west-2``**, not ``ap-southeast-2`` where the
+  Anthropic profiles live (there they 400 as "invalid model identifier"
+  under this account, despite the AWS regional-availability table listing
+  ap-southeast-2 as in-region for Qwen) — and ``openai.gpt-oss-120b-1:0``
+  (bare id, no ``au.``/``us.`` prefix), which works in both
+  ``ap-southeast-2`` and ``us-east-1``.
 
 Extended thinking: enabled via ``additionalModelRequestFields =
 {"thinking": {"type": "adaptive"}}`` — the current setting for Claude 4.6+
@@ -16,6 +24,12 @@ arrives as ``reasoningContent`` content blocks, interleaved with ``toolUse``
 blocks in the same assistant message. CRITICAL: those blocks (text +
 signature) are passed back UNMODIFIED on subsequent turns — we append the
 whole ``output.message`` verbatim to the history and never rewrite it.
+
+Non-Anthropic models (``qwen.*``, ``moonshot.*``, ...): both ``thinking``
+and ``caching`` (see below) default to OFF — they're Anthropic-only Converse
+request fields and 400 on other providers. ``moonshot.kimi-k2-thinking``
+reasons natively and returns its own ``reasoningContent`` without needing
+the field requested.
 
 Prompt caching: Claude on Bedrock has NO automatic caching (unlike Nova) —
 every cached prefix needs an explicit ``{"cachePoint": {"type": "default"}}``
@@ -76,13 +90,18 @@ def cache_point() -> dict[str, Any]:
 
 class BedrockProvider(Provider):
     def __init__(self, model_id: str | None = None, *, region: str | None = None,
-                 max_tokens: int = 16000, thinking: bool = True,
-                 caching: bool = True) -> None:
+                 max_tokens: int = 16000, thinking: bool | None = None,
+                 caching: bool | None = None) -> None:
         self.model_id = (model_id
                          or os.environ.get("BEDROCK_MODEL_ID", DEFAULT_MODEL_ID))
+        # ``thinking``/``caching`` request fields (adaptive-thinking,
+        # cachePoint) are Anthropic-specific Converse extensions — sending
+        # them to a non-Anthropic model (Qwen, Kimi, ...) 400s. Default both
+        # on only for anthropic.* model ids, off otherwise; still overridable.
+        is_anthropic = "anthropic" in self.model_id.lower()
         self.max_tokens = max_tokens
-        self.thinking = thinking
-        self.caching = caching
+        self.thinking = is_anthropic if thinking is None else thinking
+        self.caching = is_anthropic if caching is None else caching
         self._client = boto3.client(
             "bedrock-runtime",
             region_name=region or os.environ.get("BEDROCK_REGION", DEFAULT_REGION),
@@ -99,8 +118,10 @@ class BedrockProvider(Provider):
     # -- Provider contract ---------------------------------------------------
 
     def start(self, system_prompt: str, tools: list[dict[str, Any]]) -> None:
-        self._system = [{"text": system_prompt}]
-        if self.caching:
+        # Converse rejects a system block with empty text (min length 1) --
+        # omit it entirely for tool-less single-shot callers that pass "".
+        self._system = [{"text": system_prompt}] if system_prompt else []
+        if self.caching and system_prompt:
             # Static checkpoint: Bedrock chains tools -> system -> messages, so
             # this one entry covers every byte that never changes in this run.
             self._system.append(cache_point())

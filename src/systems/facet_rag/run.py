@@ -88,6 +88,12 @@ def main() -> None:
                     default="bedrock")
     ap.add_argument("--model", default=None,
                     help="model id override (else the backend's env default)")
+    ap.add_argument("--region", default=None,
+                    help="Bedrock region override (else BEDROCK_REGION env or "
+                         "ap-southeast-2). Non-Anthropic Bedrock models "
+                         "(qwen.*, moonshot.*) are only reachable in "
+                         "us-east-1/us-west-2 under this account, not "
+                         "ap-southeast-2 -- pass --region us-east-1 for those.")
     ap.add_argument("--engines", nargs="+", choices=SEARCH_ENGINES,
                     default=list(SEARCH_ENGINES),
                     help="retrieval engines the planner may choose from "
@@ -106,7 +112,7 @@ def main() -> None:
     engines = list(dict.fromkeys(args.engines))  # unique, preserve order
     default_engine = engines[0]
 
-    provider = make_provider(args.backend, args.model)
+    provider = make_provider(args.backend, args.model, region=args.region)
 
     if args.query:
         items = [("adhoc", args.query)]

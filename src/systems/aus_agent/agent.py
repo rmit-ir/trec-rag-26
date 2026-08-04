@@ -120,10 +120,11 @@ def load_system_prompt(max_committed: int,
     return template.replace(MAX_COMMITTED_PLACEHOLDER, str(max_committed))
 
 
-def make_provider(backend: str, model: str | None) -> Provider:
+def make_provider(backend: str, model: str | None,
+                  region: str | None = None) -> Provider:
     if backend == "bedrock":
         from .providers.bedrock import BedrockProvider
-        return BedrockProvider(model)
+        return BedrockProvider(model, region=region)
     if backend == "openai":
         from .providers.openai import OpenAIProvider
         return OpenAIProvider(model)
