@@ -274,64 +274,98 @@ def test_search_tool_returns_error_envelope_from_dummy_401(monkeypatch):
 # A full RAG pipeline against the dummy API
 # ---------------------------------------------------------------------------
 def test_facet_rag_pipeline_over_dummy_api(monkeypatch, read_artifacts):
-    """End-to-end: dummy search API + scripted LLM -> valid TREC artifacts.
+    """End-to-end: dummy search API + scripted orchestrator/analyzer -> valid
+    TREC artifacts.
 
     Every external dependency is a dummy returning correctly-formatted data —
-    retrieval over real HTTP, the model via ``ScriptedProvider`` — so this
-    proves the whole system works without a single credential.
+    retrieval over real HTTP, both models via ``ScriptedProvider`` — so this
+    proves the whole orchestrator/analyzer pipeline works without a single
+    credential. The orchestrator pins facet "revenue" to the dense (semantic)
+    dummy and "equity" to the sparse (keyword) one via its scripted tool
+    calls, exactly like a real model choosing engines per facet.
     """
     import json
     import re
 
     from ragrun import validate_rag_output
 
-    from conftest import ScriptedProvider
+    from conftest import ScriptedProvider, model_turn
 
     from facet_rag.pipeline import run_one
 
-    def responder(pending: str, turn: int) -> dict:
-        """Answer whichever stage's prompt just arrived (plan/synth/format)."""
+    def orchestrator_responder(pending: str, turn: int) -> dict:
         if "ALLOWED DOCIDS" in pending:
             allowed = json.loads(
                 re.search(r"ALLOWED DOCIDS:\s*(\[.*?\])", pending,
                           re.DOTALL).group(1))
             cite = [allowed[0]] if allowed else []
-            return _turn(json.dumps({"sentences": [
+            return model_turn(text=json.dumps({"sentences": [
                 {"text": "Congestion pricing funds transit capital work.",
                  "citations": cite},
                 {"text": "Costs fall mainly on higher-income peak drivers.",
                  "citations": cite},
             ]}))
-        if "docid=" in pending:  # synthesis: passages are in the prompt
+        if "FACET: revenue" in pending:
+            return model_turn(tool_calls=[{
+                "id": "c1", "name": "search",
+                "arguments": {"query": "congestion pricing MTA revenue",
+                             "search_engine": "semantic", "k": 3}}])
+        if "FACET: equity" in pending:
+            return model_turn(tool_calls=[{
+                "id": "c1", "name": "search",
+                "arguments": {"query": "congestion pricing who pays equity",
+                             "search_engine": "keyword", "k": 3}}])
+        if "EVIDENCE:" in pending:  # draft synthesis
             docids = re.findall(r"docid=(\S+)", pending)
             cite = f"[{docids[0]}]" if docids else ""
-            return _turn(
+            return model_turn(text=(
                 f"Congestion pricing dedicates revenue to transit {cite}. "
-                f"Most peak-period drivers have higher incomes {cite}.")
-        return _turn(json.dumps({"facets": [  # plan
-            {"name": "revenue", "engine": "semantic",
-             "query": "congestion pricing MTA revenue", "k": 3},
-            {"name": "equity", "engine": "keyword",
-             "query": "congestion pricing who pays equity", "k": 3},
-        ]}))
+                f"Most peak-period drivers have higher incomes {cite}."))
+        if "RESEARCH NARRATIVE:" in pending:  # plan
+            return model_turn(text=json.dumps({"facets": [
+                {"name": "revenue",
+                 "description": "How does congestion pricing fund MTA "
+                                "capital work?", "max_iterations": 2},
+                {"name": "equity",
+                 "description": "Who bears the cost of congestion pricing?",
+                 "max_iterations": 2},
+            ]}))
+        raise AssertionError(
+            f"unrecognised orchestrator prompt at turn {turn}: {pending[:150]!r}")
 
-    def _turn(text: str) -> dict:
-        from conftest import model_turn
-        return model_turn(text=text)
+    def analyzer_responder(pending: str, turn: int) -> dict:
+        if "DRAFT:" in pending:  # fact-check pass, pass the draft through
+            docids = re.findall(r"docid=(\S+)", pending)
+            cite = f"[{docids[0]}]" if docids else ""
+            return model_turn(text=(
+                f"Congestion pricing dedicates revenue to transit {cite}. "
+                f"Most peak-period drivers have higher incomes {cite}."))
+        if "NEWLY RETRIEVED PASSAGES:" in pending:
+            docids = re.findall(r"\[docid=(\S+?)\]", pending)
+            relevant = ([{"docid": docids[0], "note": "supports the facet"}]
+                       if docids else [])
+            return model_turn(text=json.dumps(
+                {"relevant": relevant, "gap": None, "satisfied": True}))
+        raise AssertionError(
+            f"unrecognised analyzer prompt at turn {turn}: {pending[:150]!r}")
 
     with DummyClimbMixAPI("dense") as dense, DummyClimbMixAPI("sparse") as sparse:
-        # Both engines the plan pins are backed by their own dummy endpoint.
+        # Both engines the orchestrator's facet turns pin are backed by their
+        # own dummy endpoint.
         monkeypatch.setenv("DENSE_SEARCH_URL", dense.base_url)
         monkeypatch.setenv("SPARSE_SEARCH_URL", sparse.base_url)
         result = run_one(
-            ScriptedProvider(responder), qid="rag2026-37",
+            lambda: ScriptedProvider(orchestrator_responder),
+            lambda: ScriptedProvider(analyzer_responder),
+            qid="rag2026-37",
             narrative="Is congestion pricing a fair way to fund the MTA?",
-            engines=["semantic", "keyword"], default_engine="semantic",
+            engines=["semantic", "keyword"],
             run_id="dummy-api.test", run_desc="dummy API end-to-end",
-            model_id="scripted/test-model", backend="scripted",
-            max_chars=2000, min_facets=1, max_facets=4, format_llm=True)
+            orchestrator_model_id="scripted/test-model",
+            analyzer_model_id="scripted/test-model",
+            max_chars=2000, min_facets=2, max_facets=2, format_llm=True)
 
-        # Each engine was reached over its own socket.
+        # Each engine was reached over its own socket, once per facet.
         assert len(dense.requests) == 1
         assert len(sparse.requests) == 1
 

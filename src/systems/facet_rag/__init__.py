@@ -1,22 +1,27 @@
-"""facet_rag — plan-then-execute multi-facet RAG over ClimbMix (TREC RAG 2026).
+"""facet_rag — orchestrator/analyzer multi-facet RAG over ClimbMix (TREC RAG 2026).
 
-A three-stage, corpus-only pipeline:
+    plan (orchestrator, 1 call)
+      -> per-facet orchestrator/analyzer search-analyze-gap loops, run
+         concurrently (loop.run_facet_loop), each up to 10 iterations
+      -> joint draft (orchestrator) + fact-check (analyzer) synthesis
+      -> strict TREC RAG artifacts
 
-    plan (1 LLM call) -> execute (one ClimbMix search per facet) -> synthesize
-    (1 LLM call) -> strict TREC RAG artifacts
-
-Backends are pluggable via the shared ``aus_agent.providers`` (Bedrock /
-OpenAI); retrieval goes through ``tools.search_tool`` (all four engines); the
-answer is shaped by ``ali_deepresearch.answer_format.format_answer`` and written
-via ``ragrun.save_run``. Every citation is a ClimbMix docid; no web search.
+Two Bedrock models play fixed roles: the ORCHESTRATOR (default
+``openai.gpt-oss-120b-1:0``) plans facets and drives the search tool; the
+ANALYZER (default ``qwen.qwen3-next-80b-a3b``) judges retrieved passages
+against each facet's need and reports coverage gaps. Both go through the
+shared ``aus_agent.providers.bedrock.BedrockProvider``. Retrieval goes
+through ``tools.search_tool`` (all four engines); the answer is shaped by
+``ali_deepresearch.answer_format.format_answer`` and written via
+``ragrun.save_run``. Every citation is a ClimbMix docid; no web search.
 
 Public surface:
 
-    from facet_rag import Facet, run_one, execute_plan, parse_facets
+    from facet_rag import Facet, run_one, parse_facets, run_facet_loop
 """
+from .loop import FacetLoopResult, LoopEvent, run_facet_loop
 from .planner import Facet, build_plan_prompt, fallback_facets, parse_facets
 from .pipeline import SYSTEM_NAME, run_one
-from .search import Retrieval, execute_plan, execute_facet
 
 __all__ = [
     "Facet",
@@ -25,7 +30,7 @@ __all__ = [
     "parse_facets",
     "SYSTEM_NAME",
     "run_one",
-    "Retrieval",
-    "execute_plan",
-    "execute_facet",
+    "FacetLoopResult",
+    "LoopEvent",
+    "run_facet_loop",
 ]

@@ -78,11 +78,19 @@ OWNERS = {"answer_format": "ali_deepresearch", "make_provider": "aus_agent"}
 STAGE_REGISTRY: dict[str, list[dict[str, str]]] = {
     "facet_rag": [
         {"id": "plan", "label": "PLAN", "kind": "llm",
-         "note": "1 LLM turn: narrative -> facets JSON"},
-        {"id": "execute", "label": "EXECUTE", "kind": "retrieval",
-         "note": "no LLM: one ClimbMix search per facet, dedup by docid"},
-        {"id": "synthesize", "label": "SYNTHESIZE", "kind": "llm",
-         "note": "1 LLM turn: passages -> grounded prose"},
+         "note": "orchestrator, 1 turn: narrative -> facets JSON"},
+        {"id": "facet_loop", "label": "FACET LOOP", "kind": "loop",
+         "note": "per facet, concurrent threads, <=10 iterations",
+         "back_to": "search", "back_from": "analyze",
+         "back_label": "repeat until satisfied / no search / cap"},
+        {"id": "search", "label": "SEARCH", "kind": "retrieval",
+         "note": "orchestrator tool call: picks engine(s), runs search"},
+        {"id": "analyze", "label": "ANALYZE", "kind": "llm",
+         "note": "analyzer judges passages, saves evidence, reports gap"},
+        {"id": "draft", "label": "DRAFT", "kind": "llm",
+         "note": "orchestrator: merged evidence -> cited prose"},
+        {"id": "fact_check", "label": "FACT-CHECK", "kind": "llm",
+         "note": "analyzer: patches unsupported citations"},
         {"id": "format", "label": "FORMAT", "kind": "format",
          "note": "answer_format: prose -> references[] + citations"},
         {"id": "save", "label": "SAVE", "kind": "artifact",
@@ -142,7 +150,7 @@ STAGE_REGISTRY: dict[str, list[dict[str, str]]] = {
 }
 
 SYSTEM_KIND = {
-    "facet_rag": "pipeline",
+    "facet_rag": "agent",
     "ali_deepresearch": "agent",
     "aus_agent": "agent",
     "o3_deep_research": "single-file",
@@ -150,7 +158,8 @@ SYSTEM_KIND = {
 }
 
 SYSTEM_BLURB = {
-    "facet_rag": "plan-then-execute, multi-facet; each facet pinned to its best engine",
+    "facet_rag": "orchestrator (gpt-oss) plans + searches, analyzer (Qwen) "
+                 "judges + fact-checks, per-facet loops run concurrently",
     "ali_deepresearch": "Alibaba Tongyi DeepResearch ReAct port; owns answer_format",
     "aus_agent": "staged-context research agent; owns the pluggable providers",
     "o3_deep_research": "minimal single-file runner (hosted DR + MCP)",

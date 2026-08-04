@@ -42,7 +42,7 @@ never committed.
 | System | Approach |
 | --- | --- |
 | [`aus_agent`](src/systems/aus_agent/) | Agentic RAG with a staged/committed context ledger and pluggable LLM backends (Bedrock, OpenAI) |
-| [`facet_rag`](src/systems/facet_rag/) | Plan-then-execute: decompose the narrative into facets, one search per facet, then synthesize |
+| [`facet_rag`](src/systems/facet_rag/) | Orchestrator (gpt-oss) plans facets and drives search; analyzer (Qwen) judges passages and fact-checks, per-facet loops run concurrently |
 | [`ali_deepresearch`](src/systems/ali_deepresearch/) | Port of Alibaba Tongyi DeepResearch's multi-turn ReAct agent onto ClimbMix tools |
 | [`o3_deep_research`](src/systems/o3_deep_research/) | OpenAI `o3-deep-research` baseline, grounded through the ClimbMix MCP server |
 | [`claude-code-research`](src/systems/claude-code-research/) | Claude Code driven as a research agent over the corpus CLI |
