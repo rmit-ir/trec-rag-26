@@ -389,6 +389,135 @@ separate issue, deliberately deferred.
 
 ---
 
+## 6. Shared infrastructure to build — benefits every system, not just facet_rag
+
+Requested explicitly: three components that live in the shared layers
+(`src/ragrun/`, `src/utils/`), not inside `src/systems/facet_rag/`, so
+`aus_agent`, `ali_deepresearch`, `o3_deep_research`, and `claude-code-research`
+get them too. Each already has a partial, non-shared precedent somewhere in
+this repo — reuse/generalize those, don't start from a blank file (see each
+item's "prior art").
+
+### 6.1 Cost tracking and analysis
+
+**Why it matters here specifically:** every number in §0/§3 came from token
+counts (`ragrun.TrajectoryBuilder`'s `stats.tokens` block, via
+`facet_rag.loop.usage_token_stats`), never dollars. The curator's "one more LLM
+call per productive iteration" (§3.1, §4 item 2.2) was accepted on faith
+because nobody could say what it cost. `tasks/bm25_tune/` needed a hard
+$50 ceiling and had to build this from scratch *inside a task directory*
+because nothing shared existed to reuse.
+
+**Prior art:** `tasks/bm25_tune/bm25tune/pricing.py` — already does the hard
+parts correctly and is worth reading before designing anything new: frozen,
+committed rate tables (`prices/bedrock-gpt-oss-20b-aps2-2026-07-30.json`, a
+verbatim AWS Pricing API extract — no rate is ever hand-typed), `Rates` /
+`load_rates` (raises `UnknownRate` on an unmapped `(model, region, tier)`
+rather than guessing), `call_cost(usage, rates) -> cost block`, and a
+`CostMeter` for cumulative spend. It is deliberately task-scoped and
+budget-ceiling-flavored (it also has a `BudgetGuard` that can hard-stop a run),
+which facet_rag/ragrun-level cost tracking does not need — pull out the rate
+table + `call_cost` shape, leave the budget-ceiling/single-writer-thread
+machinery behind unless a future task actually needs a hard cap again.
+
+**What to build:** a shared `pricing` module (`src/ragrun/pricing.py` or
+`src/utils/pricing.py` — pick based on whether it should be importable without
+pulling in ragrun's artifact-writing dependencies) that:
+- takes a normalized usage dict (the shape `usage_token_stats` already
+  produces: `input`, `input_uncached`, `output`, `cache_read`, `cache_write`)
+  plus `(model_id, region)` and returns a cost-in-USD breakdown, using the same
+  frozen-rate-file pattern as bm25_tune (one JSON per model/region combo
+  actually used, committed under a `prices/` dir at the shared-layer level).
+- plugs into `ragrun.TrajectoryBuilder` so a `cost` block appears next to the
+  existing `tokens` block in every step's `stats` — one wiring point, and every
+  system that already reports usage through `TrajectoryBuilder` gets $ figures
+  for free, no per-system code.
+- has a rollup: total run cost, and cost broken down by whichever dimension
+  each system's steps already carry (facet_rag: `input`/role via each step's
+  turn+facet; aus_agent: per round). Don't invent a new grouping key — reuse
+  `trace_steps`' existing `turn`/`parent_id` structure.
+- **facet_rag needs the orchestrator-vs-analyzer-vs-curator split specifically**
+  once this exists, to actually answer §4 item 2.2/§3.1's open question ("was
+  the curator's extra call worth it") with a number instead of a guess.
+
+### 6.2 Timing — wall-clock duration, per run and per stage
+
+**Prior art, and the gap:** `ragrun.TrajectoryBuilder._trace_step` already
+computes `duration_ms` for every individual step from its `t_start`/`t_end`
+(`src/ragrun/trajectory.py`) — the raw data exists. What's missing is
+*aggregation*: nothing rolls per-step durations up into "this run took N
+seconds total" or "the curator stage averages N ms across a run" without
+hand-writing it per system. `aus_agent/agent.py` does this today with its own
+local `perf_counter()`/`_elapsed_ms()` plumbing (`agent.py:27,147,422-423,578`)
+— correct, but bespoke, and no other system has it (facet_rag has no run-level
+timing anywhere right now, which is part of why §1.2's "single trials, huge
+variance between runs" was never quantified with real numbers this session —
+there's no wall-clock data to point at).
+
+**What to build:** a rollup that reads `trace_steps` (already has
+`t_start`/`t_end`/`turn`/`type`/`stats.duration_ms` on everything) and produces,
+into `trajectory.trace["summary"]` alongside the existing `tokens` block:
+total run wall-clock (first step's `t_start` to last step's `t_end`), and a
+breakdown by `type`/`kind` (so "how much of this run's wall-clock was
+retrieval vs. LLM calls vs. formatting" is answerable without re-deriving it
+by hand each time, the way this plan's §3.3 table had to be built by manually
+reading 15 trajectory files). Same wiring point as §6.1 — both are pure
+post-processing over data `TrajectoryBuilder` already has, not a new
+instrumentation burden on any system.
+
+### 6.3 Trajectory recording, aus_agent-parity — plus why facet_rag needs a design decision aus_agent didn't
+
+**The immediate motivation:** §1.2 of this plan states "`data/outputs/facet_rag/`
+is empty. Every trajectory from the last session is gone" — that's not a
+cleanup accident, it's because facet_rag has **no partial/incremental save**.
+`aus_agent.agent.save_partial()` (`agent.py:636-663`) rewrites `output.json`
+with `trace.status == "running"` every 2 seconds during a run
+(`PARTIAL_SAVE_MIN_INTERVAL_S`), so a crashed or killed aus_agent run still
+leaves an inspectable, mid-run artifact. facet_rag's `pipeline.run_one` writes
+*nothing* until the very end — kill it, lose a background-task timeout, hit
+`ExpiredTokenException` mid-run (as §2.3 did this session), and the entire
+run's evidence, searches, and partial answer are gone. This is independently
+worth fixing regardless of the cost/timing work above.
+
+**The harder, facet_rag-specific gap `aus_agent` doesn't have to solve:**
+aus_agent's `raw_messages` capture is simple because aus_agent is *one*
+provider, one continuous conversation — `provider.raw_messages` at the end of
+the run is the whole story (`agent.py:611-612`). facet_rag constructs *dozens*
+of provider instances per run (one orchestrator per plan/facet/draft/format
+call, one analyzer per facet/fact-check call, one curator per facet — see
+`pipeline.py`'s repeated `make_orchestrator()`/`make_analyzer()` calls and
+`loop.py`'s per-facet `make_analyzer()` call for the curator role), each with
+its own short-lived `raw_messages`. `tb.finalize()` is currently called with no
+`raw_messages` argument at all (`pipeline.py`, the `tb.finalize(status=status,
+started_at=..., ended_at=...)` call) — there is no equivalent of aus_agent's
+"one provider's full history" to pass.
+
+**What needs deciding before implementing, not guessing:** what "trajectory
+recording" means for a many-short-conversations architecture. Options, roughly
+cheapest to richest: (a) don't capture raw provider messages at all, rely on
+the existing `LoopEvent`/rich-trace summaries (current state, minus the crash
+gap) — cheapest, loses the actual prompt/response text for post-hoc debugging;
+(b) capture each instance's `raw_messages` keyed by role + facet + call-site
+into a list under `trajectory.trace` (richer, but the trace size grows with
+facet count × iterations, unlike aus_agent's single history); (c) capture only
+on failure/incomplete runs (the crash-recovery case that actually motivated
+this) and skip it for `status == "completed"` runs, keeping the common case
+cheap. Whoever picks this up should decide (b) vs (c) — both are reasonable,
+they trade off differently between "debuggability of a normal run" and "trace
+file size" — rather than defaulting to the biggest option without checking the
+cost.
+
+The **partial-save half is not blocked on that decision** and should ship
+first: adapt `aus_agent.agent.save_partial`'s pattern (`save_run(..., 
+trajectory=build_trajectory("running"), output=build_output([], []), 
+timestamp=run_ts, validate=False, write_trajectory=False)`, called every
+`PARTIAL_SAVE_MIN_INTERVAL_S`) into `pipeline.run_one`, ideally as a shared
+helper in `ragrun` (it's already provider-agnostic — it only needs a
+`TrajectoryBuilder` in progress and a timestamp) rather than copy-pasted a
+second time.
+
+---
+
 ## Appendix — raw numbers behind §0
 
 Answer shape, `aus-agent-dev-full` vs `facet_rag.curator_full`:
