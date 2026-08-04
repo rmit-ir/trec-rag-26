@@ -767,17 +767,19 @@ def test_format_answer_llm_citations_are_constrained_to_the_allow_list() -> None
     assert answer[1]["citations"] == []
 
 
-def test_format_answer_llm_all_citations_hallucinated_falls_back() -> None:
-    """When NOTHING survives the allow-list filter the LLM result is unusable
-    (``parsed[0]`` is empty), so the deterministic heuristic takes over — which
-    is what keeps every reference cited."""
+def test_format_answer_llm_hallucinated_citation_is_dropped_not_faked() -> None:
+    """A citation naming a docid outside the allow-list is filtered out, not
+    replaced — the sentence legitimately ends up uncited rather than the
+    heuristic force-citing an unrelated reference just to have one. Per the
+    track spec, zero citations is a valid, unpenalized-in-precision result;
+    the structurally valid LLM parse is trusted over the round-robin
+    heuristic even when it comes back empty."""
     llm = _FormatterLLM(json.dumps({"sentences": [
         {"text": "Invented claim.", "citations": ["nope"]}]}))
     refs, answer = format_answer("Draft sentence one. Draft sentence two.",
                                  ["d1"], llm=llm)
-    assert refs == ["d1"]
-    assert answer[0]["text"] == "Draft sentence one."
-    assert answer[0]["citations"] == [0]
+    assert refs == []
+    assert answer == [{"text": "Invented claim.", "citations": []}]
 
 
 def test_format_answer_llm_caps_citations_per_sentence() -> None:

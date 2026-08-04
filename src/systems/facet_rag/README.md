@@ -24,7 +24,13 @@ narrative ──> PLAN (orchestrator, 1 call)  planner.build_plan_prompt
               │     -> keep relevant passages + note,            │
               │        report a gap or "satisfied"                │
               │            │                                    │
-              │   satisfied? / cap reached? ─────────────stop   │
+              │   curator: one-shot MMR-style ranking            │
+              │     -> ranks the FULL accumulated evidence        │
+              │        pool by relevance + diversity, sinks       │
+              │        near-duplicates; top-N is this facet's     │
+              │        contribution to synthesis                 │
+              │            │                                    │
+              │   curator says covered? / cap reached? ───stop  │
               │   else: gap fed back to orchestrator, loop again │
               └────────────────────┬────────────────────┘
                                    │  evidence, deduped by docid across facets
@@ -60,10 +66,11 @@ coverage no longer depends on the model choosing to batch tool calls. `ssr`/
 `lucene_bool` stay optional, added only when the orchestrator judges the
 facet genuinely needs Boolean precision.
 
-## Two fixed roles, not a pluggable single backend
+## Two fixed models, three roles, not a pluggable single backend
 
 Unlike the old plan-then-execute version (single interchangeable
-`--backend`), this system has two distinct roles that always run together:
+`--backend`), this system has two distinct models that always run together,
+playing three roles between them:
 
 - **ORCHESTRATOR** (default `openai.gpt-oss-120b-1:0`) — plans facets, writes
   the mandatory-engine query plan every loop iteration (reacting to a
@@ -73,17 +80,41 @@ Unlike the old plan-then-execute version (single interchangeable
   retrieved passages against the facet's need, keeps what's relevant with a
   supporting note, reports a coverage gap (or "satisfied"), and fact-checks
   the orchestrator's draft.
+- **CURATOR** (`curator.py`, same model/role as the analyzer, independent
+  conversation) — ranks the facet's FULL accumulated evidence pool (every
+  round so far, not just the newest) by relevance and diversity every
+  iteration, an MMR-style (Maximal Marginal Relevance) pass: maximize
+  relevance, sink near-duplicates below whichever higher-ranked item already
+  covers the same point. Its top-N ranked items are what actually reach
+  synthesis — not the analyzer's raw, unfiltered keeps — and its `covered`
+  verdict, not the analyzer's per-round `satisfied`, is what stops a facet's
+  loop. This exists because the analyzer alone was found to keep ~76% of
+  what it saw (a rubber stamp, not a filter): comparing against a prior
+  system's much more selective evidence-commit step showed that real
+  precision needs an explicit cross-round redundancy check, which a
+  per-round relevance judgment can't do by itself. Implemented as a
+  structured LLM ranking call rather than embedding cosine-similarity MMR —
+  this repo has no standalone text-embedding primitive, only hosted *search*
+  endpoints (query in, ranked hits out, not a vector for arbitrary text), so
+  real vector MMR would mean adding new infrastructure; the LLM call reuses
+  the exact structured-JSON pattern already reliable for every other stage.
 
-Both go through the shared `aus_agent.providers.bedrock.BedrockProvider`
-(`aus_agent.agent.make_provider("bedrock", model, region=...)`), but as two
+All three roles go through the shared
+`aus_agent.providers.bedrock.BedrockProvider`
+(`aus_agent.agent.make_provider("bedrock", model, region=...)`), but as
 independent conversations — a `Provider` owns its own history, and facets run
 concurrently in their own threads, so `run_one` takes `make_orchestrator` /
 `make_analyzer` **factories** (zero-arg callables), not pre-built provider
-instances. Every plan/facet-loop/draft/fact-check/format call gets its own
+instances; the curator gets its own fresh instance from `make_analyzer` too.
+Every plan/facet-loop/draft/fact-check/format/curation call gets its own
 fresh instance.
 
 **The two models commonly need different Bedrock regions under this
-account** — see `## Backends` below.
+account** — see `## Backends` below. **The curator adds one more LLM call
+per productive loop iteration** (whenever the evidence pool changed) on top
+of the orchestrator+analyzer calls already there — a real cost/latency
+increase, traded for the evidence pool actually being filtered instead of
+growing unboundedly across rounds.
 
 ## Why per-facet loops instead of one upfront search per facet
 
@@ -104,21 +135,32 @@ that facet. A facet the planner judges simple gets a small budget
   `[1, GLOBAL_ITERATION_CAP]`; an unusable plan falls back to one facet over
   the raw narrative, which gets the full iteration budget since it has no
   sibling facets to share retrieval cost with.
-- `loop.py` — `run_facet_loop`: the orchestrator/analyzer search-analyze-gap
-  loop for one facet. Both roles are fresh one-shot calls every iteration:
-  the orchestrator writes a `QueryPlan` (`parse_query_plan`) — one query per
-  mandatory engine plus an optional Boolean one — which the code executes via
-  `tools.search_tool.run_search_tool` unconditionally; the analyzer judges
-  the results (`ANALYZER_PROMPT`). An unparseable/empty plan falls back to
-  searching the facet description on the run's first enabled engine, so a
-  round is never skipped. Stops on whichever comes first: the analyzer says
-  satisfied, or the iteration cap. Trace events are buffered per facet
+- `loop.py` — `run_facet_loop`: the orchestrator/analyzer/curator
+  search-analyze-rank loop for one facet. All three roles are fresh one-shot
+  calls every iteration: the orchestrator writes a `QueryPlan`
+  (`parse_query_plan`) — one query per mandatory engine plus an optional
+  Boolean one — which the code executes via `tools.search_tool.run_search_tool`
+  unconditionally; the analyzer judges the results (`ANALYZER_PROMPT`); the
+  curator (`curator.py`) then re-ranks the full accumulated pool. An
+  unparseable/empty orchestrator plan falls back to searching the facet
+  description on the run's first enabled engine, so a round is never
+  skipped. Stops on whichever comes first: the curator says `covered`, or
+  the iteration cap. Trace events are buffered per facet
   (`LoopEvent`/`FacetLoopResult`) rather than written straight to
   `TrajectoryBuilder`, which is not thread-safe — `pipeline.py` replays them
   sequentially once every facet has finished.
-- `prompts.py` — five prompts: `PLAN_PROMPT`, `ORCHESTRATOR_QUERY_PROMPT`
+- `curator.py` — `curate`/`parse_curation`: MMR-style ranking of a facet's
+  evidence pool (see `## Two fixed models, three roles` above for the full
+  rationale). `CurationResult.top` (default top-3) is what
+  `FacetLoopResult.evidence` actually returns to `pipeline.py` — the raw,
+  unranked analyzer keeps never leave `loop.py`.
+- `llm.py` — `one_shot`/`usage_token_stats`/`strip_fences`, split out of
+  `loop.py` so `curator.py` can share them without a `loop.py` <-> `curator.py`
+  import cycle (`loop.py` imports `curate` from `curator.py`).
+- `prompts.py` — six prompts: `PLAN_PROMPT`, `ORCHESTRATOR_QUERY_PROMPT`
   (per-iteration query plan), `ANALYZER_PROMPT` (per-iteration judgment),
-  `SYNTH_DRAFT_PROMPT` + `FACT_CHECK_PROMPT` (joint synthesis).
+  `CURATOR_PROMPT` (per-iteration ranking), `SYNTH_DRAFT_PROMPT` +
+  `FACT_CHECK_PROMPT` (joint synthesis).
 - `pipeline.py` — orchestrates plan -> concurrent facet loops -> merge
   evidence (dedup by docid, first facet to surface it wins) -> joint
   draft + fact-check synthesis, assembles the trajectory, maps prose to the

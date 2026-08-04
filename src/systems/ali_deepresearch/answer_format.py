@@ -20,10 +20,13 @@ guaranteed to pass ``ragrun.validate_rag_output``.
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
 from .prompts import FORMAT_ANSWER_PROMPT
+
+log = logging.getLogger(__name__)
 
 MAX_CITATIONS = 3
 MAX_WORDS = 1024
@@ -160,8 +163,17 @@ def format_answer(answer_text: str, candidate_docids: list[str], *,
             raw = llm.complete([{"role": "user", "content": prompt}],
                                stop=None, max_tokens=4000)
             parsed = _from_llm_json(raw or "", candidate_docids)
-            if parsed and parsed[0]:
+            # A structurally valid parse is trusted even if every sentence
+            # came back uncited (refs == []) -- that's a legitimate "nothing
+            # here is well-supported enough to cite" result, not a failure.
+            # Only None (regex/JSON/shape failure) falls through.
+            if parsed is not None:
                 return parsed
+            log.warning("format_answer: LLM response did not parse into the "
+                        "expected {sentences: [...]} shape; falling back to "
+                        "the round-robin heuristic. raw response: %r",
+                        (raw or "")[:500])
         except Exception:
-            pass  # fall through to heuristic
+            log.warning("format_answer: LLM formatting call raised; falling "
+                        "back to the round-robin heuristic.", exc_info=True)
     return _heuristic(answer_text or "", candidate_docids)

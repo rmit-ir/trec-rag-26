@@ -1,6 +1,6 @@
-"""Per-facet orchestrator/analyzer search loop.
+"""Per-facet orchestrator/analyzer/curator search loop.
 
-Two models, two roles, driven from Python (neither model owns the stop
+Three models/roles, driven from Python (no single one owns the stop
 condition alone):
 
 - The ORCHESTRATOR (e.g. gpt-oss-120b) is a fresh one-shot call every
@@ -16,13 +16,23 @@ condition alone):
   reads the newly retrieved passages against the facet's need, keeps what's
   relevant with a supporting note, and reports a coverage gap or
   ``satisfied``.
+- The CURATOR (``curator.py``, same model as the analyzer) runs whenever the
+  evidence pool changed: it ranks the facet's FULL accumulated evidence
+  (every round so far, not just the newest) by relevance AND diversity,
+  sinking near-duplicates below whichever higher-ranked item already covers
+  the same point. It is the loop's authoritative coverage gate — a facet
+  only stops once the curator agrees its top-N ranked, de-duplicated items
+  adequately cover the facet, not just when the analyzer likes the latest
+  round. Its top-N becomes the facet's actual contribution to synthesis
+  (``FacetLoopResult.evidence``), not the analyzer's raw, unfiltered keeps —
+  see ``curator.py`` for why the analyzer alone under-filters.
 
-The loop stops on whichever comes first: the analyzer says ``satisfied``, or
+The loop stops on whichever comes first: the curator says ``covered``, or
 the facet's iteration budget (clamped to ``planner.GLOBAL_ITERATION_CAP``)
-runs out. There is no "orchestrator declines to search" stop path anymore —
-every iteration mandates at least the enabled mandatory-engine queries, with
-a description-only fallback if the orchestrator's JSON is unusable, so a
-round is never skipped.
+runs out. There is no "orchestrator declines to search" stop path — every
+iteration mandates at least the enabled mandatory-engine queries, with a
+description-only fallback if the orchestrator's JSON is unusable, so a round
+is never skipped.
 
 Trace events are buffered per facet (``FacetLoopResult.events``) rather than
 written straight to a shared ``TrajectoryBuilder`` — facets run concurrently
@@ -33,14 +43,21 @@ every facet has finished.
 from __future__ import annotations
 
 import json
-import re
 from dataclasses import dataclass, field
 from typing import Any
 
 from tools.search_tool import run_search_tool
 
+from .curator import curate
+from .llm import one_shot, strip_fences, usage_token_stats
 from .planner import Facet, GLOBAL_ITERATION_CAP
 from .prompts import ANALYZER_PROMPT, ORCHESTRATOR_QUERY_PROMPT
+
+__all__ = [
+    "Analysis", "FacetLoopResult", "LoopEvent", "QueryPlan",
+    "one_shot", "usage_token_stats",  # re-exported: pipeline.py imports these from here
+    "parse_analysis", "parse_query_plan", "run_facet_loop",
+]
 
 # The three engines every iteration must query (whichever of these the run
 # actually enables) -- the rest (ssr/lucene_bool) are the orchestrator's
@@ -48,49 +65,6 @@ from .prompts import ANALYZER_PROMPT, ORCHESTRATOR_QUERY_PROMPT
 MANDATORY_ENGINES = ("semantic", "keyword", "hybrid")
 BOOLEAN_ENGINES = ("ssr", "lucene_bool")
 DEFAULT_K = 10
-
-
-def usage_token_stats(usage: dict[str, Any]) -> dict[str, int] | None:
-    """Normalize provider usage into the trace token block (or None).
-
-    Mirrors ``aus_agent.agent._usage_token_stats`` so token accounting is
-    consistent across systems (Bedrock excludes cache reads from inputTokens;
-    OpenAI's provider already subtracts them back out).
-    """
-    if not usage:
-        return None
-    uncached = int(usage.get("inputTokens", usage.get("input_tokens", 0)) or 0)
-    output = int(usage.get("outputTokens", usage.get("output_tokens", 0)) or 0)
-    cache_read = int(usage.get("cacheReadInputTokens",
-                               usage.get("cache_read_input_tokens", 0)) or 0)
-    cache_write = int(usage.get("cacheWriteInputTokens",
-                                usage.get("cache_write_input_tokens", 0)) or 0)
-    logical = uncached + cache_read + cache_write
-    processed = uncached + cache_write
-    return {"input": logical, "input_uncached": uncached, "output": output,
-            "cache_read": cache_read, "cache_write": cache_write,
-            "total": logical + output, "processed_input": processed,
-            "processed": processed + output}
-
-
-def one_shot(provider: Any, system_prompt: str, user_text: str) -> str:
-    """Run one fresh, tool-less turn and return its text.
-
-    The turn's usage is stashed on the provider as ``_last_usage`` so callers
-    that want token stats can read it without changing the ``Provider``
-    contract.
-    """
-    provider.start(system_prompt, [])
-    provider.add_user_message(user_text)
-    turn = provider.run_turn()
-    provider._last_usage = turn.get("usage", {})  # type: ignore[attr-defined]
-    return turn.get("text") or ""
-
-
-def _strip_fences(raw: str) -> str:
-    raw = raw.strip()
-    fence = re.match(r"^```(?:json)?\s*(.*?)\s*```$", raw, flags=re.DOTALL)
-    return fence.group(1).strip() if fence else raw
 
 
 @dataclass
@@ -108,7 +82,7 @@ def parse_query_plan(raw: str) -> QueryPlan:
     an iteration is never wasted.
     """
     try:
-        payload = json.loads(_strip_fences(raw))
+        payload = json.loads(strip_fences(raw))
     except json.JSONDecodeError:
         payload = None
     if not isinstance(payload, dict):
@@ -149,7 +123,7 @@ def parse_analysis(raw: str, valid_docids: set[str]) -> Analysis:
     answer in the expected shape.
     """
     try:
-        payload = json.loads(_strip_fences(raw))
+        payload = json.loads(strip_fences(raw))
     except json.JSONDecodeError:
         return Analysis(relevant=[], gap=None, satisfied=True)
     if not isinstance(payload, dict):
@@ -173,8 +147,9 @@ def parse_analysis(raw: str, valid_docids: set[str]) -> Analysis:
 
 @dataclass
 class LoopEvent:
-    """One replayable trace event — an orchestrator round or an analysis call."""
-    kind: str  # "oss_turn" | "qwen_analysis"
+    """One replayable trace event — an orchestrator round, an analysis call,
+    or a curator ranking pass."""
+    kind: str  # "oss_turn" | "qwen_analysis" | "curator"
     oss_text: str | None = None
     oss_stats: dict[str, int] | None = None
     tool_calls: list[dict[str, Any]] = field(default_factory=list)
@@ -187,10 +162,10 @@ class LoopEvent:
 @dataclass
 class FacetLoopResult:
     facet: Facet
-    evidence: list[dict[str, Any]]   # [{"docid", "note", "text", "rank"}], first-seen wins
+    evidence: list[dict[str, Any]]   # curator's top-N: [{"docid","note","text","rank"}]
     events: list[LoopEvent]
     iterations_used: int
-    stop_reason: str  # "analyzer_satisfied" | "max_iterations"
+    stop_reason: str  # "curator_covered" | "max_iterations"
 
 
 def _render_passages(passages: list[dict[str, Any]]) -> str:
@@ -206,19 +181,22 @@ def _render_evidence(evidence: list[dict[str, Any]]) -> str:
 
 
 def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
-                   facet: Facet, engines: list[str], max_chars: int
-                   ) -> FacetLoopResult:
-    """Run one facet's orchestrator/analyzer search-analyze-gap loop.
+                   narrative: str, facet: Facet, engines: list[str],
+                   max_chars: int) -> FacetLoopResult:
+    """Run one facet's orchestrator/analyzer/curator search-analyze-gap loop.
 
     ``make_orchestrator``/``make_analyzer`` are zero-arg factories returning a
     fresh ``Provider`` each call — required because a ``Provider`` owns its
     own conversation state and facets run concurrently in their own threads.
+    The curator reuses ``make_analyzer`` for its own, separate provider
+    instance (same model, independent conversation).
     """
     from tools.search_tool import ENGINE_INFO  # local: avoid a hard
     # import-time dependency on tools.search_tool internals elsewhere.
 
     orchestrator = make_orchestrator()
     analyzer = make_analyzer()
+    curator_provider = make_analyzer()
 
     mandatory = [e for e in MANDATORY_ENGINES if e in engines]
     boolean_available = [e for e in BOOLEAN_ENGINES if e in engines]
@@ -232,6 +210,7 @@ def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
 
     cap = min(max(1, facet.max_iterations), GLOBAL_ITERATION_CAP)
     evidence: list[dict[str, Any]] = []
+    curated_top: list[dict[str, Any]] = []
     seen_docids: set[str] = set()
     events: list[LoopEvent] = []
     stop_reason = "max_iterations"
@@ -314,14 +293,26 @@ def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
         for item in analysis.relevant:
             passage = passage_by_docid.get(item["docid"], {})
             evidence.append({"docid": item["docid"], "note": item["note"],
-                            "text": passage.get("text", ""),
-                            "rank": passage.get("rank")})
+                            "text": passage.get("text", "")})
 
-        if analysis.satisfied:
-            stop_reason = "analyzer_satisfied"
+        # Curator: rank the FULL accumulated pool (not just this round) by
+        # relevance + diversity, sinking near-duplicates. Its top-N is what
+        # ultimately reaches synthesis, and its `covered` verdict -- not the
+        # analyzer's per-round `satisfied` -- is what stops the loop.
+        curation, curator_stats = curate(curator_provider, narrative=narrative,
+                                         facet=facet, evidence=evidence)
+        events.append(LoopEvent(
+            kind="curator", qwen_stats=curator_stats, gap=curation.gap,
+            satisfied=curation.covered, relevant_count=len(curation.top)))
+        curated_top = [{"docid": item.docid, "note": item.note,
+                        "text": item.text, "rank": rank}
+                       for rank, item in enumerate(curation.top, 1)]
+
+        if curation.covered:
+            stop_reason = "curator_covered"
             break
-        gap = analysis.gap or "more evidence needed"
+        gap = curation.gap or analysis.gap or "more evidence needed"
 
-    return FacetLoopResult(facet=facet, evidence=evidence, events=events,
+    return FacetLoopResult(facet=facet, evidence=curated_top, events=events,
                            iterations_used=iterations_used,
                            stop_reason=stop_reason)

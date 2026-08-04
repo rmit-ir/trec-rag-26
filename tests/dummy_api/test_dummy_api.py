@@ -341,6 +341,11 @@ def test_facet_rag_pipeline_over_dummy_api(monkeypatch, read_artifacts):
             return model_turn(text=(
                 f"Congestion pricing dedicates revenue to transit {cite}. "
                 f"Most peak-period drivers have higher incomes {cite}."))
+        if "EVIDENCE POOL:" in pending:  # curator pass (reuses this role/model)
+            docids = list(dict.fromkeys(re.findall(r"docid=(\S+)", pending)))
+            ranking = [{"docid": d, "redundant_with": None} for d in docids]
+            return model_turn(text=json.dumps(
+                {"ranking": ranking, "gap": None, "covered": True}))
         if "NEWLY RETRIEVED PASSAGES:" in pending:
             docids = re.findall(r"\[docid=(\S+?)\]", pending)
             relevant = ([{"docid": docids[0], "note": "supports the facet"}]

@@ -84,12 +84,20 @@ def _sandwich_order(evidence: list[dict[str, Any]]) -> list[dict[str, Any]]:
 
 
 def _render_evidence_block(evidence: list[dict[str, Any]]) -> str:
+    """Render evidence for the draft/fact-check prompts.
+
+    Deliberately NOT prefixed with a bracketed ordinal like ``[1]`` — both
+    prompts instruct citing by ``[docid]``, and a leading ``[N]`` marker
+    visually primes the model to cite by list position instead (confirmed:
+    runs came back citing small integers like ``[5][9]`` that don't match any
+    real docid, so every citation failed to resolve and the answer ended up
+    with zero references). ``docid=`` alone is the only thing that should
+    read as citable here.
+    """
     if not evidence:
         return "(no evidence retrieved)"
-    blocks = []
-    for i, e in enumerate(_sandwich_order(evidence), 1):
-        blocks.append(f"[{i}] docid={e['docid']} facet={e['facet']}\n"
-                      f"note: {e['note']}\n{e['text']}")
+    blocks = [f"docid={e['docid']} facet={e['facet']}\nnote: {e['note']}\n{e['text']}"
+             for e in _sandwich_order(evidence)]
     return "\n\n".join(blocks)
 
 
@@ -128,10 +136,16 @@ def _replay_events(tb: TrajectoryBuilder, facet_results: list[FacetLoopResult],
                         "search", tc["arguments"], tc["output"],
                         returned_docids=tc["returned_docids"],
                         failed=tc["failed"], turn=turn, facet=fr.facet.name)
-            else:  # "qwen_analysis"
+            elif ev.kind == "qwen_analysis":
                 tb.add_model_step(
                     output=(f"satisfied={ev.satisfied} gap={ev.gap!r} "
                            f"kept={ev.relevant_count}"),
+                    input=fr.facet.description, turn=turn,
+                    stats={"tokens": ev.qwen_stats} if ev.qwen_stats else None)
+            else:  # "curator"
+                tb.add_model_step(
+                    output=(f"covered={ev.satisfied} gap={ev.gap!r} "
+                           f"top_n={ev.relevant_count}"),
                     input=fr.facet.description, turn=turn,
                     stats={"tokens": ev.qwen_stats} if ev.qwen_stats else None)
             turn += 1
@@ -175,7 +189,8 @@ def run_one(make_orchestrator: Callable[[], Any],
         facet_results = list(pool.map(
             lambda facet: run_facet_loop(
                 make_orchestrator=make_orchestrator, make_analyzer=make_analyzer,
-                facet=facet, engines=engines, max_chars=max_chars),
+                narrative=narrative, facet=facet, engines=engines,
+                max_chars=max_chars),
             facets))
     next_turn = _replay_events(tb, facet_results, turn_start=1)
 

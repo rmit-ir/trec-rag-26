@@ -100,15 +100,53 @@ Return ONLY a JSON object of this exact shape (no prose, no code fences):
 "satisfied": <true if no further search is needed, else false>}}
 """
 
+CURATOR_PROMPT = """You maintain the ranked evidence pool for one facet of a \
+research task. Given the research narrative, the facet, and every piece of \
+evidence gathered for it so far, rank the evidence from MOST to LEAST useful \
+for answering the facet — like a priority queue where the top item is the \
+single best piece of evidence and each one below is slightly less essential.
+
+Maximize two things together: RELEVANCE (how directly and specifically each \
+item addresses the facet) and COVERAGE (how much of the facet's distinct \
+sub-aspects the pool as a whole addresses). An item that states essentially \
+the same point as a higher-ranked item is REDUNDANT — mark it \
+``redundant_with`` the higher-ranked item's docid and let it sink below \
+items that cover a different angle, even if the redundant item is \
+individually highly relevant on its own. Two items covering the same narrow \
+point should not both sit near the top; prefer diversity of coverage there.
+
+RESEARCH NARRATIVE:
+{narrative}
+
+FACET: {facet_name}
+
+{facet_description}
+
+EVIDENCE POOL:
+{evidence}
+
+Return ONLY a JSON object of this exact shape (no prose, no code fences):
+{{"ranking": [{{"docid": "<docid>", \
+"redundant_with": "<docid of a higher-ranked item this duplicates, or null>"}}, \
+...], \
+"gap": "<what the top {top_n} still miss to fully address the facet, or null \
+if nothing>", \
+"covered": <true if the top {top_n}, taken together, adequately address the \
+facet, else false>}}
+"""
+
 SYNTH_DRAFT_PROMPT = """You are the synthesis stage of a corpus-grounded \
 research system. Write a thorough, well-structured answer to the research \
 narrative using ONLY the evidence below. Do not use prior knowledge for \
 factual claims; every claim must be supported by evidence.
 
-Write clear declarative prose. After each factual sentence, cite the docid(s) \
-of the evidence that support it in square brackets, e.g. [shard_00123_456]. \
-Only cite docids that appear in the evidence below. Keep the whole answer \
-under 1000 words.
+Write clear declarative prose. After each factual sentence, cite ONLY the \
+docid(s) that GENUINELY AND DIRECTLY support that exact sentence, in square \
+brackets, e.g. [shard_00123_456] — never cite a docid just because it's \
+topically nearby; a claim with no genuinely supporting evidence gets no \
+citation. Cite at most 3 docids per sentence, ordered strongest to weakest \
+support; do not pad to 3 when fewer are actually supported. Only cite docids \
+that appear in the evidence below. Keep the whole answer under 1000 words.
 
 RESEARCH NARRATIVE:
 {narrative}
@@ -119,14 +157,20 @@ EVIDENCE:
 
 FACT_CHECK_PROMPT = """You are the fact-checker for a corpus-grounded \
 research report. Below is a draft answer and the evidence it was written \
-from. Check EVERY citation: a citation is only valid if the cited docid's \
-evidence text actually supports the sentence it's attached to.
+from. Check EVERY citation individually: read the cited docid's actual \
+evidence text and confirm it specifically and directly supports the exact \
+claim in the sentence it's attached to — topical closeness is not enough. \
+A citation that is merely about the same general subject, without actually \
+stating the claim, is NOT supported and must be dropped.
 
-Rewrite the draft, correcting it in place: drop citations that are not \
-supported, remove or soften sentences left with no supporting citation, and \
+Rewrite the draft, correcting it in place: drop every citation that fails \
+that check, remove or soften sentences left with no supporting citation, and \
 add a citation from the evidence below to any sentence with a factual claim \
-that currently has none but could be supported. Do not add new claims that \
-are not already in the draft or supportable by the evidence.
+that currently has none but could be genuinely supported. Where a sentence \
+keeps multiple citations, order them strongest to weakest support, and never \
+add a citation just to reach 3 — 1 correct citation beats 3 where 2 are \
+padding. Do not add new claims that are not already in the draft or \
+supportable by the evidence.
 
 Return ONLY the corrected prose (no JSON, no commentary, no code fences).
 

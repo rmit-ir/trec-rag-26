@@ -37,6 +37,7 @@ from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn
 from ragrun import validate_rag_output
 
 from facet_rag import parse_facets, run_facet_loop, run_one
+from facet_rag.curator import curate, parse_curation
 from facet_rag.loop import Analysis, QueryPlan, parse_analysis, parse_query_plan, usage_token_stats
 from facet_rag.pipeline import _sandwich_order
 from facet_rag.planner import (
@@ -109,12 +110,34 @@ def make_orchestrator_responder(
     return _respond
 
 
+_CURATOR_POOL_DOCID_RE = re.compile(r"docid=(\S+)")
+
+
+def _curation_text(pending: str, *, covered: bool, gap: str | None) -> str:
+    """A curator response keeping every pool docid, none marked redundant."""
+    docids = list(dict.fromkeys(_CURATOR_POOL_DOCID_RE.findall(pending)))
+    ranking = [{"docid": d, "redundant_with": None} for d in docids]
+    return json.dumps({"ranking": ranking, "gap": gap, "covered": covered})
+
+
 def make_analyzer_responder(
-        *, satisfied: bool = True, gap: str = "need more detail on strain match"
+        *, satisfied: bool = True, gap: str = "need more detail on strain match",
+        curator_covered: bool | None = None
         ) -> Callable[[str, int], dict[str, Any]]:
+    """Answers both analyzer turns (``NEWLY RETRIEVED PASSAGES:``) and curator
+    turns (``EVIDENCE POOL:``) — the curator reuses the analyzer's provider
+    role/model. ``curator_covered`` defaults to ``satisfied`` so existing
+    single-flag call sites get matching stop behaviour; pass it separately to
+    test the curator disagreeing with the analyzer's per-round judgment."""
+    resolved_curator_covered = satisfied if curator_covered is None else curator_covered
+
     def _respond(pending: str, turn_index: int) -> dict[str, Any]:
         if "DRAFT:" in pending:
             return model_turn(text=_cited_text(pending))
+        if "EVIDENCE POOL:" in pending:
+            return model_turn(text=_curation_text(
+                pending, covered=resolved_curator_covered,
+                gap=None if resolved_curator_covered else gap))
         if "NEWLY RETRIEVED PASSAGES:" in pending:
             docids = _DOCID_RE.findall(pending)
             relevant = [{"docid": d, "note": "supports the facet"} for d in docids[:1]]
@@ -310,9 +333,9 @@ def test_loop_stops_when_analyzer_is_satisfied(
         make_orchestrator_responder(facets=ONE_FACET_PLAN))
     analyzer = lambda: ScriptedProvider(  # noqa: E731
         make_analyzer_responder(satisfied=True))
-    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
+    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer, narrative=NARRATIVE,
                             facet=facet, engines=ENGINES, max_chars=800)
-    assert result.stop_reason == "analyzer_satisfied"
+    assert result.stop_reason == "curator_covered"
     assert result.iterations_used == 1
     assert len(result.evidence) == 1
 
@@ -332,9 +355,9 @@ def test_loop_falls_back_to_facet_description_when_plan_unparseable(
     orch = lambda: ScriptedProvider(_orch)  # noqa: E731
     analyzer = lambda: ScriptedProvider(  # noqa: E731
         make_analyzer_responder(satisfied=True))
-    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
+    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer, narrative=NARRATIVE,
                             facet=facet, engines=ENGINES, max_chars=800)
-    assert result.stop_reason == "analyzer_satisfied"
+    assert result.stop_reason == "curator_covered"
     assert result.iterations_used == 1
     assert len(result.evidence) == 1
     assert stub_search_tool["semantic"][0]["query"] == facet.description
@@ -362,7 +385,7 @@ def test_loop_gap_is_fed_back_to_the_orchestrator(
         model_turn(text=json.dumps({"relevant": [], "gap": "need strain-match data",
                                     "satisfied": False}))])
     result = run_facet_loop(make_orchestrator=lambda: orchestrator,
-                            make_analyzer=analyzer_factory, facet=facet,
+                            make_analyzer=analyzer_factory, narrative=NARRATIVE, facet=facet,
                             engines=ENGINES, max_chars=800)
     assert result.stop_reason == "max_iterations"
     assert result.iterations_used == 2
@@ -378,7 +401,7 @@ def test_loop_caps_iterations_at_ten_regardless_of_facet_value(
         make_orchestrator_responder(facets=ONE_FACET_PLAN))
     analyzer = lambda: ScriptedProvider(  # noqa: E731
         make_analyzer_responder(satisfied=False, gap="still missing something"))
-    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
+    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer, narrative=NARRATIVE,
                             facet=facet, engines=ENGINES, max_chars=800)
     assert result.iterations_used == GLOBAL_ITERATION_CAP
     assert result.stop_reason == "max_iterations"
@@ -403,7 +426,7 @@ def test_loop_no_new_passages_skips_analysis_and_keeps_going(
         model_turn(text=json.dumps({
             "relevant": [{"docid": CLIMBMIX_DOCIDS[0], "note": "supports it"}],
             "gap": None, "satisfied": False}))])
-    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer,
+    result = run_facet_loop(make_orchestrator=orch, make_analyzer=analyzer, narrative=NARRATIVE,
                             facet=facet, engines=ENGINES, max_chars=800)
     # Iteration 1: search returns docids, analyzer keeps one, not satisfied.
     # Iteration 2: orchestrator searches again -> nothing NEW -> no second
@@ -514,6 +537,103 @@ def test_parse_query_plan_strips_fences() -> None:
                                     "boolean_engine": None,
                                     "boolean_query": None}) + "\n```"
     assert parse_query_plan(raw).queries == {"semantic": "q"}
+
+
+# ---------------------------------------------------------------------------
+# curator.parse_curation / curate
+# ---------------------------------------------------------------------------
+_EVIDENCE_POOL = {
+    "d1": {"docid": "d1", "note": "n1", "text": "t1"},
+    "d2": {"docid": "d2", "note": "n2", "text": "t2"},
+    "d3": {"docid": "d3", "note": "n3", "text": "t3"},
+}
+
+
+def test_parse_curation_valid_json_ranks_and_truncates_to_top_n() -> None:
+    """The baseline contract: a well-formed ranking becomes the ordered pool,
+    and ``top`` is truncated to ``top_n`` non-redundant items."""
+    raw = json.dumps({"ranking": [
+        {"docid": "d2", "redundant_with": None},
+        {"docid": "d1", "redundant_with": None},
+        {"docid": "d3", "redundant_with": None},
+    ], "gap": None, "covered": True})
+    result = parse_curation(raw, _EVIDENCE_POOL, top_n=2)
+    assert [i.docid for i in result.ranked] == ["d2", "d1", "d3"]
+    assert [i.docid for i in result.top] == ["d2", "d1"]
+    assert result.covered is True
+
+
+def test_parse_curation_redundant_item_sinks_out_of_top() -> None:
+    """A duplicate must not occupy a top slot even if it's ranked ahead of a
+    non-redundant item textually -- redundancy is a hard exclusion from
+    ``top``, not just a tiebreaker, so diversity actually wins the slot."""
+    raw = json.dumps({"ranking": [
+        {"docid": "d1", "redundant_with": None},
+        {"docid": "d2", "redundant_with": "d1"},   # duplicates d1, must sink
+        {"docid": "d3", "redundant_with": None},
+    ], "gap": None, "covered": True})
+    result = parse_curation(raw, _EVIDENCE_POOL, top_n=2)
+    assert [i.docid for i in result.top] == ["d1", "d3"]
+
+
+def test_parse_curation_top_pads_from_redundant_items_when_pool_is_thin() -> None:
+    """If EVERY item is marked redundant with something, there still aren't
+    enough non-redundant items to fill ``top_n`` -- padding from the
+    (redundant) remainder is better than returning fewer than requested."""
+    raw = json.dumps({"ranking": [
+        {"docid": "d1", "redundant_with": None},
+        {"docid": "d2", "redundant_with": "d1"},
+        {"docid": "d3", "redundant_with": "d1"},
+    ], "gap": None, "covered": False})
+    result = parse_curation(raw, _EVIDENCE_POOL, top_n=3)
+    assert len(result.top) == 3
+    assert result.top[0].docid == "d1"
+
+
+def test_parse_curation_drops_unknown_docid_and_unknown_redundant_with() -> None:
+    """A docid the curator invented (not in the pool) is dropped; a
+    ``redundant_with`` pointing at an invented docid is treated as null
+    rather than propagating the hallucination."""
+    raw = json.dumps({"ranking": [
+        {"docid": "d1", "redundant_with": "not_in_pool"},
+        {"docid": "hallucinated", "redundant_with": None},
+        {"docid": "d2", "redundant_with": None},
+    ], "gap": None, "covered": True})
+    result = parse_curation(raw, _EVIDENCE_POOL, top_n=3)
+    docids = [i.docid for i in result.ranked]
+    assert "hallucinated" not in docids
+    assert next(i for i in result.ranked if i.docid == "d1").redundant_with is None
+
+
+def test_parse_curation_appends_omitted_docids_at_the_bottom() -> None:
+    """A pool item the curator forgot to mention in ``ranking`` must not be
+    silently discarded -- it still exists as evidence, just unranked."""
+    raw = json.dumps({"ranking": [{"docid": "d1", "redundant_with": None}],
+                      "gap": None, "covered": True})
+    result = parse_curation(raw, _EVIDENCE_POOL, top_n=3)
+    assert {i.docid for i in result.ranked} == {"d1", "d2", "d3"}
+
+
+def test_parse_curation_malformed_yields_uncovered_insertion_order() -> None:
+    """Unparseable output falls back to the pool's insertion order with
+    nothing marked redundant, and reports ``covered=False`` -- the loop keeps
+    searching rather than trusting a broken ranking to have judged coverage."""
+    result = parse_curation("not json at all", _EVIDENCE_POOL, top_n=2)
+    assert [i.docid for i in result.ranked] == ["d1", "d2", "d3"]
+    assert result.covered is False
+
+
+def test_curate_empty_evidence_short_circuits_without_calling_the_provider() -> None:
+    """Nothing to rank yet -- curate() must not spend a call on an empty pool."""
+    def _boom(pending: str, turn_index: int) -> dict[str, Any]:
+        raise AssertionError("curate() must not call the provider on empty evidence")
+
+    facet = Facet(name="f", description="d", max_iterations=1)
+    result, stats = curate(ScriptedProvider(_boom), narrative=NARRATIVE,
+                           facet=facet, evidence=[])
+    assert result.top == []
+    assert result.covered is False
+    assert stats is None
 
 
 # ---------------------------------------------------------------------------

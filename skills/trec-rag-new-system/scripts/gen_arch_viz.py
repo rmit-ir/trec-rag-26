@@ -81,12 +81,15 @@ STAGE_REGISTRY: dict[str, list[dict[str, str]]] = {
          "note": "orchestrator, 1 turn: narrative -> facets JSON"},
         {"id": "facet_loop", "label": "FACET LOOP", "kind": "loop",
          "note": "per facet, concurrent threads, <=10 iterations",
-         "back_to": "search", "back_from": "analyze",
-         "back_label": "repeat until satisfied / no search / cap"},
+         "back_to": "search", "back_from": "curate",
+         "back_label": "repeat until curator covered / cap"},
         {"id": "search", "label": "SEARCH", "kind": "retrieval",
-         "note": "orchestrator tool call: picks engine(s), runs search"},
+         "note": "orchestrator query-plan JSON: 1+ query per mandatory engine"},
         {"id": "analyze", "label": "ANALYZE", "kind": "llm",
-         "note": "analyzer judges passages, saves evidence, reports gap"},
+         "note": "analyzer judges new passages, keeps relevant + note"},
+        {"id": "curate", "label": "CURATE", "kind": "llm",
+         "note": "curator ranks full pool by relevance+diversity (MMR); "
+                 "top-N -> synthesis, covered? -> stop"},
         {"id": "draft", "label": "DRAFT", "kind": "llm",
          "note": "orchestrator: merged evidence -> cited prose"},
         {"id": "fact_check", "label": "FACT-CHECK", "kind": "llm",
@@ -587,8 +590,17 @@ function drawSystem(sys) {
   // into the cycle (aus_agent's MAP CITES, ali_deepresearch's FORMAT), drawing
   // the repeat over formatting steps that run exactly once. No back_from ->
   // no arrow, because a wrong arrow is worse than a missing one.
-  const lp = stages[0];
-  if (lp && lp.kind === 'loop') {
+  //
+  // Found by `kind`, not by array position (`stages[0]`): that assumed the
+  // loop is always the pipeline's very first activity, true for aus_agent and
+  // ali_deepresearch (nothing precedes their loop) but not facet_rag, whose
+  // PLAN stage genuinely runs once before the per-facet loop begins -- with
+  // the position-based lookup, `stages[0]` resolved to PLAN (kind `llm`), the
+  // `kind === 'loop'` check silently failed, and the back-edge was never
+  // drawn at all, making an actually-repeating search/analyze/curate chain
+  // render as flat and sequential with no visual indication it loops.
+  const lp = stages.find(s => s.kind === 'loop');
+  if (lp) {
     const idx = id => stages.findIndex(s => s.id === id);
     const from = idx(lp.back_from), to = lp.back_to ? idx(lp.back_to) : 1;
     if (from > 0 && to > 0 && from >= to) {
