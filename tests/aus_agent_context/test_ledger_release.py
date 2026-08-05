@@ -81,6 +81,41 @@ def test_release_leaves_other_committed_units_from_the_same_call_alone(
     assert payload["query"] == "alpha"  # non-result fields still round-trip
 
 
+def test_release_does_not_resurrect_a_duplicate_unit_committed_elsewhere(
+        ledger_with) -> None:
+    """A call recomputed by a release must not restore full text for a
+    SIBLING unit in that same call that is a duplicate of something
+    committed via a DIFFERENT call.
+
+    Regression for a bug where ``keep_full`` was derived from
+    ``committed_ids`` membership alone: "a" is committed via search-1, and
+    search-2 also returns "a" alongside new unit "d" (so search-2 tombstones
+    "a" as a duplicate when "d" is committed). Releasing "d" recomputes
+    search-2 from its ORIGINAL text -- "a" is still globally committed (just
+    not BY search-2), so a naive recompute would wrongly restore "a"'s full
+    text there too, duplicating it across two tool results in history.
+    """
+    ledger = ledger_with(("search-1", "alpha"))
+    ledger.commit([{"docid": "a", "reason": "kept"}], max_documents=3)
+
+    mixed_payload = search_payload("mixed", docids=("d", "a"))
+    ledger.stage("search-2", "search", mixed_payload + "\n" + STATUS_LINE,
+                documents_from_search(json.loads(mixed_payload)))
+    ledger.commit([{"docid": "d", "reason": "new"}], max_documents=3)
+    assert ledger.committed_ids == {"a", "d"}
+
+    decision = ledger.release_committed([{"id": "d", "reason": "superseded"}])
+
+    assert set(decision.replacements) == {"search-2"}
+    released_entry = results_by_docid(decision.replacements["search-2"])["d"]
+    assert "text" not in released_entry
+    assert released_entry["decision"] == f"{RELEASE_PREFIX} d"
+    # "a" must stay a duplicate tombstone, not come back in full.
+    duplicate_entry = results_by_docid(decision.replacements["search-2"])["a"]
+    assert "text" not in duplicate_entry
+    assert ledger.committed_ids == {"a"}
+
+
 def test_release_only_recompacts_the_call_that_actually_holds_the_text(
         ledger_with) -> None:
     """A release must not touch an unrelated call's history.

@@ -314,13 +314,24 @@ class ContextLedger:
         replacements: dict[str, str] = {}
         for call_id in affected_call_ids:
             result = self.call_history[call_id]
+            # A unit stays full-text here only if THIS call is the one
+            # currently rendering it -- checking `committed_ids` membership
+            # alone (as an earlier version of this method did) would also
+            # restore full text for a unit committed via a DIFFERENT call,
+            # duplicating it across two tool results.
             keep_full = {uid for uid in result.ids
-                        if uid in self.committed_ids}
+                        if uid in self.committed_ids
+                        and self.committed_call_id.get(uid) == call_id}
             release_reasons = {uid: selected[uid] for uid in result.ids
                                if uid in selected}
+            # Committed, but rendered in full by a DIFFERENT call: this
+            # call's occurrence is a duplicate, not a plain rejection.
+            duplicate_here = {uid for uid in result.ids
+                              if uid in self.committed_ids
+                              and self.committed_call_id.get(uid) != call_id}
             replacements[call_id] = _compact_output(
                 result.tool_name, result.output, keep_full, release_reasons,
-                duplicate_ids=set(), released_ids=set(release_reasons))
+                duplicate_ids=duplicate_here, released_ids=set(release_reasons))
 
         for uid in selected:
             self.committed_call_id.pop(uid, None)

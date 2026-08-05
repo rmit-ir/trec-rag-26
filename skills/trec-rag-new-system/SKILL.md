@@ -67,7 +67,7 @@ section.
 
 ### Or: reuse the aus_agent agent-loop harness directly
 
-`aus_agent.agent.run_agent` takes three parameters that let a second system
+`aus_agent.agent.run_agent` takes four parameters that let a second system
 configure the exact same loop instead of forking it:
 
 - `system_name: str = "aus_agent"` — artifacts land under
@@ -78,12 +78,17 @@ configure the exact same loop instead of forking it:
 - `default_k_by_engine: dict[str, int] | None = None` — overrides the default
   `k` for a named engine when the model's call omits it (e.g. widening
   `hybrid` for a HyDE-style query without relying on the model to ask).
+- `commit_context_tool: dict[str, Any] | None = None` — the tool definition
+  advertised to the model instead of `aus_agent`'s own `COMMIT_CONTEXT_TOOL`;
+  `apply_commit` already handles any extra argument (e.g. `release`) whenever
+  a call carries one, regardless of which schema advertised it, so a caller
+  only needs to supply a schema that documents the field.
 
 Everything else — the staged/committed evidence protocol, budget tracking,
 citation parsing, `get_documents`/`commit_context` wiring, pluggable Bedrock/
 OpenAI providers — comes along unchanged. The new system's own `agent.py`
 becomes a thin configuration layer (prompt + engine set + any
-`default_k_by_engine` override) calling straight into
+`default_k_by_engine`/`commit_context_tool` override) calling straight into
 `aus_agent.agent.run_agent`; see `src/systems/facets_agent/agent.py` for a
 ~50-line worked example, and its README for the design rationale.
 
