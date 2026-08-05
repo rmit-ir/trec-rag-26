@@ -6,8 +6,19 @@ Copied the existing Claude Opus 4.8 comparison notebook into
 - `evaluation-results/aus-agent/gpt-5-6-terra/rubric-unperturbed`
 - `evaluation-results/aus-agent/rubric-unperturbed`
 
-The notebook retains evaluation-health checks, verdict distributions,
-aggregate ternary and binary scores, matched-cell differences, and per-system
-comparisons. At inspection time, the newly timestamped GPT-5.6 Terra results
-still contained 5,631 `failed` criterion verdicts across 229 completed rows, so
-the notebook warns that the stored zero scores are not a valid quality result.
+The notebook was subsequently expanded to compare four conditions:
+
+- GPT-5.6 Terra unperturbed
+- GPT-5.6 Terra instruction-injected
+- GPT-OSS-20B unperturbed
+- GPT-OSS-20B instruction-injected
+- GPT-5.6 Terra Chinese (`zh`) instruction-injected
+
+All four current result sets contain normal rubric verdicts. Terra has 229
+cells in each condition; GPT-OSS has 229 unperturbed cells and 637 injected
+cells. The notebook therefore reports raw coverage but computes injection and
+cross-judge deltas only on matched `(qid, run_id)` cells. It includes health
+checks, aggregate score plots, four matched comparisons, delta distributions,
+and per-system score/topic tables. The Terra `zh` condition contains 229 cells
+and 5,631 valid criterion verdicts. Two additional matched comparisons measure
+its change from Terra unperturbed and from Terra's standard injected answers.
