@@ -65,6 +65,9 @@ __all__ = [
 MANDATORY_ENGINES = ("semantic", "keyword", "hybrid")
 BOOLEAN_ENGINES = ("ssr", "lucene_bool")
 DEFAULT_K = 10
+# hybrid's query is now a HyDE-style hypothetical answer (PLAN.md §3.3), not a
+# short keyword/nl phrase -- a fuller embedded query benefits from a wider net.
+HYBRID_K = 15
 
 
 @dataclass
@@ -229,8 +232,7 @@ def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
         prompt = ORCHESTRATOR_QUERY_PROMPT.format(
             facet_name=facet.name, facet_description=facet.description,
             context_block=context_block, semantic_blurb=blurb("semantic"),
-            keyword_blurb=blurb("keyword"), hybrid_blurb=blurb("hybrid"),
-            boolean_blurbs=boolean_blurbs)
+            keyword_blurb=blurb("keyword"), boolean_blurbs=boolean_blurbs)
         raw = one_shot(orchestrator, "", prompt)
         oss_stats = usage_token_stats(getattr(orchestrator, "_last_usage", {}))
         plan = parse_query_plan(raw)
@@ -248,14 +250,14 @@ def run_facet_loop(*, make_orchestrator: Any, make_analyzer: Any,
 
         new_passages: list[dict[str, Any]] = []
         for engine, query in calls:
-            output = run_search_tool(query=query, k=DEFAULT_K,
+            k = HYBRID_K if engine == "hybrid" else DEFAULT_K
+            output = run_search_tool(query=query, k=k,
                                      max_chars=max_chars, search_engine=engine)
             data = json.loads(output)
             failed = "error" in data
             results = [] if failed else data.get("results", [])
             ev.tool_calls.append({
-                "arguments": {"query": query, "search_engine": engine,
-                             "k": DEFAULT_K},
+                "arguments": {"query": query, "search_engine": engine, "k": k},
                 "output": output,
                 "returned_docids": [str(r["docid"]) for r in results],
                 "failed": failed,

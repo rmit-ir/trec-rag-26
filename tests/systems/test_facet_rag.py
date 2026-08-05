@@ -233,6 +233,18 @@ def test_run_one_three_searches_per_facet_when_satisfied_first_round(
     assert counts.get("search") == facets * len(MANDATORY_ENGINES) == 6
 
 
+def test_run_one_hybrid_engine_retrieves_more_than_the_others(
+        pipeline_run: dict[str, Any]) -> None:
+    """PLAN.md §3.3: hybrid's query is now a HyDE-style hypothetical answer
+    rather than a short phrase, so it gets a wider net (k=15) than
+    semantic/keyword's k=10 -- a fuller embedded query benefits from more
+    candidates coming back."""
+    calls = pipeline_run["calls"]
+    assert calls["hybrid"][0]["k"] == 15
+    assert calls["semantic"][0]["k"] == 10
+    assert calls["keyword"][0]["k"] == 10
+
+
 def test_run_one_evidence_merged_and_deduped_across_facets(
         pipeline_run: dict[str, Any]) -> None:
     """Both facets search the same stubbed corpus (same docids come back), so

@@ -352,7 +352,72 @@ effect, one-line change, no architecture risk), re-measure, then revisit
 > "suggested order" above accordingly before spending more judge budget on
 > `--max-chars` alone.
 
+> **Verified 2026-08-05 (later same day) — `DEFAULT_TOP_N` 3→5 + formatter
+> length floor is the fix that actually worked, at a real cost.**
+> `curator.DEFAULT_TOP_N` 3→5, `FORMAT_ANSWER_PROMPT` gained "preserve every
+> fact... use as much of the 1024-word budget as the draft supports" (commit
+> `0f11a86`), same 5 topics re-run as `facet_rag.top5floor_5topic`. Worklog:
+> `worklogs/2026-08-05-facet-rag-top5floor-and-cost-timing.md`.
+>
+> | topic | words (20k/t3→20k/t5+floor) | cited% | UMBRELA mean | vs aus_agent |
+> |---|---|---|---|---|
+> | CSGO | 317→571 | 94%→86% | 1.636→1.650 | 2.083 |
+> | SCALING | 591→987 | 94%→73% | 1.133→1.300 | 1.667 |
+> | RETIRE | 437→733 | 100%→97% | 1.500→1.579 | 1.583 (essentially matched) |
+> | PRESCHOOL | 613→722 | 100%→100% | 0.800→0.762 | 1.467 |
+> | SWARM | 346→539 | 100%→90% | 0.800→1.087 | 1.294 |
+>
+> Mean words 460.8→710.4 (the real jump `--max-chars` alone never produced).
+> UMBRELA improved on 3/5 topics. **Cost: citation coverage dropped below the
+> ≥95% target on CSGO (86%) and SCALING (73%)** — confirming §5's
+> precision-vs-recall tension is real, not theoretical. One topic (SCALING)
+> also produced a first-ever `status=no_references` run (60/60 sentences
+> uncited despite the curator keeping 19-23 items/facet) — root-caused to
+> §3.4 below, retried once to get a comparable run. Noise check (3 trials
+> each on CSGO/SWARM, word/cited%/refs only — UMBRELA-level noise judging
+> failed on persistent API 429s): word count fairly stable (~6% spread on
+> CSGO, ~29% on SWARM), cited% noisier (12-14pt spread either topic) — several
+> deltas above are at that noise boundary.
+
+> **Verified 2026-08-05 (later still) — §3.2/§3.4/§3.5 fixed the citation
+> regression, at the cost of the word-count gain.** Commit `5c122c7`: richer
+> `ANALYZER_PROMPT` notes (§3.2 below), `format_answer` now sees evidence
+> excerpts not bare docids (§3.4), uncited factual claims get deleted not
+> kept (§3.5). Same 5 topics re-run as `facet_rag.improved_5topic` (no
+> `no_references` failures this time). Worklog:
+> `worklogs/2026-08-05-facet-rag-improved-3topics-and-hyde.md`.
+>
+> | topic | words (t5+floor→improved) | cited% | UMBRELA mean | support p_o_f |
+> |---|---|---|---|---|
+> | CSGO | 571→264 | 86%→**100%** | 1.650→**1.917** (closest yet to 2.083) | 0.923→0.846 |
+> | SCALING | 987→354 | 73%→**95%** | 1.300→1.105 | 0.759→**0.929** |
+> | RETIRE | 733→529 | 97%→100% | 1.579→1.500 | 1.000→0.854 |
+> | PRESCHOOL | 722→406 | 100%→100% | 0.762→0.812 | 0.807→0.833 |
+> | SWARM | 539→640 | 100%→100% | 1.087→1.000 | 0.783→**0.935** |
+>
+> Mean words 710.4→438.6 — **worse than the very first `opus_plan_5topic`
+> baseline (471.8)**. §3.5's "delete an unsupportable factual sentence rather
+> than leave it uncited" rule recovered CSGO/SCALING's citation coverage
+> (86%→100%, 73%→95%) exactly as designed, and support `partial_or_full`
+> improved on 3/5 topics (aggregate 0.841→0.882) — but it does this by
+> *deleting* content, which is the same lever §3.1 just fought to raise. A1
+> (word budget) and A5 (citation coverage) are not two independent knobs to
+> both max out — they trade directly against each other through the same
+> mechanism (how many unverifiable sentences survive formatting). **This is
+> §5's tension made concrete, not resolved**: whichever of A1 vs A5 the
+> submission should optimize for is still an open human call, and every
+> `DEFAULT_TOP_N`/formatter change from here should be evaluated against both
+> together, not just the one it targets. CSGO's UMBRELA (1.917) is the
+> closest facet_rag has come to aus_agent on any topic all session. Full run
+> cost (all 5 topics, cost tracking from §6.1): **$0.34**, 100% of calls
+> priced.
+
 ### 3.2 Commit-reason style — the analyzer/curator notes are the wrong shape *(→ A2, A3)*
+
+**Done 2026-08-05** — see the "improved_5topic" verification note above.
+`ANALYZER_PROMPT` now demands specific facts/dates/names per passage and its
+role (support/counter-argument/example/background), and explicitly asks for
+counter-evidence (commit `5c122c7`).
 
 This is the sharpest, most copyable difference. aus_agent's `commit_context`
 reasons, verbatim from `aus-agent-dev-full`:
@@ -398,6 +463,18 @@ evidence, claim, perspective, date, name, counter-evidence, or coverage area
 this result **uniquely** contributes".
 
 ### 3.3 Search shape — 5× the calls for 1/3 the answer *(→ A2)*
+
+**Partially addressed 2026-08-05 — a different slice than this section's own
+diagnosis.** The user asked specifically for hybrid's query to become a HyDE
+(hypothetical-document-embedding) hypothetical-answer passage instead of a
+short phrase, with a wider net (`k` 10→15) to match — implemented in
+`ORCHESTRATOR_QUERY_PROMPT`/`loop.py` (`HYBRID_K = 15`), always writes a
+confident hypothetical answer even when unsure (never a hedge/refusal, since
+the text is retrieval-only and never shown to anyone). This is **not** the
+"N distinct sub-questions instead of one question × 3 engines" restructure
+this section itself recommends below (query diversity beat engine
+diversity) — that's still open. Not yet re-measured against a fresh run;
+verification pending.
 
 Measured from the trajectories (each row re-verified against
 `tool_call_counts` and the run's `references` count; the manifest's "tool
@@ -447,6 +524,18 @@ Two structural reasons aus_agent gets more out of fewer calls:
 
 ### 3.4 The two stages aus_agent doesn't have *(→ A6, A7)*
 
+**Root-caused and partially addressed 2026-08-05.** This section's own
+diagnosis ("the reformat is a lossy re-write by a model that never saw the
+evidence text") turned out to be the exact cause of a real
+`status=no_references` (0/60 sentences cited) run this session. Took the
+cheaper of the two options below: `format_answer` now accepts an optional
+`evidence_text` dict and shows each candidate docid with an 800-char excerpt
+when the caller has one (facet_rag does now; commit `5c122c7`), instead of a
+bare id list. The **bigger** option — fact-check emits the final
+one-sentence-per-line `[docid]` form directly, `format_answer` reduced to a
+parser — is still open; structure/thesis/conclusion still die at the
+formatter stage regardless of whether it can now verify citations.
+
 aus_agent's system prompt ends: *"There is no separate finalizer, formatter, or
 compression phase"* (`default.md:260`). The model writes one sentence per line
 with `[id]` markers, directly. facet_rag runs **draft → fact-check → LLM
@@ -460,6 +549,13 @@ Worth evaluating: have the fact-check stage emit the final one-sentence-per-line
 rewriter. `answer_format._heuristic` stays as the safety net.
 
 ### 3.5 A spec detail the prompts currently get backwards *(→ A5)*
+
+**Done 2026-08-05.** `FORMAT_ANSWER_PROMPT` now instructs the model to delete
+an uncited factual claim rather than keep it (nuance preserved: a pure
+transition/framing sentence asserting nothing about the world may still stay
+uncited) — commit `5c122c7`. Verified in the "improved_5topic" run above:
+CSGO/SCALING's cited% recovered to 100%/95%, but mean words dropped
+710.4→438.6 in the same run — see that note for why this isn't a free win.
 
 `rag-task.md:131`: "An answer object with no citations is omitted from
 citation-precision scoring and receives a support score of 0 for weighted

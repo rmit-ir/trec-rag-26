@@ -55,11 +55,19 @@ FACET: {facet_name}
 
 {facet_description}
 {context_block}
-Write a DIFFERENT, natural-language query for EACH of these three engines, \
-each phrased in that engine's own style (not a copy of the others):
+Write a DIFFERENT query for EACH of these three engines:
 - semantic: {semantic_blurb}
 - keyword: {keyword_blurb}
-- hybrid: {hybrid_blurb}
+- hybrid: write a HYPOTHETICAL ANSWER, not a search-style query — a short, \
+confident passage (2-4 sentences) that WOULD answer this facet's need, as \
+if it were an excerpt from a real ClimbMix document (the HyDE technique: a \
+fuller passage retrieves closer neighbors via dense embedding than a short \
+query phrase does). ALWAYS write a complete hypothetical answer, even if \
+you are not certain of the specific facts, dates, or numbers — invent \
+plausible-sounding specifics rather than hedging, staying generic, or \
+declining; this text is never shown to anyone and only used to find real \
+matching documents, so a confident wrong guess retrieves better than a \
+vague true one.
 
 If (and only if) this facet genuinely needs Boolean-precise co-occurrence, a \
 required term, or a phrase/proximity match that natural language can't \
