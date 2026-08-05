@@ -66,6 +66,22 @@ function readOutputHeader(file: string, st: fs.Stats): CachedHeader {
 
 const OUTPUT_RE = /^(?<ts>[^.]+)\.(?<slug>.+)\.output\.json$/;
 
+/**
+ * Tie-break for sessions sharing a timestamp: topic order, ascending.
+ *
+ * Agent runs each get their own microsecond stamp, so this never fires for
+ * them. Imported baselines do collide by construction — the organizers publish
+ * one JSONL per run with no per-topic time, so every session of a baseline
+ * carries that file's single synthetic stamp. Without this they would list in
+ * readdir order; with it they list rag2026-0 … rag2026-118.
+ */
+function compareNarrativeId(a: SessionHeader, b: SessionHeader): number {
+  const n = (h: SessionHeader) => Number(/(\d+)\s*$/.exec(h.narrativeId ?? "")?.[1]);
+  const [x, y] = [n(a), n(b)];
+  if (Number.isFinite(x) && Number.isFinite(y) && x !== y) return x - y;
+  return a.sessionId.localeCompare(b.sessionId);
+}
+
 export function scanOutputs(): OutputsIndex {
   const sessions: SessionHeader[] = [];
   const systems: { system: string; sessionCount: number }[] = [];
@@ -122,7 +138,9 @@ export function scanOutputs(): OutputsIndex {
     if (count > 0) systems.push({ system, sessionCount: count });
   }
 
-  sessions.sort((a, b) => b.ts.localeCompare(a.ts));
+  sessions.sort(
+    (a, b) => b.ts.localeCompare(a.ts) || compareNarrativeId(a, b),
+  );
   return { systems, sessions, scannedAt: new Date().toISOString() };
 }
 

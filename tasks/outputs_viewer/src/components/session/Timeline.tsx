@@ -47,12 +47,19 @@ export default function Timeline({
     >
       {layout ? (
         <GanttTrack steps={steps} layout={layout} selected={selected} onSelect={onSelect} />
+      ) : steps.length === 0 ? (
+        // No steps at all is not a malformed trace — it is a session that never
+        // had one, e.g. an organizer-published baseline imported from its
+        // submission JSONL. Only the answer is inspectable.
+        <Typography variant="body2" color="text.secondary">
+          No trace for this session — answer, references and citations only.
+        </Typography>
       ) : (
         <Typography variant="body2" color="error.main">
           Invalid trace: every generation and tool step must include t_start and t_end.
         </Typography>
       )}
-      <Legend />
+      {steps.length > 0 ? <Legend /> : null}
     </Box>
   );
 }

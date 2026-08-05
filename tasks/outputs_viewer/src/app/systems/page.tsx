@@ -62,10 +62,11 @@ function SessionRowImpl({ s }: { s: SessionHeader }) {
         }
         secondary={
           <Typography variant="caption" color="text.secondary" component="span">
+            {s.narrativeId ? `${s.narrativeId} · ` : ""}
             {fmtTs(s.ts)}
             {s.model ? ` · ${s.model}` : ""}
             {s.runId ? ` · ${s.runId}` : ""}
-            {!s.hasTrace ? " · no trace" : ""}
+            {!s.hasTrace ? " · answer only (no trace)" : ""}
           </Typography>
         }
       />
@@ -93,6 +94,7 @@ const SessionRow = React.memo(SessionRowImpl, (prev, next) => {
     a.ts === b.ts &&
     a.model === b.model &&
     a.runId === b.runId &&
+    a.narrativeId === b.narrativeId &&
     a.narrativeSnippet === b.narrativeSnippet &&
     a.slug === b.slug &&
     a.hasTrace === b.hasTrace

@@ -92,7 +92,9 @@ export default function StepTree({
   const ungrouped = visible.filter(({ i }) => !groupedIndices.has(i));
   const answerVisible = !q || `answer ${answerSummary}`.toLowerCase().includes(q);
   const inputText = JSON.stringify(traceInput ?? "").toLowerCase();
-  const inputVisible = !q || `input ${inputText}`.includes(q);
+  // A traceless session (e.g. an imported organizer baseline) has no model
+  // input to show — offering the node would only ever open an empty pane.
+  const inputVisible = traceInput != null && (!q || `input ${inputText}`.includes(q));
 
   const stepRow = (
     step: TraceStep,
