@@ -394,12 +394,32 @@ function drawSystem(sys) {
   const idx = id => drawn.findIndex(s => s.id === id);
   const cx = i => x0 + i * (bw + gap) + bw/2;
 
+  // Loop span (index range + rect x-bounds), computed once so both the
+  // straight in/out edges below and the bounding rect further down agree on
+  // exactly the same rectangle -- see the `if (lp)` block below for why
+  // `from`/`to` are found by declared span, not array position.
+  let loopSpan = null;
+  if (lp) {
+    const from = idx(lp.back_from), to = lp.back_to ? idx(lp.back_to) : 0;
+    if (from >= 0 && to >= 0 && from >= to) {
+      loopSpan = { from, to, rx1: cx(to) - bw/2 - 14, rx2: cx(from) + bw/2 + 14 };
+    }
+  }
+
   drawn.forEach((stg, i) => {
     const x = x0 + i * (bw + gap);
     if (i > 0) {
       const px = x0 + (i - 1) * (bw + gap) + bw;
+      // An edge crossing the loop's boundary connects to the bounding rect,
+      // not the stage box just inside it -- otherwise the arrow reads as
+      // pointing at SEARCH specifically rather than at "the loop" as a unit.
+      let x1 = px, x2 = x;
+      if (loopSpan) {
+        if (i === loopSpan.to) x2 = loopSpan.rx1;
+        if (i - 1 === loopSpan.from) x1 = loopSpan.rx2;
+      }
       edges.appendChild(el('path', { class: 'edge', stroke: 'var(--muted)', 'marker-end':'url(#arw)',
-        d: `M ${px} ${y + bh/2} L ${x} ${y + bh/2}` }));
+        d: `M ${x1} ${y + bh/2} L ${x2} ${y + bh/2}` }));
     }
     const g = el('g', { class: 'stage', tabindex: 0, role: 'button',
                         'aria-label': 'Open ' + stg.label + ' detail',
@@ -438,38 +458,35 @@ function drawSystem(sys) {
   // `kind === 'loop'` check silently failed, and the back-edge was never
   // drawn at all, making an actually-repeating search/analyze/curate chain
   // render as flat and sequential with no visual indication it loops.
-  if (lp) {
-    const from = idx(lp.back_from), to = lp.back_to ? idx(lp.back_to) : 0;
-    if (from >= 0 && to >= 0 && from >= to) {
-      // Bounding rect around the loop's span (change #3), replacing the old
-      // standalone marker box. `parallel_over` (facet_rag: facets run
-      // concurrently, not just sequentially within one facet) is drawn as a
-      // stack of ghost copies behind the main rect -- concurrency and
-      // sequential repeat are two different facts about the same span, so
-      // they get two different visual channels (depth vs. the dashed arrow)
-      // instead of overloading one arrow to mean both.
-      const rx1 = cx(to) - bw/2 - 14, rx2 = cx(from) + bw/2 + 14;
-      const ry1 = y - 26, ry2 = y + bh + 14;
-      const rectAttrs = { x: rx1, y: ry1, width: rx2 - rx1, height: ry2 - ry1, rx: 12 };
-      const gGroup = el('g', { class: 'loop-group', 'data-loop': lp.id,
-                               'data-parallel': lp.parallel_over || '' });
-      if (lp.parallel_over) {
-        gGroup.appendChild(el('rect', { ...rectAttrs, x: rx1 + 12, y: ry1 - 12, class: 'loop-rect ghost2' }));
-        gGroup.appendChild(el('rect', { ...rectAttrs, x: rx1 + 6, y: ry1 - 6, class: 'loop-rect ghost1' }));
-      }
-      gGroup.appendChild(el('rect', { ...rectAttrs, class: 'loop-rect' }));
-      const label = lp.label + (lp.parallel_over ? ' × ' + lp.parallel_over + ' (concurrent)' : '');
-      gGroup.appendChild(el('text', { x: rx1 + 10, y: ry1 + 16, class: 'loop-label' }, label));
-      groups.appendChild(gGroup);
-
-      // Back-edge arrow below the row so it doesn't collide with the rect's
-      // label band above the boxes.
-      const lx1 = cx(from), lx0 = cx(to);
-      edges.appendChild(el('path', { class: 'edge', stroke: 'var(--accent)', 'stroke-dasharray':'5 4', 'marker-end':'url(#arw)',
-        d: `M ${lx1} ${y+bh} C ${lx1} ${y+bh+50}, ${lx0} ${y+bh+50}, ${lx0} ${y+bh}` }));
-      svg.appendChild(el('text', { x: (lx0+lx1)/2, y: y+bh+64, 'text-anchor':'middle', class:'hint' },
-        lp.back_label || 'repeat until answer'));
+  if (loopSpan) {
+    const { from, to, rx1, rx2 } = loopSpan;
+    // Bounding rect around the loop's span (change #3), replacing the old
+    // standalone marker box. `parallel_over` (facet_rag: facets run
+    // concurrently, not just sequentially within one facet) is drawn as a
+    // stack of ghost copies behind the main rect -- concurrency and
+    // sequential repeat are two different facts about the same span, so
+    // they get two different visual channels (depth vs. the dashed arrow)
+    // instead of overloading one arrow to mean both.
+    const ry1 = y - 26, ry2 = y + bh + 14;
+    const rectAttrs = { x: rx1, y: ry1, width: rx2 - rx1, height: ry2 - ry1, rx: 12 };
+    const gGroup = el('g', { class: 'loop-group', 'data-loop': lp.id,
+                             'data-parallel': lp.parallel_over || '' });
+    if (lp.parallel_over) {
+      gGroup.appendChild(el('rect', { ...rectAttrs, x: rx1 + 12, y: ry1 - 12, class: 'loop-rect ghost2' }));
+      gGroup.appendChild(el('rect', { ...rectAttrs, x: rx1 + 6, y: ry1 - 6, class: 'loop-rect ghost1' }));
     }
+    gGroup.appendChild(el('rect', { ...rectAttrs, class: 'loop-rect' }));
+    const label = lp.label + (lp.parallel_over ? ' × ' + lp.parallel_over + ' (concurrent)' : '');
+    gGroup.appendChild(el('text', { x: rx1 + 10, y: ry1 + 16, class: 'loop-label' }, label));
+    groups.appendChild(gGroup);
+
+    // Back-edge arrow below the row so it doesn't collide with the rect's
+    // label band above the boxes.
+    const lx1 = cx(from), lx0 = cx(to);
+    edges.appendChild(el('path', { class: 'edge', stroke: 'var(--accent)', 'stroke-dasharray':'5 4', 'marker-end':'url(#arw)',
+      d: `M ${lx1} ${y+bh} C ${lx1} ${y+bh+50}, ${lx0} ${y+bh+50}, ${lx0} ${y+bh}` }));
+    svg.appendChild(el('text', { x: (lx0+lx1)/2, y: y+bh+64, 'text-anchor':'middle', class:'hint' },
+      lp.back_label || 'repeat until answer'));
   }
   // arrow marker
   const defs = el('defs');
