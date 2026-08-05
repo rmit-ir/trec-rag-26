@@ -324,6 +324,34 @@ Suggested order: raise `--max-chars` toward aus_agent's depth first (biggest
 effect, one-line change, no architecture risk), re-measure, then revisit
 `DEFAULT_TOP_N`, then the formatter prompt.
 
+> **Verified 2026-08-05 — the "biggest effect" prediction did not land.**
+> `--max-chars` default raised 2000→20000 (`run.py`, commit `50f8f5d`), same 5
+> topics re-run as `facet_rag.maxchars20k_5topic`, resolved/judged the same
+> way as the `opus_plan_5topic` baseline (worklog:
+> `worklogs/2026-08-05-facet-rag-maxchars-verification.md`). Single trial —
+> read as a direction check, not a settled result (§1.2's noise-band warning
+> applies here too).
+>
+> | topic | words (2k→20k) | cited% (2k→20k) | UMBRELA mean (2k→20k) | support partial_or_full (2k→20k) |
+> |---|---|---|---|---|
+> | CSGO | 365→317 | 100%→94% | 1.643→1.636 | 0.857→0.941 |
+> | SCALING | 460→591 | 100%→94% | 1.067→1.133 | 0.744→0.689 |
+> | RETIRE | 734→437 | 100%→100% | 1.417→1.500 | 0.829→0.919 |
+> | PRESCHOOL | 437→613 | 94%→100% | 0.857→0.800 | 0.867→0.826 |
+> | SWARM | 363→346 | 90%→100% | 1.200→0.800 | 0.889→0.875 |
+>
+> Mean words 471.8→460.8 (flat, not up); UMBRELA moved in both directions
+> per-topic (SWARM dropped 0.40); support `partial_or_full` also mixed.
+> **Root-cause read:** giving the analyzer more text per passage didn't
+> translate into a longer or better-judged answer because the two other
+> multiplicative causes in this section are untouched — the
+> `facets × DEFAULT_TOP_N` reference cap (still 11-15 refs, barely moved from
+> 12-15) and the formatter's no-length-floor compression are still binding.
+> `--max-chars` alone was not sufficient; **`DEFAULT_TOP_N` and the formatter
+> prompt are not optional follow-ups, they're required** — revise the
+> "suggested order" above accordingly before spending more judge budget on
+> `--max-chars` alone.
+
 ### 3.2 Commit-reason style — the analyzer/curator notes are the wrong shape *(→ A2, A3)*
 
 This is the sharpest, most copyable difference. aus_agent's `commit_context`
