@@ -441,6 +441,310 @@ output; and three sentences address the retrieval rather than the user
 ("Federal programs described in the research…", "The UAE example described in
 the corpus…"). Neither is a spec violation, both are visible to any reader.
 
+## Result 8 — are the dense and sparse retrievers complementary?
+
+Result 2 reported a cited-reference Jaccard of 0.0433 between `ours-semantic`
+and `ours-keyword`, but that conflates two things: what the retriever returned,
+and what the generator then chose to cite. This reads the **trajectories**
+(`data/outputs/aus_agent/*.trajectory.json`, `retrieved_docids`) instead.
+
+```bash
+uv run --no-project python \
+    worklogs/assets/2026-08-04-dense-vs-sparse-complementarity.py
+```
+
+**The two runs are cleanly single-engine.** Every `search` tool call carries an
+explicit `search_engine`: 1,073 calls all `"semantic"` for `test-semantic-119`,
+1,070 all `"keyword"` for `test-keyword-119`, across all 119 topics each. The
+identical `run_desc` on both is misleading — it records `prompt=default` for
+both and never mentions the engine.
+
+**Caveat that bounds every number below:** the agent writes its own query per
+engine (dense queries average 9.8 words, sparse 8.5), so this measures
+*pipeline* complementarity, not two ranking functions over identical queries.
+Some of the disjointness is query variation. It is still the operationally
+relevant quantity — it answers "what would fusing these two runs buy" — but it
+is not a controlled retriever A/B, and a fixed-query rerun would be needed to
+attribute the split between engine and query.
+
+### They are almost entirely disjoint
+
+| retrieved sets (119 topics) | |
+|---|---|
+| docs/topic | dense 66.8, sparse 69.0 |
+| Jaccard | mean **0.0355**, median 0.0250, max 0.242 |
+| overlap coefficient | 0.0737 |
+| unique to dense | **93.1%** of its own set |
+| unique to sparse | **93.5%** of its own set |
+| union ÷ larger set | **1.756×** |
+| topics with *zero* overlap | **21 / 119** |
+
+Cited references follow: 86.1% of the dense run's citations point at documents
+the sparse run never returned, and 88.1% vice versa. Each run cites only ~23–24%
+of what it retrieves, so the disjointness is set by retrieval, not by citation
+selection.
+
+### The non-overlapping half is not junk
+
+If the unique material were worse, fusion would add noise rather than coverage.
+Splitting all 8,025 completed support judgments by whether the *other* retriever
+also returned that document:
+
+| run | document found by | n | FS | PS | NS | mean (0–2) |
+|---|---|---|---|---|---|---|
+| ours-semantic | both | 634 | 150 | 419 | 65 | 1.134 |
+| ours-semantic | only this one | 3,347 | 614 | 2,471 | 262 | **1.105** |
+| ours-keyword | both | 498 | 110 | 344 | 44 | 1.133 |
+| ours-keyword | only this one | 3,546 | 664 | 2,647 | 235 | **1.121** |
+
+A 0.01–0.03 gap on a 0–2 scale. The 93% that only one retriever found supports
+its sentences as well as the 7% both found. Two retrievers, near-disjoint
+evidence, equal downstream support quality, and near-equal end-to-end scores
+(wP 0.5805 vs 0.5897; arena 0.557 vs 0.594).
+
+### But they succeed on the same topics, which caps the gain
+
+| | |
+|---|---|
+| corr(dense, sparse) per-topic weighted precision | **+0.538** |
+| mean per-topic \|difference\| | 0.0793 |
+| dense better / sparse better | 58 / 60 topics |
+| oracle "pick the better run per topic" | 0.6247 (**+0.035** over the better single run) |
+| arena vs `base-agentic-bm25`, corr | +0.537 |
+| same arena outcome on | 70 / 119 topics |
+| exactly one of the two beats the baseline | 30 topics |
+| oracle pick-better-run, arena | 0.576 (vs 0.487 sparse alone) |
+
+This is the part that tempers the headline. The evidence is complementary; the
+*outcomes* are correlated at ~0.54. Topics are jointly easy or jointly hard —
+the two retrievers mostly fail on the same narratives for reasons upstream of
+retrieval.
+
+**What the oracle rows do and do not measure.** "Pick the better run per topic"
+requires *both full trajectories*, i.e. running two agents and choosing between
+their finished answers. That is a different architecture from aus_agent, not an
+upper bound for it, and its return is poor: **+0.035** weighted precision (0.6247
+vs `base-agentic-bm25`'s 0.6353) for 2× the retrieval and generation cost. Read
+those rows as evidence *against* the two-agent design, not as a ceiling for the
+single-agent one. The arena oracle looks better (0.576 vs 0.487 for sparse
+alone, 30 topics where exactly one of the two beats the baseline) but Result 7
+showed the arena verdict tracks relative length, so discount it.
+
+**Reading — and this is a correction to how these numbers were first framed.**
+The natural conclusion from a disjointness measurement is "fuse the two runs",
+and that is wrong for this system. Fusion (RRF and friends) combines *ranked
+lists over a shared query*; aus_agent has neither prerequisite. The agent writes
+a different query per engine by design, and `commit_context` already performs
+selection with the passage text in front of it — an LLM review step, not a
+rank-combination step. There is no ranked-list merge to do.
+
+What the 93% disjointness actually measures for this architecture is **recall
+exposure per lead**: `commit_context` can only select from what was staged, so a
+lead searched on one engine is structurally blind to ~93% of what the other
+engine would have surfaced for it. That is a "the agent never saw the
+candidates" problem, and the fix is how the search budget is allocated across
+engines (Result 9), not a merge algorithm. The one place a fusion-like step
+survives is as a *staging-budget* device — pairing one lead across both engines
+stages 2×k results, and interleaving to a cap would bound that. At 2–3 leads per
+round it is unnecessary.
+
+## Result 9 — how the agent spends its search budget, and what to change
+
+Result 8 says dense and sparse return near-disjoint documents. This asks the
+follow-up: given both engines, how does the agent actually allocate across them?
+
+```bash
+uv run --no-project python \
+    worklogs/assets/2026-08-04-search-strategy-diagnosis.py
+```
+
+A *round* here is a maximal run of consecutive `search` calls delimited by a
+reasoning item or a `commit_context` call — which is exactly the unit
+`commit_context` reviews, since everything staged in a round must be committed
+on the immediately following turn.
+
+| run | topics | rounds | searches | /round | commits | rounds using both engines | rounds pairing **the same lead** across engines |
+|---|---|---|---|---|---|---|---|
+| cmp-base-densesparse | 10 | 2.3 | 9.4 | 4.1 | 2.3 | 26% | **4%** |
+| promptab-default | 10 | 2.3 | 9.1 | 4.0 | 2.3 | 43% | **4%** |
+| promptab-firsthand | 10 | 2.7 | 9.7 | 3.6 | 2.7 | 37% | **4%** |
+| chunknav-dev10 | 10 | 2.4 | 8.8 | 3.7 | 2.4 | 33% | **0%** |
+| test-semantic-119 | 119 | 2.4 | 9.0 | 3.8 | 2.4 | 0% | 0% |
+| test-keyword-119 | 119 | 2.3 | 9.0 | 3.8 | 2.4 | 0% | 0% |
+
+("same lead" = two searches to *different* engines in one round with query token
+Jaccard ≥ 0.5 — a loose proxy, loose in the generous direction, so a low number
+is meaningful.)
+
+Three findings:
+
+1. **The shape is invariant.** ~2.3 rounds, ~9 searches, ~3.8 per round, ~2.3
+   commits — identical across every run, every prompt variant, both engines,
+   and both the 10-topic dev sets and the 119-topic test set.
+2. **The second engine is spent as an extra lead slot, never as a second view
+   of one lead.** Cross-engine query similarity averages 0.09. A representative
+   round: eight `semantic` queries and three `keyword` queries, all on different
+   facets. Combined with Result 8, this means no lead in any run has ever been
+   resolved against both retrievers' candidates.
+3. **When both engines are offered the agent barely uses the sparse one** —
+   86:8, 81:10, 84:13 semantic:keyword. The keyword engine gets 9–13% of
+   searches despite `ours-keyword` scoring *better* than `ours-semantic`
+   end-to-end (Result 4, Result 5).
+
+**Nothing is capping trajectory length.** `DEFAULT_SAFETY_MAX_ROUNDS = 100`
+(`src/systems/aus_agent/agent.py:58`) and all 238 test-119 trajectories report
+`status: completed` — none hit the safety cap or the grace window. The agent
+stops at ~2.3 rounds entirely by its own judgement, with ~97 rounds of budget
+unused. Longer trajectories are therefore a *stopping-rule* problem, not a
+limit to raise.
+
+### Two changes, very different evidence
+
+**(A) Reallocate: fewer leads per round, both engines on each.** Volume-neutral
+— the same ~5 searches per round, spent as 2–3 leads × 2 engines instead of 5
+leads × 1. Result 8's 93% disjointness is the argument: today every lead is
+reviewed against roughly half its available evidence and the agent cannot know
+what it missed. This is close to free and should be tested alone.
+
+**(B) Longer trajectories.** The measurements argue against this *as a
+standalone change*:
+
+- Each run cites only **23–24%** of what it retrieves.
+- Result 7: **42–47%** of the figures the winning baseline used were sitting in
+  documents *we cited* and went unused.
+- `base-agentic-bm25` beats us on support precision **0.635 vs 0.590 with 9.9
+  references per topic against our 15.0** — fewer documents, better used.
+
+Coverage does not look like the binding constraint; selection and use do. More
+rounds adds volume upstream of the actual bottleneck. The operator's framing was
+*depth on existing leads* rather than more leads, which is the right instinct —
+but a prompt asking for more rounds will most likely produce more leads, which
+is precisely what the data argues against.
+
+### The coupling that would sink (A) silently
+
+`commit_context`'s own tool description
+(`src/systems/aus_agent/tools/commit_context.py:10`) currently instructs:
+
+> Do not select an id already committed, **or a semantically redundant result
+> supporting the same claim**, unless it adds materially different evidence.
+
+Pairing both engines on one lead produces exactly that redundancy by
+construction. Under the current rule the agent would pay for the dual retrieval
+and then discard the second engine's contribution as duplicate. **(A) is not a
+search-prompt change; it is a search-prompt change plus a `commit_context`
+selection-rule change, and they have to ship together.**
+
+The whole tool description is ours and should be rewritten, not patched — it is
+the only place the selection policy is stated, so it is the natural home for the
+new one. The replacement should make the agent **adjudicate rather than
+de-duplicate**: when one lead returns results from both engines, reason over
+them and keep either the *complementary* ones (each contributing distinct
+evidence) or the *better* one where they overlap, against stated criteria —
+
+- concrete figures, dates, named findings over categorical description;
+- worked examples over generalities;
+- primary or better-sourced over secondary;
+- and, where two results say the same thing, the one that says it more
+  precisely — with the duplicate rejected *by that comparison*, not by a blanket
+  redundancy rule.
+
+Two things make this the highest-value edit in the section. First, it is the
+same lever Result 7 identified from the other direction: the winning baseline's
+advantage was concrete figures we already had in hand and did not use, so
+pushing selection toward specificity attacks the retrieval-allocation problem
+and the synthesis problem at once. Second, per the reasoning guide's "give the
+model the task, constraints, and desired output format" and "avoid prescribing
+intermediate steps", criteria are exactly the right shape for this instruction —
+the `reason` field the tool already requires per document becomes the place the
+agent states which criterion the document won on, which is also a free
+instrument for checking whether the policy is being followed.
+
+Note the ledger already caps commits at `DEFAULT_MAX_COMMITTED_PER_STEP = 10`
+(`agent.py:64`), so a paired round staging 2 leads × 2 engines × k=8 = 32
+results still forces a sparse selection. The cap is not the constraint; the
+selection rule is.
+
+### Stopping rule
+
+Do not hardcode a round count — a number in a prompt becomes a target and the
+agent pads to it. Tie continuation to marginal yield: continue while the last
+round committed evidence that changed the answer plan; stop when a round returns
+only what is already committed. That makes trajectory length an output of topic
+difficulty rather than an input. Pair it with an explicit lead ledger (name
+leads up front, mark each resolved / refuted / needs-depth) so "more rounds"
+means resolving leads rather than spawning them.
+
+### Reasoning mode and effort are not plumbed
+
+Per the OpenAI reasoning guide
+(<https://developers.openai.com/api/docs/guides/reasoning>), GPT-5.6 exposes
+**two independent** Responses-API parameters:
+
+- `reasoning.mode` — `standard` (default) | `pro`. `pro` performs more model
+  work per turn, aggregated and billed at the model's standard token rates.
+- `reasoning.effort` — `none` | `minimal` | `low` | `medium` | `high` | `xhigh`
+  | `max`, defaulting to `medium` in **both** modes. The guide's own mapping:
+  `low` for "tool-use, planning"; `high` for "agentic coding and research";
+  `xhigh` for "deep research, asynchronous workflows".
+
+`src/systems/aus_agent/providers/openai.py:93` passes only
+`reasoning={"summary": "auto"}` — neither parameter is set, no CLI flag, no env
+var. **Every run to date is `mode=standard, effort=medium` by default.**
+
+The guide's guidance reorders the recommendations in this section rather than
+just adding one:
+
+1. **"Treat `reasoning.effort` as a tuning knob, not the primary way to recover
+   quality."** This is the vendor saying what the measurements already suggest:
+   not pairing the engines and not using facts already in hand are policy and
+   instruction gaps, not the model failing to think hard enough. Effort is not
+   the fix for either.
+2. **"For agentic workflows, define what counts as done and how the model should
+   verify its work."** This is exactly the stopping-rule problem above, and the
+   guide ranks it as *the* agentic lever — ahead of effort tuning. Strong
+   support for making termination a defined done-condition rather than leaving
+   it to the model's judgement, which is what produces the invariant 2.3 rounds.
+3. **"Avoid prescribing intermediate steps. Give the model the task,
+   constraints, and desired output format."** This tempers the lead-ledger
+   proposal above: express it as a done-definition and a set of selection
+   criteria, *not* as a step script ("do 2 leads, then commit, then repeat").
+   The former is what the guide recommends; the latter is what it warns against.
+
+Where more model work per turn *should* pay is the two places this section
+proposes to make harder: a `commit_context` step that must adjudicate competing
+results from two engines against criteria, and a done-condition that requires
+judging marginal yield. Both are per-turn deliberation.
+
+**Two blockers to clear before enabling either parameter.**
+
+`max_output_tokens` is **16000** (`providers/openai.py:50`) against the guide's
+"reserve at least 25,000 tokens for reasoning and outputs when you start
+experimenting". Reasoning tokens are billed as output tokens *and* count against
+this ceiling, so raising effort or mode without raising this budget pushes turns
+toward the limit.
+
+And the provider **does not check for truncation**: the guide says a capped
+response returns `status: "incomplete"` with
+`incomplete_details.reason: "max_output_tokens"`, and nothing in
+`providers/openai.py` inspects either field. There is an `EMPTY_RESPONSE_RETRIES`
+loop, which would catch a turn truncated to nothing, but a *partially* truncated
+turn would be accepted silently. Enabling `pro` or `high` against a 16k ceiling
+with no incomplete detection is a good way to get quiet truncation that looks
+like a quality regression.
+
+Two further notes. Reasoning state is replayed byte-for-byte across turns
+(`include=["reasoning.encrypted_content"]`, required with `store=False`), and
+GPT-5.6 defaults `reasoning.context` to `all_turns` — earlier turns' reasoning
+is rendered into later samples. So richer reasoning grows the replayed prefix
+every round: cost compounds with trajectory length rather than adding linearly,
+and if higher effort *also* produces longer trajectories the two multiply. The
+guide's `phase` field (`commentary` / `final_answer`) is GPT-5.5/5.4 only and
+does not apply here.
+
+Test mode and effort as their own variables *after* the prompt changes land, and
+raise `max_output_tokens` plus add incomplete-detection first.
+
 ## What to act on
 
 1. **Stop emitting uncited answer objects on groundable topics.** Worth ~0.063
@@ -477,7 +781,28 @@ the corpus…"). Neither is a spec violation, both are visible to any reader.
    sentences).
 7. **keyword ≥ semantic on every measure here** (arena 0.594 vs 0.557, support
    0.590 vs 0.581, fewer uncited topics 83 vs 70). This is the one comparison
-   with no judge-identity confound, since both sides share a generator.
+   with no judge-identity confound, since both sides share a generator. But
+   Result 8 says do *not* read this as "drop semantic": the two retrievers share
+   only 3.6% of what they return, and the unique 93% is as well-supported as the
+   shared 7%.
+8. **Rewrite `commit_context`'s selection rule, and pair the engines per lead —
+   as one change.** Highest-value item in Result 9. The current rule discards
+   "semantically redundant" results, which is exactly what dual-engine pairing
+   produces, so shipping the search change alone would pay for the retrieval and
+   throw away the result. Replace blanket de-duplication with adjudication
+   against specificity criteria; that also attacks item 4 from the other side.
+   *Not* fusion — `commit_context` is already the selection step (Result 8).
+9. **Make termination a defined done-condition.** All 238 test trajectories
+   stopped by choice at ~2.3 rounds with `safety_max_rounds=100` unused, so
+   nothing needs raising. The reasoning guide names "define what counts as done
+   and how the model should verify its work" as *the* agentic lever, above
+   effort tuning. Express it as a done-condition plus a lead ledger, never as a
+   round count or a step script.
+10. **Before touching `reasoning.mode`/`effort`: raise `max_output_tokens` from
+    16000 (guide recommends ≥25,000 reserve) and add `status: "incomplete"` /
+    `incomplete_details` detection to the OpenAI provider.** Neither exists
+    today, and both failure modes look like quality regressions rather than
+    truncation. Then test mode and effort as their own variables.
 
 ## Not done
 
@@ -499,6 +824,22 @@ the corpus…"). Neither is a spec violation, both are visible to any reader.
 - A length-controlled arena re-run. The cleanest test of the above is to
   regenerate both sides at a matched word budget and re-judge; if the gap
   closes, the 0.485 is largely a length artifact.
+- A **fixed-query** dense-vs-sparse comparison. Result 8's 93% disjointness is
+  measured across runs whose queries differ (the agent writes per-engine
+  wording), so engine and query effects are confounded. Replaying one run's
+  queries against both engines separates them, and decides whether the lever is
+  fusion or query generation. Cheap: the 1,073 + 1,070 queries are already in
+  the trajectories.
+- The A/B itself. The `promptab-*` harness already runs prompt variants; the
+  variants Result 9 argues for are (a) paired-lead retrieval + rewritten
+  `commit_context` selection rule, (b) a done-condition stopping rule, (c) a
+  synthesis-side specificity instruction, each alone before any combination.
+  Worth instrumenting per-lead engine coverage and same-lead cross-engine
+  overlap in the trajectory, so compliance can be checked before the scores are
+  read — the 4% baseline in Result 9 exists only because that was measured.
+- Why the agent under-uses the sparse engine when both are offered (9–13% of
+  searches) despite `ours-keyword` outscoring `ours-semantic` end-to-end. Tool
+  description wording, ordering, or a genuine model preference — unknown.
 - Whether the unused-figure finding (Result 7, 42–47%) is a generation choice
   or a context-window truncation. Distinguishing them needs the aus_agent
   trajectories, not the submission artifacts — the staged passages the
