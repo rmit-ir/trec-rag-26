@@ -52,16 +52,28 @@ rejecting conforming submissions. See
   under `data/`. Task scripts should point their output paths at `data/`, not
   at their own task dir — keeps large artifacts out of the code tree and
   consistent across tasks.
-- **`/research/remote/petabyte/users/oleg/trec_rag_26_data/` is the
-  synchronized-across-machines home for untracked data** — `data/outputs/`
-  run artifacts (trajectories/outputs), evaluation-results not worth
-  committing, and similar. It exists because `data/*` is gitignored (and
-  formerly Git-LFS'd), so a fresh clone or a different machine has none of it;
-  this path is the shared source of truth instead. Save new untracked run/eval
-  data there (organized the way `facet_rag-runs/`, `aus-agent-traces/`,
-  `evaluation-results/` already are, each with its own `README.md`), and check
-  there before re-running something expensive — the data may already exist
-  from another machine/session.
+- **`data/outputs/` and `evaluation-results/` are meant to be symlinks into a
+  synced-across-machines data dir, not real directories** — `data/*` is
+  gitignored (was formerly Git-LFS'd) and `evaluation-results/` is now
+  gitignored too, so a fresh clone or a different machine starts with neither.
+  **The synced dir's location and internal layout currently differ by
+  machine** and have not yet been reconciled:
+  - On machines synced via Downloads, it's `~/Downloads/trec_rag_26_data/`
+    with `outputs/`/`evaluation-results/` subfolders matching the repo
+    structure 1:1 — symlink directly:
+    `ln -s ~/Downloads/trec_rag_26_data/outputs data/outputs` and
+    `ln -s ~/Downloads/trec_rag_26_data/evaluation-results evaluation-results`.
+  - On this Linux box it's `/research/remote/petabyte/users/oleg/trec_rag_26_data/`,
+    laid out differently (`facet_rag-runs/`, `aus-agent-traces/`,
+    `evaluation-results/` per-artifact-type, not an `outputs/` mirror of
+    `data/outputs/<system>/`) — **not yet symlinked**, since a straight
+    symlink would silently misplace `data/outputs/<system>/` writes. Treat it
+    as a manual copy-in/copy-out source for now (check it before re-running
+    something expensive — the data may already exist there from another
+    session) until the two layouts are unified.
+  Whichever applies: do not `mkdir` a real directory at `data/outputs` or
+  `evaluation-results` once symlinked — that silently forks local data out of
+  the synced copy.
 - **Reference / external repos live under `tmp/`.** Any upstream source repo we
   consult (e.g. `tmp/Cottontail-claclark`) is cloned under `tmp/` so it can be browsed
   and re-pulled (`git -C tmp/<repo> pull --ff-only`). **Before cloning an

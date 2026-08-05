@@ -65,6 +65,8 @@ data/official/browsecomp-plus/
 # Outputs are large — synced between servers via rsync, not git.
 # (Human feedback is small and curated, so it stays tracked.)
 !data/output_feedbacks/
+# Run/eval artifacts live in the Downloads sync dir (symlinked in), never git.
+evaluation-results
 # Backend-comparison: code lives in tasks/task-comparison/; result docs + small
 # summaries under data/task-comparison/ ARE tracked, but large regenerable
 # intermediates (judgment caches, pools, embeddings, doc-text, id maps) are not.
