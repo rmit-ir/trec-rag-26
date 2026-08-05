@@ -52,6 +52,16 @@ rejecting conforming submissions. See
   under `data/`. Task scripts should point their output paths at `data/`, not
   at their own task dir — keeps large artifacts out of the code tree and
   consistent across tasks.
+- **`/research/remote/petabyte/users/oleg/trec_rag_26_data/` is the
+  synchronized-across-machines home for untracked data** — `data/outputs/`
+  run artifacts (trajectories/outputs), evaluation-results not worth
+  committing, and similar. It exists because `data/*` is gitignored (and
+  formerly Git-LFS'd), so a fresh clone or a different machine has none of it;
+  this path is the shared source of truth instead. Save new untracked run/eval
+  data there (organized the way `facet_rag-runs/`, `aus-agent-traces/`,
+  `evaluation-results/` already are, each with its own `README.md`), and check
+  there before re-running something expensive — the data may already exist
+  from another machine/session.
 - **Reference / external repos live under `tmp/`.** Any upstream source repo we
   consult (e.g. `tmp/Cottontail-claclark`) is cloned under `tmp/` so it can be browsed
   and re-pulled (`git -C tmp/<repo> pull --ff-only`). **Before cloning an
