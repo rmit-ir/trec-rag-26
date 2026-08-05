@@ -18,21 +18,41 @@ dev topics, not from generic RAG advice. Current facet_rag numbers are from
 `evaluation-results/facet_rag/curator_full/`; aus_agent from
 `evaluation-results/aus-agent/` (`run_id == "aus-agent-dev-full"`).
 
+> **Update 2026-08-04 (late):** `evaluation-results/facet_rag/` is GONE from
+> this clone — it was never committed (`git log --all` has no trace of it), so
+> every "Current facet_rag" cell below and the appendix's 20-run table are
+> historical and unreproducible. Fresh, verifiable replacements exist: all 5
+> topics were re-run (`run_id = facet_rag.opus_plan_5topic`, 2026-08-05, all
+> `status=completed`, artifacts in `data/outputs/facet_rag/`, archived at
+> `/research/remote/petabyte/users/oleg/trec_rag_26_data/`). Measured shape:
+> CSGO 19 sents/365 w/100% cited/14 refs/1.11 c/cs; SCALING 33/460/100%/15/1.18;
+> RETIRE 36/734/100%/12/1.14; PRESCHOOL 31/437/**94%**/14/1.03; SWARM
+> 20/363/**90%**/15/1.00. Consequences: A1 confirmed (still 35–72% of cap; 734
+> is the best ever, still under the old 767 max); A3's ≥1.3 target has now
+> never been hit by any surviving run (1.00–1.18); and **A5's "100% cited" no
+> longer holds** — PRESCHOOL/SWARM are the first sub-100% facet_rag answers,
+> both already violate the ≥95% target, and they are exactly the two
+> deliverable-shaped topics A7 predicts are weakest. The answers remain thin —
+> the pattern §3 diagnoses is unchanged. These runs are unjudged (no UMBRELA,
+> no support) — §2.1/§2.2 now have real inputs.
+
 | # | Aim | Current facet_rag | aus_agent (dev-full) | Target |
 |---|---|---|---|---|
 | A1 | **Use the word budget.** Track cap is 1024 words; nugget-rubric coverage is bounded by how much the answer says. | 314 / 413 / 464 words (31–45% of cap) — and *no facet_rag run ever recorded, across 20 runs in 7 eval dirs, exceeded 767 words* | 922 / 967 / 1007 / 1014 / 1018 (90–99% of cap, deliberately) | ≥ 850 words on every broad narrative; keep short answers short for narrow ones |
 | A2 | **Fact density per sentence.** | CS:GO answer: 2 specific figures in 20 sentences ("$2.49 per key", "$400 million in 2018"); **zero dates in a "gaming history and culture" essay** | CS:GO answer: ~15 figures/dates/proper names (1999, 2012, $250,000, $1M, $2M, 2.75M viewers, 1,802,853 players, 26M, Minh "Gooseman" Le, fnatic, iBUYPOWER, KQLY) | ≥ 50% of factual sentences carry a number, date, or proper name |
 | A3 | **Synthesis across sources.** A sentence citing 2–3 docids is one the writer actually combined. | 1.00–1.35 citations per cited sentence; CS:GO is exactly **1.00** — one evidence item transcribed per sentence | 1.00–1.43; 10 of 29 CS:GO sentences combine 2–3 sources | mean ≥ 1.3 citations per cited sentence on broad narratives |
 | A4 | **Citation support (the actually-scored metric).** | **never measured** — only `ragdoll umbrela judge` has been run | `full_support_rate` 0.347, `partial_or_full` 0.868, no-support 83/781 = 10.6% (`evaluation-results/aus-agent/support-bedrock/judgments.summary.csv`) | `partial_or_full` ≥ 0.87, no-support ≤ 10% |
-| A5 | **Keep the recall advantage.** Spec `rag-task.md:129`: an answer object with no citations scores **0 for weighted recall** and is excluded from precision entirely. | 100% of sentences cited on all 3 topics — strictly better than aus_agent here | 79–91% cited; aus_agent's 6 uncited CS:GO transitions each take a 0 on recall | stay ≥ 95% cited **while** hitting A1–A3 |
+| A5 | **Keep the recall advantage.** Spec `rag-task.md:129-131`: an answer object with no citations scores **0 for weighted recall** and is excluded from precision entirely. | 100% of sentences cited on all 3 topics — strictly better than aus_agent here | 79–91% cited; aus_agent's 6 uncited CS:GO transitions each take a 0 on recall | stay ≥ 95% cited **while** hitting A1–A3 |
 | A6 | **Argue, don't list.** | CS:GO answer has no opening thesis, no conclusion, no causal connective; facet seams are visible (sentences 0-2 gameplay, 3-5 weapons, 6-8 maps, 9-11 community, 12-14 economy, 15-19 esports) | opens with a thesis, closes with a 3-cited synthesis, uses transitions ("That preserved 'flavor' became central to the game's staying power") | opening thesis + closing synthesis present; no visible facet-block ordering |
 | A7 | **Answer the deliverable, not the topic.** | CS:GO: asked for a *history and culture feature essay*; produced a feature-list summary with no history | PRESCHOOL answer opens "Since your gentle, preventative-only approach is not enough for this particular child…" and works the questioner's own five subsystems in SWARM | the first sentence must name the requested artifact and the questioner's stated situation |
 | A8 | **Say what the corpus could not support.** | no mechanism; a facet with an unfillable gap silently burns iterations | SWARM sentence 21: "…the committed evidence does not include a single paper proving that exact joint bound, which remains an identified gap" | at most one such sentence, present when a planned facet genuinely failed |
 
 **Where facet_rag is genuinely ahead and must not regress:** A5 (100% citation
-coverage), and multi-facet decomposition guarantees every declared aspect gets
-its own retrieval budget — aus_agent's single continuous loop can and does drop
-a planned coverage area silently.
+coverage — but see the §0 update: the fresh PRESCHOOL/SWARM runs are already at
+94%/90%, so this lead has started to erode on deliverable-shaped topics), and
+multi-facet decomposition guarantees every declared aspect gets its own
+retrieval budget — aus_agent's single continuous loop can and does drop a
+planned coverage area silently.
 
 ---
 
@@ -47,10 +67,12 @@ topic:
 - aus_agent: **3,632 chars** (whole document)
 - facet_rag: **2,000 chars** (exactly the cap — same opening text, cut short)
 
-Across the judged sets: aus_agent median passage **3,741–3,971 chars**
-(mean 5,358–8,458); facet_rag median **exactly 2,000**, with **35 of 42
-segments (83%) pinned at 2,000**. UMBRELA grades passage↔query relevance, so a
-passage truncated before its relevant content scores lower. facet_rag was
+Across the judged sets: aus_agent median passage **3,338–3,971 chars**
+per topic (mean 5,358–8,458; see the appendix — the range quoted here
+originally omitted the two low-median topics); facet_rag median **exactly
+2,000**, with **35 of 42 segments (83%) pinned at 2,000**. UMBRELA grades
+passage↔query relevance, so a passage truncated before its relevant content
+scores lower. facet_rag was
 handicapped by roughly 1.8× less text per judged passage in **every cell of the
 comparison table**.
 
@@ -61,9 +83,28 @@ default `DEFAULT_PYSERINI_DOC_URL`, returns the full doc). The two resolves used
 different ones. Neither script truncates client-side — the difference is the
 endpoint.
 
+> **Correction (2026-08-04, verified against the script + recovered traces):**
+> the endpoint story above is incomplete. The resolver's PRIMARY path is
+> neither endpoint — it resolves from **local `*.trajectory.json` files first**
+> (`resolve-rag-output-references.py:268-276`) and only falls back to an API
+> for docids the trajectories don't carry. aus_agent's judged segments
+> byte-match its trajectory-staged texts exactly (verified 77/77 references
+> across all 5 dev-full topics) — aus_agent looked "full-doc" because its
+> search tool stages up to 4,096 tokens ≈ 20,480 chars per result
+> (`aus_agent/tools/search.py:10-11`), not because of `--doc-url`. facet_rag's
+> trajectories stage `--max-chars`-truncated search text, so **re-resolving
+> with trajectories present reproduces the confound**: the fresh
+> `facet_rag.opus_plan_5topic` trajectories resolve all 70/70 references at
+> median exactly 2,000 chars, 56/70 pinned at the cap. (The Pyserini full doc
+> for `shard_04677_48238` is exactly 3,632 chars — confirming aus_agent's
+> staged text was the whole document.)
+
 **Action:** re-resolve `data/outputs/facet_rag/*.output.json` through the
-*same* path aus_agent used (`--doc-url`, i.e. omit `--api-base-url`), re-run
-UMBRELA, and only then compare. Do the same for anything new.
+full-document path (`--doc-url`, i.e. omit `--api-base-url`), **and bypass the
+trajectory-first path** — point `--trajectory-dir` at an empty directory,
+otherwise every docid resolves from the 2,000-char trajectory text and the
+`--doc-url` fallback never fires. Needs `PYSERINI_API_TOKEN` (present in
+`.env`). Re-run UMBRELA, and only then compare. Do the same for anything new.
 
 ### 1.2 The rest of the methodology, in priority order
 
@@ -74,10 +115,18 @@ UMBRELA, and only then compare. Do the same for anything new.
   weighted citation precision/recall (`rag-task.md:128-131`), nugget-rubric
   coverage, and pairwise battles. `ragdoll support judge` has still never been
   run on facet_rag. It is the metric the whole citation-precision fix was for.
-- **`data/outputs/facet_rag/` is empty.** Every trajectory from the last
-  session is gone; only the derived `evaluation-results/facet_rag/*/
-  answers.resolved.jsonl` survive. That is why several questions below say
-  "cannot be answered from disk". Keep the run artifacts this time.
+- **The last session's artifacts are gone — all of them.** `data/outputs/`
+  did not survive (untracked + Git-LFS'd, see `.gitattributes:1`), and the
+  derived `evaluation-results/facet_rag/*/answers.resolved.jsonl` this plan
+  originally called "the only survivors" turned out never to have been
+  committed either — the whole `evaluation-results/facet_rag/` tree is absent
+  from this clone and from git history. That is why several questions below
+  say "cannot be answered from disk", and why §1.1's 35-of-42/median-2000
+  numbers are no longer re-checkable. Mitigations now in place: the 5-topic
+  re-run (see §0 update) exists in `data/outputs/facet_rag/`, and run data is
+  archived off-repo at `/research/remote/petabyte/users/oleg/trec_rag_26_data/`
+  — but archive-on-completion does not cover mid-run crashes; §6.3's
+  partial-save is still needed. Keep the run artifacts this time.
 
 ---
 
@@ -85,11 +134,21 @@ UMBRELA, and only then compare. Do the same for anything new.
 
 ### 2.1 Re-baseline honestly *(blocking everything else)*
 
+The inputs now exist: `data/outputs/facet_rag/` holds the 5-topic
+`facet_rag.opus_plan_5topic` run (see §0 update). Use `opus_plan_5topic` as
+`<tag>`.
+
 ```sh
-# 1. re-resolve facet_rag through the same endpoint aus_agent used
+# 1. resolve through full documents — MUST defeat the trajectory-first path
+#    (see §1.1 correction: with the *.trajectory.json files adjacent, every
+#    docid resolves from 2,000-char truncated search text and the confound
+#    comes right back)
+mkdir -p /tmp/no-trajectories
 python scripts/resolve-rag-output-references.py data/outputs/facet_rag/ \
+    --trajectory-dir /tmp/no-trajectories \
     --ragdoll-output evaluation-results/facet_rag/<tag>/answers.resolved.jsonl
-#    (no --api-base-url: falls back to --doc-url / Pyserini full documents)
+#    (no --api-base-url: falls back to --doc-url / Pyserini full documents;
+#     needs PYSERINI_API_TOKEN, present in .env)
 
 # 2. UMBRELA, as before
 python scripts/ragdoll-answers-to-umbrela.py \
@@ -102,7 +161,8 @@ cd evaluation/ragdoll && uv run ragdoll umbrela judge \
 ```
 
 Sanity check before judging: median segment length should now be ~3,500–4,000,
-not 2,000.
+not 2,000 (the trajectory-resolved texts measure median exactly 2,000, 56/70
+pinned at the cap — same confound as last session, now verified on fresh runs).
 
 ### 2.2 Run `ragdoll support judge` — highest-value missing measurement
 
@@ -139,44 +199,46 @@ aus_agent's top-5 dev topics by UMBRELA (`aus-agent-dev-full`, restricted to
 | `6847465956a0f6376a605404` | CS:GO feature essay | 2.083 (n=12) | 1.750 (n=12) |
 | `6847465956a0f6376a60542a` | scaling to 1M users | 1.667 (n=21) | 1.400 (n=15) |
 | `683a58c9a7e7fe4e76958498` | retirement blog series | 1.583 (n=12) | 1.467 (n=15) |
-| `684397d188c1deceb49af32d` | pre-school teacher strategy | 1.467 (n=15) | **not run** |
-| `6847465956a0f6376a60547e` | decentralized swarm proposal | 1.294 (n=17) | **not run** |
+| `684397d188c1deceb49af32d` | pre-school teacher strategy | 1.467 (n=15) | **run, unjudged** |
+| `6847465956a0f6376a60547e` | decentralized swarm proposal | 1.294 (n=17) | **run, unjudged** |
 
 > Use 1.583/n=12 for the retirement topic, not the 1.500 quoted earlier in the
 > session — that number mixed run_ids. All aus_agent figures above are
 > `aus-agent-dev-full` only, recomputed from
-> `evaluation-results/aus-agent/umbrela-bedrock-120/judgments.jsonl`.
+> `evaluation-results/aus-agent/umbrela-bedrock-120/judgments.jsonl`
+> (re-verified 2026-08-04: all five means and ns reproduce exactly). The
+> facet_rag column is from the lost `evaluation-results/facet_rag/` judgments
+> and is historical — and confounded per §1.1 regardless.
 
-The two missing runs **were attempted this session and failed**: every AWS
-credential path is expired (`.env` `AWS_SESSION_TOKEN` → `ExpiredTokenException`
-from `bedrock:Converse`; `~/.aws/sso/cache` tokens date from Apr 2025;
-`aws sts get-caller-identity` fails on every profile with "Token has expired and
-refresh failed"). A human must `aws sso login` / re-vend `.env` keys first.
-Then:
-
-```sh
-uv run --group facet-rag python src/systems/facet_rag/run.py --qid 684397d188c1deceb49af32d \
-    --run-id facet_rag.opus_plan_5topic --run-desc "facet_rag vs aus_agent: extending to aus_agent's top-5 topics"
-uv run --group facet-rag python src/systems/facet_rag/run.py --qid 6847465956a0f6376a60547e \
-    --run-id facet_rag.opus_plan_5topic --run-desc "facet_rag vs aus_agent: extending to aus_agent's top-5 topics"
-```
-then §2.1 + §2.2 over the results. These two topics are the interesting ones:
+~~The two missing runs **were attempted this session and failed**: every AWS
+credential path is expired.~~ **Resolved 2026-08-04:** credentials were
+refreshed (`sts get-caller-identity` returns a valid assumed-role ARN; `.env`
+re-vended with working `SEARCH_API_KEY` + backend URLs), and **all 5 topics
+have since been run** — not just the 2 missing ones —
+as `run_id = facet_rag.opus_plan_5topic` (see §0 update for the measured
+shape). What remains is §2.1 + §2.2 over those results: they are entirely
+unjudged. The two previously-missing topics are the interesting ones:
 both are *deliverable-shaped* requests (a strategy report for a named situation;
 a research-proposal scoping with the questioner's own five subsystems), which is
 exactly where A7 predicts facet_rag is weakest.
 
 ### 2.4 Cheap instrumentation to add while re-running
 
-None of these need an architecture change and all are currently unanswerable
-because the trajectories were deleted:
+None of these need an architecture change. The 5-topic re-run's trajectories
+(now on disk) already answer the first two:
 
-- searches issued per run, and how many returned a docid already seen — the
-  three mandatory engines (`loop.py:65`) fire the *same* sub-question at
-  semantic/keyword/hybrid every iteration; measure the overlap.
-- `ssr`/`lucene_bool` selection rate (`loop.py:66`). The one run ever checked
-  used them 0/39 times. If a second run confirms 0%, delete the optional-Boolean
-  half of `ORCHESTRATOR_QUERY_PROMPT` (`prompts.py:64-73`) — it is prompt budget
-  buying nothing.
+- searches issued per run — measured on `opus_plan_5topic`: 22/15/27/25/46
+  (CSGO/SCALING/RETIRE/PRESCHOOL/SWARM); the three mandatory engines
+  (`loop.py:65`) fire the *same* sub-question at semantic/keyword/hybrid every
+  iteration. Still to measure: how many calls returned a docid already seen
+  (the overlap).
+- `ssr`/`lucene_bool` selection rate (`loop.py:66`). Measured on
+  `opus_plan_5topic`: **3 lucene_bool / 135 total calls (2.2%), ssr 0** —
+  confirming the earlier 0/39 reading. The orchestrator does occasionally pick
+  lucene_bool (1 call each in CSGO/PRESCHOOL/SWARM), so before deleting the
+  optional-Boolean half of `ORCHESTRATOR_QUERY_PROMPT` (`prompts.py:64-73`),
+  check whether those 3 calls contributed any kept evidence; if not, it is
+  prompt budget buying nothing.
 - draft word count → fact-check word count → final word count, per run. §3.1
   hinges on knowing which stage sheds the words.
 - tokens/cost per run with and without the curator (`--top-n 0`-style bypass, or
@@ -187,17 +249,28 @@ because the trajectories were deleted:
 
 ## 3. Improvements, grounded in the aus_agent traces
 
-Everything here comes from `tmp/aus-agent-traces/` (15 runs, 5 topics) and
-`src/systems/aus_agent/prompts/system/default.md`, cross-read against
+Two distinct sources, not one: aus_agent *trajectories* come from
+`tmp/aus-agent-traces/` — recovered from pre-LFS git blobs (see its README);
+originally 15 runs over only **3** topics (retirement 10, CS:GO 3, scaling 2),
+extended 2026-08-04 to **20 runs / 5 topics** by recovering PRESCHOOL (3 runs)
+and SWARM (2 runs) the same way. aus_agent *answer text* (what A6/A7/A8 quote
+for PRESCHOOL/SWARM) comes from
+`evaluation-results/aus-agent/answers.resolved.jsonl` (`aus-agent-dev-full`),
+which always had all 5 topics. Cross-read against
+`src/systems/aus_agent/prompts/system/default.md` and
 `src/systems/facet_rag/prompts.py`.
 
 ### 3.1 The answer is starved of content — the top problem *(→ A1, A2)*
 
 Three multiplicative causes, all in facet_rag's own code:
 
-1. **Hard evidence cap of 15 items.** `curator.DEFAULT_TOP_N = 3`
+1. **Hard evidence cap of ~15 items.** `curator.DEFAULT_TOP_N = 3`
    (`curator.py:40`) × 5 facets = 15 references. All three `curator_full` runs
-   produced exactly 15/12/15 refs — the count is mechanical, not chosen.
+   produced exactly 15/12/15 refs. The fresh `opus_plan_5topic` runs give
+   12/14/14/15/15 over 4–5 planned facets — so the count is bounded by
+   `facets × top_n` and driven by it (RETIRE planned 4 facets → 12 refs), but
+   not strictly pinned to it (CSGO: 5 facets, 14 refs). The cap, not a content
+   judgment, still sets the ceiling.
 2. **Each item is only 2,000 chars.** `run.py:120` `--max-chars` default 2000.
    aus_agent stages **4,096 tokens ≈ 20,480 chars** per result
    (`aus_agent/tools/search.py:10-11`) and its judged segments average
@@ -268,18 +341,28 @@ this result **uniquely** contributes".
 
 ### 3.3 Search shape — 5× the calls for 1/3 the answer *(→ A2)*
 
-Measured across all 15 traces:
+Measured from the trajectories (each row re-verified against
+`tool_call_counts` and the run's `references` count; the manifest's "tool
+calls" column is search+commit summed — don't confuse the two):
 
 | run | searches | commit calls | docs kept | retrieved | keep rate |
 |---|---|---|---|---|---|
 | dev-full / CS:GO | 8 | 2 | 12 | 80 | 15% |
 | dev-full / retirement | 8 | 2 | 12 | 80 | 15% |
 | dev-full / scaling | 14 | 4 | 21 | 139 | 15% |
+| dev-full / preschool | 6 | 3 | 15 | 60 | 25% |
+| dev-full / swarm | 13 | 3 | 17 | 130 | 13% |
 | luna-dev4 / CS:GO | 7 | 2 | 11 | 37 | 30% |
 | sat-go / retirement | 3 | 1 | 6 | 24 | 25% |
 
-facet_rag, by contrast, issued **39 search calls** in the one run ever counted
-(5 facets × 3 mandatory engines × ~2.6 iterations).
+(The preschool/swarm rows are from the traces recovered 2026-08-04. swarm
+dev-full is the one run where `tool_call_counts_all` ≠ `tool_call_counts` —
+one extra `commit_context` attempt, 4 vs 3.)
+
+facet_rag, by contrast, issued **39 search calls** in the one old run ever
+counted (5 facets × 3 mandatory engines × ~2.6 iterations), and the fresh
+`opus_plan_5topic` runs issued 15–46 (SWARM: 46 searches for a 363-word
+answer — vs aus_agent's 13 searches for 967 words on the same topic).
 
 Two structural reasons aus_agent gets more out of fewer calls:
 
@@ -300,8 +383,9 @@ Two structural reasons aus_agent gets more out of fewer calls:
   feedback (`loop.py:224-228`) passes a gap string and a list of tried queries,
   but never the retrieved content, so follow-ups cannot specialise this way.
 - **Effort scales with the question.** Scaling (broad) got 14 searches / 4
-  rounds; retirement (narrower) got 8 / 2. facet_rag's budget is fixed at
-  `facets × mandatory engines × iterations` regardless.
+  rounds; swarm (broad) 13 / 3; retirement (narrower) 8 / 2; preschool 6 / 3.
+  facet_rag's budget is fixed at `facets × mandatory engines × iterations`
+  regardless.
 
 ### 3.4 The two stages aus_agent doesn't have *(→ A6, A7)*
 
@@ -352,11 +436,11 @@ Those are the correct case for an empty citation array — the rule should be
 | 1.3 support-judging instead of UMBRELA | **open, now top priority** → §2.2 |
 | 1.4 comparison conflated pool size with quality | **worse than thought** → §1.1; the pool-size half was addressed by the curator, but the comparison is confounded by segment length |
 | 1.5 / 2.3 uncited-sentence tradeoff | **open, and mis-specified** → §3.5; measure with §2.2 before tuning |
-| 1.6 are ssr/lucene_bool worth keeping | **open** → §2.4; still 0/39 in the only run checked |
+| 1.6 are ssr/lucene_bool worth keeping | **open** → §2.4; now measured at 3/135 (2.2%, all lucene_bool, ssr 0) on the fresh 5-topic run |
 | 2.1 format stage discards half the word budget | **open and confirmed worse** → §3.1; 314–464 words vs a 1024 cap, and the curator made it worse |
 | 2.2 analyzer rubber-stamps ~76% | **partially addressed** — curator caps the pool at 15, but its precision has never been checked; aus_agent's keep rate is 10–30% |
 | 2.4 no stop condition for an unfillable gap | **open** → also A8; the curator's `covered` gate doesn't detect a repeated gap. Cheapest fix: keep the last 2 gap strings and stop the facet if they are near-identical |
-| 2.5 planner invents non-researchable facets | **open, unverified** — no trajectories survive to check. Re-check after §2.3; the CS:GO facets read as topical, not format-derived, so this may be less common than feared |
+| 2.5 planner invents non-researchable facets | **open, now checkable** — the `opus_plan_5topic` trajectories survive; their facet names read as topical, not format-derived (e.g. CSGO: game design / esports / monetization / community / platform), so this may be less common than feared |
 | 2.6 fact-check only sees 2,000-char chunks | **open, and now the leading suspect for A2** → §3.1 |
 | 2.7 `parse_analysis` treats unparsable JSON as `satisfied=True` | **open, low** (`loop.py:126-131`) — the curator gates the real stop decision now, but this silently drops a whole round's keeps. One-line fix when convenient |
 
@@ -376,7 +460,7 @@ separate issue, deliberately deferred.
    argue more, one continuous evidence pool", that is aus_agent's architecture.
    Is facet_rag meant to stay a genuinely different system (the case for it:
    guaranteed per-aspect retrieval budget, which aus_agent lacks), or converge?
-3. **Full-scale validation cost.** Nothing has been run beyond 3 hand-picked
+3. **Full-scale validation cost.** Nothing has been run beyond 5 hand-picked
    topics. The 30-topic dev set and the 119-topic test set have never been run
    under this architecture. Someone needs to authorise the Bedrock spend for a
    full dev sweep before submission.
@@ -384,8 +468,10 @@ separate issue, deliberately deferred.
    lacks the `--rubric-style research` flag a prior collaborator's run used;
    reproducing it needs the full `nuggetizer create → assign` pipeline and more
    LLM cost. Out of scope last session — confirm it stays out.
-5. **Credentials.** §2.3 is blocked until AWS SSO is refreshed. Nobody but the
-   account owner can do this.
+5. ~~**Credentials.** §2.3 is blocked until AWS SSO is refreshed.~~ **Resolved
+   2026-08-04** — SSO refreshed, `.env` re-vended, all search backends live;
+   §2.3's runs completed under the working credentials. Session tokens still
+   expire, so re-check `sts get-caller-identity` at session start.
 
 ---
 
@@ -449,10 +535,14 @@ computes `duration_ms` for every individual step from its `t_start`/`t_end`
 seconds total" or "the curator stage averages N ms across a run" without
 hand-writing it per system. `aus_agent/agent.py` does this today with its own
 local `perf_counter()`/`_elapsed_ms()` plumbing (`agent.py:27,147,422-423,578`)
-— correct, but bespoke, and no other system has it (facet_rag has no run-level
-timing anywhere right now, which is part of why §1.2's "single trials, huge
-variance between runs" was never quantified with real numbers this session —
-there's no wall-clock data to point at).
+— correct, but bespoke, and no other system has it. facet_rag does get a
+run-level `trace.duration_ms` for free (`run_one` passes
+`started_at`/`ended_at` to `tb.finalize` — the fresh CSGO run shows 92.6 s),
+but almost no per-stage timing: only 4 of the CSGO run's 47 steps carry
+`stats.duration_ms`, because the loop's replayed events never set
+`t_start`/`t_end` (`pipeline._replay_events`). That per-stage gap is why
+§1.2's "single trials, huge variance between runs" was never quantified with
+real stage-level numbers this session.
 
 **What to build:** a rollup that reads `trace_steps` (already has
 `t_start`/`t_end`/`turn`/`type`/`stats.duration_ms` on everything) and produces,
@@ -467,9 +557,13 @@ instrumentation burden on any system.
 
 ### 6.3 Trajectory recording, aus_agent-parity — plus why facet_rag needs a design decision aus_agent didn't
 
-**The immediate motivation:** §1.2 of this plan states "`data/outputs/facet_rag/`
-is empty. Every trajectory from the last session is gone" — that's not a
-cleanup accident, it's because facet_rag has **no partial/incremental save**.
+**The immediate motivation:** §1.2 of this plan states that every artifact
+from the last session is gone (originally phrased as "`data/outputs/facet_rag/`
+is empty"; it turned out even the derived eval results were lost) — that's not
+a cleanup accident, it's because facet_rag has **no partial/incremental save**.
+The off-repo archive at `/research/remote/petabyte/users/oleg/trec_rag_26_data/`
+now protects *completed* runs, but a mid-run crash still loses everything, so
+this section stands.
 `aus_agent.agent.save_partial()` (`agent.py:636-663`) rewrites `output.json`
 with `trace.status == "running"` every 2 seconds during a run
 (`PARTIAL_SAVE_MIN_INTERVAL_S`), so a crashed or killed aus_agent run still
@@ -520,6 +614,23 @@ second time.
 
 ## Appendix — raw numbers behind §0
 
+The aus_agent rows below were re-verified 2026-08-04 against
+`evaluation-results/aus-agent/answers.resolved.jsonl` and reproduce exactly.
+The facet_rag rows (`curator_full` and the 20-run table) are **historical** —
+their source files (`evaluation-results/facet_rag/`) are gone from disk and
+from git history, so treat them as recorded observations, not re-checkable
+data. The fresh, on-disk replacement is `facet_rag.opus_plan_5topic`:
+
+```
+topic       system      sents  words  cited%  tot_cits  refs  cits/cited_sent
+CSGO        facet_rag*     19    365    100%        21    14       1.11
+SCALING     facet_rag*     33    460    100%        39    15       1.18
+RETIRE      facet_rag*     36    734    100%        41    12       1.14
+PRESCHOOL   facet_rag*     31    437     94%        30    14       1.03
+SWARM       facet_rag*     20    363     90%        18    15       1.00
+    (* = opus_plan_5topic, 2026-08-05, data/outputs/facet_rag/ — unjudged)
+```
+
 Answer shape, `aus-agent-dev-full` vs `facet_rag.curator_full`:
 
 ```
@@ -534,8 +645,9 @@ CSGO        facet_rag      20    314    100%        20    12       1.00
 SCALING     facet_rag      23    413    100%        31    15       1.35
 ```
 
-Every facet_rag answer ever produced (7 eval dirs, 20 runs) — none exceeds 767
-words:
+Every facet_rag answer produced before the loss (7 eval dirs, 20 runs) — none
+exceeds 767 words (historical; the 5 fresh runs above still fit the pattern,
+max 734):
 
 ```
 compare3     958498  27 sents  637 w  81 refs      curator_diag 605404  15  324  12
@@ -559,4 +671,7 @@ aus-agent-dev-full   RETIRE     median 3741  mean 5737
                      SCALING    median 3903  mean 6303
                      SWARM      median 3338  mean 8458
 facet_rag curator_full  all 3 topics  median 2000  (35/42 segments at the cap)
+    (historical — the resolved files are gone; the same confound reproduces on
+     the fresh runs: opus_plan_5topic trajectory texts resolve at median
+     exactly 2000, 56/70 pinned at the cap. See the §1.1 correction.)
 ```
