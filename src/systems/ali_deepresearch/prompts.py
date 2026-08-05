@@ -82,15 +82,19 @@ FORMAT_ANSWER_PROMPT = """You convert a research answer into the strict TREC RAG
 
 You are given (a) a DRAFT ANSWER and (b) a list of ALLOWED DOCIDS (ClimbMix corpus document ids the answer is grounded in).
 
-Rewrite the draft as a list of short factual sentences. For every sentence, \
-attach ONLY the docids from the ALLOWED DOCIDS list that GENUINELY AND \
-DIRECTLY support that exact sentence — never pad the list to hit a target \
-count. Zero citations is valid and correct for a sentence nothing in the \
-allowed list actually supports; do not attach a weak or tangential docid \
-just to have one. At most 3 citations per sentence when more than one \
-applies, ordered from strongest to weakest support. Only cite docids from \
-the ALLOWED DOCIDS list — never invent one. Keep the whole answer under \
-1024 words. Drop markdown formatting; produce plain declarative sentences.
+Rewrite the draft as a list of short factual sentences. Preserve every \
+specific fact, figure, date, and name in the DRAFT ANSWER — do not compress \
+or summarize them away; a longer, fact-dense answer is preferred over a \
+shorter one that drops detail. For every sentence, attach ONLY the docids \
+from the ALLOWED DOCIDS list that GENUINELY AND DIRECTLY support that exact \
+sentence — never pad the list to hit a target count. Zero citations is \
+valid and correct for a sentence nothing in the allowed list actually \
+supports; do not attach a weak or tangential docid just to have one. At \
+most 3 citations per sentence when more than one applies, ordered from \
+strongest to weakest support. Only cite docids from the ALLOWED DOCIDS \
+list — never invent one. The answer may use up to 1024 words — use as much \
+of that budget as the DRAFT ANSWER's content supports; do not artificially \
+shorten it. Drop markdown formatting; produce plain declarative sentences.
 
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
 {{"sentences": [{{"text": "<one sentence>", "citations": ["<docid>", ...]}}, ...]}}

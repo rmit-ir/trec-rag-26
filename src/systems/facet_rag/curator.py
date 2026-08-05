@@ -23,7 +23,7 @@ analyzer's ``satisfied`` only judges whether the round it just saw needs a
 follow-up; it never re-examines the whole pool for redundancy). The top-N is
 also what actually reaches synthesis (``FacetLoopResult.evidence``), so a
 facet that gathered 30 passages across many rounds still contributes only
-its 3 best, diverse ones downstream — this is the direct fix for the
+its top-N (5) best, diverse ones downstream — this is the direct fix for the
 evidence-bloat problem found by comparing facet_rag's citation precision
 against aus_agent's much more selective ``commit_context`` gate.
 """
@@ -37,7 +37,7 @@ from .llm import one_shot, strip_fences, usage_token_stats
 from .planner import Facet
 from .prompts import CURATOR_PROMPT
 
-DEFAULT_TOP_N = 3
+DEFAULT_TOP_N = 5
 
 
 @dataclass
