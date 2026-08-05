@@ -671,3 +671,72 @@ def test_save_run_output_is_still_submission_projectable(
 
     assert set(projected) == {"metadata", "references", "answer"}
     assert validate_rag_output(projected) == []
+
+
+# ---------------------------------------------------------------------------
+# PLAN.md §6.1/§6.2: cost and duration rollups in trace.summary.
+# Only aggregation is tested here (pure functions over trace_steps); pricing
+# arithmetic itself is covered by tests/shared/test_pricing.py.
+# ---------------------------------------------------------------------------
+def test_duration_summary_breaks_down_by_step_type() -> None:
+    """§6.2's exact ask: "how much of this run's wall-clock was retrieval vs.
+    LLM calls" answerable from trace.summary without re-deriving it by hand."""
+    builder = TrajectoryBuilder("q", "query")
+    builder.add_reasoning("plan", t_start=T0, t_end=T1, turn=0)  # 1500 ms
+    builder.add_tool_call("search", {"q": "x"}, "hit", returned_docids=["d1"],
+                          t_start=T0, t_end=T0, turn=1)  # 0 ms
+
+    trajectory = builder.finalize(started_at=T0, ended_at=T1)
+
+    duration = trajectory.trace["summary"]["duration"]
+    assert duration["total_ms"] == 1500
+    assert duration["by_type_ms"]["reasoning"] == 1500
+    assert duration["by_type_ms"]["tool_call"] == 0
+    assert duration["steps_with_duration"] == 2
+    assert duration["steps_total"] == 2
+
+
+def test_duration_summary_absent_when_nothing_is_timestamped() -> None:
+    """A step with neither timestamps nor a run-level duration must not
+    fabricate a zeroed breakdown — absence should read as "unmeasured", not
+    "took 0 ms"."""
+    builder = TrajectoryBuilder("q", "query")
+    builder.add_reasoning("plan")  # no t_start/t_end
+
+    trajectory = builder.finalize()
+
+    assert "duration" not in trajectory.trace["summary"]
+
+
+def test_cost_summary_sums_priced_steps_and_counts_unpriced_ones() -> None:
+    """A step with tokens but no ``cost`` (e.g. its model has no committed
+    rate table) must count as unpriced rather than silently vanish from the
+    total — otherwise a partially-priced run would misreport as fully priced."""
+    builder = TrajectoryBuilder("q", "query")
+    builder.add_reasoning(
+        "priced", turn=0,
+        stats={"tokens": {"input_uncached": 1000, "output": 500},
+              "cost": {"usd": 0.01234567, "input_usd": 0.01, "output_usd": 0.00234567,
+                       "tier": "standard", "rate_table_id": "test-table"}})
+    builder.add_model_step(
+        "unpriced", turn=1,
+        stats={"tokens": {"input_uncached": 1000, "output": 500}})
+
+    trajectory = builder.finalize()
+
+    cost = trajectory.trace["summary"]["cost"]
+    assert cost["usd"] == 0.01234567
+    assert cost["priced_calls"] == 1
+    assert cost["unpriced_calls"] == 1
+
+
+def test_cost_summary_absent_when_no_step_carries_tokens() -> None:
+    """A trajectory with no model calls at all (pure tool-call trace) must not
+    report a $0 cost block -- that would misleadingly imply cost was measured."""
+    builder = TrajectoryBuilder("q", "query")
+    builder.add_tool_call("search", {"q": "x"}, "hit", returned_docids=["d1"],
+                          turn=0)
+
+    trajectory = builder.finalize()
+
+    assert "cost" not in trajectory.trace["summary"]

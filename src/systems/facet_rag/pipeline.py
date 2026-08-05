@@ -18,6 +18,7 @@ from concurrent.futures import ThreadPoolExecutor
 from typing import Any, Callable
 
 from ragrun import TrajectoryBuilder, build_rag_output, now_iso, save_run
+from ragrun.pricing import Rates, UnknownRate, call_cost, load_rates
 
 from ali_deepresearch.answer_format import format_answer
 
@@ -115,8 +116,29 @@ def _merge_evidence(facet_results: list[FacetLoopResult]
     return merged
 
 
+def _stats(tokens: dict[str, Any] | None, rates: Rates | None
+          ) -> dict[str, Any] | None:
+    """Build a step's ``stats`` dict: ``tokens`` plus ``cost`` when priced.
+
+    ``rates`` is ``None`` when the model/region has no committed rate table
+    (PLAN §6.1) -- cost is then omitted, not guessed.
+    """
+    if not tokens:
+        return None
+    cost = call_cost(tokens, rates) if rates else None
+    return {"tokens": tokens, **({"cost": cost} if cost else {})}
+
+
+def _load_rates(model_id: str, region: str) -> Rates | None:
+    try:
+        return load_rates(model_id, region)
+    except UnknownRate:
+        return None
+
+
 def _replay_events(tb: TrajectoryBuilder, facet_results: list[FacetLoopResult],
-                   turn_start: int) -> int:
+                   turn_start: int, *, orchestrator_rates: Rates | None,
+                   analyzer_rates: Rates | None) -> int:
     """Write every facet's buffered loop events into ``tb``, in facet order.
 
     Facets run concurrently in their own threads (``TrajectoryBuilder`` is not
@@ -129,8 +151,7 @@ def _replay_events(tb: TrajectoryBuilder, facet_results: list[FacetLoopResult],
             if ev.kind == "oss_turn":
                 tb.add_model_step(
                     output=ev.oss_text or "", input=fr.facet.description,
-                    turn=turn,
-                    stats={"tokens": ev.oss_stats} if ev.oss_stats else None)
+                    turn=turn, stats=_stats(ev.oss_stats, orchestrator_rates))
                 for tc in ev.tool_calls:
                     tb.add_tool_call(
                         "search", tc["arguments"], tc["output"],
@@ -141,13 +162,13 @@ def _replay_events(tb: TrajectoryBuilder, facet_results: list[FacetLoopResult],
                     output=(f"satisfied={ev.satisfied} gap={ev.gap!r} "
                            f"kept={ev.relevant_count}"),
                     input=fr.facet.description, turn=turn,
-                    stats={"tokens": ev.qwen_stats} if ev.qwen_stats else None)
+                    stats=_stats(ev.qwen_stats, analyzer_rates))
             else:  # "curator"
                 tb.add_model_step(
                     output=(f"covered={ev.satisfied} gap={ev.gap!r} "
                            f"top_n={ev.relevant_count}"),
                     input=fr.facet.description, turn=turn,
-                    stats={"tokens": ev.qwen_stats} if ev.qwen_stats else None)
+                    stats=_stats(ev.qwen_stats, analyzer_rates))
             turn += 1
     return turn
 
@@ -156,6 +177,8 @@ def run_one(make_orchestrator: Callable[[], Any],
            make_analyzer: Callable[[], Any], *, qid: str, narrative: str,
            engines: list[str], run_id: str, run_desc: str,
            orchestrator_model_id: str, analyzer_model_id: str,
+           orchestrator_region: str = "ap-southeast-2",
+           analyzer_region: str = "us-east-1",
            max_chars: int, min_facets: int, max_facets: int,
            format_llm: bool = True) -> dict[str, Any]:
     """Execute the full plan -> facet loops -> synthesize pipeline."""
@@ -169,6 +192,8 @@ def run_one(make_orchestrator: Callable[[], Any],
         "strategy": "orchestrator/analyzer facet loops",
     }
     tb = TrajectoryBuilder(qid, narrative, metadata=meta)
+    orchestrator_rates = _load_rates(orchestrator_model_id, orchestrator_region)
+    analyzer_rates = _load_rates(analyzer_model_id, analyzer_region)
 
     # -- stage 1: plan --------------------------------------------------------
     t0 = now_iso()
@@ -178,7 +203,7 @@ def run_one(make_orchestrator: Callable[[], Any],
     t1 = now_iso()
     plan_stats = usage_token_stats(getattr(orchestrator, "_last_usage", {}))
     tb.add_reasoning(f"Plan:\n{plan_raw}", t_start=t0, t_end=t1, turn=0,
-                     stats={"tokens": plan_stats} if plan_stats else None)
+                     stats=_stats(plan_stats, orchestrator_rates))
 
     facets = parse_facets(plan_raw)
     if not facets:
@@ -192,7 +217,9 @@ def run_one(make_orchestrator: Callable[[], Any],
                 narrative=narrative, facet=facet, engines=engines,
                 max_chars=max_chars),
             facets))
-    next_turn = _replay_events(tb, facet_results, turn_start=1)
+    next_turn = _replay_events(tb, facet_results, turn_start=1,
+                               orchestrator_rates=orchestrator_rates,
+                               analyzer_rates=analyzer_rates)
 
     evidence = _merge_evidence(facet_results)
     docids = [e["docid"] for e in evidence]
@@ -206,7 +233,7 @@ def run_one(make_orchestrator: Callable[[], Any],
     draft_stats = usage_token_stats(getattr(draft_provider, "_last_usage", {}))
     tb.add_model_step(output="draft", input="(evidence)", t_start=t2,
                       t_end=now_iso(), turn=next_turn,
-                      stats={"tokens": draft_stats} if draft_stats else None)
+                      stats=_stats(draft_stats, orchestrator_rates))
     next_turn += 1
 
     t3 = now_iso()
@@ -216,12 +243,20 @@ def run_one(make_orchestrator: Callable[[], Any],
     check_stats = usage_token_stats(getattr(check_provider, "_last_usage", {}))
     tb.add_model_step(output="fact_check", input="(draft, evidence)",
                       t_start=t3, t_end=now_iso(), turn=next_turn,
-                      stats={"tokens": check_stats} if check_stats else None)
+                      stats=_stats(check_stats, analyzer_rates))
+    next_turn += 1
     final_text = checked.strip() or draft
 
     # -- artifacts: strict sentence/citation shape ----------------------------
+    t4 = now_iso()
     llm = _ProviderLLM(make_orchestrator()) if format_llm else None
     references, answer = format_answer(final_text, docids, llm=llm)
+    if llm is not None:
+        format_stats = usage_token_stats(getattr(llm._provider, "_last_usage", {}))
+        tb.add_model_step(output="format", input="(draft, docids)",
+                          t_start=t4, t_end=now_iso(), turn=next_turn,
+                          stats=_stats(format_stats, orchestrator_rates))
+        next_turn += 1
     tb.add_output_text(final_text, t_start=t3, t_end=now_iso(), turn=next_turn)
 
     ended_at = now_iso()

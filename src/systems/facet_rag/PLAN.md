@@ -544,6 +544,52 @@ item's "prior art").
 
 ### 6.1 Cost tracking and analysis
 
+**Done 2026-08-05.** `src/ragrun/pricing.py` — `Rates`/`load_rates`/`call_cost`
+ported from `bm25_tune` as designed below (budget-ceiling/ledger machinery
+left behind). Two rate tables fetched live from the AWS Pricing API and
+committed: `src/ragrun/prices/bedrock-openai-gpt-oss-120b-1-0-apsoutheast2-2026-08-05.json`
+and `...-qwen-qwen3-next-80b-a3b-useast1-2026-08-05.json` (facet_rag's
+orchestrator/analyzer models). Confirmed by a live Bedrock `converse()` call
+that the response never carries a dollar figure — only
+`usage.{input,output,cacheRead,cacheWrite}Tokens` — so cost is always
+*computed*, never read off a response; a per-call "empirical" cost does not
+exist (the only real empirical figure is AWS Cost Explorer/CUR, which lags
+24-48h and is a daily account aggregate, not per-call — deliberately not
+built, see the session's discussion).
+
+`BedrockProvider` now exposes `.region` (`aus_agent/providers/bedrock.py`,
+previously constructed straight into the boto3 client and discarded) so a
+step's `stats.cost` can be computed from the same provider instance that
+already exposed `.model_id`. `TrajectoryBuilder.finalize()` sums every step's
+`stats.cost.usd` into `trace.summary.cost` (`{usd, priced_calls,
+unpriced_calls}`) — pure aggregation, works for any system once it starts
+attaching per-step cost, so aus_agent/o3_deep_research/etc. get the rollup for
+free the moment they wire a step's `stats={"tokens":..., "cost":...}`.
+
+facet_rag itself is now fully wired (`pipeline.py`): `_stats()` attaches cost
+to all 6 call sites (plan, per-facet orchestrator turns, per-facet
+analyzer/curator turns, draft, fact-check) using two `Rates` objects computed
+once at the top of `run_one` from `orchestrator_model_id`/`analyzer_model_id`
++ the new `orchestrator_region`/`analyzer_region` params (threaded from
+`run.py`'s existing `--orchestrator-region`/`--analyzer-region` flags).
+**Bonus fix while wiring this:** the format-answer LLM call
+(`_ProviderLLM(make_orchestrator())`) had **no trace step at all** before this
+— its tokens and cost were completely invisible. It now gets its own
+`"format"` step. Live-verified on a real 2-facet CSGO run:
+`trace.summary.cost = {"usd": 0.031069, "priced_calls": 16, "unpriced_calls":
+0}` — every model call in that run priced, no unknowns. Tests:
+`tests/shared/test_pricing.py` (rate loading/matching, unit-guard, cost
+arithmetic, unpriced-model degrades to `None` not a crash) and 4 rollup tests
+in `tests/contract/test_output_trajectory.py`.
+
+**Still open:** the per-role rollup (§4 item 2.2's "was the curator's extra
+call worth it") — the total is there, but nothing yet slices `trace.summary`
+by orchestrator-vs-analyzer/curator role. `trace_steps` already has enough
+(each step's `stats.tokens`/`stats.cost` plus which prompt/role produced it is
+inferable from step order within `_replay_events`, though not tagged
+explicitly) to build this without new instrumentation — a follow-up, not
+blocked on anything above.
+
 **Why it matters here specifically:** every number in §0/§3 came from token
 counts (`ragrun.TrajectoryBuilder`'s `stats.tokens` block, via
 `facet_rag.loop.usage_token_stats`), never dollars. The curator's "one more LLM
@@ -585,6 +631,25 @@ pulling in ragrun's artifact-writing dependencies) that:
   the curator's extra call worth it") with a number instead of a guess.
 
 ### 6.2 Timing — wall-clock duration, per run and per stage
+
+**Done 2026-08-05** (the rollup half; the per-stage timestamping gap noted
+below is not). `TrajectoryBuilder.finalize()` now also emits
+`trace.summary.duration = {total_ms, by_type_ms, steps_with_duration,
+steps_total}` — pure aggregation over whatever `t_start`/`t_end`/
+`stats.duration_ms` steps already carry, zero per-system wiring, so every
+system gets this immediately. Live-verified on the same CSGO run as §6.1:
+`{"total_ms": 135784, "by_type_ms": {"reasoning": 1706, "generation": 25543,
+"output_text": 19211}, "steps_with_duration": 5, "steps_total": 30}` — which
+also re-confirms the gap this section already named: only 5/30 steps on that
+run carry `duration_ms` (facet-loop replay events still don't set
+`t_start`/`t_end`), so `by_type_ms` undercounts badly for `"generation"` and
+omits `"tool_call"`/`"reasoning"`-from-facets entirely. The rollup surfaces
+that coverage gap (`steps_with_duration`/`steps_total`) rather than hiding
+it — fixing the gap itself (timestamping `_replay_events`'s per-facet steps)
+is a separate, still-open change to `pipeline.py`/`loop.py`. Tests:
+`test_duration_summary_breaks_down_by_step_type` and
+`test_duration_summary_absent_when_nothing_is_timestamped` in
+`tests/contract/test_output_trajectory.py`.
 
 **Prior art, and the gap:** `ragrun.TrajectoryBuilder._trace_step` already
 computes `duration_ms` for every individual step from its `t_start`/`t_end`

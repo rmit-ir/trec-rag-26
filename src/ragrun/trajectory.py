@@ -275,6 +275,7 @@ class TrajectoryBuilder:
 
         messages = raw_messages or []
         cumulative_tokens = _attach_cumulative_token_usage(self.trace_steps)
+        cost_summary = _cost_summary(self.trace_steps)
         strict = {
             "metadata": self.metadata,
             "query_id": self.query_id,
@@ -296,6 +297,7 @@ class TrajectoryBuilder:
                 "retrieved_docids": sorted(self._docids),
                 **({"tokens": cumulative_tokens}
                    if cumulative_tokens else {}),
+                **({"cost": cost_summary} if cost_summary else {}),
             },
             "input": self._trace_input,
             "steps": self.trace_steps,
@@ -309,6 +311,9 @@ class TrajectoryBuilder:
         duration_ms = _duration_ms(started_at, ended_at)
         if duration_ms is not None:
             trace["duration_ms"] = duration_ms
+        duration_summary = _duration_summary(self.trace_steps, duration_ms)
+        if duration_summary:
+            trace["summary"]["duration"] = duration_summary
         if "usage" in self.metadata:
             trace["summary"]["usage"] = self.metadata["usage"]
         return TrajectoryArtifact(strict, trace=trace)
@@ -350,3 +355,66 @@ def _attach_cumulative_token_usage(
         if saw_usage:
             stats["cumulative_tokens"] = dict(cumulative)
     return cumulative if saw_usage else {}
+
+
+def _cost_summary(steps: list[dict[str, Any]]) -> dict[str, Any]:
+    """Sum every step's ``stats.cost`` (PLAN §6.1) into a run-level total.
+
+    Pure aggregation over whatever cost blocks the caller already attached
+    per step (see ``ragrun.pricing.cost_for_provider``) -- a system that never
+    attaches ``stats.cost`` gets no cost summary, not a fabricated zero.
+    """
+    total_usd = 0.0
+    priced_calls = 0
+    unpriced_calls = 0
+    for step in steps:
+        stats = step.get("stats")
+        if not isinstance(stats, dict):
+            continue
+        if stats.get("tokens") is None:
+            continue
+        cost = stats.get("cost")
+        if isinstance(cost, dict) and isinstance(cost.get("usd"), (int, float)):
+            total_usd += cost["usd"]
+            priced_calls += 1
+        else:
+            unpriced_calls += 1
+    if priced_calls == 0 and unpriced_calls == 0:
+        return {}
+    return {
+        "usd": round(total_usd, 8),
+        "priced_calls": priced_calls,
+        "unpriced_calls": unpriced_calls,
+    }
+
+
+def _duration_summary(steps: list[dict[str, Any]],
+                      total_duration_ms: int | None) -> dict[str, Any]:
+    """Roll per-step ``stats.duration_ms`` up by step ``type`` (PLAN §6.2).
+
+    Answers "how much of this run's wall-clock was retrieval vs. LLM calls
+    vs. formatting" without re-deriving it by hand from raw steps. Coverage
+    counts are included because most systems only timestamp a subset of
+    steps today (the loop's replayed events don't set ``t_start``/``t_end``),
+    so a caller can tell a genuine breakdown from a sparse one.
+    """
+    by_type: dict[str, int] = {}
+    steps_with_duration = 0
+    for step in steps:
+        stats = step.get("stats")
+        if not isinstance(stats, dict):
+            continue
+        duration_ms = stats.get("duration_ms")
+        if not isinstance(duration_ms, (int, float)):
+            continue
+        steps_with_duration += 1
+        step_type = str(step.get("type") or "unknown")
+        by_type[step_type] = by_type.get(step_type, 0) + int(duration_ms)
+    if total_duration_ms is None and not by_type:
+        return {}
+    return {
+        **({"total_ms": total_duration_ms} if total_duration_ms is not None else {}),
+        "by_type_ms": by_type,
+        "steps_with_duration": steps_with_duration,
+        "steps_total": len(steps),
+    }

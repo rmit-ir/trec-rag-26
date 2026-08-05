@@ -94,6 +94,7 @@ class BedrockProvider(Provider):
                  caching: bool | None = None) -> None:
         self.model_id = (model_id
                          or os.environ.get("BEDROCK_MODEL_ID", DEFAULT_MODEL_ID))
+        self.region = region or os.environ.get("BEDROCK_REGION", DEFAULT_REGION)
         # ``thinking``/``caching`` request fields (adaptive-thinking,
         # cachePoint) are Anthropic-specific Converse extensions — sending
         # them to a non-Anthropic model (Qwen, Kimi, ...) 400s. Default both
@@ -104,7 +105,7 @@ class BedrockProvider(Provider):
         self.caching = is_anthropic if caching is None else caching
         self._client = boto3.client(
             "bedrock-runtime",
-            region_name=region or os.environ.get("BEDROCK_REGION", DEFAULT_REGION),
+            region_name=self.region,
             config=Config(read_timeout=600, connect_timeout=30,
                           retries={"max_attempts": 5, "mode": "adaptive"}),
         )
