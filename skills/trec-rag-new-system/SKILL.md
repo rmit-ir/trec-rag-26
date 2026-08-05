@@ -312,6 +312,20 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
   `STAGE_REGISTRY` keyed by system name in the script (this covers the systems
   that predate the convention). **When you add a system, edit its `ARCH_STAGES`
   to match the real control flow, then regenerate.**
+- **Per-stage detail (issue #20).** A stage can optionally declare `prompt`
+  (list of `<path-relative-to-src>[::CONST]` refs to its prompt template(s)),
+  `code` (same ref shape, to the function/class implementing it), `tools`
+  (native tool-calling: `[{"name", "ref"}]`), `engines` (facet_rag-style
+  engine blurbs: `{"mandatory": ref, "optional": ref}` to a tuple/list
+  constant), `tools_note` (one-line why/how), and, on a `loop` stage,
+  `parallel_over` (e.g. `"facet"`, when the loop's iterations also run
+  concurrently across something, not just sequentially). All refs are
+  verified against the actual source at generation time — a renamed or
+  removed symbol fails `gen_arch_viz.py` loudly rather than showing stale
+  detail. `run` (`llm`/`code`/`llm+code`) is *derived*, not authored: a stage
+  is agentic iff it declares `prompt`, code iff it declares `code`. Clicking
+  a stage in the drill-in view opens a detail panel showing all of this,
+  including tools/engines inherited from its enclosing loop.
 
 ## Non-Automated Requirements (do these by hand)
 
