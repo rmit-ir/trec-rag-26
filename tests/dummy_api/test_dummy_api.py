@@ -296,9 +296,13 @@ def test_facet_rag_pipeline_over_dummy_api(monkeypatch, read_artifacts):
 
     def orchestrator_responder(pending: str, turn: int) -> dict:
         if "ALLOWED DOCIDS" in pending:
-            allowed = json.loads(
+            raw = json.loads(
                 re.search(r"ALLOWED DOCIDS:\s*(\[.*?\])", pending,
                           re.DOTALL).group(1))
+            # Entries may be bare docid strings or {"docid": ..., "excerpt":
+            # ...} objects (PLAN.md §3.4 -- the formatter now sees evidence
+            # text).
+            allowed = [d["docid"] if isinstance(d, dict) else d for d in raw]
             cite = [allowed[0]] if allowed else []
             return model_turn(text=json.dumps({"sentences": [
                 {"text": "Congestion pricing funds transit capital work.",

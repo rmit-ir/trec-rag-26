@@ -87,11 +87,20 @@ EVIDENCE ALREADY SAVED FOR THIS FACET:
 NEWLY RETRIEVED PASSAGES:
 {passages}
 
-For each newly retrieved passage that supports the facet, keep it: note what \
-it supports and why. Then judge whether the facet is now adequately covered \
-by the saved + newly kept evidence together, or whether a specific gap \
-remains that another search could fill (name the gap concretely, e.g. what \
-aspect, entity, or comparison is still missing — not "need more info").
+For each newly retrieved passage that supports the facet, keep it. Its note \
+must be a pre-written list of the SPECIFIC facts this passage contributes — \
+numbers, dates, names, figures — not a topic label ("Detailed 401k vs Roth \
+IRA comparison: contribution limits ($22,500/$6,500 2023), RMD age 73, \
+employer match" is a usable note; "discusses retirement accounts" is not). \
+Also name the passage's ROLE: is it core support, a counter-argument or \
+caveat, a concrete example, or background context? Actively look for \
+counter-evidence, contradictions, and limitations, not only confirming \
+material — a passage that complicates or qualifies the facet's claim is as \
+worth keeping as one that supports it, and its note should say so. Then \
+judge whether the facet is now adequately covered by the saved + newly kept \
+evidence together, or whether a specific gap remains that another search \
+could fill (name the gap concretely, e.g. what aspect, entity, or comparison \
+is still missing — not "need more info").
 
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
 {{"relevant": [{{"docid": "<docid from the passages above>", \

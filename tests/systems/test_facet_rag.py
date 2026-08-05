@@ -76,7 +76,10 @@ def _query_plan_text(*, suffix: str = "", boolean_engine: str | None = None,
 
 def _format_text(pending: str) -> str:
     match = _ALLOWED_DOCIDS_RE.search(pending)
-    docids = json.loads(match.group(1)) if match else []
+    raw = json.loads(match.group(1)) if match else []
+    # Entries may be bare docid strings or {"docid": ..., "excerpt": ...}
+    # objects (PLAN.md §3.4 -- the formatter now sees evidence text).
+    docids = [d["docid"] if isinstance(d, dict) else d for d in raw]
     cites = docids[:1]
     return json.dumps({"sentences": [
         {"text": "Influenza vaccines reduce illness risk.", "citations": cites},

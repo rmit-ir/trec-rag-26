@@ -80,21 +80,27 @@ Current date: """
 # ---------------------------------------------------------------------------
 FORMAT_ANSWER_PROMPT = """You convert a research answer into the strict TREC RAG 2026 citation format.
 
-You are given (a) a DRAFT ANSWER and (b) a list of ALLOWED DOCIDS (ClimbMix corpus document ids the answer is grounded in).
+You are given (a) a DRAFT ANSWER and (b) ALLOWED DOCIDS — the ClimbMix corpus documents the answer is grounded in. Each entry is {{"docid": ...}} or, when available, {{"docid": ..., "excerpt": "..."}} — use the excerpt to verify a sentence is actually supported before citing that docid; if no excerpt is given, judge support from the docid's role in the DRAFT ANSWER's own reasoning.
 
 Rewrite the draft as a list of short factual sentences. Preserve every \
 specific fact, figure, date, and name in the DRAFT ANSWER — do not compress \
 or summarize them away; a longer, fact-dense answer is preferred over a \
 shorter one that drops detail. For every sentence, attach ONLY the docids \
 from the ALLOWED DOCIDS list that GENUINELY AND DIRECTLY support that exact \
-sentence — never pad the list to hit a target count. Zero citations is \
-valid and correct for a sentence nothing in the allowed list actually \
-supports; do not attach a weak or tangential docid just to have one. At \
-most 3 citations per sentence when more than one applies, ordered from \
-strongest to weakest support. Only cite docids from the ALLOWED DOCIDS \
-list — never invent one. The answer may use up to 1024 words — use as much \
-of that budget as the DRAFT ANSWER's content supports; do not artificially \
-shorten it. Drop markdown formatting; produce plain declarative sentences.
+sentence — never pad the list to hit a target count; do not attach a weak \
+or tangential docid just to have one. If a sentence makes a factual claim \
+that nothing in the ALLOWED DOCIDS list genuinely supports, DELETE that \
+sentence rather than keep it uncited — an uncited factual claim is pure \
+loss (excluded from precision scoring entirely, scores zero for recall), \
+so dropping it is strictly better. The one exception: a sentence that \
+asserts nothing about the world — a pure transition, framing, or connective \
+clause — may stay with zero citations, since there is nothing in it to \
+support. At most 3 citations per sentence when more than one applies, \
+ordered from strongest to weakest support. Only cite docids from the \
+ALLOWED DOCIDS list — never invent one. The answer may use up to 1024 \
+words — use as much of that budget as the DRAFT ANSWER's content supports; \
+do not artificially shorten it. Drop markdown formatting; produce plain \
+declarative sentences.
 
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
 {{"sentences": [{{"text": "<one sentence>", "citations": ["<docid>", ...]}}, ...]}}

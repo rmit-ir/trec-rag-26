@@ -250,7 +250,9 @@ def run_one(make_orchestrator: Callable[[], Any],
     # -- artifacts: strict sentence/citation shape ----------------------------
     t4 = now_iso()
     llm = _ProviderLLM(make_orchestrator()) if format_llm else None
-    references, answer = format_answer(final_text, docids, llm=llm)
+    evidence_text = {e["docid"]: e["text"] for e in evidence}
+    references, answer = format_answer(final_text, docids, llm=llm,
+                                       evidence_text=evidence_text)
     if llm is not None:
         format_stats = usage_token_stats(getattr(llm._provider, "_last_usage", {}))
         tb.add_model_step(output="format", input="(draft, docids)",

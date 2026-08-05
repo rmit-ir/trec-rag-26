@@ -145,20 +145,53 @@ def _from_llm_json(raw: str, candidate_docids: list[str]
     return refs, answer
 
 
+EXCERPT_CHARS = 800
+
+
+def _render_allowed_docids(candidate_docids: list[str],
+                           evidence_text: dict[str, str] | None) -> str:
+    """The ALLOWED DOCIDS payload the formatter prompt sees.
+
+    Without ``evidence_text`` this is the historical bare-id list (what
+    ali_deepresearch/o3_deep_research still pass — they don't keep per-docid
+    text around at their format_answer call site). With it, each entry also
+    carries a short excerpt so the model can actually verify a sentence
+    against the source instead of citing (or not citing) an opaque id blind —
+    PLAN.md §3.4's diagnosed cause of the occasional all-zero-citation output.
+    ``EXCERPT_CHARS`` deliberately truncates rather than sending each item's
+    full (now up to 20 000-char) text — this call only needs enough to check
+    a specific fact, not the whole passage; sending everything would blow up
+    the formatter prompt's size for no benefit.
+    """
+    if not evidence_text:
+        return json.dumps(candidate_docids, ensure_ascii=False)
+    entries: list[dict[str, str]] = []
+    for docid in candidate_docids:
+        entry = {"docid": docid}
+        text = evidence_text.get(docid)
+        if text:
+            entry["excerpt"] = text[:EXCERPT_CHARS]
+        entries.append(entry)
+    return json.dumps(entries, ensure_ascii=False)
+
+
 def format_answer(answer_text: str, candidate_docids: list[str], *,
-                  llm: Any | None = None
+                  llm: Any | None = None,
+                  evidence_text: dict[str, str] | None = None
                   ) -> tuple[list[str], list[dict[str, Any]]]:
     """Return ``(references, answer)`` for the TREC RAG output object.
 
     ``candidate_docids`` is the allow-list the answer may cite (docids the agent
     actually retrieved). With ``llm`` set, one formatting call is attempted and
     validated; any failure falls back to the deterministic heuristic.
+    ``evidence_text`` (docid -> text), when the caller has it, lets the
+    formatter verify each citation against an excerpt rather than an opaque id.
     """
     candidate_docids = list(dict.fromkeys(candidate_docids))  # unique, ordered
     if llm is not None and answer_text:
         prompt = FORMAT_ANSWER_PROMPT.format(
             answer=answer_text,
-            docids=json.dumps(candidate_docids, ensure_ascii=False))
+            docids=_render_allowed_docids(candidate_docids, evidence_text))
         try:
             raw = llm.complete([{"role": "user", "content": prompt}],
                                stop=None, max_tokens=4000)
