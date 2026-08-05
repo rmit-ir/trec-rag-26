@@ -549,6 +549,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               system_name: str = "aus_agent",
               system_prompt: str | None = None,
               default_k_by_engine: dict[str, int] | None = None,
+              commit_context_tool: dict[str, Any] | None = None,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -564,6 +565,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     with its own prompt does not need a file under this package's
     ``prompts/system/``. ``default_k_by_engine`` overrides the per-call result
     count for a named engine when the model's call omits ``k``.
+    ``commit_context_tool`` — when given — is advertised to the model instead
+    of this module's own ``COMMIT_CONTEXT_TOOL``; ``apply_commit`` already
+    handles a ``release`` argument whenever the call carries one regardless of
+    which tool definition advertised it, so a caller only needs to supply a
+    schema that documents the field (e.g. one extending ``COMMIT_CONTEXT_TOOL``
+    with a ``release`` property) to expose it.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -777,7 +784,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         tool_definitions = [
             build_search_tool_def(engines),
             GET_DOCUMENTS_TOOL,
-            COMMIT_CONTEXT_TOOL,
+            commit_context_tool or COMMIT_CONTEXT_TOOL,
         ]
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         tb.set_trace_input({
@@ -1045,6 +1052,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 pending_before = list(ledger.pending)
                 committed_before = set(ledger.committed_ids)
                 rejected_before = set(ledger.rejected_ids)
+                committed_call_id_before = dict(ledger.committed_call_id)
                 try:
                     handled = apply_commit(
                         ledger,
@@ -1060,6 +1068,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     ledger.pending = pending_before
                     ledger.committed_ids = committed_before
                     ledger.rejected_ids = rejected_before
+                    ledger.committed_call_id = committed_call_id_before
                     decision = expire_staged(
                         ledger,
                         max_documents=max_committed_per_step,
@@ -1084,8 +1093,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     context = decision.context
                     documents = []
                 else:
+                    # A release (if any) touches call_ids OUTSIDE this turn's
+                    # staged batch, so it is merged into the SAME compaction
+                    # call as the normal commit -- one atomic provider-history
+                    # rewrite either way.
+                    replacements = dict(decision.replacements)
+                    if handled.release is not None:
+                        replacements.update(handled.release.replacements)
                     try:
-                        provider.compact_tool_results(decision.replacements)
+                        provider.compact_tool_results(replacements)
                     except Exception:
                         # Provider-history compaction is atomic with the ledger
                         # update. A backend failure ends the run rather than
@@ -1093,10 +1109,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         ledger.pending = pending_before
                         ledger.committed_ids = committed_before
                         ledger.rejected_ids = rejected_before
+                        ledger.committed_call_id = committed_call_id_before
                         raise
                     out = json.dumps(handled.payload, ensure_ascii=False)
                     failed = False
                     context = decision.context
+                    if handled.release is not None:
+                        context = {**context,
+                                  "released": handled.release.released}
                     documents = decision.documents
                 ct1 = now_iso()
                 duration_ms = round(

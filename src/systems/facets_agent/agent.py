@@ -32,6 +32,7 @@ from aus_agent.agent import (
 )
 
 from .prompts import SYSTEM_PROMPT
+from .tools import COMMIT_CONTEXT_TOOL
 
 SYSTEM_NAME = "facets_agent"
 
@@ -65,11 +66,13 @@ ARCH_STAGES = [
                {"name": "get_documents",
                 "ref": "systems/aus_agent/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
                {"name": "commit_context",
-                "ref": "systems/aus_agent/tools/commit_context.py::COMMIT_CONTEXT_TOOL"}],
+                "ref": "systems/facets_agent/tools.py::COMMIT_CONTEXT_TOOL"}],
      "tools_note": "native tool-calling, passed once to provider.start "
                     "(the 3 NL engines enabled by default: "
                     "build_search_tool_def(DEFAULT_ENGINES) + "
-                    "GET_DOCUMENTS_TOOL + COMMIT_CONTEXT_TOOL; "
+                    "GET_DOCUMENTS_TOOL + this system's own "
+                    "COMMIT_CONTEXT_TOOL, which extends aus_agent's with a "
+                    "release property so a facet's evidence stays minimal; "
                     "ssr/lucene_bool are no longer supported)"},
     {"id": "search", "label": "SEARCH", "kind": "retrieval",
      "note": "facet-decomposed queries per engine; hybrid gets a HyDE-style "
@@ -83,10 +86,11 @@ ARCH_STAGES = [
      "code": ["systems/aus_agent/context.py::ContextLedger.stage"]},
     {"id": "commit", "label": "REASON/COMMIT", "kind": "llm",
      "note": "model turn curates: commit only each result's distinct "
-             "contribution, drop near-duplicates",
+             "contribution, release a committed doc a better one supersedes",
      "prompt": ["systems/facets_agent/prompts.py::SYSTEM_PROMPT"],
      "code": ["systems/aus_agent/tools/commit_context.py::apply_commit",
-              "systems/aus_agent/context.py::ContextLedger.commit"]},
+              "systems/aus_agent/context.py::ContextLedger.commit",
+              "systems/aus_agent/context.py::ContextLedger.release_committed"]},
     {"id": "final", "label": "FINAL PROSE", "kind": "llm",
      "note": "self-checks citations, then grounded prose with inline cites",
      "prompt": ["systems/facets_agent/prompts.py::SYSTEM_PROMPT"],
@@ -126,4 +130,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
         max_committed_per_step=max_committed_per_step, run_id=run_id,
         run_desc=run_desc, system_name=SYSTEM_NAME,
         system_prompt=system_prompt, prompt_variant="facets_agent_minimal",
-        default_k_by_engine={"hybrid": hybrid_k}, **kwargs)
+        default_k_by_engine={"hybrid": hybrid_k},
+        commit_context_tool=COMMIT_CONTEXT_TOOL, **kwargs)

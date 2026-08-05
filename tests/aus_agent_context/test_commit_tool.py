@@ -258,6 +258,71 @@ def test_no_instruction_is_added_while_research_can_continue(
 
 
 # ---------------------------------------------------------------------------
+# apply_commit — release (opt-in: only touched when the call carries one)
+# ---------------------------------------------------------------------------
+def test_apply_commit_ignores_a_call_with_no_release_key(
+        ledger_with) -> None:
+    """The common case (a system whose tool schema never advertises
+    ``release``, or a call that just doesn't use it) must be byte-identical
+    to before this feature existed: no ``released`` key, no ``.release``."""
+    ledger = ledger_with(("search-1", "alpha"))
+    handled = apply_commit(ledger, {"documents": [
+        {"docid": "b", "reason": "direct evidence"}]},
+        max_documents=3, finishing=False)
+    assert set(handled.payload) == {"committed", "rejected"}
+    assert handled.release is None
+
+
+def test_apply_commit_processes_a_release_alongside_a_commit(
+        ledger_with) -> None:
+    """The documented use case: commit a better document, release the one it
+    supersedes, in one call."""
+    ledger = ledger_with(("search-1", "alpha"))
+    apply_commit(ledger, {"documents": [
+        {"docid": "a", "reason": "first pass"}]},
+        max_documents=3, finishing=False)
+
+    ledger.stage("search-2", "search", '{"query": "beta", "k": 10, '
+                 '"results": [{"rank": 1, "id": "z", "docid": "z", '
+                 '"kind": "document", "score": 1.0, "text": "better text"}]}',
+                 [{"id": "z", "docid": "z", "kind": "document", "score": 1.0,
+                   "text": "better text"}])
+    handled = apply_commit(ledger, {
+        "documents": [{"docid": "z", "reason": "states it more precisely"}],
+        "release": [{"id": "a", "reason": "z supersedes this"}],
+    }, max_documents=3, finishing=False)
+
+    assert handled.release is not None
+    assert handled.release.released == [
+        {"docid": "a", "reason": "z supersedes this"}]
+    assert handled.payload["released"] == handled.release.released
+    assert ledger.committed_ids == {"z"}
+    assert "search-1" in handled.release.replacements
+
+
+def test_apply_commit_propagates_a_release_validation_error_unchanged(
+        ledger_with) -> None:
+    """A release naming an uncommitted id must fail the same way an invalid
+    commit selection does -- ``run_agent`` catches ``ValueError`` uniformly
+    and expires the whole batch."""
+    ledger = ledger_with(("search-1", "alpha"))
+    with pytest.raises(ValueError, match="not currently committed"):
+        apply_commit(ledger, {
+            "documents": [{"docid": "b", "reason": "kept"}],
+            "release": [{"id": "a", "reason": "never committed"}],
+        }, max_documents=3, finishing=False)
+
+
+def test_apply_commit_rejects_a_non_list_release_argument(
+        ledger_with) -> None:
+    ledger = ledger_with(("search-1", "alpha"))
+    ledger.commit([{"docid": "a", "reason": "kept"}], max_documents=3)
+    with pytest.raises(ValueError, match="release must be an array"):
+        apply_commit(ledger, {"documents": [], "release": "a"},
+                     max_documents=3, finishing=False)
+
+
+# ---------------------------------------------------------------------------
 # expire_staged
 # ---------------------------------------------------------------------------
 def test_expire_staged_rejects_everything_with_the_given_reason(

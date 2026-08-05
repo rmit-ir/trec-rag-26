@@ -107,13 +107,80 @@ ask ("especially the three search tools, semantic, keyword, hybrid"). The
 shared `tools.search_tool.ENGINE_INFO` still lists all five — this change is
 scoped to what `facets_agent` offers, not a repo-wide deprecation.
 
+## Update: release a superseded committed document (real harness capability)
+
+Follow-up ask: each facet should end up with the MINIMAL set of committed
+documents that covers it — when a better document is found for something
+already committed, drop the redundant one rather than accumulating both.
+
+This is NOT achievable by prompt wording alone. Once a document is committed,
+its full text lives verbatim in the model's OWN conversation history; nothing
+short of a tool action can make that text go away again, and the existing
+`commit_context` tool can only select from the batch staged THIS turn — it
+has no way to reach back and touch something committed on an earlier turn.
+Asked the user to confirm scope (prompt-only guidance vs. a real capability)
+before building it; they chose the real capability.
+
+Added, all additive/opt-in (existing `aus_agent` behavior is byte-identical
+when the new fields are absent, confirmed by the full existing test suite
+passing unchanged):
+
+- `ContextLedger.release_committed(released)` (`aus_agent/context.py`) — drops
+  a unit committed on ANY earlier turn by recomputing that turn's ORIGINAL
+  tool-result compaction from scratch (kept forever in a new `call_history`
+  dict, since `pending` clears every commit) against the ledger's CURRENT
+  `committed_ids` membership. Recompute-from-scratch means it never needs to
+  read the provider's current (possibly already partially compacted) history
+  back out — `_compact_output` is idempotent given (original output, current
+  keep-set). A new `committed_call_id: dict[unit_id, call_id]` tracks which
+  call currently renders each committed unit in full, set inside `commit()`'s
+  existing `keep_here` loop, cleared on release. `RELEASE_PREFIX` is a THIRD
+  tombstone wording distinct from `REJECTION_PREFIX` ("you judged this
+  irrelevant") and `DUPLICATE_PREFIX` ("a full copy lives elsewhere") — a
+  released document was neither; the model held it and chose to let it go.
+- `ContextDecision` (i.e. `CommitDecision`) is deliberately NOT touched —
+  `test_ledger_core.py::test_commit_decision_context_is_the_trace_projection`
+  asserts its `.context` property's exact key set, so release info goes
+  through a SEPARATE `ReleaseDecision` dataclass instead, and gets folded
+  into a merged dict only at the call site in `agent.py` (not inside either
+  dataclass) when building the trace's `context=` argument.
+  `apply_commit`/`CommitHandlerResult` similarly only add a `released` payload
+  key / `.release` field when the call actually carries one (guarded by
+  `test_apply_commit_returns_the_decision_and_the_models_payload`'s equally
+  strict `set(handled.payload) == {"committed", "rejected"}` assertion for the
+  no-release case).
+- `aus_agent.agent.run_agent` gained a fourth generalization parameter,
+  `commit_context_tool: dict[str, Any] | None = None` — the tool actually
+  advertised to the model, defaulting to aus_agent's own. Needed because
+  `apply_commit` reading `arguments.get("release")` is harmless-by-omission
+  but useless unless the model's tool SCHEMA documents the field exists.
+- `facets_agent/tools.py::COMMIT_CONTEXT_TOOL` — facets_agent's own copy,
+  extending aus_agent's with the `release` schema property and description.
+  aus_agent's own tool definition is completely untouched.
+- `facets_agent/prompts.py` — step 3 rewritten to state the minimal-evidence
+  goal and the release mechanic directly; step 1 now says explicitly to solve
+  facets independently (was implicit before).
+
+Test coverage added: `tests/aus_agent_context/test_ledger_release.py` (11
+cases: cross-turn recompaction, sibling units left alone, recompute-from-
+original not from a prior compaction, validation errors, re-committing a
+released id later), `test_commit_tool.py` (5 cases: no-op when absent,
+combined commit+release in one call, validation-error propagation), and
+`tests/systems/test_facets_agent.py` (the tool schema advertises `release`;
+a full commit -> supersede -> release -> cite-only-the-better-one run reaches
+`run_agent` end to end and the superseded document's text is actually gone
+from provider history, not just from the final citations).
+
 ## Verification
 
-- `bash scripts/test.sh` — 1570 passed, 1 pre-existing unrelated failure
+- `bash scripts/test.sh` — 1587 passed (up from 1570 after the release
+  feature's new tests), 1 pre-existing unrelated failure
   (`tests/bm25_tune/test_prompts.py` needs `evaluation-results/` data not
   present on this machine — confirmed pre-existing via `git stash`).
-- `bash scripts/test.sh systems` — 291 passed (all five systems, unaffected
-  by the `aus_agent/agent.py` generalization).
+- `bash scripts/test.sh systems` — 293 passed (all five systems, unaffected
+  by the `aus_agent/agent.py` generalizations).
+- `bash scripts/test.sh tests/aus_agent_context` — 166 passed (151 pre-
+  existing, unchanged, + 15 new for `release_committed`/`apply_commit`).
 - `python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check` — clean
   after regenerating.
 - `uv sync --group facets-agent` and `uv run --group facets-agent python

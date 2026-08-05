@@ -122,6 +122,64 @@ def test_get_documents_tool_is_available(
     assert {"search", "get_documents", "commit_context"} <= names
 
 
+def test_commit_context_tool_advertises_release(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """facets_agent's own extended commit_context, not aus_agent's plain one,
+    must reach the model -- otherwise the model has no way to learn the
+    ``release`` field exists."""
+    result = drive(list(HAPPY_SCRIPT))
+    commit_tool = next(
+        t for t in result["provider"].tools if t["name"] == "commit_context")
+    assert "release" in commit_tool["input_schema"]["properties"]
+
+
+# A better document (D[1]) shows up on a second search and supersedes the
+# first-committed one (D[0]): commit D[0], search again, commit D[1] while
+# releasing D[0] in the same call, then cite only D[1].
+RELEASE_SCRIPT = [
+    model_turn(reasoning=["First pass: search hybrid."],
+               tool_calls=[tool_call(
+                   "search", {"query": "congestion pricing revenue plan",
+                              "search_engine": "hybrid"}, id="s1")]),
+    model_turn(text="Keep this for now.",
+               tool_calls=[tool_call("commit_context", {"documents": [
+                   {"docid": D[0], "reason": "first version of the figure"}]},
+                   id="c1")]),
+    model_turn(reasoning=["Search again for a more precise source."],
+               tool_calls=[tool_call(
+                   "search", {"query": "congestion pricing revenue precise "
+                                       "figure", "search_engine": "semantic"},
+                   id="s2")]),
+    model_turn(text="This states the figure more precisely; drop the first.",
+               tool_calls=[tool_call("commit_context", {
+                   "documents": [{"docid": D[1],
+                                  "reason": "states the figure precisely"}],
+                   "release": [{"id": D[0],
+                                "reason": f"{D[1]} states this more precisely"}],
+               }, id="c2")]),
+    model_turn(text=f"Toll revenue funds the capital plan [{D[1]}]."),
+]
+
+
+def test_release_drops_a_superseded_document_end_to_end(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The whole release path -- tool schema, apply_commit, ContextLedger
+    .release_committed, provider.compact_tool_results -- must be reachable
+    through facets_agent's configured harness, not just unit-testable in
+    isolation. The superseded document must never reach the final answer
+    even though it was committed first."""
+    result = drive(list(RELEASE_SCRIPT))
+    assert result["summary"]["status"] == "completed"
+    assert result["summary"]["n_references"] == 1
+
+    from aus_agent.context import RELEASE_PREFIX
+
+    s1_result = next(
+        m for m in result["provider"].raw_messages
+        if isinstance(m, dict) and m.get("tool_call_id") == "s1")
+    assert RELEASE_PREFIX in s1_result["content"]
+
+
 @pytest.mark.live
 def test_run_agent_live() -> None:
     """Same path against the real ClimbMix + OpenAI endpoints (needs creds)."""

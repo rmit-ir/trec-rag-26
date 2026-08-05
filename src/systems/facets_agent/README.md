@@ -40,18 +40,52 @@ only what makes this system distinct:
   a HyDE-style hypothetical passage, which benefits from more candidates).
 - `system_name="facets_agent"` — artifacts land in `data/outputs/facets_agent/`,
   never mixed with `aus_agent`'s own runs.
+- `tools.COMMIT_CONTEXT_TOOL` — extends aus_agent's shared tool with a
+  `release` property, and `commit_context_tool=` passes it to `run_agent`
+  instead of aus_agent's plain one. See "Minimal evidence per facet" below.
 
 ## The prompt
 
 Unlike `aus_agent/prompts/system/default.md` (~270 lines, heavily tuned
 across many prompt-engineering passes), `facets_agent/prompts.py` is a single
-~50-line prompt. It states the five-stage process once, plainly — decompose
-into facets; search each facet on `semantic` + `keyword` + a HyDE-style
-`hybrid` query; curate distinct contributions rather than duplicates; iterate
-until a facet is covered; self-check citations before finalizing — and states the
+~65-line prompt. It states the five-stage process once, plainly — decompose
+into facets and solve each independently; search each facet on `semantic` +
+`keyword` + a HyDE-style `hybrid` query; keep each facet's committed evidence
+minimal, releasing a document a better one supersedes; iterate until a facet
+is covered; self-check citations before finalizing — and states the
 tool/citation mechanics (`search` / `get_documents` / `commit_context`, the
 one-sentence-per-line `[id]`-cited final report) once each, trusting the model
 to fill in the judgment calls that `aus_agent`'s prompt spells out at length.
+
+## Minimal evidence per facet: releasing a superseded document
+
+Each facet is meant to end up with the SMALLEST set of committed documents
+that actually covers it, not every document that was ever useful along the
+way. `commit_context`'s ordinary `documents` selection only ever grows that
+set — nothing in the base protocol lets an already-committed document's full
+text leave the conversation once it is in, because that text now lives
+verbatim in the model's OWN history. Making "commit the better one, drop the
+one it replaces" possible needed a real harness capability, not just prompt
+wording:
+
+- `aus_agent.context.ContextLedger.release_committed` — drops a unit
+  committed on ANY earlier turn (not just the currently staged batch) by
+  recomputing that turn's tool-result compaction from scratch (original
+  output + current `committed_ids` membership), so it needs no way to read
+  the provider's current, possibly-already-compacted history back out.
+- `aus_agent.tools.commit_context.apply_commit` reads an optional `release`
+  argument off any `commit_context` call and routes it there, regardless of
+  which system's tool schema advertised the field — so this is dead code for
+  `aus_agent` itself (whose prompt and tool definition never mention
+  `release`) and live for `facets_agent`.
+- `facets_agent.tools.COMMIT_CONTEXT_TOOL` is the schema that actually tells
+  the model the field exists: aus_agent's own tool definition is untouched.
+
+The result: `commit_context(documents=[{id: "z", reason: "..."}],
+release=[{id: "a", reason: "z states this more precisely"}])` commits `z` and
+retroactively compacts whichever earlier turn rendered `a` in full, replacing
+it with a tombstone the model can tell apart from an ordinary rejection or
+duplicate (`RELEASE_PREFIX`, `aus_agent/context.py`).
 
 ## CLI
 
@@ -83,8 +117,14 @@ The offline suite drives the real harness (scripted provider + stubbed
 retrieval) and checks what's specific to this system: artifacts land under
 `facets_agent`, not `aus_agent`; the search tool advertises the three
 natural-language engines (not `ssr`/`lucene_bool`, no longer supported); an
-omitted `k` on a `hybrid` call widens to `DEFAULT_HYBRID_K`; and
-`get_documents` is wired in. The loop mechanics themselves (staged/committed
-evidence, citation parsing, budget/backstop behavior) are already covered by
+omitted `k` on a `hybrid` call widens to `DEFAULT_HYBRID_K`; `get_documents`
+is wired in; the `commit_context` tool advertises `release`; and a full
+commit -> supersede -> release -> cite-only-the-better-one run reaches the
+final answer with the superseded document's text actually gone from
+history. The loop mechanics themselves (staged/committed evidence, citation
+parsing, budget/backstop behavior) are already covered by
 `tests/systems/test_aus_agent.py` against the same shared code and are not
-re-tested here.
+re-tested here; `ContextLedger.release_committed` and `apply_commit`'s
+`release` handling have their own unit suites in
+`tests/aus_agent_context/test_ledger_release.py` and
+`test_commit_tool.py`.
