@@ -33,6 +33,27 @@ choice for the same reason (generated neither system's answers here -- both
 ran on gpt-5.6-luna -- so no self-preference risk carries into the scoring
 either).
 
+Two lessons from the first two times this script ran (2026-08-05), both now
+baked in rather than left as manual follow-up work:
+
+- **The arena win/loss/ambiguous grouping must be read from the arena's own
+  ``judgments.jsonl`` every run, never hardcoded.** The first version of this
+  script had the grouping as a module-level constant; the second time
+  facets_agent was re-run (new answers, same topics) the arena groups shifted
+  (7/3/5 -> 7/1/7) and the hardcoded constant silently printed a scorecard
+  against the WRONG topics in the "facets_agent" and "ambiguous" rows. Now
+  read live via ``load_arena_groups``.
+- **Per-topic-averaged axis scores (``per_axis_score`` + ``group_avg``)
+  mislead on sparse axes.** A one-criterion-per-topic axis (Instruction
+  Following, References & Citation Quality here) lets a single criterion in
+  a single topic look like a broad axis-level pattern when averaged across
+  topics -- this is exactly what happened in the first run of this script
+  (see ``worklogs/2026-08-05-aus-agent-vs-facets-agent-per-criterion-followup.md``).
+  A second table, ``criterion_tally`` (sums weighted differences across ALL
+  criteria in a group, not averaged per topic), is printed alongside the
+  per-topic one and is the one to trust for sparse axes; both are kept
+  because the per-topic version is still fine for volume-dense axes.
+
 Usage (repo root; needs OPENAI creds -- see ``load_env``):
 
     uv run --group aus-agent python \
@@ -57,22 +78,9 @@ RUN_IDS = {"aus_agent": "aus-agent-15topic", "facets_agent": "facets-agent-15top
 RESEARCH_RUBRICS = (ROOT / "data/official/trec-rag-2026-data/trec-rag-2026/"
                     "development-data/researchrubrics-dev-rubrics/"
                     "research-rubrics-dev-rubrics.jsonl")
-# The arena's win/loss grouping (worklogs/2026-08-05-aus-agent-vs-facets-agent-
-# rubric-arena.md) -- used only to print the scorecard split by group, not
-# recomputed here.
-ARENA_GROUPS = {
-    "aus_agent": ["683a58c9a7e7fe4e76958498", "684397d188c1deceb49af325",
-                 "6847465956a0f6376a605391", "6847465956a0f6376a605476",
-                 "6847465956a0f6376a60547e", "6847465956a0f6376a60547f",
-                 "6847465956a0f6376a605492"],
-    "facets_agent": ["684397d188c1deceb49af32d", "6847465956a0f6376a605387",
-                     "6847465956a0f6376a605493"],
-    "ambiguous": ["6847465956a0f6376a60535d", "6847465956a0f6376a605367",
-                 "6847465956a0f6376a605404", "6847465956a0f6376a60542a",
-                 "6847465956a0f6376a6054a7"],
-}
 OUT_DIR = ROOT / "evaluation-results/arena/aus_agent-vs-facets_agent-15topic-rubric"
 SCORE_DIR = OUT_DIR / "criterion-scores"
+ARENA_JUDGMENTS = OUT_DIR / "judgments.jsonl"
 
 SYSTEM_PROMPT = (
     "You are a strict evaluator for a research assistant's answer. Given a "
@@ -192,6 +200,75 @@ def score_one(api, model: str, system: str, qid: str, query: str,
     return record
 
 
+def load_arena_groups(judgments_path: Path) -> dict[str, list[str]]:
+    """Derive the arena's win/loss/ambiguous topic groups LIVE from its own
+    ``judgments.jsonl`` -- never hardcode this (see module docstring: a
+    hardcoded copy went stale the moment the arena was re-run on new
+    answers). A topic is a clean win for whichever system BOTH orientations
+    preferred; anything else (a flip, a tie, an unparsed battle) is
+    "ambiguous".
+    """
+    if not judgments_path.exists():
+        raise SystemExit(
+            f"no arena judgments at {judgments_path} -- run "
+            "arena_aus_agent_vs_facets_agent_rubric.py first")
+    by_topic: dict[str, dict[int, str | None]] = defaultdict(dict)
+    for line in judgments_path.read_text(encoding="utf-8").splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        rec = json.loads(line)
+        by_topic[rec["topic_id"]][rec["orientation"]] = rec.get("preferred_run_id")
+    groups: dict[str, list[str]] = {"aus_agent": [], "facets_agent": [], "ambiguous": []}
+    for qid, orientations in sorted(by_topic.items()):
+        prefs = set(orientations.values())
+        if prefs == {"aus_agent"}:
+            groups["aus_agent"].append(qid)
+        elif prefs == {"facets_agent"}:
+            groups["facets_agent"].append(qid)
+        else:
+            groups["ambiguous"].append(qid)
+    return groups
+
+
+def criterion_tally(qids: list[str], scores_by_system_qid: dict[tuple[str, str], dict[int, int]],
+                    criteria_by_qid: dict[str, list[dict[str, Any]]]
+                    ) -> dict[str, dict[str, Any]]:
+    """Per-axis tally over EVERY criterion in ``qids`` (not averaged per
+    topic): for each criterion where the two systems' grades differ, credit
+    whichever system is "better" on it (accounting for sign -- lower is
+    better on a negative-weight/penalty criterion) and its magnitude
+    (``|weight| * |grade diff| / 2``). This is what stays trustworthy on a
+    sparse axis, where ``per_axis_score``'s per-topic average can be
+    dominated by a single criterion (see module docstring).
+    """
+    out: dict[str, dict[str, Any]] = defaultdict(
+        lambda: {"n": 0, "tied": 0, "aus_agent_better": 0, "facets_agent_better": 0,
+                 "aus_agent_weighted": 0.0, "facets_agent_weighted": 0.0})
+    for qid in qids:
+        aus = scores_by_system_qid.get(("aus_agent", qid), {})
+        fac = scores_by_system_qid.get(("facets_agent", qid), {})
+        for c in criteria_by_qid[qid]:
+            a, f = aus.get(c["cid"]), fac.get(c["cid"])
+            if a is None or f is None:
+                continue
+            row = out[c["axis"]]
+            row["n"] += 1
+            if a == f:
+                row["tied"] += 1
+                continue
+            w = c["weight"]
+            aus_better = (a > f) if w >= 0 else (a < f)
+            magnitude = abs(w) * abs(a - f) / 2
+            if aus_better:
+                row["aus_agent_better"] += 1
+                row["aus_agent_weighted"] += magnitude
+            else:
+                row["facets_agent_better"] += 1
+                row["facets_agent_weighted"] += magnitude
+    return dict(out)
+
+
 def per_axis_score(coverage: list[dict[str, Any]], criteria: list[dict[str, Any]]
                    ) -> dict[str, float]:
     """axis -> normalized score in [-1, 1].
@@ -230,6 +307,11 @@ def main() -> int:
     }
     criteria_by_qid = load_criteria(RESEARCH_RUBRICS)
     qids = sorted(set(answers["aus_agent"]) & set(answers["facets_agent"]))
+    arena_groups = load_arena_groups(ARENA_JUDGMENTS)
+    print(f"arena groups (live from {ARENA_JUDGMENTS.name}): "
+         f"aus_agent={len(arena_groups['aus_agent'])} "
+         f"facets_agent={len(arena_groups['facets_agent'])} "
+         f"ambiguous={len(arena_groups['ambiguous'])}")
 
     jobs = [(system, qid) for system in ("aus_agent", "facets_agent") for qid in qids]
     todo = [(s, q) for s, q in jobs
@@ -287,7 +369,8 @@ def main() -> int:
                for axis, v in vals.items()}
 
     print("\n=== per-axis average score by arena-outcome group "
-         "(positive = better; range roughly [-1, 1]) ===")
+         "(positive = better; range roughly [-1, 1]; UNRELIABLE on sparse "
+         "axes -- see criterion_tally below) ===")
     header = f"{'axis':30s}" + "".join(
         f"{g + '(aus)':>16s}{g + '(facets)':>16s}{'diff':>10s}"
         for g in ("aus_agent", "facets_agent", "ambiguous"))
@@ -295,14 +378,14 @@ def main() -> int:
     for axis in all_axes:
         row = f"{axis:30s}"
         for group_name in ("aus_agent", "facets_agent", "ambiguous"):
-            group = ARENA_GROUPS[group_name]
+            group = arena_groups[group_name]
             a = group_avg(group, "aus_agent").get(axis, float("nan"))
             f = group_avg(group, "facets_agent").get(axis, float("nan"))
             row += f"{a:16.3f}{f:16.3f}{a - f:10.3f}"
         print(row)
 
     print("\n=== overall grade (0-3) by arena-outcome group ===")
-    for group_name, group in ARENA_GROUPS.items():
+    for group_name, group in arena_groups.items():
         aus_vals = [overall[("aus_agent", q)] for q in group if ("aus_agent", q) in overall]
         facets_vals = [overall[("facets_agent", q)] for q in group if ("facets_agent", q) in overall]
         aus_avg = sum(aus_vals) / len(aus_vals) if aus_vals else float("nan")
@@ -310,12 +393,30 @@ def main() -> int:
         print(f"  {group_name:14s} n={len(group):2d}  aus_agent={aus_avg:.2f}  "
               f"facets_agent={facets_avg:.2f}")
 
+    # -- the trustworthy version for sparse axes: sum, don't average per topic
+    grade_by_system_qid = {
+        (s, q): {c["cid"]: c["grade"] for c in r["criteria_coverage"]}
+        for (s, q), r in records.items() if r["status"] == "completed"
+    }
+    tallies = {group_name: criterion_tally(group, grade_by_system_qid, criteria_by_qid)
+              for group_name, group in arena_groups.items()}
+    print("\n=== criterion_tally: differing criteria by axis, summed across ALL "
+         "criteria in the group (not averaged per topic) ===")
+    for group_name in ("aus_agent", "facets_agent", "ambiguous"):
+        print(f"  -- {group_name} group (n={len(arena_groups[group_name])} topics) --")
+        tally = tallies[group_name]
+        for axis, row in sorted(tally.items(), key=lambda kv: -(kv[1]["n"])):
+            print(f"    {axis:30s} n={row['n']:3d} tied={row['tied']:3d}  "
+                 f"aus_better={row['aus_agent_better']:3d} (w={row['aus_agent_weighted']:.1f})  "
+                 f"facets_better={row['facets_agent_better']:3d} (w={row['facets_agent_weighted']:.1f})")
+
     out = {
         "judge_model": args.model,
         "axis_scores_by_topic": {
             f"{s}__{q}": scores for (s, q), scores in axis_scores.items()},
         "overall_by_topic": {f"{s}__{q}": v for (s, q), v in overall.items()},
-        "arena_groups": ARENA_GROUPS,
+        "arena_groups": arena_groups,
+        "criterion_tally": tallies,
     }
     out_path = OUT_DIR / "criterion_scorecard_summary.json"
     out_path.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")

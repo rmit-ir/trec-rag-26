@@ -1,0 +1,58 @@
+15 shared topics x 1 pair x 2 orders = 30 battles, 30 not cached, judge=gpt-5.6-terra
+  [1/30] 683a58c9a7e7fe4e76958498__facets_agent__aus_agent__o1
+  [2/30] 683a58c9a7e7fe4e76958498__aus_agent__facets_agent__o0
+  [3/30] 6847465956a0f6376a60535d__facets_agent__aus_agent__o1
+  [4/30] 684397d188c1deceb49af32d__aus_agent__facets_agent__o0
+  [5/30] 6847465956a0f6376a60535d__aus_agent__facets_agent__o0
+  [6/30] 684397d188c1deceb49af32d__facets_agent__aus_agent__o1
+  [7/30] 6847465956a0f6376a605387__facets_agent__aus_agent__o1
+  [8/30] 684397d188c1deceb49af325__facets_agent__aus_agent__o1
+  [9/30] 6847465956a0f6376a605367__aus_agent__facets_agent__o0
+  [10/30] 6847465956a0f6376a605391__facets_agent__aus_agent__o1
+  [11/30] 6847465956a0f6376a605391__aus_agent__facets_agent__o0
+  [12/30] 6847465956a0f6376a605367__facets_agent__aus_agent__o1
+  [13/30] 6847465956a0f6376a605387__aus_agent__facets_agent__o0
+  [14/30] 684397d188c1deceb49af325__aus_agent__facets_agent__o0
+  [15/30] 6847465956a0f6376a60542a__aus_agent__facets_agent__o0
+  [16/30] 6847465956a0f6376a605476__facets_agent__aus_agent__o1
+  [17/30] 6847465956a0f6376a605404__facets_agent__aus_agent__o1
+  [18/30] 6847465956a0f6376a605476__aus_agent__facets_agent__o0
+  [19/30] 6847465956a0f6376a60542a__facets_agent__aus_agent__o1
+  [20/30] 6847465956a0f6376a605404__aus_agent__facets_agent__o0
+  [21/30] 6847465956a0f6376a60547f__facets_agent__aus_agent__o1
+  [22/30] 6847465956a0f6376a60547e__facets_agent__aus_agent__o1
+  [23/30] 6847465956a0f6376a60547f__aus_agent__facets_agent__o0
+  [24/30] 6847465956a0f6376a60547e__aus_agent__facets_agent__o0
+  [25/30] 6847465956a0f6376a605492__facets_agent__aus_agent__o1
+  [26/30] 6847465956a0f6376a605492__aus_agent__facets_agent__o0
+  [27/30] 6847465956a0f6376a605493__aus_agent__facets_agent__o0
+  [28/30] 6847465956a0f6376a6054a7__aus_agent__facets_agent__o0
+  [29/30] 6847465956a0f6376a605493__facets_agent__aus_agent__o1
+  [30/30] 6847465956a0f6376a6054a7__facets_agent__aus_agent__o1
+
+=== per-topic (orientation 0 pref, orientation 1 pref) ===
+  683a58c9a7e7fe4e76958498: o0='facets_agent' o1='facets_agent'
+  684397d188c1deceb49af325: o0='aus_agent' o1='facets_agent'
+  684397d188c1deceb49af32d: o0='facets_agent' o1='aus_agent'
+  6847465956a0f6376a60535d: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a605367: o0='facets_agent' o1='aus_agent'
+  6847465956a0f6376a605387: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a605391: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a605404: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a60542a: o0='facets_agent' o1='aus_agent'
+  6847465956a0f6376a605476: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a60547e: o0='aus_agent' o1='facets_agent'
+  6847465956a0f6376a60547f: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a605492: o0='aus_agent' o1='aus_agent'
+  6847465956a0f6376a605493: o0='facets_agent' o1='aus_agent'
+  6847465956a0f6376a6054a7: o0='facets_agent' o1='aus_agent'
+
+=== pairwise preference (both orders pooled, ties split) ===
+  aus_agent vs facets_agent: 21-9-0 (n=30) | aus_agent_pref_rate=0.7 | order_consistency=0.533
+
+=== overall preference rate ===
+  aus_agent      0.7000  (30 battles)
+  facets_agent   0.3000  (30 battles)
+
+wrote /home/el7/E103037/repos/trec-rag-26/evaluation-results/arena/aus_agent-vs-facets_agent-15topic-rubric/judgments.jsonl
+wrote /home/el7/E103037/repos/trec-rag-26/evaluation-results/arena/aus_agent-vs-facets_agent-15topic-rubric/summary.json

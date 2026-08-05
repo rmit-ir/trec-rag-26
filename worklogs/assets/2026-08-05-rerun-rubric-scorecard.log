@@ -1,0 +1,42 @@
+arena groups (live from judgments.jsonl): aus_agent=7 facets_agent=1 ambiguous=7
+15 topics x 2 systems = 30 scorecards, 0 not cached, judge=gpt-5.6-terra
+
+=== per-axis average score by arena-outcome group (positive = better; range roughly [-1, 1]; UNRELIABLE on sparse axes -- see criterion_tally below) ===
+axis                            aus_agent(aus)aus_agent(facets)      difffacets_agent(aus)facets_agent(facets)      diff  ambiguous(aus)ambiguous(facets)      diff
+Communication Quality                    0.232           0.107     0.125          -0.375          -0.375     0.000           0.225           0.160     0.065
+Explicit Criteria                        0.722           0.651     0.071           0.417           0.583    -0.167           0.537           0.560    -0.023
+Implicit Criteria                        0.463           0.423     0.040           0.298           0.355    -0.056           0.552           0.490     0.062
+Instruction Following                    0.318           0.184     0.134           0.500           0.500     0.000           0.143           0.143     0.000
+Miscellaneous                            0.071           0.143    -0.071           0.000           0.000     0.000           0.000           0.000     0.000
+References & Citation Quality            0.041           0.041     0.000           0.000           0.000     0.000           0.000           0.114    -0.114
+Synthesis of Information                 0.364           0.370    -0.006           0.000           0.000     0.000           0.232           0.171     0.060
+
+=== overall grade (0-3) by arena-outcome group ===
+  aus_agent      n= 7  aus_agent=2.29  facets_agent=1.71
+  facets_agent   n= 1  aus_agent=1.00  facets_agent=1.00
+  ambiguous      n= 7  aus_agent=2.14  facets_agent=2.00
+
+=== criterion_tally: differing criteria by axis, summed across ALL criteria in the group (not averaged per topic) ===
+  -- aus_agent group (n=7 topics) --
+    Implicit Criteria              n= 74 tied= 56  aus_better= 13 (w=16.5)  facets_better=  5 (w=6.0)
+    Synthesis of Information       n= 40 tied= 32  aus_better=  5 (w=9.0)  facets_better=  3 (w=5.5)
+    Explicit Criteria              n= 34 tied= 27  aus_better=  6 (w=11.0)  facets_better=  1 (w=1.5)
+    Instruction Following          n= 11 tied=  8  aus_better=  3 (w=5.0)  facets_better=  0 (w=0.0)
+    Communication Quality          n=  9 tied=  6  aus_better=  2 (w=5.0)  facets_better=  1 (w=1.0)
+    References & Citation Quality  n=  6 tied=  6  aus_better=  0 (w=0.0)  facets_better=  0 (w=0.0)
+    Miscellaneous                  n=  1 tied=  0  aus_better=  0 (w=0.0)  facets_better=  1 (w=0.5)
+  -- facets_agent group (n=1 topics) --
+    Implicit Criteria              n= 22 tied= 18  aus_better=  1 (w=2.0)  facets_better=  3 (w=5.5)
+    Communication Quality          n=  3 tied=  3  aus_better=  0 (w=0.0)  facets_better=  0 (w=0.0)
+    Explicit Criteria              n=  3 tied=  2  aus_better=  0 (w=0.0)  facets_better=  1 (w=2.0)
+    Instruction Following          n=  2 tied=  2  aus_better=  0 (w=0.0)  facets_better=  0 (w=0.0)
+    References & Citation Quality  n=  1 tied=  1  aus_better=  0 (w=0.0)  facets_better=  0 (w=0.0)
+  -- ambiguous group (n=7 topics) --
+    Implicit Criteria              n= 79 tied= 58  aus_better= 14 (w=28.0)  facets_better=  7 (w=13.0)
+    Explicit Criteria              n= 73 tied= 60  aus_better=  5 (w=9.0)  facets_better=  8 (w=17.0)
+    Communication Quality          n= 18 tied= 15  aus_better=  2 (w=3.5)  facets_better=  1 (w=0.5)
+    Synthesis of Information       n= 10 tied=  7  aus_better=  3 (w=4.0)  facets_better=  0 (w=0.0)
+    References & Citation Quality  n=  3 tied=  2  aus_better=  0 (w=0.0)  facets_better=  1 (w=4.0)
+    Instruction Following          n=  2 tied=  2  aus_better=  0 (w=0.0)  facets_better=  0 (w=0.0)
+
+wrote /home/el7/E103037/repos/trec-rag-26/evaluation-results/arena/aus_agent-vs-facets_agent-15topic-rubric/criterion_scorecard_summary.json
