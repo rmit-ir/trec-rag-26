@@ -135,7 +135,9 @@ def make_provider(backend: str, model: str | None,
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
                         seen_docids: set[str],
-                        engines: list[str] | None = None) -> list[tuple]:
+                        engines: list[str] | None = None,
+                        default_k_by_engine: dict[str, int] | None = None,
+                        ) -> list[tuple]:
     """Execute one model turn's tool calls IN PARALLEL (threads; the tools are
     I/O-bound and thread-safe). Returns, in the model's tool_use order, one
     ``(output, trace_output, returned, failed, documents, t_start, t_end,
@@ -143,12 +145,16 @@ def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
     tuple per call — each
     call carries its own real wall-clock bounds. ``engines`` is the run's
     enabled set, named back to the model when a call omits the required
-    ``search_engine``."""
+    ``search_engine``. ``default_k_by_engine`` overrides ``k`` for a named
+    engine when the model's call omits ``k`` (e.g. a HyDE-style hybrid query
+    benefits from a wider net than a short keyword query)."""
     def timed(call: dict[str, Any]) -> tuple:
         t0 = now_iso()
         started = perf_counter()
+        engine = call["arguments"].get("search_engine")
+        eff_default_k = (default_k_by_engine or {}).get(engine, k)
         execution = execute_full_text_search(
-            call["arguments"], default_k=k, seen_docids=seen_docids,
+            call["arguments"], default_k=eff_default_k, seen_docids=seen_docids,
             engines=engines)
         return (execution.output, execution.trace_output,
                 execution.returned, execution.failed, execution.documents,
@@ -539,12 +545,25 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               run_id: str = "aus-agent-dev",
               run_desc: str | None = None,
               prompt_variant: str = DEFAULT_PROMPT_VARIANT,
-              engines: list[str] | None = None) -> dict[str, Any]:
+              engines: list[str] | None = None,
+              system_name: str = "aus_agent",
+              system_prompt: str | None = None,
+              default_k_by_engine: dict[str, int] | None = None,
+              ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
     ``engines`` selects which retrieval backends the search tool exposes (e.g.
     ``["ssr"]`` to test SSR Boolean in isolation); defaults to the hybrid
     ``semantic`` + ``keyword`` pair.
+
+    This is the shared staged-context harness: ``system_name`` picks the
+    ``data/outputs/<system_name>/`` artifact directory (a sibling system reusing
+    this loop, e.g. ``facets_agent``, passes its own name so the two never mix
+    outputs) and ``system_prompt`` — when given — is used verbatim instead of
+    ``load_system_prompt(max_committed_per_step, prompt_variant)``, so a caller
+    with its own prompt does not need a file under this package's
+    ``prompts/system/``. ``default_k_by_engine`` overrides the per-call result
+    count for a named engine when the model's call omits ``k``.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -592,7 +611,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             narrative=query,
             run_id=run_id,
             run_desc=run_desc or (
-                f"aus_agent research harness ({backend}/{provider.model_id}, "
+                f"{system_name} research harness ({backend}/{provider.model_id}, "
                 f"prompt={prompt_variant}, "
                 f"engines={'+'.join(engines)}): "
                 f"continuous single-agent full-text search with sparse "
@@ -655,7 +674,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             return
         last_partial_save = now
         try:
-            save_run("aus_agent", query,
+            save_run(system_name, query,
                      trajectory=build_trajectory("running"),
                      output=build_output([], []),
                      timestamp=run_ts, validate=False,
@@ -752,8 +771,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         return output
 
     try:
-        system_prompt = load_system_prompt(max_committed_per_step,
-                                            prompt_variant)
+        if system_prompt is None:
+            system_prompt = load_system_prompt(max_committed_per_step,
+                                                prompt_variant)
         tool_definitions = [
             build_search_tool_def(engines),
             GET_DOCUMENTS_TOOL,
@@ -1161,7 +1181,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 # records their real overlapping bounds for the viewer.
                 executed = _execute_tool_calls(
                     retrieval_calls, k=k, seen_docids=seen_docids,
-                    engines=engines)
+                    engines=engines, default_k_by_engine=default_k_by_engine)
                 for call, (
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms
@@ -1295,7 +1315,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     trajectory = build_trajectory(status)
     # The final save is the only one that writes the trajectory, validates, and
     # carries a terminal status — it overwrites the last partial in place.
-    paths = save_run("aus_agent", query, trajectory=trajectory, output=output,
+    paths = save_run(system_name, query, trajectory=trajectory, output=output,
                      timestamp=run_ts)
     return {"status": status, "paths": paths,
             "tool_call_counts": trajectory["tool_call_counts"],

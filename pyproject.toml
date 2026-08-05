@@ -46,6 +46,14 @@ facet-rag = [
     "boto3>=1.40",
     "openai>=2.45",
 ]
+# facets_agent: minimal-prompt, facet_rag-inspired agent on the shared
+# aus_agent staged-context harness (src/systems/facets_agent) -- runs
+# gpt-5.6-luna via the OpenAI Responses backend by default. Same two SDKs as
+# aus-agent/facet-rag since it reuses aus_agent.agent.make_provider.
+facets-agent = [
+    "boto3>=1.40",
+    "openai>=2.45",
+]
 # OpenAI o3-deep-research baseline (src/systems/o3_deep_research) — Responses
 # API runner + the ClimbMix MCP server (src/mcp) it grounds the agent on.
 o3-deep-research = [

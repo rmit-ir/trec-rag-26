@@ -2,7 +2,7 @@
 name: trec-rag-new-system
 description: Use when adding, scaffolding, running, or reviewing a TREC RAG 2026 RAG system (an answer-generating agent/pipeline) under src/systems/ in this repo. Covers the required package layout, the shared ragrun/tools/utils/answer-format layers a system must use (never duplicate), the two output artifacts and their strict-vs-rich split, the run.py CLI + import-surgery convention, pluggable LLM backends, the dep-group + README + worklog requirements, a scaffolder script, and the interactive architecture visualization (docs/architecture.html) that must be regenerated and launched whenever a system is developed or run.
 metadata:
-  version: v0.2.0
+  version: v0.3.0
 ---
 
 # Adding a New TREC RAG 2026 System
@@ -53,6 +53,57 @@ The script writes `src/systems/<name>/{__init__,run,prompts,pipeline}.py` plus a
 pytest module at `tests/systems/test_<name>.py`, and prints a checklist for the
 steps it deliberately does NOT automate (pyproject dep group, README, worklog).
 It refuses to overwrite existing files without `--force`.
+
+**This scaffold fits ONE shape: retrieve → generate → format, once.** It does
+not fit a continuous tool-calling agent loop (native `search` /
+`get_documents` / `commit_context` tool-calling, staged-then-committed
+evidence, a budget-driven stop condition) — that shape is `aus_agent`'s, and
+copy-pasting its ~1,300-line `agent.py` for a second agent-loop system would
+duplicate logic that has already been debugged through several rounds (prompt
+repairs, commit-protocol edge cases, budget/backstop interactions — see
+`worklogs/2026-07-18-commit-cap-bump.md` and later aus_agent worklogs). If the
+new system needs that shape, don't scaffold — reuse the harness directly, next
+section.
+
+### Or: reuse the aus_agent agent-loop harness directly
+
+`aus_agent.agent.run_agent` takes three parameters that let a second system
+configure the exact same loop instead of forking it:
+
+- `system_name: str = "aus_agent"` — artifacts land under
+  `data/outputs/<system_name>/` instead of `aus_agent`'s own tree.
+- `system_prompt: str | None = None` — used verbatim instead of loading one of
+  `aus_agent`'s own `prompts/system/*.md` variants, so the new system's prompt
+  lives in its own package.
+- `default_k_by_engine: dict[str, int] | None = None` — overrides the default
+  `k` for a named engine when the model's call omits it (e.g. widening
+  `hybrid` for a HyDE-style query without relying on the model to ask).
+
+Everything else — the staged/committed evidence protocol, budget tracking,
+citation parsing, `get_documents`/`commit_context` wiring, pluggable Bedrock/
+OpenAI providers — comes along unchanged. The new system's own `agent.py`
+becomes a thin configuration layer (prompt + engine set + any
+`default_k_by_engine` override) calling straight into
+`aus_agent.agent.run_agent`; see `src/systems/facets_agent/agent.py` for a
+~50-line worked example, and its README for the design rationale.
+
+One import-surgery trap this pattern exposes: `aus_agent/run.py` and
+`facet_rag/run.py` use two DIFFERENT (each internally self-consistent)
+sys.path conventions — `aus_agent/run.py` puts `src/` on the path and imports
+via `systems.aus_agent.agent` (dotted); `facet_rag/run.py` puts
+`src/systems/` on the path and imports `aus_agent.agent` bare. A system that
+does `from aus_agent.agent import ...` (bare — required to match how the test
+suite's `pythonpath` resolves it, and hence how `monkeypatch`-based test
+substitution actually reaches the code) must copy `facet_rag/run.py`'s
+header, not `aus_agent/run.py`'s: mixing the two conventions in one process
+loads `aus_agent.agent` twice under different names, and a test that patches
+one copy silently misses the other.
+
+Still do the same non-automated steps as scaffolding (dep group, README,
+worklog, `ARCH_STAGES`, tests) — see below. `ARCH_STAGES` code refs can and
+should point partly at `aus_agent`'s own files where the mechanics are
+inherited unchanged, and at the new package's files where it supplies its own
+configuration (`facets_agent/agent.py`'s `ARCH_STAGES` does this).
 
 ## Required Package Layout
 
@@ -355,6 +406,9 @@ real runs.
   engines. The cleanest end-to-end example of these conventions.
 - `src/systems/ali_deepresearch` — ReAct agent port; `answer_format` lives here.
 - `src/systems/aus_agent` — staged-context agent; the pluggable `providers/`.
+- `src/systems/facets_agent` — minimal-prompt agent reusing aus_agent's loop
+  via `system_name`/`system_prompt`/`default_k_by_engine`; see "Or: reuse the
+  aus_agent agent-loop harness directly" above.
 - `src/systems/o3_deep_research` — minimal single-file runner (hosted DR + MCP).
 
 For track/submission format details use the `trec-rag-2026-track-guidelines`
