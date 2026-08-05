@@ -4,7 +4,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..context import CommitDecision, ContextLedger
+from ..context import CommitDecision, ContextLedger, ReleaseDecision
 
 COMMIT_CONTEXT_TOOL: dict[str, Any] = {
     "name": "commit_context",
@@ -76,6 +76,12 @@ COMMIT_CONTEXT_TOOL: dict[str, Any] = {
 class CommitHandlerResult:
     decision: CommitDecision
     payload: dict[str, Any]
+    # None when the call carried no ``release`` (the common case, and the
+    # only case aus_agent's own tool schema can produce — it does not
+    # advertise the field). A system whose tool schema DOES advertise
+    # ``release`` (see facets_agent) gets it populated whenever the model
+    # actually uses it.
+    release: ReleaseDecision | None = None
 
 
 def apply_commit(
@@ -94,13 +100,29 @@ def apply_commit(
         "committed": decision.committed,
         "rejected": decision.rejected,
     }
+
+    # ``release`` is opt-in and additive: only present in ``payload`` (and
+    # only touches the ledger at all) when the call actually carries one, so
+    # a caller whose tool schema never advertises the field sees byte-identical
+    # behavior to before this existed.
+    release: ReleaseDecision | None = None
+    raw_release = arguments.get("release") or []
+    if raw_release:
+        if not isinstance(raw_release, list):
+            raise ValueError("release must be an array")
+        release_selected = [item for item in raw_release
+                            if isinstance(item, dict)]
+        release = ledger.release_committed(release_selected)
+        payload["released"] = release.released
+
     if finishing:
         payload["instruction"] = (
             "Research budget is exhausted; write the final report now (plain "
             "prose, one sentence per line, [id] citation markers citing the "
             "exact committed ids) using only committed evidence."
         )
-    return CommitHandlerResult(decision=decision, payload=payload)
+    return CommitHandlerResult(decision=decision, payload=payload,
+                               release=release)
 
 
 def expire_staged(
