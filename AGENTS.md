@@ -52,6 +52,18 @@ rejecting conforming submissions. See
   under `data/`. Task scripts should point their output paths at `data/`, not
   at their own task dir — keeps large artifacts out of the code tree and
   consistent across tasks.
+- **`data/outputs/` and `evaluation-results/` are symlinks into the
+  Downloads-synced data dir, not real directories.** Both point at
+  `~/Downloads/trec_rag_26_data/{outputs,evaluation-results}/` (a folder synced
+  across machines, outside git — `evaluation-results/` is gitignored, and
+  `data/*` already was). Any run artifact or eval result written under either
+  path lands in the synced dir automatically; nothing under them is ever
+  committed. If either symlink is ever missing on a fresh clone/machine,
+  recreate it after locating (or re-syncing) the Downloads folder:
+  `ln -s ~/Downloads/trec_rag_26_data/outputs data/outputs` and
+  `ln -s ~/Downloads/trec_rag_26_data/evaluation-results evaluation-results`.
+  Do not `mkdir` a real directory at either path — that silently forks local
+  data out of the synced copy.
 - **Reference / external repos live under `tmp/`.** Any upstream source repo we
   consult (e.g. `tmp/Cottontail-claclark`) is cloned under `tmp/` so it can be browsed
   and re-pulled (`git -C tmp/<repo> pull --ff-only`). **Before cloning an
