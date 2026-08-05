@@ -716,22 +716,33 @@ proposes to make harder: a `commit_context` step that must adjudicate competing
 results from two engines against criteria, and a done-condition that requires
 judging marginal yield. Both are per-turn deliberation.
 
-**Two blockers to clear before enabling either parameter.**
+**One real prerequisite, and one non-issue worth writing down so it is not
+re-litigated.**
 
-`max_output_tokens` is **16000** (`providers/openai.py:50`) against the guide's
-"reserve at least 25,000 tokens for reasoning and outputs when you start
-experimenting". Reasoning tokens are billed as output tokens *and* count against
-this ceiling, so raising effort or mode without raising this budget pushes turns
-toward the limit.
+**We record no token usage at all.** Trajectories carry `tool_call_counts` but
+no `usage`, so there is no way to say what reasoning currently costs or what
+`pro` would cost — the estimates in this section had to be inferred from answer
+length for exactly this reason. The guide exposes
+`output_tokens_details.reasoning_tokens`. Capturing it is the prerequisite for
+evaluating mode or effort at all: without a before-number, a `pro` run yields a
+quality delta with no cost denominator, which is not a decision-grade result.
+This should land before the first mode/effort run.
 
-And the provider **does not check for truncation**: the guide says a capped
-response returns `status: "incomplete"` with
-`incomplete_details.reason: "max_output_tokens"`, and nothing in
-`providers/openai.py` inspects either field. There is an `EMPTY_RESPONSE_RETRIES`
-loop, which would catch a turn truncated to nothing, but a *partially* truncated
-turn would be accepted silently. Enabling `pro` or `high` against a 16k ceiling
-with no incomplete detection is a good way to get quiet truncation that looks
-like a quality regression.
+**`max_output_tokens` is not a constraint.** It sits at 16000
+(`providers/openai.py:50`) against the guide's "reserve at least 25,000 tokens"
+suggestion, but it is a *ceiling, not an allocation* — tokens are billed as
+generated, so raising it to 64k costs nothing on a turn that produces 3k. Set it
+generously and the question closes. Its only remaining role is as a runaway
+guardrail: at `pro` + `high` a pathological turn burns real tokens before
+anything halts it, which argues for a generous finite number rather than for
+keeping it tight.
+
+With a generous ceiling, truncation becomes unlikely rather than merely
+undetected — but note the provider does not inspect `status: "incomplete"` /
+`incomplete_details` at all, and `EMPTY_RESPONSE_RETRIES` only catches a turn
+truncated to nothing. A partially truncated turn would be accepted silently and
+would read as a quality regression. Cheap insurance against a silent failure
+mode, not a gate on anything.
 
 Two further notes. Reasoning state is replayed byte-for-byte across turns
 (`include=["reasoning.encrypted_content"]`, required with `store=False`), and
@@ -798,11 +809,12 @@ raise `max_output_tokens` plus add incomplete-detection first.
    and how the model should verify its work" as *the* agentic lever, above
    effort tuning. Express it as a done-condition plus a lead ledger, never as a
    round count or a step script.
-10. **Before touching `reasoning.mode`/`effort`: raise `max_output_tokens` from
-    16000 (guide recommends ≥25,000 reserve) and add `status: "incomplete"` /
-    `incomplete_details` detection to the OpenAI provider.** Neither exists
-    today, and both failure modes look like quality regressions rather than
-    truncation. Then test mode and effort as their own variables.
+10. **Capture token usage before evaluating `reasoning.mode`/`effort`.**
+    Trajectories record no `usage`, so a `pro` run would produce a quality delta
+    with no cost denominator. Log `output_tokens_details.reasoning_tokens`.
+    Set `max_output_tokens` generously while you are in there — it is a ceiling,
+    not an allocation, so a high value is free and only serves as a runaway
+    guardrail. `status: "incomplete"` detection is cheap insurance alongside it.
 
 ## Not done
 
