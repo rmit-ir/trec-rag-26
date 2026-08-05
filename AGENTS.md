@@ -331,6 +331,19 @@ or run). Browse the current architecture at `docs/architecture.html`.
   is the **`bm25-parameter-tuning`** skill (`skills/bm25-parameter-tuning/` —
   ours, not vendored, so `check_vendored_skills.py` skips it).
 
+## Outputs Viewer (`tasks/outputs_viewer/`)
+
+Next.js app for browsing runs in `data/outputs/`. Launch it with a production
+build, as a tracked background task (see *Running Long Commands*):
+
+```bash
+cd tasks/outputs_viewer && pnpm build && pnpm start   # http://localhost:3618
+```
+
+Keep the server up until the user says they're done. Run from
+`tasks/outputs_viewer/`: `src/lib/server/env.ts` derives the repo root as
+`cwd/../..` to find `data/outputs/` and the root `.env`.
+
 ## Stack quirks (lessons learned — keep these out of future debugging time)
 
 ### Gunicorn
