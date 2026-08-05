@@ -189,18 +189,48 @@ judgments.summary.csv` (`aus-agent-dev-full`: 781 judged citations, 0.347 full,
 This is the check that tells you whether the evidence-block/heuristic-fallback
 fixes actually bought precision, or only bought a plausible-looking answer.
 
+**Done 2026-08-05:** 149 citations judged, aggregate
+`full_support_rate=0.443, partial_or_full_rate=0.826, no_support=12.1%`
+(`evaluation-results/facet_rag/opus_plan_5topic/support-bedrock-120/judgments.summary.csv`)
+— **beats** aus_agent-dev-full on full support (0.347) but is **below**
+target on partial-or-full (0.868 aus_agent / ≥0.87 target) and no-support
+(10.6% aus_agent / ≤10% target). Per-topic partial-or-full: CSGO 0.857,
+SCALING 0.744 (worst — the broadest-facet topic, 39 citations judged),
+RETIRE 0.829, PRESCHOOL 0.867, SWARM 0.889. Verdict on the §3.1 curator
+tradeoff: the curator's evidence-block precision work did buy something real
+(better full-support than aus_agent's uncurated pool), but the answer is
+still too thin (§3.1 A1) and citation completeness lags on the broadest
+topic. See `worklogs/2026-08-05-facet-rag-honest-rebaseline.md` for the raw
+judgment breakdown.
+
 ### 2.3 Finish the 5-topic comparison
+
+**Done 2026-08-05.** §2.1/§2.2 executed against `facet_rag.opus_plan_5topic`
+(archive recovered from `~/Downloads/trec_rag_26_data/facet_rag-runs/` — the
+in-repo `data/outputs/facet_rag/` and the off-repo `/research/remote/...`
+mount from the prior session were both empty/unreachable on this machine).
+Resolved through `--doc-url` with `--trajectory-dir /tmp/no-trajectories`:
+0/70 references resolved from local trajectories, 70/70 via the API
+fallback, median segment length 3,987.5 chars (0 pinned at 2,000) — confound
+confirmed gone. Full writeup: `worklogs/2026-08-05-facet-rag-honest-rebaseline.md`.
 
 aus_agent's top-5 dev topics by UMBRELA (`aus-agent-dev-full`, restricted to
 `research-rubrics-topics-dev.tsv`):
 
-| topic | slug | aus_agent | facet_rag (curator_full) |
-|---|---|---|---|
-| `6847465956a0f6376a605404` | CS:GO feature essay | 2.083 (n=12) | 1.750 (n=12) |
-| `6847465956a0f6376a60542a` | scaling to 1M users | 1.667 (n=21) | 1.400 (n=15) |
-| `683a58c9a7e7fe4e76958498` | retirement blog series | 1.583 (n=12) | 1.467 (n=15) |
-| `684397d188c1deceb49af32d` | pre-school teacher strategy | 1.467 (n=15) | **run, unjudged** |
-| `6847465956a0f6376a60547e` | decentralized swarm proposal | 1.294 (n=17) | **run, unjudged** |
+| topic | slug | aus_agent | facet_rag (curator_full, confounded) | facet_rag (opus_plan_5topic, honest) |
+|---|---|---|---|---|
+| `6847465956a0f6376a605404` | CS:GO feature essay | 2.083 (n=12) | 1.750 (n=12) | 1.643 (n=14) |
+| `6847465956a0f6376a60542a` | scaling to 1M users | 1.667 (n=21) | 1.400 (n=15) | 1.067 (n=15) |
+| `683a58c9a7e7fe4e76958498` | retirement blog series | 1.583 (n=12) | 1.467 (n=15) | 1.417 (n=12) |
+| `684397d188c1deceb49af32d` | pre-school teacher strategy | 1.467 (n=15) | unjudged | 0.857 (n=14) |
+| `6847465956a0f6376a60547e` | decentralized swarm proposal | 1.294 (n=17) | unjudged | 1.200 (n=15) |
+
+facet_rag trails aus_agent on UMBRELA on all 5 topics even with the confound
+removed — the gap shrinks on RETIRE/SWARM (both within ~0.1) but stays wide on
+SCALING (-0.6) and PRESCHOOL (-0.61, the largest gap of any topic — the
+deliverable-shaped weakness §0/A7 predicted). §2.2's `ragdoll support judge`
+(the metric that actually scores the submission) tells a different story: see
+below — facet_rag's `full_support_rate` beats aus_agent's aggregate.
 
 > Use 1.583/n=12 for the retirement topic, not the 1.500 quoted earlier in the
 > session — that number mixed run_ids. All aus_agent figures above are
