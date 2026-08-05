@@ -283,6 +283,164 @@ are correctly grounded in a wrong document, and **support scoring will award
 that full support**. Faithfulness and factual accuracy are different measures
 and only the first is being scored.
 
+## Result 7 — hand analysis of the ours-keyword losses to base-agentic-bm25
+
+Follow-up question: read the topics where `ours-keyword` lost to
+`base-agentic-bm25` *in both presentation orders*, so order bias is excluded.
+
+Everything below is reproduced by
+`worklogs/assets/2026-08-04-keyword-vs-agentic-loss-analysis.py` (restore the
+archived eval tree first — see `~/local_large/trec-rag-26/ARCHIVE-MANIFEST-2026-08-04.md`).
+The side-by-side answer text actually read by hand is
+`worklogs/assets/2026-08-04-keyword-vs-agentic-loss-sample.txt`.
+
+```bash
+uv run --no-project python \
+    worklogs/assets/2026-08-04-keyword-vs-agentic-loss-analysis.py \
+    --dump-sample worklogs/assets
+```
+
+### The framing has to be corrected first
+
+This pair is **0.485 over 238 battles (115-122-1)** — a dead heat, not a defeat.
+Splitting the 119 narratives by both-order agreement:
+
+| outcome (both orders agree) | topics |
+|---|---|
+| lost to base-agentic-bm25 | 48 |
+| won against base-agentic-bm25 | 45 |
+| order flip (judge disagreed with itself) | 25 |
+| tie verdict | 1 |
+
+48 consistent losses are almost exactly matched by 45 consistent wins. So "the
+cases where ours-keyword failed" is a sample of ~40% of topics drawn from a coin
+flip, and anything found only in the losses has to be checked against the wins
+before it can be called a cause. Three of the four hypotheses below died on
+exactly that check.
+
+The 48 both-order losses: `rag2026-1 -3 -6 -7 -10 -12 -16 -17 -19 -21 -22 -28
+-30 -32 -38 -39 -40 -44 -47 -49 -56 -57 -58 -59 -60 -62 -63 -66 -68 -74 -77 -78
+-80 -81 -82 -86 -87 -88 -89 -95 -99 -102 -104 -107 -108 -109 -115 -116`.
+
+12 were read in full side by side (every 4th): `rag2026-1 -10 -19 -30 -40 -56
+-60 -68 -80 -87 -99 -108`.
+
+### Our answers are identical whether we win or lose
+
+| feature (mean) | ours.loss | ours.win | ours.split | base.loss | base.win |
+|---|---|---|---|---|---|
+| words | 793.8 | 800.2 | 793.0 | **730.9** | **613.7** |
+| sentences | 26.0 | 25.2 | 24.0 | 23.4 | 19.1 |
+| uncited fraction | 0.09 | 0.14 | 0.06 | 0.00 | 0.00 |
+| citations / sentence | 1.45 | 1.37 | 1.54 | 1.72 | 1.76 |
+| distinct refs | 15.3 | 14.8 | 14.6 | 9.9 | 10.1 |
+| numerals / 1k words | 10.1 | 6.8 | 8.9 | **17.1** | **14.3** |
+| modals / 1k words | 19.7 | 20.1 | 17.7 | 14.9 | 16.6 |
+
+Every one of our columns is flat. Our uncited fraction is *higher* on topics we
+won. What varies is the opponent: on topics we lost, the baseline wrote 731
+words; on topics we won, 614.
+
+### The outcome tracks the baseline's answer length
+
+| correlation with our preference | r |
+|---|---|
+| our word count | **+0.019** |
+| baseline word count | **−0.429** |
+| word gap (ours − baseline) | +0.416 |
+| baseline sentence count | −0.390 |
+
+| baseline length quartile | our preference rate |
+|---|---|
+| 384–589 words | 0.655 |
+| 589–645 | 0.621 |
+| 646–735 | 0.552 |
+| 737–1017 | **0.156** |
+
+Our own length quartiles produce 0.466 / 0.431 / 0.655 / 0.406 — no trend. We
+do not win by writing more; we win when the baseline writes less.
+
+### Is that verbosity bias, or does the longer answer carry more?
+
+Crossing the length gap with the fact-density gap (medians: +144 words,
+−4.57 numerals/1k) separates the two:
+
+| | baseline denser | ours denser |
+|---|---|---|
+| **ours longer** | 0.704 (n=27) | 0.625 (n=32) |
+| **baseline longer or equal** | 0.318 (n=33) | 0.315 (n=27) |
+
+The rows separate by ~0.35; the columns do not separate at all. Conditional on
+relative length, being the more fact-dense answer is worth nothing to this
+judge. That is a caution about the arena measure, not a compliment to us:
+the baseline's longest answers are also its densest (11.2 numerals/1k in its
+shortest quartile rising to 23.3 in its longest), so length and substance are
+confounded in the baseline and the 2×2 can only show that length is the
+variable carrying the signal.
+
+This qualifies Result 4. Evidence density does separate the four *systems* in
+aggregate; it does not predict which of two answers wins a *given* battle.
+
+### What hand reading found anyway
+
+The 12 read side by side show a consistent qualitative difference that the
+scores above say is not what decided the battles — worth fixing on its merits:
+
+- **The baseline supplies the figure where we supply the category.** rag2026-56
+  (WWII bombing) is the clearest: it gives Dresden at 22,700–25,000 "not the
+  propagandistic totals of 200,000 or more", RAF accuracy at ~30% of missions
+  reaching target, Tokyo at 279 B-29s / 90,000–100,000 dead / 267,000 buildings.
+  We call Dresden "a contested case" and never state what is contested.
+- **The baseline volunteers the decision-relevant fact the asker did not think
+  to ask for.** rag2026-30: UFLPA makes unknown cotton origin presumptively
+  disqualifying for a US importer — the single most consequential fact for that
+  purchasing committee, and we never mention it. rag2026-68: reviews find
+  limited evidence that school resource officers improve safety — live in any
+  post-Uvalde school-safety budget argument, and absent from ours. rag2026-99:
+  coal and gas were 73% of unplanned outages in Winter Storm Uri, which directly
+  rebuts the members' "the lights won't stay on" worry; we assert a portfolio is
+  needed but never rebut the premise.
+- **Instruction-following slip.** rag2026-60 asked for a ~10-minute-read
+  article. We produced 38 short declaratives with no article shape, 16 of them
+  uncited, almost entirely Q1-2024 financials — omitting the TITAN ($178.4M) and
+  Maven ($480M) contracts that explain the 2024–25 defence story.
+
+### Four defects found by reading, and whether each explains the losses
+
+| defect | measured | explains losses? |
+|---|---|---|
+| figures available in **our own cited docs** but unused | 42% of baseline-only figures on lost topics | **No** — 45% on won topics, 47% on flips |
+| Australian localization on locale-free narratives | 9 topics, ours-pref 0.278 vs 0.509 elsewhere | Suggestive, n=9 |
+| non-Latin script leak | 1 sentence (rag2026-10) | No — single instance |
+| meta-reference to the retrieval | 3 sentences (rag2026-3, -47, -99) | No — 3 instances |
+
+The first is the substantive finding and the biggest surprise. Taking figures
+the baseline stated that we did not, and asking whether they were present in a
+document *we ourselves cited*: **42% were.** On rag2026-60 we cited
+`shard_04990_76242`, which contains the string "$480 million AI prototype
+contract and the $178 million TITAN intelligent edge AI deal", and wrote an
+article about Palantir's 2024–25 success naming neither. On rag2026-56 four of
+our ten cited docs carry a specific Dresden figure. On rag2026-68 three of ours
+discuss SROs. This is a **synthesis failure, not a retrieval failure** — the
+retriever put the material in front of the generator and the generator dropped
+it. But it is flat across wins and losses, so it is a standing property of the
+system rather than the cause of these battles.
+
+The localization finding: on 9 topics our answer localizes to Australia
+(`call 000`, "In Australia, obtain state or territory-specific legal advice")
+where the baseline does not and the narrative names no country. Our preference
+rate on those is 0.278 against 0.509 elsewhere. n=9 is too small to act on
+alone, but the direction is consistent with reading — rag2026-1 tells a grieving
+family to "call 000", which is simply wrong guidance for an unlocalized asker,
+and rag2026-40 answers a US-shaped employment question under Australian law
+while the baseline cites ADA/EEOC.
+
+Two conformance-adjacent defects worth a lint rule, both zero in both baselines:
+`非開催` (Japanese "non-holding") appears mid-sentence in our rag2026-10 English
+output; and three sentences address the retrieval rather than the user
+("Federal programs described in the research…", "The UAE example described in
+the corpus…"). Neither is a spec violation, both are visible to any reader.
+
 ## What to act on
 
 1. **Stop emitting uncited answer objects on groundable topics.** Worth ~0.063
@@ -297,8 +455,27 @@ and only the first is being scored.
    set, or claim drifting beyond what the document says.
 3. **Answer style, not retrieval, is what loses the battles.** Evidence density
    (numerals, named findings) and less hedging is the lever, and it is a prompt
-   change, not an index change.
-4. **keyword ≥ semantic on every measure here** (arena 0.594 vs 0.557, support
+   change, not an index change. *Qualified by Result 7:* density separates the
+   four systems in aggregate but does not predict individual battles once
+   relative length is controlled. Treat it as a quality goal, not as an arena
+   lever.
+4. **Use the documents we already retrieved.** 42–47% of the figures the
+   agentic baseline stated and we omitted were sitting in documents *we cited*
+   (Result 7). This is generation dropping material the retriever supplied, it
+   is uniform across wins and losses, and it is the largest concrete quality gap
+   found by hand. A prompt change ("prefer the specific figure, date or named
+   finding from the cited passage over a categorical paraphrase") targets it
+   directly and is cheap to A/B on the existing harness.
+5. **Do not localize to Australia unless the narrative does.** 9 topics
+   volunteer Australian emergency numbers or jurisdiction where the narrative
+   names no country; our preference rate on them is 0.278 vs 0.509 elsewhere.
+   Small n, but "call 000" is wrong guidance for an unlocalized asker regardless
+   of what the arena says.
+6. **Add two cheap output lints**, both zero in both baselines: non-Latin script
+   in an English answer (1 sentence), and sentences that address the retrieval
+   rather than the user ("described in the research", "in the corpus" — 3
+   sentences).
+7. **keyword ≥ semantic on every measure here** (arena 0.594 vs 0.557, support
    0.590 vs 0.581, fewer uncited topics 83 vs 70). This is the one comparison
    with no judge-identity confound, since both sides share a generator.
 
@@ -313,7 +490,19 @@ and only the first is being scored.
   but is a separate experiment.
 - A second judge model for agreement. Everything here is single-judge; the
   arena numbers in particular deserve a `gpt-5.6-sol` or Bedrock cross-check
-  before being treated as settled.
+  before being treated as settled. Result 7 sharpens this: the judge's verdict
+  in the keyword-vs-agentic pair tracks relative length (r = ±0.42) and is
+  indifferent to relative fact density once length is controlled. Whether that
+  is a property of *this* judge or of the arena protocol cannot be settled
+  without a second judge, and it bears directly on how much weight the arena
+  measure should carry.
+- A length-controlled arena re-run. The cleanest test of the above is to
+  regenerate both sides at a matched word budget and re-judge; if the gap
+  closes, the 0.485 is largely a length artifact.
+- Whether the unused-figure finding (Result 7, 42–47%) is a generation choice
+  or a context-window truncation. Distinguishing them needs the aus_agent
+  trajectories, not the submission artifacts — the staged passages the
+  generator actually saw are not in the eval tree.
 - 121 of 6,021 cited documents never resolved (persistent HTTP 429). Coverage is
   96.6–97.1% of citation pairs and is even across runs, so it does not bias the
   comparison, but it is not 100%.
