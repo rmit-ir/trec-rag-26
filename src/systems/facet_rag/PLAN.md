@@ -473,8 +473,23 @@ confident hypothetical answer even when unsure (never a hedge/refusal, since
 the text is retrieval-only and never shown to anyone). This is **not** the
 "N distinct sub-questions instead of one question × 3 engines" restructure
 this section itself recommends below (query diversity beat engine
-diversity) — that's still open. Not yet re-measured against a fresh run;
-verification pending.
+diversity) — that's still open.
+
+**Verification attempted 2026-08-05, half-blocked.** `facet_rag.hyde_5topic`
+run completed all 5 topics; spot-checking the CSGO trajectory confirms the
+mechanism works exactly as designed — hybrid queries are genuine multi-sentence
+hypothetical-answer passages at k=15 (e.g. "CS:GO's enduring popularity stems
+from its tight, skill-based gunplay...", confidently inventing plausible
+specifics like "$250 million per quarter by 2022" rather than hedging), a
+completely different shape from the old short keyword phrases. **But the
+AWS SSO session token expired partway through judging** — UMBRELA came back
+82/88 `ExpiredTokenException` failures, support 152/152 — so there is **no
+valid answer-quality measurement** for this variant. Not fabricated or
+reported as data; the resolved answers (`evaluation-results/facet_rag/
+hyde_5topic/answers.resolved.jsonl`) are kept so a re-judge doesn't need to
+re-resolve. **Action for whoever picks this up: `aws sso login`, re-check
+`sts get-caller-identity`, then re-run just the UMBRELA/support judge steps
+against the already-resolved file** — no need to re-run facet_rag itself.
 
 Measured from the trajectories (each row re-verified against
 `tool_call_counts` and the run's `references` count; the manifest's "tool

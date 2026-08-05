@@ -148,14 +148,66 @@ New test: `test_run_one_hybrid_engine_retrieves_more_than_the_others`
 (`tests/systems/test_facet_rag.py`) — asserts `calls["hybrid"][0]["k"] == 15`
 against `calls["semantic"/"keyword"][0]["k"] == 10`. Full suite: 1549 passed.
 
-**Not yet measured** — this was implemented and tested but a fresh 5-topic
-run + judge to see its effect wasn't run this session (time/budget). Next
-session should run it the same way as every other §3.x change here and
-compare against `improved_5topic` as the new baseline.
+### Verification attempted, half-blocked by an expired AWS session token
+
+```sh
+for q in 6847465956a0f6376a605404 6847465956a0f6376a60542a 683a58c9a7e7fe4e76958498 \
+         684397d188c1deceb49af32d 6847465956a0f6376a60547e; do
+  uv run --group facet-rag python src/systems/facet_rag/run.py --qid "$q" \
+    --run-id facet_rag.hyde_5topic \
+    --run-desc "PLAN.md §3.3: HyDE hypothetical-answer query for hybrid engine, k=15"
+done
+```
+
+All 5 `status=completed`, refs 16/21/17/23/11 (CSGO/SCALING/RETIRE/PRESCHOOL/
+SWARM — vs `improved_5topic`'s 12/19/18/16/18; every topic but SWARM kept
+more or different references under the wider net).
+
+**Retrieval behavior confirmed working exactly as designed.** Spot-checked
+CSGO's `trajectory.json` for every `hybrid`-engine tool call: each query is
+now a genuine multi-sentence hypothetical-answer passage at `k=15`, e.g.
+
+> "CS:GO's enduring popularity stems from its tight, skill-based gunplay, a
+> simple yet deep economy system, and meticulously balanced weapon tiers..."
+>
+> "The CS:GO skin marketplace, launched with the game's release in 2013, has
+> consistently generated billions in revenue, averaging $250 million per
+> quarter by 2022..."
+
+— a completely different shape from the old short keyword/nl phrases, and
+confidently inventing plausible-sounding specific numbers (the $250M/quarter
+figure) rather than hedging, exactly per the "always write a complete
+hypothetical answer even if unsure" instruction.
+
+**Answer-quality measurement failed — invalid, not reported as data.**
+Resolved cleanly (`n=88, median=3727.5, pinned at 2000: 0`), but partway
+through UMBRELA judging the AWS SSO session token expired:
+`ExpiredTokenException: The security token included in the request is
+expired`. UMBRELA came back `Counter({'failed': 82, 'completed': 6})` —
+82/88 candidates unjudged. Support judge, run after UMBRELA, was 100% dead:
+`152/152` rows all `status=failed`, same `ExpiredTokenException`. Confirmed
+via `boto3.client('sts').get_caller_identity()` — genuine expiry
+(`ClientError: ExpiredToken`), not a transient 429 like every other API
+hiccup this session. **Deleted both broken judgment directories rather than
+commit them** — a judge output that's 93%/100% error is not a measurement,
+and leaving it in the repo risks someone reading `judgments.summary.csv`
+later and mistaking zeros for a real (bad) score. Kept
+`answers.resolved.jsonl` and `umbrela.input.jsonl`, which are valid and
+reusable — re-running UMBRELA/support after `aws sso login` does not need a
+re-resolve or a re-run of facet_rag itself.
+
+**Net verdict for §3.3 as of this session:** the mechanism is verified
+correct at the retrieval-query level; whether it changes the final judged
+answer quality is unknown, not "wash" or "negative" — genuinely unmeasured.
+Next session: `aws sso login`, re-check `sts get-caller-identity`, then run
+just the judge steps against the already-resolved
+`evaluation-results/facet_rag/hyde_5topic/answers.resolved.jsonl`.
 
 ## Artifacts
 
 - `evaluation-results/facet_rag/improved_5topic/` (resolved answers, UMBRELA
   and support judgments)
+- `evaluation-results/facet_rag/hyde_5topic/` (resolved answers + UMBRELA
+  input only — judging failed, not committed)
 - Code: `src/systems/facet_rag/prompts.py`, `pipeline.py`, `loop.py`;
   `src/systems/ali_deepresearch/answer_format.py`, `prompts.py`
