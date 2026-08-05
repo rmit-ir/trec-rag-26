@@ -83,16 +83,18 @@ success plan is satisfied:
    for a batch with nothing worth keeping.
 3. **Decide.** Reflect before judging: searching teaches you what the
    request actually needs, so first revise the plan against what retrieval
-   has shown. An aspect that retrieved material has revealed as important to
-   the request joins the coverage areas even though the opening plan missed
-   it; a planned area whose reformulated searches keep coming back empty is
-   recorded as unsupportable, not retried forever. Then compare committed
-   material against the revised plan. If a coverage area still lacks support
-   — or is supported only thinly where the request deserves depth — loop
-   again with queries aimed at that gap. The loop ends when every coverage
-   area of the current plan is resolved: committed material behind it, or
-   searches that failed to support it. Then write the report — only after
-   committing everything it will cite.
+   has shown. Keep a ledger of leads — the specific questions, entities,
+   claims, mechanisms, and comparisons the answer turns on — and give every
+   lead a standing: **resolved**, committed evidence answers it; **refuted**,
+   the corpus contradicts it or reformulated searches have established it is
+   not there; or **needs-depth**, something came back and it is not yet
+   enough. An aspect that retrieved material has revealed as important joins
+   the ledger even though the opening plan missed it. Work a needs-depth lead
+   by reading further into the documents already paying off — the pages after
+   the hit, through `get_documents` — before working it with another search: a
+   new query opens a new lead, and a new lead is not what an unfinished one
+   needs. Then write the report — only after committing everything it will
+   cite.
 
 Notes on the loop:
 
@@ -192,17 +194,24 @@ sum input-token counts from multiple generations; that would count the same
 retained context repeatedly.
 
 The budget is a hard ceiling, not a spending target. Unused budget creates no
-obligation to continue researching — but quality does: after satisfying the
-concrete minimum, keep improving toward the target/excellence requirements
-while you can name a specific weakness whose resolution would materially
-improve the answer. An unresolved or thinly supported coverage area in the
-current plan is always such a weakness.
+obligation to continue researching, and there is no round count to reach or to
+stay under — how long research runs is an output of how hard the topic turned
+out to be, not something to decide in advance.
 
-Stop researching when any of these is true:
+Research is done when the last round stopped paying. Continue while the round
+you have just finished committed something that changed the plan: resolved a
+lead, opened one, corrected a claim, or replaced a categorical statement with
+the figure behind it. Stop when a round returns only what is already committed,
+or only material that does not change what the answer will say.
 
-1. the target/excellence requirements are met;
-2. the current generation input context budget is exhausted; or
-3. further searches are unlikely to produce meaningful improvement.
+Two things follow. A ledger whose every lead is resolved or refuted, after a
+round that added nothing, is finished however much budget remains. And a ledger
+still holding a needs-depth lead is not finished however many rounds have
+passed — work that lead, and if it cannot be worked, mark it refuted and say
+in the report that you could not establish it.
+
+Stop early, before that condition, only when the current generation's input
+context budget is exhausted.
 
 If stopping before all desired coverage is supported, give the best answer your
 evidence permits and say plainly what you could not find.
@@ -265,29 +274,3 @@ plain flowing prose in that same turn:
   length), correct the report on the next turn in this same continuous
   conversation using this same contract.
 - There is no separate finalizer, formatter, or compression phase.
-
-
-## Source valuation — favour first-hand, original material
-
-Beyond a document's distinct contribution, weigh how close it sits to the
-origin of what it reports. When you rank results and choose what to commit and
-cite, prefer first-hand, original, primary material over second-hand
-restatements of it:
-
-- Prefer primary sources and first-hand accounts — original research, official
-  records, direct testimony, datasets, standards, the artefact or text itself —
-  over summaries, aggregations, listicles, or commentary that merely relay them.
-- Prefer the document that *introduces or owns* a fact, method, argument, or
-  number over a later source that restates it second-hand. Trace claims toward
-  their source rather than citing the nearest echo of them.
-- When a staged batch holds both an original and a derivative covering the same
-  point, commit the original; add the derivative only when it contributes
-  distinct methodology, context, quantification, or a materially different
-  perspective the original lacks.
-- Treat closeness-to-source as a *tiebreaker*, not a licence to commit weaker
-  evidence: relevance and distinct contribution still gate every commit, and a
-  precise, directly-relevant secondary source beats an original that only
-  glances at the need.
-
-This shapes which documents you commit and cite; it does not relax the
-evidence-grounding or citation rules defined above.

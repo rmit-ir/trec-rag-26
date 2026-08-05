@@ -66,10 +66,34 @@ def test_the_description_states_the_one_turn_window_and_the_empty_case() -> None
     """
     description = COMMIT_CONTEXT_TOOL["description"]
     assert "MOST RECENT" in description
-    assert "first control action" in description
+    assert "immediately following model turn" in description
+    # The window is the turn, NOT a slot within it: the loop applies commits
+    # before the same turn's searches whatever order the model emitted them in
+    # (test_the_commits_position_within_the_turn_does_not_matter). The old text
+    # said "first control action", which trains the model against a constraint
+    # the harness does not have.
+    assert "in any position among that turn's actions" in description
     empty_case = (COMMIT_CONTEXT_TOOL["input_schema"]["properties"]
                   ["documents"]["description"])
     assert "empty" in empty_case and "rejects the whole staged batch" in empty_case
+
+
+def test_the_description_adjudicates_rather_than_de_duplicates() -> None:
+    """A paired-engine round is worthless if the second engine reads as a dupe.
+
+    Searching one lead on both engines returns different documents supporting
+    the same point by design. The previous rule — "do not select a semantically
+    redundant result supporting the same claim" — told the model to discard
+    exactly that, so the run would pay for the dual retrieval and throw the
+    result away, and the failure would look like "pairing did not help". The
+    replacement must state comparison criteria and must NOT reinstate a
+    similarity-based skip.
+    """
+    description = COMMIT_CONTEXT_TOOL["description"]
+    assert "ADJUDICATE, DO NOT DE-DUPLICATE" in description
+    assert "semantically redundant" not in description
+    # Rejection is by losing a comparison, never by resemblance.
+    assert "never because it looked similar" in description
 
 
 def test_the_reason_field_describes_what_distinct_means() -> None:

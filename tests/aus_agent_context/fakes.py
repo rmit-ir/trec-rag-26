@@ -120,7 +120,14 @@ def turn(*, text: str = "", calls: list[dict[str, Any]] | None = None,
 
 
 def call(call_id: str, name: str, **arguments: Any) -> dict[str, Any]:
-    """One scripted tool call with a caller-chosen id (asserted on by id)."""
+    """One scripted tool call with a caller-chosen id (asserted on by id).
+
+    A ``search`` call gets ``search_engine="semantic"`` unless the test names
+    one: the engine is required on every real call, and these ledger/trace
+    tests are about staging and compaction, not about routing.
+    """
+    if name == "search":
+        arguments = {"search_engine": "semantic", **arguments}
     return tool_call(name, arguments, id=call_id)
 
 

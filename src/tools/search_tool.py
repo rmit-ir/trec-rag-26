@@ -11,6 +11,10 @@ in isolation:
 - ``ssr``          Cottontail Shortest-Substring Ranking, GCL Boolean — Boolean syntax
 - ``lucene_bool``  full Lucene query-parser over the BM25 index       — Lucene syntax
 
+``search_engine`` is required on every call for every build, single-engine
+included — no schema default is advertised, so the backend that answered a
+query is always the one the model named.
+
 ``hybrid`` is ``utils.search.search`` (dense+sparse RRF fusion) made
 model-selectable like any other engine; a caller that owns its OWN composition
 still runs it through ``run_search_backend`` directly instead of registering it
@@ -162,11 +166,13 @@ def build_search_tool(engines: list[str] | tuple[str, ...] | None = None
                       ) -> dict[str, Any]:
     """Build a ``search`` tool definition enabling exactly ``engines``.
 
-    The ``search_engine`` enum and default, the "when to use" description, and
-    the query-writing guidance are all derived from the enabled set, so a
+    The ``search_engine`` enum, the "when to use" description, and the
+    query-writing guidance are all derived from the enabled set, so a
     single-engine run yields a tool cleanly specialised to that engine (used to
     test each method's effectiveness in isolation). ``search_engine`` is
-    required only when more than one engine is enabled.
+    ALWAYS required — including on a single-engine build — so every search in
+    a trajectory records the backend it was written for, and no call can be
+    routed by an implicit default.
     """
     engines = list(engines) if engines else ["semantic", "keyword"]
     unknown = [e for e in engines if e not in ENGINE_INFO]
@@ -178,8 +184,8 @@ def build_search_tool(engines: list[str] | tuple[str, ...] | None = None
     engine_prop = {
         "type": "string",
         "enum": engines,
-        "default": engines[0],
-        "description": ("Retrieval engine. " + blurbs
+        "description": ("Retrieval engine — REQUIRED on every call, name it "
+                        "explicitly. " + blurbs
                         + (". The engines rank differently — cover an important "
                            "facet with more than one." if multi else ".")),
     }
@@ -189,7 +195,7 @@ def build_search_tool(engines: list[str] | tuple[str, ...] | None = None
               "description": "Number of passages to return (default 10)."},
         "search_engine": engine_prop,
     }
-    required = ["query", "search_engine"] if multi else ["query"]
+    required = ["query", "search_engine"]
     desc = ("Search the ClimbMix corpus for passages relevant to a query. "
             "Returns ranked passages, each with its `id` (a page/chunk id like "
             "`shard_x_p2` when paginated) and text; commit and cite by that `id` "

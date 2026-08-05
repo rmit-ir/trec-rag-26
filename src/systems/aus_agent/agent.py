@@ -48,6 +48,7 @@ from .tools import (
     expire_staged,
 )
 
+# Dense + sparse, both enabled by default; the model must name one per call.
 DEFAULT_ENGINES = ["semantic", "keyword"]
 
 DEFAULT_CONTEXT_TOKEN_BUDGET = 500_000
@@ -134,20 +135,21 @@ def make_provider(backend: str, model: str | None,
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
                         seen_docids: set[str],
-                        default_engine: str | None = None) -> list[tuple]:
+                        engines: list[str] | None = None) -> list[tuple]:
     """Execute one model turn's tool calls IN PARALLEL (threads; the tools are
     I/O-bound and thread-safe). Returns, in the model's tool_use order, one
     ``(output, trace_output, returned, failed, documents, t_start, t_end,
     duration_ms)``
     tuple per call — each
-    call carries its own real wall-clock bounds. ``default_engine`` pins a
-    single-engine run to its engine when the model omits ``search_engine``."""
+    call carries its own real wall-clock bounds. ``engines`` is the run's
+    enabled set, named back to the model when a call omits the required
+    ``search_engine``."""
     def timed(call: dict[str, Any]) -> tuple:
         t0 = now_iso()
         started = perf_counter()
         execution = execute_full_text_search(
             call["arguments"], default_k=k, seen_docids=seen_docids,
-            default_engine=default_engine)
+            engines=engines)
         return (execution.output, execution.trace_output,
                 execution.returned, execution.failed, execution.documents,
                 t0, now_iso(),
@@ -547,7 +549,6 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
-    default_engine = engines[0]
     provider = make_provider(backend, model)
     tb = TrajectoryBuilder(query_id, query, metadata={
         "model": provider.model_id,
@@ -592,7 +593,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             run_id=run_id,
             run_desc=run_desc or (
                 f"aus_agent research harness ({backend}/{provider.model_id}, "
-                f"prompt={prompt_variant}): "
+                f"prompt={prompt_variant}, "
+                f"engines={'+'.join(engines)}): "
                 f"continuous single-agent full-text search with sparse "
                 f"committed context and line-per-sentence cited prose answers "
                 f"parsed into the organizer schema."),
@@ -1159,7 +1161,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 # records their real overlapping bounds for the viewer.
                 executed = _execute_tool_calls(
                     retrieval_calls, k=k, seen_docids=seen_docids,
-                    default_engine=default_engine)
+                    engines=engines)
                 for call, (
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms

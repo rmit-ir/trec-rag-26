@@ -5,7 +5,8 @@ import json
 from dataclasses import dataclass
 from typing import Any
 
-from tools.search_tool import build_search_tool, run_search_tool
+from tools.search_tool import (SEARCH_ENGINES, build_search_tool,
+                               run_search_tool)
 
 DEFAULT_BUDGET_TOKENS_PER_RESULT = 4096
 CHARS_PER_TOKEN_BUDGET = 5
@@ -32,9 +33,9 @@ def build_search_tool_def(engines: list[str] | tuple[str, ...] | None = None
     """AUS ``search`` tool for exactly ``engines`` (see ``build_search_tool``).
 
     Adds the AUS-only ``budget_tokens_per_result`` control and the staging note
-    to the engine-aware base tool. When more than one engine is enabled,
-    ``search_engine`` stays required (every query must be styled for its target
-    engine); with a single engine it is optional and defaults to that engine.
+    to the engine-aware base tool. ``search_engine`` is always required — every
+    query must be written for the backend it is sent to, so the model names
+    that backend even when only one is enabled.
     """
     base = build_search_tool(engines)
     return {
@@ -54,12 +55,18 @@ def build_search_tool_def(engines: list[str] | tuple[str, ...] | None = None
 # Default definition (semantic + keyword) for back-compat with existing imports.
 SEARCH_TOOL_DEF = build_search_tool_def(["semantic", "keyword"])
 
+# The position claim this used to make ("exactly the first action") is not what
+# the loop enforces — commits are applied before the turn's searches whatever
+# order the model emitted them in (tests/aus_agent_context: "the commit's
+# position within the turn does not matter"). Stating a rule the harness does
+# not enforce trains the model against a phantom constraint, so the text now
+# matches the behaviour: the turn is what matters, not the slot.
 CONTEXT_PROTOCOL = (
-    "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: commit_context must be "
-    "exactly the first action on that turn. Select only sparse non-duplicate "
-    "documents whose full text should persist, with a reason naming each "
-    "document's distinct evidence. Every unselected occurrence will be "
-    "compacted before the next turn."
+    "STAGED FOR THE IMMEDIATELY FOLLOWING TURN ONLY: call commit_context on "
+    "that turn, in any position among its actions. Select only sparse "
+    "non-duplicate documents whose full text should persist, with a reason "
+    "naming each document's distinct evidence. Every unselected occurrence "
+    "will be compacted before the next turn."
 )
 
 
@@ -110,15 +117,24 @@ def execute_full_text_search(
     *,
     default_k: int,
     seen_docids: set[str],
-    default_engine: str | None = None,
+    engines: list[str] | tuple[str, ...] | None = None,
 ) -> SearchExecution:
     """Retrieve full hits, then independently bound each staged result.
 
-    ``default_engine`` is the run's enabled engine used when the model omits
-    ``search_engine`` (so a single-engine run always hits the intended backend
-    instead of the tool's built-in ``semantic`` default).
+    ``search_engine`` is required on every call: the tool schema marks it
+    required and an omitted engine comes back as an error envelope rather than
+    silently routing to a default, so a trajectory never contains a search
+    whose backend was chosen by the harness. ``engines`` is the run's enabled
+    set, named in that error so the model can retry immediately.
     """
     query = str(arguments.get("query", ""))
+    search_engine = str(arguments.get("search_engine") or "")
+    if not search_engine:
+        allowed = list(engines) if engines else list(SEARCH_ENGINES)
+        message = ("search_engine is required on every search call: name one "
+                   f"of {allowed} explicitly and write the query for it")
+        return SearchExecution(
+            json.dumps({"error": message}), {"error": message}, None, True, [])
     budget_tokens = int(arguments.get(
         "budget_tokens_per_result",
         DEFAULT_BUDGET_TOKENS_PER_RESULT,
@@ -133,19 +149,11 @@ def execute_full_text_search(
             True,
             [],
         )
-    # Use the model's search_engine when supplied; otherwise fall back to the
-    # run's enabled engine (default_engine), and only then to the backend's own
-    # default. This keeps a single-engine run pinned to its engine.
-    engine_kwargs: dict[str, Any] = {}
-    if arguments.get("search_engine"):
-        engine_kwargs["search_engine"] = str(arguments["search_engine"])
-    elif default_engine:
-        engine_kwargs["search_engine"] = default_engine
     output = run_search_tool(
         query=query,
         k=int(arguments.get("k", default_k)),
         max_chars=None,
-        **engine_kwargs,
+        search_engine=search_engine,
     )
     data = json.loads(output)
     if "error" in data:

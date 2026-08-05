@@ -125,9 +125,11 @@ def main() -> None:
         "--search-backends", "--engines", dest="search_backends",
         default=env("RUN_AUS_AGENT_SEARCH_BACKENDS", "semantic,keyword"),
         help="comma-separated retrieval backends the search tool may use: "
-             "semantic, keyword, ssr, lucene_bool. Restrict to one (e.g. "
-             "--search-backends ssr) to test that method's effectiveness in "
-             "isolation (default: semantic,keyword). Alias: --engines.")
+             "semantic, keyword, ssr, lucene_bool. Default is the dense+sparse "
+             "pair semantic,keyword. Restrict to one (e.g. --search-backends "
+             "ssr) to test that method's effectiveness in isolation; the model "
+             "must name search_engine on every call either way. "
+             "Alias: --engines.")
     ap.add_argument(
         "--skip-existing", action="store_true",
         default=env("RUN_AUS_AGENT_SKIP_EXISTING", False),

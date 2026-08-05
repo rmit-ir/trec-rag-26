@@ -390,21 +390,47 @@ def test_metadata_records_backend_engines_and_run_id(
 
 def test_single_engine_run_pins_searches_to_that_engine(
         drive: Callable[..., dict[str, Any]]) -> None:
-    """With one engine enabled the model may omit ``search_engine``.
+    """A one-engine run still routes only to that engine, and still names it.
 
-    The adapter must then use the RUN's engine, not the shared tool's built-in
-    ``semantic`` default — otherwise an SSR-only or keyword-only experiment
-    silently measures the wrong backend.
+    ``search_engine`` is required even when there is one choice, so an
+    SSR-only or keyword-only effectiveness experiment can never be answered by
+    the shared tool's built-in ``semantic`` backend.
     """
     script = [
         model_turn(tool_calls=[tool_call(
-            "search", {"query": "congestion pricing"}, id="s1")]),
+            "search", {"query": "congestion pricing",
+                       "search_engine": "keyword"}, id="s1")]),
         model_turn(tool_calls=[tool_call("commit_context", {"documents": [
             {"docid": D[0], "reason": "revenue"}]}, id="c1")]),
         model_turn(text=f"Toll revenue funds the capital plan [{D[0]}]."),
     ]
     result = drive(script, engines=["keyword"])
     assert list(result["calls"]) == ["keyword"]
+    assert result["summary"]["status"] == "completed"
+
+
+def test_a_search_without_an_engine_is_an_error_the_model_can_recover_from(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """An omitted ``search_engine`` must not silently retrieve anything.
+
+    The run has to survive the mistake (the model retries with an engine named)
+    rather than crash, and the failed call must reach no backend at all — a
+    quiet fallback would put hits in the trajectory under an engine the model
+    never selected, which is exactly the label noise the retriever fine-tuning
+    consumes.
+    """
+    script = [
+        model_turn(tool_calls=[tool_call(
+            "search", {"query": "congestion pricing"}, id="s0")]),
+        model_turn(tool_calls=[tool_call(
+            "search", {"query": "congestion pricing",
+                       "search_engine": "semantic"}, id="s1")]),
+        model_turn(tool_calls=[tool_call("commit_context", {"documents": [
+            {"docid": D[0], "reason": "revenue"}]}, id="c1")]),
+        model_turn(text=f"Toll revenue funds the capital plan [{D[0]}]."),
+    ]
+    result = drive(script)
+    assert list(result["calls"]) == ["semantic"]        # the bad call retrieved nothing
     assert result["summary"]["status"] == "completed"
 
 
@@ -1291,6 +1317,71 @@ def test_make_provider_openai_builds_no_client_until_used() -> None:
     assert type(provider).__name__ == "OpenAIProvider"
     assert provider.model_id == "gpt-5.6-luna"
     assert provider._client is None
+
+
+def test_openai_read_timeout_clears_a_slow_model_and_still_beats_600s(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """The read bound is model-dependent, so the default must suit the slowest.
+
+    Measured on ``gpt-5.6-luna``: p99 25.2s over 447 turns, longest legitimate
+    turn ~26s. A bigger generator or ``reasoning.mode=pro`` raises that, and the
+    two failure modes are not symmetric — too high stalls a run for the
+    timeout's duration on a hung socket, while too low cancels real generations
+    whose retry then re-sends the whole accumulated conversation, so it burns
+    tokens and may never converge. The default therefore keeps ~12x headroom
+    over the measured p99 (room for a ~10x slower model) while still halving the
+    old ``timeout=600.0``.
+
+    ``connect`` stays well under ``read`` so an unreachable endpoint fails fast
+    instead of spending the read budget.
+    """
+    import httpx
+
+    from aus_agent.providers.openai import (CONNECT_TIMEOUT_S, MAX_RETRIES,
+                                            READ_TIMEOUT_S, OpenAIProvider)
+
+    assert 250.0 <= READ_TIMEOUT_S < 600.0   # slow-model headroom, still < old
+    assert CONNECT_TIMEOUT_S < READ_TIMEOUT_S
+
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-used")
+    client = OpenAIProvider()._ensure_client()
+    assert isinstance(client.timeout, httpx.Timeout)
+    assert client.timeout.read == READ_TIMEOUT_S
+    assert client.timeout.connect == CONNECT_TIMEOUT_S
+    # Retries were never the problem — the per-attempt ceiling was. A drop here
+    # would mean a single hung socket fails the topic outright.
+    assert client.max_retries == MAX_RETRIES >= 3
+
+
+def test_openai_timeouts_are_tunable_per_model_without_a_code_change(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Switching generators must not require editing a constant.
+
+    The right read bound depends on the model in use, so a hardcoded value is
+    wrong for every model but one. These vars are how a slower backend (or
+    ``reasoning.mode=pro``) is accommodated, and how the fast one is tightened
+    back up — if the override silently did nothing, the operator would believe
+    they had retuned a run that was still on the default.
+    """
+    import httpx
+
+    monkeypatch.setenv("AUS_AGENT_READ_TIMEOUT_S", "45")
+    monkeypatch.setenv("AUS_AGENT_CONNECT_TIMEOUT_S", "3")
+    monkeypatch.setenv("OPENAI_API_KEY", "test-key-not-used")
+    # The constants bind at import, so a re-import is what an override-aware
+    # process actually does; reload keeps the module's other users unaffected.
+    import importlib
+
+    from aus_agent.providers import openai as openai_provider
+    reloaded = importlib.reload(openai_provider)
+    try:
+        assert reloaded.READ_TIMEOUT_S == 45.0
+        client = reloaded.OpenAIProvider()._ensure_client()
+        assert isinstance(client.timeout, httpx.Timeout)
+        assert client.timeout.read == 45.0 and client.timeout.connect == 3.0
+    finally:
+        monkeypatch.undo()
+        importlib.reload(openai_provider)
 
 
 def test_make_provider_bedrock_selects_the_bedrock_backend() -> None:

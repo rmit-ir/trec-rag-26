@@ -5,10 +5,10 @@ it is worth pinning independently of the retrieval backends:
 
 1. **The tool definition is derived, not hardcoded.** ``build_search_tool`` is
    how a run restricts itself to one engine (the engine-comparison experiments)
-   — so the ``enum``/``default``/``required`` triple must follow the enabled set
-   exactly. A single-engine build that still marked ``search_engine`` required
-   would force the model to name the only engine there is; a multi-engine build
-   that left it optional would silently route everything to ``engines[0]``.
+   — so the ``enum`` must follow the enabled set exactly. ``search_engine`` is
+   required for every build, single-engine included: a build that left it
+   optional would let the model omit it and route silently to ``engines[0]``,
+   so the trajectory would attribute hits to an engine nothing selected.
 2. **The guidance string is the query language contract.** SSR needs GCL,
    lucene_bool needs Lucene syntax, semantic/keyword need natural language. A
    mixed engine set must carry *both* guidances with their ``[for ...]`` labels,
@@ -51,17 +51,18 @@ def test_default_build_is_semantic_plus_keyword() -> None:
 
 
 @pytest.mark.parametrize("engine", SEARCH_ENGINES)
-def test_single_engine_build_does_not_require_search_engine(engine: str) -> None:
-    """One engine -> ``search_engine`` optional, enum/default pinned to it.
+def test_single_engine_build_still_requires_search_engine(engine: str) -> None:
+    """One engine -> enum pinned to it, and naming it is still mandatory.
 
-    The model should not have to spell out the only choice available; the
-    dispatch default has to be that engine, not the table's first entry.
+    Spelling out the only available choice costs the model nothing and buys an
+    explicit engine on every trajectory row; leaving it optional means the
+    single-engine effectiveness runs record searches whose backend was chosen
+    by a schema default rather than by the model.
     """
     schema = build_search_tool([engine])["input_schema"]
-    assert schema["required"] == ["query"]
+    assert schema["required"] == ["query", "search_engine"]
     prop = schema["properties"]["search_engine"]
     assert prop["enum"] == [engine]
-    assert prop["default"] == engine
 
 
 def test_multi_engine_build_requires_search_engine() -> None:
@@ -72,12 +73,22 @@ def test_multi_engine_build_requires_search_engine() -> None:
     assert tool["input_schema"]["required"] == ["query", "search_engine"]
 
 
-def test_engine_order_is_preserved_and_drives_the_default() -> None:
-    """Order is the caller's, not ``ENGINE_INFO``'s — the first is the default."""
+def test_no_engine_default_is_advertised_to_the_model() -> None:
+    """A JSON-Schema ``default`` on a required field reads as "you may omit
+    this" — the two together are contradictory guidance, and the omission is
+    what the whole required-engine rule exists to prevent."""
+    for engines in (["semantic"], ["semantic", "keyword"], list(SEARCH_ENGINES)):
+        prop = build_search_tool(engines)["input_schema"]["properties"][
+            "search_engine"]
+        assert "default" not in prop
+
+
+def test_engine_order_is_preserved() -> None:
+    """Order is the caller's, not ``ENGINE_INFO``'s — the enum the model reads
+    is the run's own configuration, in the order the runner wrote it."""
     schema = build_search_tool(["ssr", "keyword", "semantic"])["input_schema"]
-    prop = schema["properties"]["search_engine"]
-    assert prop["enum"] == ["ssr", "keyword", "semantic"]
-    assert prop["default"] == "ssr"
+    assert schema["properties"]["search_engine"]["enum"] == [
+        "ssr", "keyword", "semantic"]
 
 
 def test_multi_engine_description_nudges_cross_engine_coverage() -> None:

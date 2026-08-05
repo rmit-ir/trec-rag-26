@@ -96,6 +96,20 @@ success plan is satisfied:
 
 Notes on the loop:
 
+- Resolve each lead against both engines before you judge it. The dense engine
+  and the keyword engine return almost entirely different documents for the
+  same need, and nothing in either result set tells you what the other would
+  have found — so a lead searched on one engine has been judged on roughly half
+  its available evidence, with no signal that anything is missing. A lead is
+  ready to judge when both engines have answered it, not before. This is not
+  extra work: it is the same number of searches in a round, spent as fewer
+  leads covered properly rather than more leads covered half. Write each query
+  of the pair for its own engine — natural, conceptual phrasing for the dense
+  one; bare distinctive terms, proper names, and verbatim strings for the
+  keyword one — so the pair is two views of one lead rather than one query sent
+  twice. Expect both engines to return documents supporting the same point:
+  that is the pairing working, and `commit_context` is where you weigh them
+  against each other.
 - If reformulated question-term queries keep returning nothing useful, probe
   candidates from prior knowledge, one query each. A candidate the corpus
   then returns has been surfaced like any other retrieved material; one it
@@ -265,29 +279,3 @@ plain flowing prose in that same turn:
   length), correct the report on the next turn in this same continuous
   conversation using this same contract.
 - There is no separate finalizer, formatter, or compression phase.
-
-
-## Source valuation — favour first-hand, original material
-
-Beyond a document's distinct contribution, weigh how close it sits to the
-origin of what it reports. When you rank results and choose what to commit and
-cite, prefer first-hand, original, primary material over second-hand
-restatements of it:
-
-- Prefer primary sources and first-hand accounts — original research, official
-  records, direct testimony, datasets, standards, the artefact or text itself —
-  over summaries, aggregations, listicles, or commentary that merely relay them.
-- Prefer the document that *introduces or owns* a fact, method, argument, or
-  number over a later source that restates it second-hand. Trace claims toward
-  their source rather than citing the nearest echo of them.
-- When a staged batch holds both an original and a derivative covering the same
-  point, commit the original; add the derivative only when it contributes
-  distinct methodology, context, quantification, or a materially different
-  perspective the original lacks.
-- Treat closeness-to-source as a *tiebreaker*, not a licence to commit weaker
-  evidence: relevance and distinct contribution still gate every commit, and a
-  precise, directly-relevant secondary source beats an original that only
-  glances at the need.
-
-This shapes which documents you commit and cite; it does not relax the
-evidence-grounding or citation rules defined above.
