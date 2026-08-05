@@ -103,7 +103,18 @@ SYSTEM_NAME = "{name}"
 # stage kind in {{llm, no-llm, retrieval, format, artifact, loop}}.
 # An agent with a cycle leads with a {{"kind": "loop"}} stage that DECLARES the
 # span it repeats: "back_to"/"back_from" are stage ids (plus optional
-# "back_label"). Without them no loop-back arrow is drawn.
+# "back_label"). Without them no loop-back arrow is drawn. A "loop" stage may
+# also set "parallel_over" (e.g. "facet") if its iterations run concurrently
+# across something, not just sequentially.
+# Optional per-stage detail (issue #20, shown in the click-to-open panel):
+# "prompt": ["<path-relative-to-src>::CONST", ...] and/or
+# "code": ["<path-relative-to-src>::func_or_Class.method", ...] -- both are
+# verified against real source at generation time (a rename/removal fails
+# loudly). "run" (llm/code/llm+code) is derived from which of these a stage
+# declares, never hand-authored. "tools": [{{"name", "ref"}}] for native
+# tool-calling, or "engines": {{"mandatory": ref, "optional": ref}} (refs to
+# tuple/list constants) for an engine-blurb style; "tools_note" is a one-line
+# why/how. See the `trec-rag-new-system` skill for the full field reference.
 ARCH_STAGES = [
     {{"id": "retrieve", "label": "RETRIEVE", "kind": "retrieval",
      "note": "search ClimbMix via tools.search_tool"}},
