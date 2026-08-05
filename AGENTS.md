@@ -1,6 +1,9 @@
 Google Groups mailing list: https://groups.google.com/g/trec-rag-2026-participants
 TREC RAG 2026 Official Skills: https://github.com/TREC-RAG/trec-rag-skills.git
 
+Codex discovers these through the relative symlink `.agents/skills -> ../skills`;
+preserve or recreate it when setting up a clone.
+
 ## Vendored Official Skills (the spec drifts silently — check it)
 
 `skills/trec-rag-2026-track-guidelines/`, `skills/pyserini-rest-api/`, and
