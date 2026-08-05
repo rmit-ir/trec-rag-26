@@ -117,9 +117,10 @@ def main() -> None:
                          "(default: all four)")
     ap.add_argument("--min-facets", type=int, default=3)
     ap.add_argument("--max-facets", type=int, default=6)
-    ap.add_argument("--max-chars", type=int, default=2000,
+    ap.add_argument("--max-chars", type=int, default=20000,
                     help="max chars of passage text per result fed to the "
-                         "analyzer/synthesis")
+                         "analyzer/synthesis (default matches aus_agent's "
+                         "4096-token/~20480-char stage depth, PLAN.md §3.1)")
     ap.add_argument("--run-id", default="facet_rag.dev")
     ap.add_argument("--run-desc", default=DEFAULT_RUN_DESC)
     ap.add_argument("--no-format-llm", action="store_true",
