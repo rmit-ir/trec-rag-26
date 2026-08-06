@@ -20,15 +20,15 @@ exist to compare a scripted multi-call pipeline against a single agent
 following the same process from a terser prompt.
 
 Concretely, `facets_agent` is **thin configuration over the shared
-`aus_agent.agent.run_agent` harness**, not a fork of it — the staged/committed
-evidence protocol, the budget tracking, the final-report citation parsing, and
-the pluggable Bedrock/OpenAI providers are all reused unchanged
-(`src/systems/aus_agent/agent.py`, `context.py`, `tools/`, `providers/`).
-`aus_agent.agent.run_agent` was generalized (`system_name`, `system_prompt`,
-`default_k_by_engine` parameters) so a second system could configure it
-without copying ~1,300 lines of tested loop logic or writing artifacts into
-`aus_agent`'s own output tree. `src/systems/facets_agent/agent.py` supplies
-only what makes this system distinct:
+`agent_harness.agent.run_agent` harness**, not a fork of it — the
+staged/committed evidence protocol, the budget tracking, the final-report
+citation parsing, and the pluggable Bedrock/OpenAI providers are all reused
+unchanged (`src/agent_harness/agent.py`, `context.py`, `tools/`,
+`providers/`). `agent_harness.agent.run_agent` is generalized (`system_name`,
+`system_prompt`, `default_k_by_engine` parameters) so a second system can
+configure it without copying ~1,300 lines of tested loop logic or writing
+artifacts into `aus_agent`'s own output tree. `src/systems/facets_agent/agent.py`
+supplies only what makes this system distinct:
 
 - `prompts.SYSTEM_PROMPT` — the short facet_rag-inspired prompt (see below).
 - `DEFAULT_ENGINES` — the three natural-language retrieval backends enabled by
@@ -40,9 +40,9 @@ only what makes this system distinct:
   a HyDE-style hypothetical passage, which benefits from more candidates).
 - `system_name="facets_agent"` — artifacts land in `data/outputs/facets_agent/`,
   never mixed with `aus_agent`'s own runs.
-- `tools.COMMIT_CONTEXT_TOOL` — extends aus_agent's shared tool with a
+- `tools.COMMIT_CONTEXT_TOOL` — extends agent_harness's shared tool with a
   `release` property, and `commit_context_tool=` passes it to `run_agent`
-  instead of aus_agent's plain one. See "Minimal evidence per facet" below.
+  instead of agent_harness's plain one. See "Minimal evidence per facet" below.
 
 ## The prompt
 
@@ -68,24 +68,25 @@ verbatim in the model's OWN history. Making "commit the better one, drop the
 one it replaces" possible needed a real harness capability, not just prompt
 wording:
 
-- `aus_agent.context.ContextLedger.release_committed` — drops a unit
+- `agent_harness.context.ContextLedger.release_committed` — drops a unit
   committed on ANY earlier turn (not just the currently staged batch) by
   recomputing that turn's tool-result compaction from scratch (original
   output + current `committed_ids` membership), so it needs no way to read
   the provider's current, possibly-already-compacted history back out.
-- `aus_agent.tools.commit_context.apply_commit` reads an optional `release`
-  argument off any `commit_context` call and routes it there, regardless of
-  which system's tool schema advertised the field — so this is dead code for
-  `aus_agent` itself (whose prompt and tool definition never mention
-  `release`) and live for `facets_agent`.
+- `agent_harness.tools.commit_context.apply_commit` reads an optional
+  `release` argument off any `commit_context` call and routes it there,
+  regardless of which system's tool schema advertised the field — so this is
+  dead code for `aus_agent` itself (whose prompt and tool definition never
+  mention `release`) and live for `facets_agent`.
 - `facets_agent.tools.COMMIT_CONTEXT_TOOL` is the schema that actually tells
-  the model the field exists: aus_agent's own tool definition is untouched.
+  the model the field exists: agent_harness's own tool definition is
+  untouched.
 
 The result: `commit_context(documents=[{id: "z", reason: "..."}],
 release=[{id: "a", reason: "z states this more precisely"}])` commits `z` and
 retroactively compacts whichever earlier turn rendered `a` in full, replacing
 it with a tombstone the model can tell apart from an ordinary rejection or
-duplicate (`RELEASE_PREFIX`, `aus_agent/context.py`).
+duplicate (`RELEASE_PREFIX`, `agent_harness/context.py`).
 
 ## CLI
 
@@ -126,5 +127,5 @@ parsing, budget/backstop behavior) are already covered by
 `tests/systems/test_aus_agent.py` against the same shared code and are not
 re-tested here; `ContextLedger.release_committed` and `apply_commit`'s
 `release` handling have their own unit suites in
-`tests/aus_agent_context/test_ledger_release.py` and
+`tests/agent_harness_context/test_ledger_release.py` and
 `test_commit_tool.py`.

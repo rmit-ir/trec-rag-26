@@ -135,7 +135,7 @@ def test_get_documents_recovers_from_a_429(monkeypatch):
     """
     import json
 
-    from aus_agent.tools.get_documents import execute_get_documents
+    from agent_harness.tools.get_documents import execute_get_documents
 
     with DummyClimbMixAPI("dense", fail_times=2) as api:
         monkeypatch.setenv("DENSE_SEARCH_URL", api.base_url)

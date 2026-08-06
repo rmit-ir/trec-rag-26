@@ -20,14 +20,14 @@ import json
 
 import pytest
 
-from aus_agent_context.fakes import (
+from agent_harness_context.fakes import (
     DOC_SETS,
     first_line_json,
     results_by_docid,
     staged_text,
 )
 
-from aus_agent.context import DUPLICATE_PREFIX, REJECTION_PREFIX, ContextLedger
+from agent_harness.context import DUPLICATE_PREFIX, REJECTION_PREFIX, ContextLedger
 
 UNSELECTED_REASON = "not selected for committed context"
 

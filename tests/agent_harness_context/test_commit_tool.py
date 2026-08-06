@@ -16,11 +16,11 @@ from __future__ import annotations
 
 import pytest
 
-from aus_agent_context.fakes import first_line_json, results_by_docid
+from agent_harness_context.fakes import first_line_json, results_by_docid
 
-from aus_agent.context import REJECTION_PREFIX, ContextLedger
-from aus_agent.tools import COMMIT_CONTEXT_TOOL, apply_commit, expire_staged
-from aus_agent.tools.commit_context import CommitHandlerResult
+from agent_harness.context import REJECTION_PREFIX, ContextLedger
+from agent_harness.tools import COMMIT_CONTEXT_TOOL, apply_commit, expire_staged
+from agent_harness.tools.commit_context import CommitHandlerResult
 
 
 # ---------------------------------------------------------------------------
@@ -402,9 +402,9 @@ def test_expire_staged_leaves_previously_committed_documents_alone(
     ledger = ledger_with(("q1", "alpha"))
     ledger.commit([{"docid": "a", "reason": "kept"}], max_documents=3)
 
-    from aus_agent.tools import documents_from_search
+    from agent_harness.tools import documents_from_search
     import json as _json
-    from aus_agent_context.fakes import search_payload, staged_output
+    from agent_harness_context.fakes import search_payload, staged_output
 
     ledger.stage("q2", "search", staged_output("beta"),
                  documents_from_search(_json.loads(search_payload("beta"))))

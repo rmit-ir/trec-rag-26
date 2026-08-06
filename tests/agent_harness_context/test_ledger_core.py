@@ -14,7 +14,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from aus_agent_context.fakes import (
+from agent_harness_context.fakes import (
     STATUS_LINE,
     first_line_json,
     results_by_docid,
@@ -23,7 +23,7 @@ from aus_agent_context.fakes import (
     staged_text,
 )
 
-from aus_agent.context import (
+from agent_harness.context import (
     DUPLICATE_PREFIX,
     REJECTION_PREFIX,
     CommitDecision,
@@ -31,7 +31,7 @@ from aus_agent.context import (
     StagedResult,
     rejection_marker,
 )
-from aus_agent.tools import documents_from_search
+from agent_harness.tools import documents_from_search
 
 
 # ---------------------------------------------------------------------------

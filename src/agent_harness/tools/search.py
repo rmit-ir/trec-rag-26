@@ -57,7 +57,7 @@ SEARCH_TOOL_DEF = build_search_tool_def(["semantic", "keyword"])
 
 # The position claim this used to make ("exactly the first action") is not what
 # the loop enforces — commits are applied before the turn's searches whatever
-# order the model emitted them in (tests/aus_agent_context: "the commit's
+# order the model emitted them in (tests/agent_harness_context: "the commit's
 # position within the turn does not matter"). Stating a rule the harness does
 # not enforce trains the model against a phantom constraint, so the text now
 # matches the behaviour: the turn is what matters, not the slot.

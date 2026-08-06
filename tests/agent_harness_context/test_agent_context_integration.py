@@ -29,14 +29,14 @@ from typing import Any
 
 import pytest
 
-from aus_agent_context.fakes import (
+from agent_harness_context.fakes import (
     StrictScriptedProvider,
     call,
     staged_text,
     turn,
 )
 
-from aus_agent.context import REJECTION_PREFIX
+from agent_harness.context import REJECTION_PREFIX
 
 # Two searches, a split commit plus a third search, a final commit, then a
 # report. Deliberately the shape the system prompt asks for (parallel
@@ -543,7 +543,7 @@ def test_get_documents_records_parent_docids_not_unit_id_strings(
     chunk hit reports the document it came from), while the rich trace's staged
     context keeps the ``<docid>_p<page>`` unit ids the ledger actually addresses.
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     def fake_execute(arguments: dict[str, Any], **_: Any) -> tuple:
         ids = list(arguments.get("ids") or [])

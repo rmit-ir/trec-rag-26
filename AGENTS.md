@@ -137,7 +137,7 @@ uv run $DEP_GROUPS pytest -m 'live or not live'  # offline + live together
 
 (Never name that variable `GROUPS` — bash built-in holding numeric group ids, assigning to it silently ignored.)
 
-Layout: `tests/contract/` (input/output format conformance vs track spec), `tests/shared/` (`utils`/`tools`/`mcp` layers), `tests/systems/` (per-system end-to-end), `tests/aus_agent_context/` (`ContextLedger` suite), `tests/dummy_api/` (real clients over loopback HTTP, see below).
+Layout: `tests/contract/` (input/output format conformance vs track spec), `tests/shared/` (`utils`/`tools`/`mcp` layers), `tests/systems/` (per-system end-to-end), `tests/agent_harness_context/` (`ContextLedger` suite), `tests/dummy_api/` (real clients over loopback HTTP, see below).
 
 `tests/conftest.py` holds shared fixtures, *enforces* hermeticism rather than trust it — read before writing tests:
 

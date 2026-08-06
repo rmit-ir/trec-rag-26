@@ -52,7 +52,7 @@ for arg in "$@"; do
     shared)     args+=("tests/shared") ;;
     systems)    args+=("tests/systems") ;;
     dummy-api)  args+=("tests/dummy_api") ;;
-    aus-agent)  args+=("tests/aus_agent_context") ;;
+    aus-agent)  args+=("tests/agent_harness_context") ;;
     # tasks/bm25_tune/ is a task, not a src/ package, so its modules are
     # stdlib-only at import time and need no dep group of their own — see
     # tests/bm25_tune/conftest.py. Hence: shorthand only, DEP_GROUPS unchanged.

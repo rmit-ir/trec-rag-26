@@ -13,7 +13,7 @@ from __future__ import annotations
 import json
 
 import pytest
-from aus_agent_context.fakes import (
+from agent_harness_context.fakes import (
     STATUS_LINE,
     first_line_json,
     results_by_docid,
@@ -21,8 +21,8 @@ from aus_agent_context.fakes import (
     staged_output,
 )
 
-from aus_agent.context import RELEASE_PREFIX, ContextLedger, rejection_marker
-from aus_agent.tools import documents_from_search
+from agent_harness.context import RELEASE_PREFIX, ContextLedger, rejection_marker
+from agent_harness.tools import documents_from_search
 
 
 def test_release_recompacts_the_original_historical_call(ledger_with) -> None:

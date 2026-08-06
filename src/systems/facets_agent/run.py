@@ -21,15 +21,16 @@ import sys
 from pathlib import Path
 
 # --- import surgery (facet_rag/run.py's convention, not aus_agent/run.py's) -
-# ``agent.py`` does a BARE ``from aus_agent.agent import ...`` (matching how
-# the test suite's pythonpath resolves it: "aus_agent.agent", never
-# "systems.aus_agent.agent") -- so this header puts src/systems on the path
-# and imports facets_agent itself bare too, rather than aus_agent/run.py's
-# "put src/ on the path, import via systems.<name>..." style. Mixing the two
-# conventions in one process loads aus_agent's module twice under different
-# names, so patching one copy (as tests do) silently misses the other.
-# ``ragrun``/``tools``/``utils`` need no path entry either way -- they are
-# installed editable (see pyproject's [tool.hatch.build.targets.wheel]).
+# ``agent.py`` does a BARE ``from agent_harness.agent import ...`` (matching
+# how the test suite's pythonpath resolves it) -- so this header puts
+# src/systems on the path and imports facets_agent itself bare too, rather
+# than aus_agent/run.py's "put src/ on the path, import via systems.<name>..."
+# style. Mixing the two conventions in one process loads a module twice under
+# different names, so patching one copy (as tests do) silently misses the
+# other.
+# ``ragrun``/``tools``/``utils``/``agent_harness`` need no path entry either
+# way -- they are installed editable (see pyproject's
+# [tool.hatch.build.targets.wheel]).
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _SYSTEMS = os.path.dirname(_HERE)
 sys.path[:] = [p for p in sys.path if os.path.abspath(p or ".") != _HERE]

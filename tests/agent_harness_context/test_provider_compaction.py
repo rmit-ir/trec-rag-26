@@ -33,8 +33,8 @@ import pytest
 
 pytest.importorskip("boto3", reason="boto3 is in the aus-agent dep group")
 
-from aus_agent.context import REJECTION_PREFIX
-from aus_agent.providers.bedrock import EMPTY_RESPONSE_RETRIES, BedrockProvider
+from agent_harness.context import REJECTION_PREFIX
+from agent_harness.providers.bedrock import EMPTY_RESPONSE_RETRIES, BedrockProvider
 
 
 def make_provider(*, caching: bool = True) -> BedrockProvider:

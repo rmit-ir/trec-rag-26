@@ -17,7 +17,7 @@ build-backend = "hatchling.build"
 # editable, so imports resolve no matter where a script is run from.
 [tool.hatch.build.targets.wheel]
 sources = ["src"]
-packages = ["src/utils", "src/tools", "src/ragrun"]
+packages = ["src/utils", "src/tools", "src/ragrun", "src/agent_harness"]
 
 [dependency-groups]
 # Test harness for src/ (shared layers + every system). Hermetic by default:

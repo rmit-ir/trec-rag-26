@@ -29,7 +29,7 @@ from typing import Any, Callable
 
 import pytest
 
-from aus_agent_context.fakes import StrictScriptedProvider, call, turn
+from agent_harness_context.fakes import StrictScriptedProvider, call, turn
 
 from ragrun import outputs as ragrun_outputs
 
@@ -53,7 +53,7 @@ def run_to_disk(monkeypatch: pytest.MonkeyPatch,
     tests assert on in-memory objects; this module's subject IS the on-disk
     behaviour, so only the provider is substituted.
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     def _run(provider: Any, **kwargs: Any) -> dict[str, Any]:
         monkeypatch.setattr(agent, "make_provider", lambda *a, **kw: provider)
@@ -61,6 +61,7 @@ def run_to_disk(monkeypatch: pytest.MonkeyPatch,
             "context_token_budget": 10_000,
             "safety_max_rounds": 20,
             "max_committed_per_step": 3,
+            "system_prompt": "test system prompt",
             **kwargs,
         })
         return summary
@@ -86,7 +87,7 @@ def test_a_partial_exists_before_the_first_turn_and_shares_the_final_path(
     so a link opened while the run is in flight keeps working after it finishes —
     and each partial is complete JSON, readable at any instant.
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     provider = StrictScriptedProvider(list(SAVE_SCRIPT))
     seen: list[dict[str, Any]] = []
@@ -131,7 +132,7 @@ def test_a_partial_writes_neither_the_trajectory_nor_a_violations_file(
     no answer, so validating would drop a violations file next to a run that is
     going to be perfectly valid.
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     provider = StrictScriptedProvider(list(SAVE_SCRIPT))
     seen: list[list[str]] = []
@@ -162,7 +163,7 @@ def test_partial_saves_are_throttled_and_the_final_save_always_lands(
     first turn (so the run is visible at all) and the final one (the artifact
     itself).
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     writes: list[str] = []
     real_atomic = ragrun_outputs.atomic_write_text
@@ -212,7 +213,7 @@ def test_a_completed_run_leaves_no_temp_files_behind(
     every leaked temp file right where the viewer globs for artifacts. A run does
     dozens of these, so a single unclean path leaks dozens of files.
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     monkeypatch.setattr(agent, "PARTIAL_SAVE_MIN_INTERVAL_S", 0.0)
     run_to_disk(StrictScriptedProvider(list(SAVE_SCRIPT)))

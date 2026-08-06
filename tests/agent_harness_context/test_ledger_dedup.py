@@ -21,7 +21,7 @@ from __future__ import annotations
 
 import json
 
-from aus_agent_context.fakes import (
+from agent_harness_context.fakes import (
     first_line_json,
     results_by_docid,
     search_payload,
@@ -29,8 +29,8 @@ from aus_agent_context.fakes import (
     staged_text,
 )
 
-from aus_agent.context import DUPLICATE_PREFIX, REJECTION_PREFIX
-from aus_agent.tools import documents_from_search
+from agent_harness.context import DUPLICATE_PREFIX, REJECTION_PREFIX
+from agent_harness.tools import documents_from_search
 
 # Deliberately re-stated rather than imported from ``context``: these are the
 # model-facing prose the agent reads, so a reword in ``src/`` should fail a test
@@ -270,7 +270,7 @@ def test_two_pages_of_one_document_are_independent_commit_decisions() -> None:
              "score": 0.5, "text": "page two"},
         ],
     })
-    from aus_agent.context import ContextLedger
+    from agent_harness.context import ContextLedger
 
     ledger = ContextLedger()
     ledger.stage("q1", "search", payload,
@@ -308,7 +308,7 @@ def test_both_pages_of_one_document_can_be_committed_together() -> None:
              "score": 0.5, "text": "page two"},
         ],
     })
-    from aus_agent.context import ContextLedger
+    from agent_harness.context import ContextLedger
 
     ledger = ContextLedger()
     ledger.stage("q1", "search", payload,

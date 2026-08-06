@@ -1,11 +1,11 @@
 """End-to-end coverage for ``src/systems/facets_agent`` — a thin configuration
-of the shared ``aus_agent.agent.run_agent`` staged-context harness.
+of the shared ``agent_harness.agent.run_agent`` staged-context harness.
 
 ``facets_agent.agent.run_agent`` reimplements nothing: it renders this
 package's own minimal prompt and calls straight into
-``aus_agent.agent.run_agent`` with ``system_name="facets_agent"``, the three
-natural-language retrieval engines enabled (``ssr``/``lucene_bool`` are no
-longer supported), and a wider default ``k`` for the ``hybrid`` engine. The
+``agent_harness.agent.run_agent`` with ``system_name="facets_agent"``, the
+three natural-language retrieval engines enabled (``ssr``/``lucene_bool`` are
+no longer supported), and a wider default ``k`` for the ``hybrid`` engine. The
 loop mechanics themselves (staged/committed evidence, the final-report
 contract, citation parsing) are already covered by
 ``tests/systems/test_aus_agent.py`` against the same shared code — this file
@@ -16,7 +16,7 @@ the wider default rather than the plain one.
 
 Provider substitution follows the same pattern as ``test_aus_agent.py``:
 ``ScriptedProvider`` stands in for the model, patched onto
-``aus_agent.agent.make_provider`` (where the shared harness actually
+``agent_harness.agent.make_provider`` (where the shared harness actually
 constructs it) rather than on ``facets_agent.agent`` — the wrapper module
 never calls ``make_provider`` itself.
 """
@@ -27,7 +27,7 @@ from typing import Any, Callable
 import pytest
 from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn, tool_call
 
-from aus_agent import agent as aus_agent_mod
+from agent_harness import agent as agent_harness_mod
 
 from facets_agent.agent import DEFAULT_ENGINES, DEFAULT_HYBRID_K, SYSTEM_NAME
 from facets_agent.agent import run_agent as facets_run_agent
@@ -45,7 +45,7 @@ def drive(monkeypatch: pytest.MonkeyPatch,
     def _drive(script: list[dict[str, Any]], *, query_id: str = QID,
                query: str = QUERY, **kwargs: Any) -> dict[str, Any]:
         provider = ScriptedProvider(script)
-        monkeypatch.setattr(aus_agent_mod, "make_provider",
+        monkeypatch.setattr(agent_harness_mod, "make_provider",
                             lambda backend, model: provider)
         kwargs.setdefault("safety_max_rounds", 20)
         summary = facets_run_agent(query_id, query, **kwargs)
@@ -172,7 +172,7 @@ def test_release_drops_a_superseded_document_end_to_end(
     assert result["summary"]["status"] == "completed"
     assert result["summary"]["n_references"] == 1
 
-    from aus_agent.context import RELEASE_PREFIX
+    from agent_harness.context import RELEASE_PREFIX
 
     s1_result = next(
         m for m in result["provider"].raw_messages

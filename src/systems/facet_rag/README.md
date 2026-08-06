@@ -4,7 +4,7 @@ A corpus-grounded RAG system that splits a research narrative into
 independent facets and runs each through its own two-model search loop:
 
 ```
-run.py ─> make_orchestrator() / make_analyzer() ──────┐  (aus_agent.providers, both fixed to Bedrock)
+run.py ─> make_orchestrator() / make_analyzer() ──────┐  (agent_harness.providers, both fixed to Bedrock)
                                                        │
 narrative ──> PLAN (orchestrator, 1 call)  planner.build_plan_prompt
                         narrative -> {"facets": [{name, description, max_iterations}, ...]}
@@ -100,8 +100,8 @@ playing three roles between them:
   the exact structured-JSON pattern already reliable for every other stage.
 
 All three roles go through the shared
-`aus_agent.providers.bedrock.BedrockProvider`
-(`aus_agent.agent.make_provider("bedrock", model, region=...)`), but as
+`agent_harness.providers.bedrock.BedrockProvider`
+(`agent_harness.agent.make_provider("bedrock", model, region=...)`), but as
 independent conversations — a `Provider` owns its own history, and facets run
 concurrently in their own threads, so `run_one` takes `make_orchestrator` /
 `make_analyzer` **factories** (zero-arg callables), not pre-built provider
@@ -202,7 +202,7 @@ in this package.
   about them.
 
 To change roles, pass `--orchestrator-model`/`--analyzer-model` (and the
-matching `--*-region`) — no code change needed, `aus_agent.agent.make_provider`
+matching `--*-region`) — no code change needed, `agent_harness.agent.make_provider`
 handles any Bedrock model id.
 
 ## Retrieval config (`SEARCH_API_KEY`, etc.)

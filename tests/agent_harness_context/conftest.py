@@ -1,4 +1,4 @@
-"""Fixtures scoped to the aus_agent staged-context tests.
+"""Fixtures scoped to the agent_harness staged-context tests.
 
 Everything here layers on the repo-wide fixtures in ``tests/conftest.py`` (which
 stay in force: ``no_network``, ``isolated_data_dir``, and ``no_ambient_creds``
@@ -7,7 +7,7 @@ these tests assert — see ``fakes.py``'s docstring for the reasoning:
 
 - ``fake_engine`` patches ``tools.search_tool._DISPATCH`` with the disjoint
   alpha/beta/gamma result sets. Patching the dispatch table rather than
-  ``aus_agent.tools.search.run_search_tool`` (what the old suite did) keeps the
+  ``agent_harness.tools.search.run_search_tool`` (what the old suite did) keeps the
   real serialization, the ``{"error": ...}`` envelope, and the per-result
   truncation under test — strictly more production code than before.
 - ``ledger_with`` builds a ``ContextLedger`` with staged batches, using the real
@@ -22,7 +22,7 @@ import json
 from typing import Any, Callable
 
 import pytest
-from aus_agent_context.fakes import DOC_SETS, STATUS_LINE, search_payload, staged_text
+from agent_harness_context.fakes import DOC_SETS, STATUS_LINE, search_payload, staged_text
 
 from utils.search_types import make_hit
 
@@ -66,8 +66,8 @@ def ledger_with() -> Callable[..., Any]:
     call id ``search-1``. ``with_status_line=False`` omits the budget footer, for
     the tests that assert it is only re-appended when it was there to begin with.
     """
-    from aus_agent.context import ContextLedger
-    from aus_agent.tools import documents_from_search
+    from agent_harness.context import ContextLedger
+    from agent_harness.tools import documents_from_search
 
     def _build(*batches: tuple[str, str], with_status_line: bool = True) -> Any:
         ledger = ContextLedger()
@@ -94,7 +94,7 @@ def run_agent_capture(monkeypatch: pytest.MonkeyPatch,
     (``validate=False``), so only the final save populates ``captured`` — every
     save is still recorded under ``captured["saves"]``.
     """
-    from aus_agent import agent
+    from agent_harness import agent
 
     def _run(provider: Any, **kwargs: Any) -> tuple[dict, dict]:
         captured: dict[str, Any] = {}
@@ -115,6 +115,7 @@ def run_agent_capture(monkeypatch: pytest.MonkeyPatch,
             "context_token_budget": 10_000,
             "safety_max_rounds": 20,
             "max_committed_per_step": 3,
+            "system_prompt": "test system prompt",
             **kwargs,
         })
         captured["saves"] = saves

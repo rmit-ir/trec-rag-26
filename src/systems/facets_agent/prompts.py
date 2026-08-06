@@ -21,10 +21,10 @@ history, so nothing short of a tool action can make that text go away again.
 
 The tool set, the staged/committed evidence protocol, and the final-report
 contract are NOT re-explained here in aus_agent's full detail — they come from
-the shared harness (``aus_agent.agent.run_agent``) and the tool descriptions
-themselves (``aus_agent.tools`` / this package's ``tools.py``), so this prompt
-only needs to state the protocol once, plainly, for the model to follow it
-correctly.
+the shared harness (``agent_harness.agent.run_agent``) and the tool
+descriptions themselves (``agent_harness.tools`` / this package's
+``tools.py``), so this prompt only needs to state the protocol once, plainly,
+for the model to follow it correctly.
 
 Phase 1 of ``PLAN.md`` (2026-08-05): prompt-only response to
 ``worklogs/2026-08-05-facets-agent-strengths-weaknesses-report.md``'s finding

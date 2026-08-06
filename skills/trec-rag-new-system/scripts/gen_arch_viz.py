@@ -9,8 +9,9 @@ Two zoom levels in one page:
   - OVERVIEW  — every ``src/systems/<name>`` wired to the shared layers
                 (ragrun, tools.search_tool + its 4 selectable engines,
                 utils.search dense+sparse RRF, utils.fetch_doc,
-                ali_deepresearch.answer_format, aus_agent.make_provider) and
-                the output artifacts. Edges are colored + legended by type.
+                ali_deepresearch.answer_format, agent_harness.agent's
+                run_agent loop + make_provider) and the output artifacts.
+                Edges are colored + legended by type.
   - DRILL-IN  — click a system card to see its per-stage pipeline.
 
 Stage flows come from a hand-authored ``STAGE_REGISTRY`` below, OVERRIDDEN per
@@ -51,8 +52,10 @@ SEARCH_TOOL = SRC / "tools" / "search_tool.py"
 # from ENGINE_INFO in tools/search_tool.py so it never drifts.
 # ---------------------------------------------------------------------------
 SHARED = [
-    {"id": "make_provider", "label": "make_provider",
-     "role": "provider", "detail": "aus_agent.agent — pluggable Bedrock/OpenAI backends"},
+    {"id": "agent_harness", "label": "agent_harness",
+     "role": "harness", "detail": "shared staged-context tool-calling loop "
+             "(run_agent, ContextLedger, commit_context/get_documents/search "
+             "tools) plus make_provider — pluggable Bedrock/OpenAI backends"},
     {"id": "answer_format", "label": "format_answer",
      "role": "answer-format", "detail": "ali_deepresearch.answer_format — prose -> references[] + per-sentence citations"},
     {"id": "search_tool", "label": "tools.search_tool",
@@ -69,7 +72,11 @@ SHARED = [
 
 # Which owner package each reusable shared symbol lives in — a same-owner import
 # is internal (no cross-system edge), a foreign import is a reuse edge.
-OWNERS = {"answer_format": "ali_deepresearch", "make_provider": "aus_agent"}
+# ``agent_harness`` needs no entry here: unlike ``answer_format`` (still hosted
+# inside a system, ali_deepresearch), it lives in a real top-level package, so
+# every importer — aus_agent included — draws a genuine cross-layer edge, with
+# no self-import case to suppress.
+OWNERS = {"answer_format": "ali_deepresearch"}
 
 # ---------------------------------------------------------------------------
 # Hand-authored stage flows for the current systems (see each README/pipeline).
@@ -169,26 +176,26 @@ STAGE_REGISTRY: dict[str, list[dict[str, Any]]] = {
          # runs commit -> search. FINAL PROSE / MAP CITES / SAVE are post-loop.
          "back_to": "search", "back_from": "commit",
          "back_label": "repeat until report",
-         "code": ["systems/aus_agent/agent.py::run_agent"],
-         "tools": [{"name": "search", "ref": "systems/aus_agent/tools/search.py::SEARCH_TOOL_DEF"},
-                   {"name": "get_documents", "ref": "systems/aus_agent/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
-                   {"name": "commit_context", "ref": "systems/aus_agent/tools/commit_context.py::COMMIT_CONTEXT_TOOL"}],
+         "code": ["agent_harness/agent.py::run_agent"],
+         "tools": [{"name": "search", "ref": "agent_harness/tools/search.py::SEARCH_TOOL_DEF"},
+                   {"name": "get_documents", "ref": "agent_harness/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
+                   {"name": "commit_context", "ref": "agent_harness/tools/commit_context.py::COMMIT_CONTEXT_TOOL"}],
          "tools_note": "native Bedrock Converse toolConfig, passed once to "
                         "provider.start (agent.run_agent: "
                         "build_search_tool_def(engines) + GET_DOCUMENTS_TOOL "
                         "+ COMMIT_CONTEXT_TOOL)"},
         {"id": "search", "label": "SEARCH", "kind": "retrieval",
          "note": "full-text search; results staged",
-         "code": ["systems/aus_agent/tools/search.py::execute_full_text_search"]},
+         "code": ["agent_harness/tools/search.py::execute_full_text_search"]},
         {"id": "stage", "label": "STAGE", "kind": "no-llm",
          "note": "stage evidence; commit-before-expire protocol",
-         "code": ["systems/aus_agent/context.py::ContextLedger.stage"]},
+         "code": ["agent_harness/context.py::ContextLedger.stage"]},
         {"id": "commit", "label": "REASON/COMMIT", "kind": "llm",
          "note": "model turn commits selected evidence",
          "prompt": ["systems/aus_agent/prompts/system/default.md",
-                    "systems/aus_agent/agent.py::TASK_PROMPT"],
-         "code": ["systems/aus_agent/tools/commit_context.py::apply_commit",
-                  "systems/aus_agent/context.py::ContextLedger.commit"]},
+                    "agent_harness/agent.py::TASK_PROMPT"],
+         "code": ["agent_harness/tools/commit_context.py::apply_commit",
+                  "agent_harness/context.py::ContextLedger.commit"]},
         {"id": "final", "label": "FINAL PROSE", "kind": "llm",
          "note": "grounded prose with inline citations",
          "prompt": ["systems/aus_agent/prompts/system/default.md"],
@@ -196,7 +203,7 @@ STAGE_REGISTRY: dict[str, list[dict[str, Any]]] = {
                         "not a new call"},
         {"id": "map", "label": "MAP CITES", "kind": "format",
          "note": "docid -> reference-index mapping",
-         "code": ["systems/aus_agent/agent.py::_map_citations"]},
+         "code": ["agent_harness/agent.py::_map_citations"]},
         {"id": "save", "label": "SAVE", "kind": "artifact",
          "note": "ragrun.save_run",
          "code": ["ragrun/outputs.py::save_run"]},
@@ -235,8 +242,9 @@ SYSTEM_BLURB = {
     "facet_rag": "orchestrator (gpt-oss) plans + searches, analyzer (Qwen) "
                  "judges + fact-checks, per-facet loops run concurrently",
     "ali_deepresearch": "Alibaba Tongyi DeepResearch ReAct port; owns answer_format",
-    "aus_agent": "staged-context research agent; owns the pluggable providers",
-    "facets_agent": "gpt-5.6-luna on the shared aus_agent harness, minimal "
+    "aus_agent": "staged-context research agent; its own prompt/*.md variants "
+                 "configuring the shared agent_harness loop",
+    "facets_agent": "gpt-5.6-luna on the shared agent_harness loop, minimal "
                     "prompt covering facet_rag's process (decompose, "
                     "multi-engine per facet, curate, self-check)",
     "o3_deep_research": "minimal single-file runner (hosted DR + MCP)",
@@ -317,12 +325,8 @@ def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
                     mod.startswith("systems.ali_deepresearch.answer_format"):
                 if OWNERS["answer_format"] != name:
                     add("answer_format", "answer-format")
-            elif mod in ("aus_agent.agent", "aus_agent.providers") or \
-                    mod.startswith("aus_agent.providers") or \
-                    mod.startswith("systems.aus_agent.agent") or \
-                    mod.startswith("systems.aus_agent.providers"):
-                if OWNERS["make_provider"] != name:
-                    add("make_provider", "provider")
+            elif mod == "agent_harness" or mod.startswith("agent_harness."):
+                add("agent_harness", "harness")
     return edges
 
 
@@ -550,7 +554,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --accent: #3d5afe;
     /* edge type palette (brand-neutral, >=3:1 vs bg, distinguishable) */
     --e-retrieval: #1a7f6b; --e-artifacts: #b45309; --e-answer-format: #7c3aed;
-    --e-provider: #2563eb; --e-fetch-doc: #0891b2;
+    --e-provider: #2563eb; --e-fetch-doc: #0891b2; --e-harness: #be185d;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -558,7 +562,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --line: #2a323c; --card: #1e242c; --cardstroke: #3a4552;
       --accent: #7c8cff;
       --e-retrieval: #2dd4bf; --e-artifacts: #f59e0b; --e-answer-format: #a78bfa;
-      --e-provider: #60a5fa; --e-fetch-doc: #22d3ee;
+      --e-provider: #60a5fa; --e-fetch-doc: #22d3ee; --e-harness: #f472b6;
     }
   }
   * { box-sizing: border-box; }
@@ -658,7 +662,7 @@ const EDGE_TYPES = [
   ['retrieval','Retrieval (search layers)'],
   ['fetch-doc','fetch_doc'],
   ['answer-format','answer_format (reuse)'],
-  ['provider','make_provider (reuse)'],
+  ['harness','agent_harness (reuse)'],
   ['artifacts','Artifacts (ragrun)'],
 ];
 const edgeColor = t => getComputedStyle(document.documentElement)

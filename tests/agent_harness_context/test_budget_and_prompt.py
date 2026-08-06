@@ -30,7 +30,8 @@ from typing import Any
 import pytest
 
 from aus_agent import agent
-from aus_agent.tools.search import (
+from agent_harness import agent as harness_agent
+from agent_harness.tools.search import (
     CHARS_PER_TOKEN_BUDGET,
     DEFAULT_BUDGET_TOKENS_PER_RESULT,
     execute_full_text_search,
@@ -48,7 +49,7 @@ def test_the_default_context_budget_is_500k() -> None:
     loop enforces. If they diverge the model paces itself against a limit that is
     not the real one — either stopping early or being cut off mid-research.
     """
-    assert agent.DEFAULT_CONTEXT_TOKEN_BUDGET == 500_000
+    assert harness_agent.DEFAULT_CONTEXT_TOKEN_BUDGET == 500_000
     assert "500,000 tokens" in agent.load_system_prompt(10)
 
 
@@ -60,7 +61,7 @@ def test_the_status_line_renders_tokens_percent_and_elapsed() -> None:
     part of the contract: the model reads this as prose and compares it against
     the prompt's "500,000 tokens", so a raw ``82410`` reads as a different scale.
     """
-    assert agent._budget_status_line(82_410, 500_000, 252_000) == (
+    assert harness_agent._budget_status_line(82_410, 500_000, 252_000) == (
         "[context budget: 82,410 / 500,000 tokens (16.5%) · "
         "elapsed: 4m 12s]")
 
@@ -72,7 +73,7 @@ def test_the_status_line_survives_a_zero_budget() -> None:
     called while building trace stats, and a ``ZeroDivisionError`` there would
     take down a run over a formatting concern.
     """
-    assert "(0.0%)" in agent._budget_status_line(10, 0, 0)
+    assert "(0.0%)" in harness_agent._budget_status_line(10, 0, 0)
 
 
 # ---------------------------------------------------------------------------
@@ -88,7 +89,7 @@ def test_logical_context_and_billed_throughput_are_separate_totals() -> None:
     context size would let a heavily-cached run believe it had budget left long
     after its conversation outgrew the window.
     """
-    stats = agent._usage_token_stats({
+    stats = harness_agent._usage_token_stats({
         "inputTokens": 100,
         "outputTokens": 10,
         "cacheReadInputTokens": 50,
@@ -150,7 +151,7 @@ def test_every_variant_keeps_the_shared_harness_contract(variant: str) -> None:
     assert "## Staged and committed evidence" in prompt
     assert "## Final response contract" in prompt
     assert "exactly one sentence per line" in prompt
-    assert f"{agent.DEFAULT_CONTEXT_TOKEN_BUDGET:,} tokens" in prompt
+    assert f"{harness_agent.DEFAULT_CONTEXT_TOKEN_BUDGET:,} tokens" in prompt
     assert "commit first, and write the report on the following turn" in flat
     assert "Its results are staged exactly like a search batch" in flat
     # The two deliberate absences (see the default-prompt tests below).
@@ -232,9 +233,9 @@ def test_the_word_count_excludes_citation_markers() -> None:
     most heavily would be the one most likely to be bounced for length.
     """
     text = " ".join(["word"] * 1024) + " [a]"
-    sentences, errors, _ = agent._parse_final_prose(text, {"a"})
+    sentences, errors, _ = harness_agent._parse_final_prose(text, {"a"})
     assert errors == []
-    assert agent._word_count(sentences) == 1024
+    assert harness_agent._word_count(sentences) == 1024
     assert sentences[0]["citations"] == ["a"]
 
 
@@ -398,7 +399,7 @@ def test_the_default_staging_budget_is_the_documented_one() -> None:
     """
     assert DEFAULT_BUDGET_TOKENS_PER_RESULT == 4096
     assert CHARS_PER_TOKEN_BUDGET == 5
-    from aus_agent.tools.search import build_search_tool_def
+    from agent_harness.tools.search import build_search_tool_def
     schema = build_search_tool_def(["semantic"])["input_schema"]
     assert (schema["properties"]["budget_tokens_per_result"]["default"]
             == DEFAULT_BUDGET_TOKENS_PER_RESULT)
