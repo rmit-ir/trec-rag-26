@@ -297,25 +297,34 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workers", type=int, default=6)
     parser.add_argument("--model", default="gpt-5.6-terra")
+    parser.add_argument("--aus-agent-run-id", default=RUN_IDS["aus_agent"])
+    parser.add_argument("--facets-agent-run-id", default=RUN_IDS["facets_agent"])
+    parser.add_argument("--out-dir", type=Path, default=OUT_DIR,
+                        help="where judgments.jsonl was written by the arena "
+                             "script and where criterion_scorecard_summary.json "
+                             "goes (default: the 15-topic dir)")
     args = parser.parse_args()
+    out_dir = args.out_dir
+    score_dir = out_dir / "criterion-scores"
+    arena_judgments = out_dir / "judgments.jsonl"
 
     answers = {
         "aus_agent": load_answers_from_outputs(
-            ROOT / "data/outputs/aus_agent", RUN_IDS["aus_agent"]),
+            ROOT / "data/outputs/aus_agent", args.aus_agent_run_id),
         "facets_agent": load_answers_from_outputs(
-            ROOT / "data/outputs/facets_agent", RUN_IDS["facets_agent"]),
+            ROOT / "data/outputs/facets_agent", args.facets_agent_run_id),
     }
     criteria_by_qid = load_criteria(RESEARCH_RUBRICS)
     qids = sorted(set(answers["aus_agent"]) & set(answers["facets_agent"]))
-    arena_groups = load_arena_groups(ARENA_JUDGMENTS)
-    print(f"arena groups (live from {ARENA_JUDGMENTS.name}): "
+    arena_groups = load_arena_groups(arena_judgments)
+    print(f"arena groups (live from {arena_judgments.name}): "
          f"aus_agent={len(arena_groups['aus_agent'])} "
          f"facets_agent={len(arena_groups['facets_agent'])} "
          f"ambiguous={len(arena_groups['ambiguous'])}")
 
     jobs = [(system, qid) for system in ("aus_agent", "facets_agent") for qid in qids]
     todo = [(s, q) for s, q in jobs
-           if not (SCORE_DIR / f"{s}__{q}.json").exists()]
+           if not (score_dir / f"{s}__{q}.json").exists()]
     print(f"{len(qids)} topics x 2 systems = {len(jobs)} scorecards, "
           f"{len(todo)} not cached, judge={args.model}")
 
@@ -327,7 +336,7 @@ def main() -> int:
         system, qid = job
         row = answers[system][qid]
         record = score_one(api, args.model, system, qid, row["query"],
-                           row["answer_text"], criteria_by_qid[qid], SCORE_DIR)
+                           row["answer_text"], criteria_by_qid[qid], score_dir)
         with lock:
             done += 1
             print(f"  [{done}/{len(todo)}] {system} {qid}", flush=True)
@@ -339,7 +348,7 @@ def main() -> int:
                                         if j in todo]):
                 future.result()
 
-    records = {(s, q): json.loads((SCORE_DIR / f"{s}__{q}.json").read_text())
+    records = {(s, q): json.loads((score_dir / f"{s}__{q}.json").read_text())
               for s, q in jobs}
     failed = [k for k, r in records.items() if r["status"] != "completed"]
     if failed:
@@ -418,7 +427,7 @@ def main() -> int:
         "arena_groups": arena_groups,
         "criterion_tally": tallies,
     }
-    out_path = OUT_DIR / "criterion_scorecard_summary.json"
+    out_path = out_dir / "criterion_scorecard_summary.json"
     out_path.write_text(json.dumps(out, indent=2) + "\n", encoding="utf-8")
     print(f"\nwrote {out_path}")
     return 0
