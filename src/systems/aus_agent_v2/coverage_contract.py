@@ -113,7 +113,7 @@ SUBMIT_ANSWER_TOOL: dict[str, Any] = {
         "label, or request-authorized raw Python. "
         "Attach committed evidence ids and the exact coverage-contract ids "
         "that the item satisfies. Every must-answer id must be satisfied or "
-        "listed as unresolved. This call replaces a free-prose answer turn."
+        "listed as unresolved. This is the only terminal response."
     ),
     "input_schema": {
         "type": "object",
@@ -355,13 +355,11 @@ def render_research_contract(
     """Render the compact protocol and stable ids for the research context."""
     lines = [
         "EXECUTABLE COVERAGE CONTRACT",
-        "The ids below are harness-owned. Tag every search with the ids it "
-        "investigates, map committed evidence to the ids it directly supports, "
-        "and finish with submit_answer. Do not write a free-prose final turn.",
-        "Factual prose rows need directly mapped committed evidence and must "
-        "carry the selected anchor's exact name/value/scope terms. Untagged "
-        "synthesis prose is allowed. Do not enable broad Markdown, tables, or "
-        "uncited factual cells.",
+        "Use these harness-owned ids in the purpose fields required by the "
+        "tools. A research row closes only after a tagged search and committed "
+        "support mapped to that row. In submit_answer, close every answer row "
+        "or mark an attempted but unsupported research row unresolved. "
+        "Untagged synthesis prose is allowed.",
     ]
     answer_form = answer_form or AnswerFormPolicy()
     if answer_form.minimum_labels:
@@ -416,6 +414,15 @@ def search_tool_with_contract(tool: dict[str, Any]) -> dict[str, Any]:
 def commit_tool_with_contract() -> dict[str, Any]:
     """Return the v2-local commit schema with bounded requirement anchors."""
     tool = copy.deepcopy(COMMIT_CONTEXT_TOOL)
+    tool["description"] = (
+        "Resolve the most recent staged search batch on the immediately "
+        "following turn. Select only exact returned ids whose full text should "
+        "persist; every unlisted result is compacted. For each selected unit, "
+        "state its distinct contribution and map only the coverage rows it "
+        "directly supports. Use an empty documents list when nothing is useful. "
+        "Never edit page suffixes or recommit an id. If validation returns a "
+        "correction request, correct this commit before taking another action."
+    )
     item = tool["input_schema"]["properties"]["documents"]["items"]
     item["properties"]["supports"] = {
         "type": "array",

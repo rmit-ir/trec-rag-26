@@ -17,10 +17,11 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 
 TOPICS="${TOPICS:-data/official/trec-rag-2026-data/trec-rag-2026/development-data/topics/research-rubrics-topics-dev.tsv}"
-RUN_ID="${RUN_ID:-sol-aus-v2-coverage-contract-dev30}"
+RUN_ID="${RUN_ID:-sol-aus-v2-lean-contract-dev30}"
 BACKEND="${BACKEND:-openai}"
 MODEL="${MODEL:-openai.gpt-5.6-sol}"
 ENGINES="${ENGINES:-semantic,keyword}"
+PROMPT_VARIANT="${PROMPT_VARIANT:-contract-lean}"
 CONCURRENCY="${CONCURRENCY:-6}"
 MONITOR_INTERVAL_S="${MONITOR_INTERVAL_S:-5}"
 LOG="${LOG:-tasks/task-comparison/logs/${RUN_ID}.log}"
@@ -57,7 +58,7 @@ PY
 
 TOTAL="$(awk 'NF {count += 1} END {print count + 0}' "$TOPICS")"
 echo "run_id=$RUN_ID topics=$TOTAL todo=${#TODO[@]} concurrency=$CONCURRENCY"
-echo "backend=$BACKEND model=$MODEL engines=$ENGINES"
+echo "backend=$BACKEND model=$MODEL engines=$ENGINES prompt=$PROMPT_VARIANT"
 if [[ "$TOTAL" -ne 30 ]]; then
   echo "refusing: comparable dev evaluation requires exactly 30 topics" >&2
   exit 2
@@ -149,6 +150,7 @@ launch_one() {
     --backend "$BACKEND" --model "$MODEL" \
     --search-backends "$ENGINES" \
     --coverage-contract --observable-scout \
+    --prompt-variant "$PROMPT_VARIANT" \
     --run-id "$RUN_ID" >>"$LOG" 2>&1 &
   WORKERS["$!"]="$qid"
 }

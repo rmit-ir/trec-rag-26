@@ -72,12 +72,12 @@ def infer_answer_form_policy(query: str) -> AnswerFormPolicy:
 
 
 def render_terminal_system_addendum(policy: AnswerFormPolicy) -> str:
-    """Override the legacy free-prose ending only for contract candidates."""
+    """Define the only terminal path for executable-contract candidates."""
     lines = [
         "## Executable terminal answer",
-        "For this architecture, the submit_answer tool replaces the final "
-        "free-prose turn described above. Put citations only in each answer "
-        "item's evidence_ids field; do not write citation markers in text.",
+        "Use submit_answer for the terminal response; do not write a free-prose "
+        "final turn. Put citations only in each answer item's evidence_ids "
+        "field; do not write citation markers in text.",
         "A label item may be used only for a request-authorized repeated "
         "deliverable. This does not authorize Markdown headings, bullets, "
         "tables, bold text, or other presentational syntax.",

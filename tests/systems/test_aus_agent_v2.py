@@ -99,6 +99,42 @@ def test_contract_pipeline_is_explicitly_separate_from_confirmed_default(
     assert captured["coverage_verify"] is False
 
 
+def test_lean_contract_pipeline_removes_legacy_prompt_without_promoting_it(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prompt surgery needs a named candidate while full-30 control stays frozen."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_lean_contract_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="lean-contract-candidate",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["prompt_variant"] == "contract-lean"
+    assert captured["coverage_contract"] is True
+    assert captured["observable_scout"] is True
+    assert captured["finish_review"] is False
+
+
+def test_full30_runner_selects_the_lean_contract_candidate() -> None:
+    """A costly dev run must not silently grade the older contradictory prompt."""
+    root = Path(__file__).resolve().parents[2]
+    runner = (
+        root / "tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh"
+    ).read_text(encoding="utf-8")
+
+    assert 'RUN_ID="${RUN_ID:-sol-aus-v2-lean-contract-dev30}"' in runner
+    assert 'PROMPT_VARIANT="${PROMPT_VARIANT:-contract-lean}"' in runner
+    assert '--prompt-variant "$PROMPT_VARIANT"' in runner
+
+
 @pytest.fixture
 def drive(monkeypatch: pytest.MonkeyPatch,
           stub_search_tool: dict[str, list[dict[str, Any]]],
@@ -710,11 +746,15 @@ def test_terminal_contract_preserves_request_authorized_runnable_python(
         audience_verify=False,
         finish_review=False,
         coverage_contract=True,
+        prompt_variant="contract-lean",
     )
     output = json.loads(summary["paths"]["output"].read_text())
 
     assert output["answer"] == [{"text": code, "citations": []}]
     assert output["trace"]["input"]["answer_form"]["python_code"] is True
+    assert provider.system_prompt is not None
+    assert provider.system_prompt.startswith("# Research agent")
+    assert "write exactly one sentence per line" not in provider.system_prompt
     assert "raw, complete, multiline Python" in output["trace"]["input"][
         "system_prompt"]
 

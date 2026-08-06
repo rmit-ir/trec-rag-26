@@ -38,7 +38,10 @@ ARCH_STAGES = [
         "note": "route obligations through search and exact-term anchors",
         "back_to": "search", "back_from": "commit",
         "back_label": "evidence gaps",
-        "prompt": ["systems/aus_agent_v2/prompts/system/default.md"],
+        "prompt": [
+            "systems/aus_agent_v2/prompts/system/default.md",
+            "systems/aus_agent_v2/prompts/system/contract-lean.md",
+        ],
         "code": ["systems/aus_agent_v2/agent.py::run_agent"],
         "tools": [
             {"name": "search", "ref":
@@ -70,7 +73,10 @@ ARCH_STAGES = [
     {
         "id": "draft", "label": "ANSWER / TERMINAL SUBMIT", "kind": "llm",
         "note": "default writes cited prose; candidate submits typed answer items",
-        "prompt": ["systems/aus_agent_v2/prompts/system/default.md"],
+        "prompt": [
+            "systems/aus_agent_v2/prompts/system/default.md",
+            "systems/aus_agent_v2/prompts/system/contract-lean.md",
+        ],
         "code": [
             "systems/aus_agent_v2/agent.py::run_agent",
             "systems/aus_agent_v2/answer_form.py::render_terminal_system_addendum",
@@ -139,6 +145,43 @@ def run_contract_one(*, qid: str, narrative: str, run_id: str,
         "finish_review": False,
         "answer_blueprint": False,
         "coverage_contract": True,
+    }
+    options.update(kwargs)
+    return run_agent(
+        qid,
+        narrative,
+        backend=backend,
+        model=model_id,
+        run_id=run_id,
+        run_desc=run_desc,
+        **options,
+    )
+
+
+def run_lean_contract_one(
+    *,
+    qid: str,
+    narrative: str,
+    run_id: str,
+    run_desc: str | None = None,
+    model_id: str | None = None,
+    backend: str = "openai",
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Run the executable ledger with its contradiction-free research prompt."""
+    options: dict[str, Any] = {
+        "k": 20,
+        "safety_max_rounds": 40,
+        "coverage_plan": True,
+        "plan_critic": True,
+        "observable_scout": True,
+        "plan_reconcile": False,
+        "coverage_verify": False,
+        "audience_verify": False,
+        "finish_review": False,
+        "answer_blueprint": False,
+        "coverage_contract": True,
+        "prompt_variant": "contract-lean",
     }
     options.update(kwargs)
     return run_agent(

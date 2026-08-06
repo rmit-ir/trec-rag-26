@@ -82,6 +82,14 @@ compacts it exactly once, while a third invalid attempt or insufficient
 submit-answer headroom expires it. Searches and submission are refused on a
 correction turn, and unexpected implementation/provider errors remain fatal.
 
+The `run_lean_contract_one` candidate removes a separate pipeline defect: the
+legacy 2,541-word research prompt told the model to plan again and end in free
+prose even after isolated planning and a typed `submit_answer` contract had
+already been installed. Its 417-word replacement states the research outcome
+and evidence invariants once; the executable contract and tool schemas own the
+detailed row, correction, and terminal mechanics. This is a separate ungraded
+candidate, not a change to the 0.7042 `run_one` control.
+
 The system reuses `aus_agent.context`, `aus_agent.providers`, and
 `aus_agent.tools`. Planning, evidence-card construction, patch validation,
 orchestration, output namespace, and tests are owned here.
@@ -104,15 +112,16 @@ the confirmed full-30 run. Use
 `--no-coverage-plan` or `--no-coverage-scout` for the two default-stage
 ablations. Experimental stages are enabled individually with
 `--observable-scout`, `--plan-reconcile`, `--coverage-verify`,
-`--finish-review`, or `--answer-blueprint`. The contract candidate uses the
-independent observable scout and can be launched with:
+`--finish-review`, or `--answer-blueprint`. The lean contract candidate uses
+the independent observable scout and can be launched with:
 
 ```bash
 uv run --group aus-agent-v2 python src/systems/aus_agent_v2/run.py \
   --backend openai --model openai.gpt-5.6-sol \
   --coverage-contract --observable-scout \
+  --prompt-variant contract-lean \
   --qid 683a58c9a7e7fe4e76958498 \
-  --run-id sol-aus-v2-coverage-contract-probe
+  --run-id sol-aus-v2-lean-contract-probe
 ```
 
 It is intentionally not the `run_one` default until a complete comparable
