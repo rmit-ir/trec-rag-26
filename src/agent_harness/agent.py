@@ -183,6 +183,38 @@ def _apply_search_result_filter(
         return out, documents
 
 
+def _apply_search_preview(
+        out: str, documents: list[dict[str, Any]],
+        preview_chars: int | None) -> tuple[str, list[dict[str, Any]]]:
+    """Truncate every result's ``text`` to ``preview_chars`` (PLAN.md Phase
+    4d, piika-inspired two-tier retrieval, in
+    ``src/systems/facets_agent/PLAN.md``): a short, cheap preview shown at
+    search time, with ``get_documents`` (already unpaginated full-text,
+    already staged) as the deliberate, explicit action for reading
+    something in full. ``None`` is a no-op (today's exact behavior). Fails
+    open (returns the untouched originals) on any exception, same
+    discipline as ``_apply_search_result_filter``."""
+    if preview_chars is None:
+        return out, documents
+    try:
+        data = json.loads(out)
+        for result in data.get("results", []):
+            text = result.get("text")
+            if isinstance(text, str) and len(text) > preview_chars:
+                result["text"] = text[:preview_chars]
+                result["preview_truncated"] = True
+        new_documents = [
+            {**d, "text": (d.get("text") or "")[:preview_chars]}
+            if isinstance(d.get("text"), str)
+               and len(d["text"]) > preview_chars
+            else d
+            for d in documents
+        ]
+        return json.dumps(data, ensure_ascii=False), new_documents
+    except Exception:
+        return out, documents
+
+
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
                         seen_docids: set[str],
                         engines: list[str] | None = None,
@@ -607,6 +639,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               search_result_filter: (
                   Callable[[str, list[dict[str, Any]]], SearchResultPass]
                   | None) = None,
+              search_preview_chars: int | None = None,
+              stage_search_results: bool = True,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -677,6 +711,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     this is not something the model opts into per call — it runs on every
     search a caller enables it for. ``None`` (the default) means no
     filtering, byte-identical to before this parameter existed.
+    ``search_preview_chars``/``stage_search_results`` (PLAN.md Phase 4d,
+    piika-inspired two-tier retrieval) — together, the "browse cheap, read
+    deliberately" split: when ``search_preview_chars`` is set, every
+    ``search`` result's text is truncated to that many characters
+    (regardless of the model's own ``budget_tokens_per_result``); when
+    ``stage_search_results`` is ``False``, search results never enter the
+    ledger at all (``get_documents`` is unaffected either way — it already
+    stages full, unpaginated text, and is the deliberate "read this in
+    full" action these two params are designed to work alongside). Both
+    default to today's exact behavior (no truncation, search results
+    staged normally).
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -1342,19 +1387,21 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     ct0, ct1, duration_ms
                 ) in zip(retrieval_calls, executed):
                     if not failed:
-                        # Filter/reorder BEFORE the budget-status footer is
-                        # appended below -- that footer is plain text after
-                        # the JSON payload, so applying the filter after
-                        # would break `_apply_search_result_filter`'s own
-                        # `json.loads(out)`.
+                        # Filter/reorder/truncate BEFORE the budget-status
+                        # footer is appended below -- that footer is plain
+                        # text after the JSON payload, so applying either
+                        # pass after would break their own `json.loads(out)`.
                         out, documents = _apply_search_result_filter(
                             search_result_filter,
                             str(call["arguments"].get("requirement", "")),
                             out, documents)
+                        out, documents = _apply_search_preview(
+                            out, documents, search_preview_chars)
                     out, feedback_stats = action_feedback(out, duration_ms)
                     context = {
-                        "staged": [
-                            str(document["id"]) for document in documents],
+                        "staged": (
+                            [str(document["id"]) for document in documents]
+                            if stage_search_results else []),
                         "committed": [],
                         "rejected": [],
                     }
@@ -1367,11 +1414,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         trace_output=trace_output,
                         tool_call_id=call["id"],
                     )
-                    log.info("[%s] search %r: %s", query_id,
-                             call["arguments"].get("query", ""),
-                             "FAILED" if failed
-                             else f"{len(documents)} docs staged")
-                    if not failed:
+                    log.info(
+                        "[%s] search %r: %s", query_id,
+                        call["arguments"].get("query", ""),
+                        "FAILED" if failed
+                        else (f"{len(documents)} docs staged"
+                              if stage_search_results
+                              else f"{len(documents)} docs previewed "
+                                   "(not staged)"))
+                    if not failed and stage_search_results:
                         ledger.stage(
                             call["id"], call["name"], out, documents)
                     result_by_id[call["id"]] = {

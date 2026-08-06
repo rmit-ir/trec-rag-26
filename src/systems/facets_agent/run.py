@@ -152,6 +152,17 @@ def main() -> None:
              "results, 'rank' reorders/annotates but drops nothing. "
              "Default 'none' (no filtering, matches facets_agent's actual "
              "default -- neither config has shipped as the default yet).")
+    ap.add_argument(
+        "--two-tier-search", action="store_true",
+        default=env("RUN_FACETS_AGENT_TWO_TIER_SEARCH", False),
+        help="PLAN.md Phase 4d, piika-inspired: search returns short "
+             "previews (not staged); get_documents becomes the deliberate "
+             "full-text read (staged as usual). Not facets_agent's default.")
+    ap.add_argument(
+        "--two-tier-preview-chars", type=int,
+        default=env("RUN_FACETS_AGENT_TWO_TIER_PREVIEW_CHARS", 400),
+        help="preview length in characters when --two-tier-search is set "
+             "(default: 400, roughly piika's snippet size)")
     args = ap.parse_args()
     engines = [e.strip() for e in str(args.engines).split(",") if e.strip()]
 
@@ -196,7 +207,12 @@ def main() -> None:
                                     args.max_committed_per_step),
                                 run_id=args.run_id,
                                 engines=engines,
-                                search_result_filter=search_result_filter)
+                                search_result_filter=search_result_filter,
+                                search_preview_chars=(
+                                    args.two_tier_preview_chars
+                                    if args.two_tier_search else None),
+                                stage_search_results=(
+                                    not args.two_tier_search))
         except Exception:  # keep --all going
             failures += 1
             logging.exception("run for %s failed", qid)

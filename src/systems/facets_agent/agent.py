@@ -39,7 +39,7 @@ from agent_harness.agent import (
 
 from agent_harness.tools import JUDGE_RELEVANCE_TOOL
 
-from .prompts import SYSTEM_PROMPT
+from .prompts import SYSTEM_PROMPT, TWO_TIER_SEARCH_ADDENDUM
 from .review import coverage_gate
 from .tools import COMMIT_CONTEXT_TOOL, build_search_tool_def
 
@@ -139,6 +139,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
               pre_final_hook: Any = coverage_gate,
               judge_tool: dict[str, Any] | None = JUDGE_RELEVANCE_TOOL,
               search_result_filter: Any = None,
+              search_preview_chars: int | None = None,
+              stage_search_results: bool = True,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end through the shared harness, facets_agent-configured.
 
@@ -159,11 +161,22 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
     call to check whether the documents actually support the requirement.
     Pass ``None`` to disable (e.g. to compare with/without in an A/B run).
 
+    ``search_preview_chars``/``stage_search_results`` default to ``None``/
+    ``True`` (today's exact behavior: full text, staged normally) — PLAN.md
+    Phase 4d, §7.5's piika-inspired two-tier retrieval is opt-in, not
+    facets_agent's default yet. Passing both together (e.g. via
+    ``run.py --two-tier-search``) also appends
+    ``prompts.TWO_TIER_SEARCH_ADDENDUM`` to the system prompt, so the model
+    is told about the changed search contract only when it's actually
+    active.
+
     ``**kwargs`` passes through to ``agent_harness.agent.run_agent`` unchanged
     (``context_token_budget``, ``safety_max_rounds``, ...).
     """
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
     system_prompt = SYSTEM_PROMPT.format(max_committed=max_committed_per_step)
+    if search_preview_chars is not None or not stage_search_results:
+        system_prompt += TWO_TIER_SEARCH_ADDENDUM
     return _run_agent(
         query_id, query, backend=backend, model=model, k=k, engines=engines,
         max_committed_per_step=max_committed_per_step, run_id=run_id,
@@ -173,4 +186,6 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
         commit_context_tool=COMMIT_CONTEXT_TOOL,
         search_tool_def=build_search_tool_def(engines),
         pre_final_hook=pre_final_hook, judge_tool=judge_tool,
-        search_result_filter=search_result_filter, **kwargs)
+        search_result_filter=search_result_filter,
+        search_preview_chars=search_preview_chars,
+        stage_search_results=stage_search_results, **kwargs)

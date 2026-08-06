@@ -533,13 +533,53 @@ genuinely different one before assuming this tool would have caught it).
 
 ### Sequencing
 
-Phase 4a (this session): §7.1's harness hook + facets_agent's coverage-open
-check, §7.3's prompt line. Tests: `tests/agent_harness_context/` for the
-generic hook firing-once/no-op-when-absent behavior, `tests/systems/test_facets_agent.py`
-for the coverage-check hook itself. Phase 4b (future): §7.2/§7.4's judge
-tool (§7.4's refined design supersedes §7.2 as the concrete spec — one
-global `judge_relevance` tool, not two separate mechanisms; §7.1's deferred
-rejected-doc rescue and a `covered_but_shallow` version of the same tool are
-both natural follow-on uses of the same infrastructure once it exists),
-§7.3's ranking tier — each still an independent, separately-measurable
-increment once built, same principle as Phases 1/2 above.
+Phase 4a (2026-08-06): §7.1's harness hook + facets_agent's coverage-open
+check, §7.3's prompt line. Shipped, tested, measured (see §7.4a's result
+below — inconclusive/slightly negative on the first live re-run, not the
+improvement hoped for).
+
+Phase 4b (2026-08-06): §7.2/§7.4's judge tool — shipped as the global,
+opt-in `judge_relevance` tool (`agent_harness/tools/judge.py`), wired into
+facets_agent by default. Judge prompt drafted by gpt-5.6-luna, tuned for
+`openai.gpt-oss-120b-1:0` specifically.
+
+Phase 4c (2026-08-06): the query-drift/pre-filter idea, reviewed by
+gpt-5.6-terra (`worklogs/assets/2026-08-06-terra-review-prefilter-plan.txt`),
+revised into two configurations under A/B test rather than one committed
+design — shipped as `search_result_filter` (`filtering.minimize_filter` /
+`filtering.rank_filter`). **Result of the 15-topic random-sample A/B**
+(`tasks/task-comparison/scripts/arena_facets_agent_self_ab.py`, seed
+`20260806`): direct `minimize` vs `rank` head-to-head was a near coin flip
+(`rank` 53.3% vs `minimize` 46.7%, `order_consistency=0.6` — a weak
+signal, not a confident result at n=15/side). Both scored somewhat better
+against aus_agent than the no-filter dev30 baseline (73–77% aus_agent
+pref rate vs the baseline's 80%), though on a different, smaller topic
+sample, so not a clean apples-to-apples read. Support-judge comparison for
+this A/B did not complete — both runs hit `ExpiredTokenException` (AWS
+session token expired mid-run, a credentials issue, not a code bug) and
+need a re-run with fresh creds before that half of the picture exists.
+**Neither config is confidently better; neither has shipped as the
+default.**
+
+Phase 4d (2026-08-06): user pointed at piika
+(https://github.com/nourj98/piika, `src/pi-search/`) for how it manages
+search results — `search` returns SHORT PREVIEWS (id/score/snippet) from a
+server-cached pool, never full text; `read_document` (this repo's
+`get_documents` already does the equivalent job) is the separate,
+deliberate, paginated full-text read. Structurally different from §7.2–7.4:
+no judge model, no semantic suppression, so none of gpt-5.6-terra's recall
+objections apply — nothing is ever dropped, the primary model just sees
+less by default and pulls more explicitly. Prototyped as
+`search_preview_chars`/`stage_search_results` (new opt-in `run_agent`
+params, `agent_harness/agent.py`) + `TWO_TIER_SEARCH_ADDENDUM`
+(`facets_agent/prompts.py`, appended only when active) + `run.py
+--two-tier-search`. Shipped and tested; **not yet measured** — no live run
+has exercised it. Also worth carrying over regardless of this prototype's
+result: piika requires a `reason` argument on EVERY tool call
+(search/read_search_results/read_document alike), where facets_agent's
+`requirement` field currently only covers `search`.
+
+Each of 4b/4c/4d is an independent, separately-measurable increment, same
+principle as Phases 1/2 above. Next step: a live two-tier run (Phase 4d) on
+the same 15-topic sample, and a fresh-credentials re-run of Phase 4c's
+support-judge comparison.

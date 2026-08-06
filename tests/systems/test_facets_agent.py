@@ -411,6 +411,27 @@ def test_coverage_gate_can_be_disabled_via_pre_final_hook_none(
     assert output["answer"][0]["text"] == "First finding."
 
 
+# ---------------------------------------------------------------------------
+# Phase 4d §7.5 -- piika-inspired two-tier retrieval (opt-in, not the default)
+# ---------------------------------------------------------------------------
+def test_two_tier_search_is_off_by_default(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    from facets_agent.prompts import TWO_TIER_SEARCH_ADDENDUM
+
+    result = drive(list(HAPPY_SCRIPT))
+    assert TWO_TIER_SEARCH_ADDENDUM not in result["provider"].system_prompt
+
+
+def test_two_tier_search_appends_the_addendum_when_enabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    from facets_agent.prompts import TWO_TIER_SEARCH_ADDENDUM
+
+    result = drive(list(HAPPY_SCRIPT), search_preview_chars=300,
+                    stage_search_results=False, pre_final_hook=None,
+                    judge_tool=None)
+    assert TWO_TIER_SEARCH_ADDENDUM in result["provider"].system_prompt
+
+
 @pytest.mark.live
 def test_run_agent_live() -> None:
     """Same path against the real ClimbMix + OpenAI endpoints (needs creds)."""
