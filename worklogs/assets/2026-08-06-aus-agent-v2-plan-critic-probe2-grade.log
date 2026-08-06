@@ -1,0 +1,22 @@
+run=sol-aus-v2-plan-critic-probe2-20260806 system=aus_agent_v2 variant=sol-aus-v2-plan-critic-probe2-20260806 judge=openai.gpt-5.6-sol
+  2/30 topics have a COMPLETED answer
+  NOTE: scoring a partial run; the mean is over 2 topics and is NOT comparable to a full-30 score.
+  judge noise: mean spread across 3 gradings 0.0685, max 0.1020 — effects smaller than this are not measurable
+
+  === goal conditions ===
+  1. mean rubric score      0.6082   (median 0.6082, min 0.5884, max 0.6279)
+  2. topics below 0.65      2  ['6847465956a0f6376a605440', '6847465956a0f6376a6054be']
+  3. satisfied |w|>=4 penalties  0
+  4. second judge           not run here (pass --judge-model again)
+  5. over 1024 words          0
+
+  === per-axis (reward criteria only) ===
+    Instruction Following            1.0000   n=2
+    References & Citation Quality    1.0000   n=1
+    Synthesis of Information         0.7222   n=2
+    Explicit Criteria                0.6601   n=2
+    Implicit Criteria                0.4930   n=2
+
+  appended to docs/auto-optimize/rubric-results.jsonl
+  tokens: 6 calls, in 14,970 (cached 9,972), out 8,956, reasoning 8,356
+  cost: $0.3230 USD (openai.gpt-5.6-sol @ us-east-1)

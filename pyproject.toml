@@ -34,6 +34,16 @@ dev = [
 aus-agent = [
     "boto3>=1.40",
     "openai>=2.45",
+    # ragdoll.rubric.prompts imports ragdoll.nuggetizer, whose metrics module
+    # imports scipy for kendall_tau. We use none of that, but the import chain
+    # runs at package init, so grading through RAGDoll needs scipy present.
+    "scipy>=1.11",
+]
+# AUS v2 orchestration (src/systems/aus_agent_v2). It reuses aus_agent's
+# provider interfaces but owns its plan/research/evidence-patch pipeline.
+aus-agent-v2 = [
+    "boto3>=1.40",
+    "openai>=2.45",
 ]
 # Tongyi DeepResearch port (src/systems/ali_deepresearch)
 ali-deepresearch = [

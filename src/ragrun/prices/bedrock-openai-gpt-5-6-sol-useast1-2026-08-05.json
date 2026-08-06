@@ -1,0 +1,20 @@
+{
+  "rate_table_id": "bedrock-openai-gpt-5-6-sol-useast1-2026-08-05",
+  "retrieved_utc": "2026-08-05T00:00:00Z",
+  "source": "operator-supplied published list price (per 1M tokens), converted to per-1K. NOT fetched from the AWS Pricing API \u2014 no AWS credentials on this host. Re-fetch via boto3 pricing.get_products(ServiceCode=AmazonBedrock) to confirm.",
+  "region": "us-east-1",
+  "model_id": "openai.gpt-5.6-sol",
+  "note": "usd_per_unit is per 1000 tokens. Only the standard tier is known.",
+  "rates": {
+    "USE1-openai.gpt-5.6-sol-mantle-input-tokens-standard": {
+      "usd_per_unit": "0.0055000000",
+      "unit": "1K tokens",
+      "description": "$0.0055 per 1K input token for openai.gpt-5.6-sol in US East (N. Virginia); $5.5 per 1M"
+    },
+    "USE1-openai.gpt-5.6-sol-mantle-output-tokens-standard": {
+      "usd_per_unit": "0.0330000000",
+      "unit": "1K tokens",
+      "description": "$0.033 per 1K output token for openai.gpt-5.6-sol in US East (N. Virginia); $33 per 1M"
+    }
+  }
+}

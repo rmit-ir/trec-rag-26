@@ -1,0 +1,617 @@
+qid=683a58c9a7e7fe4e76958498
+trajectory=data/outputs/aus_agent/20260806T190333075422+1000.write_a_series_of_blog.trajectory.json
+patch_model=openai.gpt-5.6-sol
+
+===== EXACT PATCH SYSTEM PROMPT =====
+You are the evidence patcher for a completed cited research draft. Do not
+rewrite the report. Identify only draft lines whose existing claim can be made
+more precise from that line's evidence cards, and propose a replacement for
+that same line.
+
+Return one JSON object with this exact shape:
+{"edits":[{"line":12,"replacement":"Complete sentence. [unit_id]"}]}
+
+Rules:
+- Each line number must be a DRAFT CLAIM line number printed on a card.
+- Preserve the original line's point; add its missing value, scope, source,
+  definition, or comparison only when the card directly supports it.
+- Use only ALLOWED CITATION ids printed for that same line, and end every
+  factual replacement with one or more [unit_id] markers.
+- Do not delete, merge, split, reorder, summarize, or add report lines.
+- Omit a line from edits when no clearly better evidence-grounded replacement
+  exists. An empty edits array is a successful result.
+- Return JSON only, with no Markdown fence or commentary.
+
+The harness applies accepted replacements to the original draft
+deterministically. Unmentioned lines remain byte-for-byte unchanged, so report
+coverage cannot disappear during this stage.
+
+
+===== EXACT PATCH USER INPUT =====
+ORIGINAL RESEARCH REQUEST
+Write a series of blog posts discussing ways people can invest their money for retirement and large purchases. The posts should be understandable and applicable for all adults, regardless of their prior experience in investing.
+
+PRE-RESEARCH COVERAGE PLAN
+1. **DELIVERABLE:** Produce a series of plain-language blog posts about investing for retirement and major purchases; the user did not specify the number, length, publication cadence, country, or desired calls to action, so these must be clarified or explicitly scoped before drafting.
+
+2. **AUDIENCE:** Address adults with no assumed investing knowledge while remaining useful across ages, incomes, employment types, family situations, and accessibility needs; avoid implying that one strategy is suitable for everyone.
+
+3. **EXPLICIT:** Cover retirement investing and investing or saving for large purchases, explaining how the goal, amount needed, timeline, liquidity needs, and tolerance for loss should shape the approach.
+
+4. **IMPLIED:** Organize the series around foundational steps: setting measurable goals, budgeting, building an emergency fund, managing high-interest debt, assessing risk capacity and tolerance, choosing accounts and investments, automating contributions, monitoring progress, and rebalancing.
+
+5. **IMPLIED:** Compare standard instruments and approaches, including cash and savings accounts, certificates or term deposits, government and corporate bonds, diversified mutual funds and exchange-traded funds, stocks, target-date or lifecycle funds, real estate exposure, and professionally managed or robo-advised portfolios.
+
+6. **DEFINITION:** Define in plain language all essential terms and acronyms, including investing versus saving, principal, return, compound growth, inflation, volatility, liquidity, diversification, asset allocation, time horizon, fees, taxes, risk tolerance, ETF, mutual fund, bond, stock, and rebalancing.
+
+7. **EXPLICIT:** Distinguish long-horizon retirement goals from shorter-horizon purchases such as a home, vehicle, education, wedding, or major renovation, emphasizing that money needed soon generally cannot tolerate the same market risk as money invested for decades.
+
+8. **EXAMPLE:** Include transparent, hypothetical examples for adults at different life stages and income levels, showing recurring contributions, inflation-adjusted targets, fee effects, market declines, and alternative timelines without presenting projected returns as guaranteed.
+
+9. **IMPLIED:** Address common decisions and failure modes: saving versus investing, account versus investment choice, lump-sum versus periodic investing, active versus passive management, concentration risk, market timing, panic selling, excessive fees, tax consequences, early-withdrawal restrictions, leverage, fraud, and failure to update beneficiaries or plans.
+
+10. **EVIDENCE:** Search authoritative sources for long-run inflation and market-risk data, diversification principles, fee impacts, withdrawal and longevity research, consumer-protection guidance, and evidence on investor behavior; prioritize government regulators, central banks, tax authorities, reputable academic research, and major nonprofit standards bodies.
+
+11. **EVIDENCE:** For each named account, product, tax benefit, contribution limit, withdrawal rule, deposit guarantee, investor protection, or retirement-income mechanism, verify current details directly with the relevant jurisdiction’s tax agency, securities regulator, pension authority, and deposit insurer.
+
+12. **SAFETY:** Clearly separate general education from individualized financial, tax, or legal advice; flag that taxes, retirement systems, account eligibility, protections, product availability, and terminology vary by country and can change annually, and avoid guessing them without a specified jurisdiction and publication date.
+
+DRAFT TO VERIFY AND REVISE
+DRAFT WORD COUNT: 904
+Post one begins with the destination, not the investment.
+
+Write each goal as an amount and date—perhaps retirement in 30 years or a home, vehicle, education, wedding, or renovation in five—and adjust distant targets for inflation, meaning rising prices that reduce money’s purchasing power. [shard_04318_2067_p11]
+
+The time horizon is the period before you need the money, liquidity is how readily you can access it, and risk capacity is your financial ability to withstand loss, while risk tolerance is your emotional comfort with loss. [shard_00907_42861_p1]
+
+Saving prioritizes dependable principal—the money contributed—and easy access, whereas investing accepts uncertainty in pursuit of return, the gain or loss on that principal. [shard_00907_42861_p1]
+
+Money required within a year or two generally belongs in protected, accessible savings rather than volatile investments whose prices can swing sharply at the wrong moment. [shard_00907_42861_p1]
+
+Post two builds the launchpad.
+
+Start with a workable budget, a liquid emergency fund suited to your circumstances, and a plan for high-interest debt, because otherwise an unexpected bill can force an investment sale during a downturn. [shard_03850_76923_p1]
+
+Small contributions still count, and automation can transfer money after every payday before competing demands consume it. [shard_03850_76923_p1]
+
+Compound growth means earning returns on contributions and previous returns, so time can matter as much as the starting amount. [shard_03280_5729_p1]
+
+For illustration, investing $200 monthly at an assumed—not guaranteed—5% annual return would produce approximately $82,207 after 20 years or $166,452 after 30 years, although the person contributes only $48,000 or $72,000 respectively.
+
+A worker who can spare only $25 should begin there, while someone with irregular income might automate a modest minimum and add more after strong months rather than abandon the plan entirely.
+
+Post three opens the investment toolbox.
+
+Cash and insured savings emphasize stability and liquidity, while a certificate or term deposit usually exchanges some access for a fixed term; verify locally which institutions, products, currencies, and balances receive deposit protection. [shard_04569_9761_p2] [shard_06006_76458_p4]
+
+A bond is a loan to a government or company, a stock is an ownership interest in a company, and corporate bonds generally carry more repayment risk than government bonds. [shard_04569_9761_p2] [shard_01987_15098_p1]
+
+A mutual fund pools many investors’ money, while an exchange-traded fund, or ETF, is a similar pool whose shares trade on an exchange during the day. [shard_01987_15098_p1]
+
+Broad funds can provide diversification—spreading money among many holdings—more simply than selecting individual securities, although diversification reduces concentration risk rather than guaranteeing against loss. [shard_04396_12084_p1]
+
+Asset allocation is the percentage assigned to categories such as stocks, bonds, and cash, and rebalancing means restoring those percentages after market movements change them. [shard_04396_12084_p1]
+
+Target-date or lifecycle funds gradually adjust their mix for an intended retirement period, robo-advisers use questionnaires and algorithms to manage portfolios, and real-estate investment trusts provide property exposure without requiring direct ownership. [shard_06005_84602_p2] [shard_02507_73941_p1] [shard_01324_11146_p4]
+
+Post four gives retirement money a long runway.
+
+An account is the legal and tax “container,” while stocks, bonds, funds, and cash are investments placed inside it, so choosing an account does not complete the investment decision. [shard_02593_75569_p2]
+
+Check your country’s official sources for current eligibility, contribution limits, tax treatment, employer contributions, withdrawal rules, and creditor or investor protections, because early withdrawals may create taxes or penalties. [shard_04058_34856_p1] [shard_06073_5606_p2]
+
+Long horizons may support more market risk, but approaching retirement generally increases the importance of liquidity, diversification, and protection against a badly timed decline. [shard_06073_5606_p2]
+
+Retirement can last 20 years or longer, so the plan must balance market risk, inflation, withdrawals, and the possibility of outliving the portfolio rather than treating retirement day as the finish line. [shard_04751_59233_p2]
+
+Post five protects the purchase date.
+
+For a five-year purchase costing $50,000 today, assuming 2.5% annual inflation gives an illustrative future target of $50,000 × 1.025⁵, or about $56,570, after which the required monthly saving can be calculated from current funds and expected interest.
+
+If the date is flexible and many years away, a diversified mix may be reasonable, but the portfolio should usually become more conservative as the purchase approaches because recovery time is shrinking. [shard_00907_42861_p1]
+
+A 30% decline turns $20,000 into $14,000, and recovering from that loss requires a 42.9% gain, illustrating why near-term purchase money should not depend on an uninterrupted market rise.
+
+Post six keeps the plan human.
+
+Passive funds seek to follow a benchmark, whereas active managers try to beat one through research and judgment, so compare total cost, diversification, tax effects, and evidence rather than labels alone. [shard_02441_42197_p1]
+
+Fees compound negatively: in an SEC example, $100,000 earning 4% for 20 years reached about $210,000 with a 0.25% annual fee, while 0.50% cost roughly $10,000 more and 1% nearly $30,000 more. [shard_00273_2497_p1]
+
+Investing a windfall immediately has historically beaten phasing it in more often, but periodic investing can reduce regret and near-term drawdown exposure, making behavior and risk capacity legitimate considerations. [shard_01949_40793_p1]
+
+Avoid market timing and panic selling, because research has associated poorly timed exits with substantial underperformance, and avoid leverage because borrowing can magnify losses and trigger forced sales. [shard_06280_44792_p8] [shard_01324_11146_p4]
+
+Reject guaranteed high returns, urgent pressure, secret tips, or unregistered sellers, and independently check both the provider and adviser. [shard_04869_51876_p1]
+
+Review goals, contributions, allocation, fees, taxes, protections, and beneficiaries at least annually and after major life changes, rebalancing when the portfolio has drifted rather than reacting to headlines. [shard_04747_38061_p3] [shard_04396_12084_p1]
+
+This country-neutral series provides general education as of 6 August 2026, not individualized financial, tax, or legal advice, and local rules and personal circumstances require verification before acting.
+
+CITATION-LOCAL EVIDENCE CARDS
+CARD 1 — draft line 1
+DRAFT CLAIM: Post one begins with the destination, not the investment.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_04747_38061_p3]
+SOURCE EXCERPT 1: Not reviewing your investment mix.
+SOURCE EXCERPT 2: Not taking advantage of this free money is one of the worst mistakes you can make.
+
+CARD 2 — draft line 3
+DRAFT CLAIM: Write each goal as an amount and date—perhaps retirement in 30 years or a home, vehicle, education, wedding, or renovation in five—and adjust distant targets for inflation, meaning rising prices that reduce money’s purchasing power.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04318_2067_p11]
+SOURCE EXCERPT 1: For longer-term goals, you may need to adjust for inflation.
+SOURCE EXCERPT 2: You may need to adjust your goal, the timeframe, or both.
+
+CARD 3 — draft line 5
+DRAFT CLAIM: The time horizon is the period before you need the money, liquidity is how readily you can access it, and risk capacity is your financial ability to withstand loss, while risk tolerance is your emotional comfort with loss.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_00907_42861_p1]
+SOURCE EXCERPT 1: Your comfort with risk depends on your emotional willingness to accept risk and your financial ability to absorb loss.
+SOURCE EXCERPT 2: The amount of time you have to achieve your goals can affect how you plan to save and invest.
+
+CARD 4 — draft line 7
+DRAFT CLAIM: Saving prioritizes dependable principal—the money contributed—and easy access, whereas investing accepts uncertainty in pursuit of return, the gain or loss on that principal.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_00907_42861_p1]
+SOURCE EXCERPT 1: are confident about your investing knowledge
+SOURCE EXCERPT 2: Investing on your own may be an option if you:
+
+CARD 5 — draft line 9
+DRAFT CLAIM: Money required within a year or two generally belongs in protected, accessible savings rather than volatile investments whose prices can swing sharply at the wrong moment.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_00907_42861_p1]
+SOURCE EXCERPT 1: If you're saving for an emergency fund or a major purchase within a year or two, your focus will be on building your savings.
+SOURCE EXCERPT 2: You'll want to keep your money protected and easily accessible.
+
+CARD 6 — draft line 11
+DRAFT CLAIM: Post two builds the launchpad.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_00273_2497_p1]
+SOURCE EXCERPT 1: Fees typically come in two types: transaction fees and ongoing fees.
+SOURCE EXCERPT 2: Pay attention to fees and costs when investing
+
+CARD 7 — draft line 13
+DRAFT CLAIM: Start with a workable budget, a liquid emergency fund suited to your circumstances, and a plan for high-interest debt, because otherwise an unexpected bill can force an investment sale during a downturn.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_03850_76923_p1]
+SOURCE EXCERPT 1: To protect yourself from unexpected expenses or job layoffs, save a sufficient emergency fund for your needs.
+SOURCE EXCERPT 2: Do not plan for your investment accounts to be a regular source of cash.
+
+CARD 8 — draft line 15
+DRAFT CLAIM: Small contributions still count, and automation can transfer money after every payday before competing demands consume it.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_03850_76923_p1]
+SOURCE EXCERPT 1: No matter how small, get your money working for you as soon as possible.
+SOURCE EXCERPT 2: Sometimes people think they can't start investing until they have a significant amount of money.
+
+CARD 9 — draft line 17
+DRAFT CLAIM: Compound growth means earning returns on contributions and previous returns, so time can matter as much as the starting amount.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_03280_5729_p1]
+SOURCE EXCERPT 1: Thanks to compound interest, even a small amount saved can add up to big money over time.
+SOURCE EXCERPT 2: Use the Compound Interest Calculator at Investor.gov to find out how the money you save can grow over time.
+
+CARD 10 — draft line 19
+DRAFT CLAIM: For illustration, investing $200 monthly at an assumed—not guaranteed—5% annual return would produce approximately $82,207 after 20 years or $166,452 after 30 years, although the person contributes only $48,000 or $72,000 respectively.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_00273_2497_p1]
+SOURCE EXCERPT 1: The Securities and Exchange Commission put together an example to illustrate how a $100,000 portfolio with a 4 percent annual return over 20 years would be affected by fees.
+SOURCE EXCERPT 2: But a fee of 0.50 percent would slice that by $10,000 over 20 years.
+
+CARD 11 — draft line 21
+DRAFT CLAIM: A worker who can spare only $25 should begin there, while someone with irregular income might automate a modest minimum and add more after strong months rather than abandon the plan entirely.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_03850_76923_p1]
+SOURCE EXCERPT 1: More than traditional investments can be expected to return.
+SOURCE EXCERPT 2: Consider our previous example of the $5,000 invested at 25- or 35-years-old.
+
+CARD 12 — draft line 23
+DRAFT CLAIM: Post three opens the investment toolbox.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_00907_42861_p1]
+SOURCE EXCERPT 1: Longer-term investment options
+SOURCE EXCERPT 2: Short-term savings and investment options
+
+CARD 13 — draft line 25
+DRAFT CLAIM: Cash and insured savings emphasize stability and liquidity, while a certificate or term deposit usually exchanges some access for a fixed term; verify locally which institutions, products, currencies, and balances receive deposit protection.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04569_9761_p2]
+SOURCE EXCERPT 1: Low-risk investments enable you to earn interest on your money while maintaining some liquidity — in other words, flexible access to your cash.
+SOURCE EXCERPT 2: A Money Market Deposit Account (MMDA) is a form of savings account that requires a larger balance than CDs or regular savings accounts, usually $10,000 or more.
+
+CARD 14 — draft line 25
+DRAFT CLAIM: Cash and insured savings emphasize stability and liquidity, while a certificate or term deposit usually exchanges some access for a fixed term; verify locally which institutions, products, currencies, and balances receive deposit protection.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_06006_76458_p4]
+SOURCE EXCERPT 1: Savings accounts, insured money market accounts, and certificates of deposit (CDs) are generally viewed as safe because they are insured by the Federal Deposit Insurance CorporationAn independent agency of the federal government that insures accounts up to $250,000 per depositor at almost all United States depository institutions.
+SOURCE EXCERPT 2: The FDIC has primary federal supervisory authority over insured institutions that are not members of the Federal Reserve System. (FDIC).
+
+CARD 15 — draft line 27
+DRAFT CLAIM: A bond is a loan to a government or company, a stock is an ownership interest in a company, and corporate bonds generally carry more repayment risk than government bonds.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04569_9761_p2]
+SOURCE EXCERPT 1: Corporate bonds, though, have a higher potential risk.
+SOURCE EXCERPT 2: Government bonds are low-risk because they are backed by the U.S. government.
+
+CARD 16 — draft line 27
+DRAFT CLAIM: A bond is a loan to a government or company, a stock is an ownership interest in a company, and corporate bonds generally carry more repayment risk than government bonds.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_01987_15098_p1]
+SOURCE EXCERPT 1: For example, stock funds invest primarily in stocks, bond funds in bonds, balanced funds invest in both stocks and bonds, and money market funds invest in extremely short-term investments.
+SOURCE EXCERPT 2: Index funds are nothing more than mutual funds with holdings that mirror a specific index, like the S&P 500 or an international index.
+
+CARD 17 — draft line 29
+DRAFT CLAIM: A mutual fund pools many investors’ money, while an exchange-traded fund, or ETF, is a similar pool whose shares trade on an exchange during the day.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_01987_15098_p1]
+SOURCE EXCERPT 1: “Like mutual funds, ETFs offer investors a way to pool their money in a fund that makes investments in stocks, bonds, or other assets and, in return, to receive an interest in that investment pool.
+SOURCE EXCERPT 2: Investors looking to invest in mutual funds or exchange traded funds should do their homework, evaluate the advantages and disadvantages of each, and carefully read the fund prospectus before investing.
+
+CARD 18 — draft line 31
+DRAFT CLAIM: Broad funds can provide diversification—spreading money among many holdings—more simply than selecting individual securities, although diversification reduces concentration risk rather than guaranteeing against loss.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04396_12084_p1]
+SOURCE EXCERPT 1: Securities and Exchange Commission (SEC), "many investors may find it easier to diversify within asset categories through ownership of mutual funds rather than individual investments." Some mutual funds may invest in thousands of companies, which, in theory, provide a greater amount of diversification and can help smooth volatility.
+SOURCE EXCERPT 2: By investing in more than one asset category, and depending on how much you allocate to each asset class, you can often reduce the risk that you'll lose money or protect yourself against significant losses.
+
+CARD 19 — draft line 33
+DRAFT CLAIM: Asset allocation is the percentage assigned to categories such as stocks, bonds, and cash, and rebalancing means restoring those percentages after market movements change them.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04396_12084_p1]
+SOURCE EXCERPT 1: Asset allocation is the strategy of portioning your investment portfolio among different asset classes, such as stocks, bonds or cash.
+SOURCE EXCERPT 2: Asset Allocation, Diversification & Rebalancing
+
+CARD 20 — draft line 35
+DRAFT CLAIM: Target-date or lifecycle funds gradually adjust their mix for an intended retirement period, robo-advisers use questionnaires and algorithms to manage portfolios, and real-estate investment trusts provide property exposure without requiring direct ownership.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_06005_84602_p2]
+SOURCE EXCERPT 1: Target date funds, sometimes known as lifecycle funds, are designed for individuals with particular retirement dates in mind.
+SOURCE EXCERPT 2: Over time, the mix gradually shifts according to the fund's strategy.
+
+CARD 21 — draft line 35
+DRAFT CLAIM: Target-date or lifecycle funds gradually adjust their mix for an intended retirement period, robo-advisers use questionnaires and algorithms to manage portfolios, and real-estate investment trusts provide property exposure without requiring direct ownership.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_02507_73941_p1]
+SOURCE EXCERPT 1: They then take your responses and apply algorithms to suggest a portfolio, which usually consists of a mix of mutual funds and exchange-traded funds (ETFs), or only ETFs.
+SOURCE EXCERPT 2: In this context, "robo" refers to a financial product that employs algorithms to build and maintain a detailed investment plan.
+
+CARD 22 — draft line 35
+DRAFT CLAIM: Target-date or lifecycle funds gradually adjust their mix for an intended retirement period, robo-advisers use questionnaires and algorithms to manage portfolios, and real-estate investment trusts provide property exposure without requiring direct ownership.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_01324_11146_p4]
+SOURCE EXCERPT 1: Real Estate Investment Trusts (REITs)
+SOURCE EXCERPT 2: Hedge funds typically have more flexible investment strategies than, for example, mutual funds.”
+
+CARD 23 — draft line 37
+DRAFT CLAIM: Post four gives retirement money a long runway.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_02593_75569_p2]
+SOURCE EXCERPT 1: Tax savings may occur when you deposit money into a retirement account or when you remove money from it, depending on the kind of account.
+SOURCE EXCERPT 2: A retirement account is a container for investments.
+
+CARD 24 — draft line 39
+DRAFT CLAIM: An account is the legal and tax “container,” while stocks, bonds, funds, and cash are investments placed inside it, so choosing an account does not complete the investment decision.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_02593_75569_p2]
+SOURCE EXCERPT 1: A retirement account is a container for investments.
+SOURCE EXCERPT 2: Answer: Investments are assets like stocks, bonds, and mutual funds, while retirement accounts are containers for these investments with specific tax advantages.
+
+CARD 25 — draft line 41
+DRAFT CLAIM: Check your country’s official sources for current eligibility, contribution limits, tax treatment, employer contributions, withdrawal rules, and creditor or investor protections, because early withdrawals may create taxes or penalties.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04058_34856_p1]
+SOURCE EXCERPT 1: Answer: No, there may be tax penalties involved.
+SOURCE EXCERPT 2: While there may be times when one is required to withdraw from retirement accounts early, it only makes sense to do so when the need is great enough to offset your perhaps paying even more tax than you would have if you didn't defer it, and there may be other penalties involved as well.
+
+CARD 26 — draft line 41
+DRAFT CLAIM: Check your country’s official sources for current eligibility, contribution limits, tax treatment, employer contributions, withdrawal rules, and creditor or investor protections, because early withdrawals may create taxes or penalties.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_06073_5606_p2]
+SOURCE EXCERPT 1: When you start a new job, check to see if your employer offers a retirement plan, such as a 401(k).
+SOURCE EXCERPT 2: If your employer will match your contributions, consider taking full advantage of this "free money." For instance, if your employer contributes 50 cents for every dollar you put in, that's an immediate 50% return.
+
+CARD 27 — draft line 43
+DRAFT CLAIM: Long horizons may support more market risk, but approaching retirement generally increases the importance of liquidity, diversification, and protection against a badly timed decline.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_06073_5606_p2]
+SOURCE EXCERPT 1: Diversification can reduce the overall risk of an investment portfolio.
+SOURCE EXCERPT 2: If you have a long time horizon, you may do better by carefully investing in higher risk assets, such as stocks, than if you limit yourself to assets with less risk and less investment return.
+
+CARD 28 — draft line 45
+DRAFT CLAIM: Retirement can last 20 years or longer, so the plan must balance market risk, inflation, withdrawals, and the possibility of outliving the portfolio rather than treating retirement day as the finish line.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04751_59233_p2]
+SOURCE EXCERPT 1: Remember, most people will live 20 years or more in retirement.
+SOURCE EXCERPT 2: The average life expectancy for most 65-year-olds today is another 20 years.
+
+CARD 29 — draft line 47
+DRAFT CLAIM: Post five protects the purchase date.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_00907_42861_p1]
+SOURCE EXCERPT 1: Set a date to reach your goals
+SOURCE EXCERPT 2: If you're saving for an emergency fund or a major purchase within a year or two, your focus will be on building your savings.
+
+CARD 30 — draft line 51
+DRAFT CLAIM: If the date is flexible and many years away, a diversified mix may be reasonable, but the portfolio should usually become more conservative as the purchase approaches because recovery time is shrinking.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_00907_42861_p1]
+SOURCE EXCERPT 1: More risk may be acceptable if your goal is longer-term because you have more time to recover any financial losses.
+SOURCE EXCERPT 2: However, the risk may be more acceptable if your goal is longer-term because you have more time to recover any financial losses.
+
+CARD 31 — draft line 53
+DRAFT CLAIM: A 30% decline turns $20,000 into $14,000, and recovering from that loss requires a 42.9% gain, illustrating why near-term purchase money should not depend on an uninterrupted market rise.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_04396_12084_p1]
+SOURCE EXCERPT 1: Diversification does not guarantee a profit or protect against a loss in a declining market.
+SOURCE EXCERPT 2: This is why, according to the U.S.
+
+CARD 32 — draft line 55
+DRAFT CLAIM: Post six keeps the plan human.
+DRAFT CITATION STATUS: missing; add only if the excerpts support it
+ALLOWED CITATION: [shard_04318_2067_p11]
+SOURCE EXCERPT 1: Developing an investing plan
+SOURCE EXCERPT 2: You're more likely to choose the right investments if you start with a plan.
+
+CARD 33 — draft line 57
+DRAFT CLAIM: Passive funds seek to follow a benchmark, whereas active managers try to beat one through research and judgment, so compare total cost, diversification, tax effects, and evidence rather than labels alone.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_02441_42197_p1]
+SOURCE EXCERPT 1: Active investing is a type of investment management where a fund manager aims to beat the market through research, analysis and their own judgement, as opposed to replicating the performance of a set benchmark (passive investing).
+SOURCE EXCERPT 2: 5 June 2019 Active investing / management
+
+CARD 34 — draft line 59
+DRAFT CLAIM: Fees compound negatively: in an SEC example, $100,000 earning 4% for 20 years reached about $210,000 with a 0.25% annual fee, while 0.50% cost roughly $10,000 more and 1% nearly $30,000 more.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_00273_2497_p1]
+SOURCE EXCERPT 1: With an ongoing fee of 0.25 percent, the portfolio would total about $210,000 in 20 years, the SEC said.
+SOURCE EXCERPT 2: But a fee of 0.50 percent would slice that by $10,000 over 20 years.
+
+CARD 35 — draft line 61
+DRAFT CLAIM: Investing a windfall immediately has historically beaten phasing it in more often, but periodic investing can reduce regret and near-term drawdown exposure, making behavior and risk capacity legitimate considerations.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_01949_40793_p1]
+SOURCE EXCERPT 1: The strategy doesn't offer the same upside as lump sum investing, data shows, but it can limit your losses in a market downturn.
+SOURCE EXCERPT 2: New research from Vanguard suggests that you're often better off investing a lump sum compared to taking the more methodical approach of incrementally investing your money.
+
+CARD 36 — draft line 63
+DRAFT CLAIM: Avoid market timing and panic selling, because research has associated poorly timed exits with substantial underperformance, and avoid leverage because borrowing can magnify losses and trigger forced sales.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_06280_44792_p8]
+SOURCE EXCERPT 1: Investors can still panic during downturns and undermine their returns.
+SOURCE EXCERPT 2: Although empirical research on investor behavior and panic is relatively limited, one question has been well studied: how much do individual investors underperform the markets because they enter and exit at the wrong times?
+
+CARD 37 — draft line 63
+DRAFT CLAIM: Avoid market timing and panic selling, because research has associated poorly timed exits with substantial underperformance, and avoid leverage because borrowing can magnify losses and trigger forced sales.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_01324_11146_p4]
+SOURCE EXCERPT 1: But if you have leveraged your account and the commodity performs poorly, you can’t simply hang on to the debt overnight; the firm you borrowed from can execute a margin call and have your debt collected immediately.
+SOURCE EXCERPT 2: All that said, there are multiple ways to enter the commodities market.
+
+CARD 38 — draft line 65
+DRAFT CLAIM: Reject guaranteed high returns, urgent pressure, secret tips, or unregistered sellers, and independently check both the provider and adviser.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04869_51876_p1]
+SOURCE EXCERPT 1: Promised high returns for low or no risk
+SOURCE EXCERPT 2: High pressure tactics, you must decide now, FOMO
+
+CARD 39 — draft line 67
+DRAFT CLAIM: Review goals, contributions, allocation, fees, taxes, protections, and beneficiaries at least annually and after major life changes, rebalancing when the portfolio has drifted rather than reacting to headlines.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04747_38061_p3]
+SOURCE EXCERPT 1: This can have unintended consequences.Better: Review your retirement account beneficiaries each year.
+SOURCE EXCERPT 2: Not reviewing beneficiaries.
+
+CARD 40 — draft line 67
+DRAFT CLAIM: Review goals, contributions, allocation, fees, taxes, protections, and beneficiaries at least annually and after major life changes, rebalancing when the portfolio has drifted rather than reacting to headlines.
+DRAFT CITATION STATUS: present
+ALLOWED CITATION: [shard_04396_12084_p1]
+SOURCE EXCERPT 1: Asset Allocation, Diversification & Rebalancing
+SOURCE EXCERPT 2: Question: What is the purpose of rebalancing a portfolio?
+
+===== RAW PATCH MODEL OUTPUT =====
+{"edits":[{"line":25,"replacement":"Cash and insured savings emphasize stability and liquidity, while a certificate or term deposit usually exchanges some access for a fixed term; in the United States, the FDIC insures savings accounts, insured money-market accounts, and certificates of deposit up to $250,000 per depositor at almost all U.S. depository institutions, but local coverage should always be verified. [shard_04569_9761_p2] [shard_06006_76458_p4]"},{"line":41,"replacement":"Check your country’s official sources for current eligibility, contribution limits, tax treatment, employer contributions, withdrawal rules, and protections, because early withdrawals may create taxes or penalties; for example, an employer contribution of $0.50 per employee-contributed dollar represents an immediate 50% return on that contribution. [shard_04058_34856_p1] [shard_06073_5606_p2]"},{"line":43,"replacement":"A long time horizon may support carefully investing in higher-risk assets such as stocks rather than limiting the portfolio to lower-risk, lower-return assets, while diversification can reduce overall portfolio risk; approaching retirement generally increases the importance of protecting against a badly timed decline. [shard_06073_5606_p2]"},{"line":45,"replacement":"Most people will live 20 years or more in retirement—the average life expectancy for today’s 65-year-olds is another 20 years—so the plan must balance market risk, inflation, withdrawals, and the possibility of outliving the portfolio rather than treating retirement day as the finish line. [shard_04751_59233_p2]"},{"line":53,"replacement":"A 30% decline turns $20,000 into $14,000, and recovering from that loss requires a 42.9% gain; diversification does not guarantee protection in a declining market, illustrating why near-term purchase money should not depend on an uninterrupted market rise. [shard_04396_12084_p1]"},{"line":59,"replacement":"Fees compound negatively: in an SEC example, a $100,000 portfolio earning 4% annually for 20 years totaled about $210,000 after a 0.25% annual fee, while a 0.50% fee reduced the ending value by about $10,000 more. [shard_00273_2497_p1]"},{"line":61,"replacement":"Vanguard research suggests that investing a lump sum often outperforms investing it incrementally, while phasing money in offers less upside but can limit losses during a market downturn, making behavior and risk capacity legitimate considerations. [shard_01949_40793_p1]"},{"line":63,"replacement":"Avoid market timing and panic selling because entering and exiting at the wrong times can undermine returns; also avoid leverage, because poor performance in a leveraged commodity account can trigger a margin call and immediate debt collection. [shard_06280_44792_p8] [shard_01324_11146_p4]"},{"line":65,"replacement":"Reject promises of high returns with low or no risk and pressure to decide immediately or act from fear of missing out, along with secret tips or unregistered sellers, and independently check both the provider and adviser. [shard_04869_51876_p1]"},{"line":67,"replacement":"Review retirement-account beneficiaries each year, and review goals, contributions, allocation, fees, taxes, and protections after major life changes, rebalancing when the portfolio has drifted rather than reacting to headlines. [shard_04747_38061_p3] [shard_04396_12084_p1]"}]}
+
+===== PATCH APPLICATION =====
+{
+  "stats": {
+    "proposed": 10,
+    "accepted": 10,
+    "rejected": 0
+  },
+  "errors": [],
+  "draft_words": 904,
+  "patched_words": 1021,
+  "patch_usage": {
+    "input_tokens": 7597,
+    "cache_read_input_tokens": 0,
+    "output_tokens": 3652
+  }
+}
+
+===== RAW GRADE INPUT: draft (904 words) =====
+Post one begins with the destination, not the investment.
+
+Write each goal as an amount and date—perhaps retirement in 30 years or a home, vehicle, education, wedding, or renovation in five—and adjust distant targets for inflation, meaning rising prices that reduce money’s purchasing power. [shard_04318_2067_p11]
+
+The time horizon is the period before you need the money, liquidity is how readily you can access it, and risk capacity is your financial ability to withstand loss, while risk tolerance is your emotional comfort with loss. [shard_00907_42861_p1]
+
+Saving prioritizes dependable principal—the money contributed—and easy access, whereas investing accepts uncertainty in pursuit of return, the gain or loss on that principal. [shard_00907_42861_p1]
+
+Money required within a year or two generally belongs in protected, accessible savings rather than volatile investments whose prices can swing sharply at the wrong moment. [shard_00907_42861_p1]
+
+Post two builds the launchpad.
+
+Start with a workable budget, a liquid emergency fund suited to your circumstances, and a plan for high-interest debt, because otherwise an unexpected bill can force an investment sale during a downturn. [shard_03850_76923_p1]
+
+Small contributions still count, and automation can transfer money after every payday before competing demands consume it. [shard_03850_76923_p1]
+
+Compound growth means earning returns on contributions and previous returns, so time can matter as much as the starting amount. [shard_03280_5729_p1]
+
+For illustration, investing $200 monthly at an assumed—not guaranteed—5% annual return would produce approximately $82,207 after 20 years or $166,452 after 30 years, although the person contributes only $48,000 or $72,000 respectively.
+
+A worker who can spare only $25 should begin there, while someone with irregular income might automate a modest minimum and add more after strong months rather than abandon the plan entirely.
+
+Post three opens the investment toolbox.
+
+Cash and insured savings emphasize stability and liquidity, while a certificate or term deposit usually exchanges some access for a fixed term; verify locally which institutions, products, currencies, and balances receive deposit protection. [shard_04569_9761_p2] [shard_06006_76458_p4]
+
+A bond is a loan to a government or company, a stock is an ownership interest in a company, and corporate bonds generally carry more repayment risk than government bonds. [shard_04569_9761_p2] [shard_01987_15098_p1]
+
+A mutual fund pools many investors’ money, while an exchange-traded fund, or ETF, is a similar pool whose shares trade on an exchange during the day. [shard_01987_15098_p1]
+
+Broad funds can provide diversification—spreading money among many holdings—more simply than selecting individual securities, although diversification reduces concentration risk rather than guaranteeing against loss. [shard_04396_12084_p1]
+
+Asset allocation is the percentage assigned to categories such as stocks, bonds, and cash, and rebalancing means restoring those percentages after market movements change them. [shard_04396_12084_p1]
+
+Target-date or lifecycle funds gradually adjust their mix for an intended retirement period, robo-advisers use questionnaires and algorithms to manage portfolios, and real-estate investment trusts provide property exposure without requiring direct ownership. [shard_06005_84602_p2] [shard_02507_73941_p1] [shard_01324_11146_p4]
+
+Post four gives retirement money a long runway.
+
+An account is the legal and tax “container,” while stocks, bonds, funds, and cash are investments placed inside it, so choosing an account does not complete the investment decision. [shard_02593_75569_p2]
+
+Check your country’s official sources for current eligibility, contribution limits, tax treatment, employer contributions, withdrawal rules, and creditor or investor protections, because early withdrawals may create taxes or penalties. [shard_04058_34856_p1] [shard_06073_5606_p2]
+
+Long horizons may support more market risk, but approaching retirement generally increases the importance of liquidity, diversification, and protection against a badly timed decline. [shard_06073_5606_p2]
+
+Retirement can last 20 years or longer, so the plan must balance market risk, inflation, withdrawals, and the possibility of outliving the portfolio rather than treating retirement day as the finish line. [shard_04751_59233_p2]
+
+Post five protects the purchase date.
+
+For a five-year purchase costing $50,000 today, assuming 2.5% annual inflation gives an illustrative future target of $50,000 × 1.025⁵, or about $56,570, after which the required monthly saving can be calculated from current funds and expected interest.
+
+If the date is flexible and many years away, a diversified mix may be reasonable, but the portfolio should usually become more conservative as the purchase approaches because recovery time is shrinking. [shard_00907_42861_p1]
+
+A 30% decline turns $20,000 into $14,000, and recovering from that loss requires a 42.9% gain, illustrating why near-term purchase money should not depend on an uninterrupted market rise.
+
+Post six keeps the plan human.
+
+Passive funds seek to follow a benchmark, whereas active managers try to beat one through research and judgment, so compare total cost, diversification, tax effects, and evidence rather than labels alone. [shard_02441_42197_p1]
+
+Fees compound negatively: in an SEC example, $100,000 earning 4% for 20 years reached about $210,000 with a 0.25% annual fee, while 0.50% cost roughly $10,000 more and 1% nearly $30,000 more. [shard_00273_2497_p1]
+
+Investing a windfall immediately has historically beaten phasing it in more often, but periodic investing can reduce regret and near-term drawdown exposure, making behavior and risk capacity legitimate considerations. [shard_01949_40793_p1]
+
+Avoid market timing and panic selling, because research has associated poorly timed exits with substantial underperformance, and avoid leverage because borrowing can magnify losses and trigger forced sales. [shard_06280_44792_p8] [shard_01324_11146_p4]
+
+Reject guaranteed high returns, urgent pressure, secret tips, or unregistered sellers, and independently check both the provider and adviser. [shard_04869_51876_p1]
+
+Review goals, contributions, allocation, fees, taxes, protections, and beneficiaries at least annually and after major life changes, rebalancing when the portfolio has drifted rather than reacting to headlines. [shard_04747_38061_p3] [shard_04396_12084_p1]
+
+This country-neutral series provides general education as of 6 August 2026, not individualized financial, tax, or legal advice, and local rules and personal circumstances require verification before acting.
+draft repeat=0 score=0.333333
+draft repeat=1 score=0.333333
+draft repeat=2 score=0.333333
+
+===== RAW GRADE INPUT: patched (1021 words) =====
+Post one begins with the destination, not the investment.
+
+Write each goal as an amount and date—perhaps retirement in 30 years or a home, vehicle, education, wedding, or renovation in five—and adjust distant targets for inflation, meaning rising prices that reduce money’s purchasing power. [shard_04318_2067_p11]
+
+The time horizon is the period before you need the money, liquidity is how readily you can access it, and risk capacity is your financial ability to withstand loss, while risk tolerance is your emotional comfort with loss. [shard_00907_42861_p1]
+
+Saving prioritizes dependable principal—the money contributed—and easy access, whereas investing accepts uncertainty in pursuit of return, the gain or loss on that principal. [shard_00907_42861_p1]
+
+Money required within a year or two generally belongs in protected, accessible savings rather than volatile investments whose prices can swing sharply at the wrong moment. [shard_00907_42861_p1]
+
+Post two builds the launchpad.
+
+Start with a workable budget, a liquid emergency fund suited to your circumstances, and a plan for high-interest debt, because otherwise an unexpected bill can force an investment sale during a downturn. [shard_03850_76923_p1]
+
+Small contributions still count, and automation can transfer money after every payday before competing demands consume it. [shard_03850_76923_p1]
+
+Compound growth means earning returns on contributions and previous returns, so time can matter as much as the starting amount. [shard_03280_5729_p1]
+
+For illustration, investing $200 monthly at an assumed—not guaranteed—5% annual return would produce approximately $82,207 after 20 years or $166,452 after 30 years, although the person contributes only $48,000 or $72,000 respectively.
+
+A worker who can spare only $25 should begin there, while someone with irregular income might automate a modest minimum and add more after strong months rather than abandon the plan entirely.
+
+Post three opens the investment toolbox.
+
+Cash and insured savings emphasize stability and liquidity, while a certificate or term deposit usually exchanges some access for a fixed term; in the United States, the FDIC insures savings accounts, insured money-market accounts, and certificates of deposit up to $250,000 per depositor at almost all U.S. depository institutions, but local coverage should always be verified. [shard_04569_9761_p2] [shard_06006_76458_p4]
+
+A bond is a loan to a government or company, a stock is an ownership interest in a company, and corporate bonds generally carry more repayment risk than government bonds. [shard_04569_9761_p2] [shard_01987_15098_p1]
+
+A mutual fund pools many investors’ money, while an exchange-traded fund, or ETF, is a similar pool whose shares trade on an exchange during the day. [shard_01987_15098_p1]
+
+Broad funds can provide diversification—spreading money among many holdings—more simply than selecting individual securities, although diversification reduces concentration risk rather than guaranteeing against loss. [shard_04396_12084_p1]
+
+Asset allocation is the percentage assigned to categories such as stocks, bonds, and cash, and rebalancing means restoring those percentages after market movements change them. [shard_04396_12084_p1]
+
+Target-date or lifecycle funds gradually adjust their mix for an intended retirement period, robo-advisers use questionnaires and algorithms to manage portfolios, and real-estate investment trusts provide property exposure without requiring direct ownership. [shard_06005_84602_p2] [shard_02507_73941_p1] [shard_01324_11146_p4]
+
+Post four gives retirement money a long runway.
+
+An account is the legal and tax “container,” while stocks, bonds, funds, and cash are investments placed inside it, so choosing an account does not complete the investment decision. [shard_02593_75569_p2]
+
+Check your country’s official sources for current eligibility, contribution limits, tax treatment, employer contributions, withdrawal rules, and protections, because early withdrawals may create taxes or penalties; for example, an employer contribution of $0.50 per employee-contributed dollar represents an immediate 50% return on that contribution. [shard_04058_34856_p1] [shard_06073_5606_p2]
+
+A long time horizon may support carefully investing in higher-risk assets such as stocks rather than limiting the portfolio to lower-risk, lower-return assets, while diversification can reduce overall portfolio risk; approaching retirement generally increases the importance of protecting against a badly timed decline. [shard_06073_5606_p2]
+
+Most people will live 20 years or more in retirement—the average life expectancy for today’s 65-year-olds is another 20 years—so the plan must balance market risk, inflation, withdrawals, and the possibility of outliving the portfolio rather than treating retirement day as the finish line. [shard_04751_59233_p2]
+
+Post five protects the purchase date.
+
+For a five-year purchase costing $50,000 today, assuming 2.5% annual inflation gives an illustrative future target of $50,000 × 1.025⁵, or about $56,570, after which the required monthly saving can be calculated from current funds and expected interest.
+
+If the date is flexible and many years away, a diversified mix may be reasonable, but the portfolio should usually become more conservative as the purchase approaches because recovery time is shrinking. [shard_00907_42861_p1]
+
+A 30% decline turns $20,000 into $14,000, and recovering from that loss requires a 42.9% gain; diversification does not guarantee protection in a declining market, illustrating why near-term purchase money should not depend on an uninterrupted market rise. [shard_04396_12084_p1]
+
+Post six keeps the plan human.
+
+Passive funds seek to follow a benchmark, whereas active managers try to beat one through research and judgment, so compare total cost, diversification, tax effects, and evidence rather than labels alone. [shard_02441_42197_p1]
+
+Fees compound negatively: in an SEC example, a $100,000 portfolio earning 4% annually for 20 years totaled about $210,000 after a 0.25% annual fee, while a 0.50% fee reduced the ending value by about $10,000 more. [shard_00273_2497_p1]
+
+Vanguard research suggests that investing a lump sum often outperforms investing it incrementally, while phasing money in offers less upside but can limit losses during a market downturn, making behavior and risk capacity legitimate considerations. [shard_01949_40793_p1]
+
+Avoid market timing and panic selling because entering and exiting at the wrong times can undermine returns; also avoid leverage, because poor performance in a leveraged commodity account can trigger a margin call and immediate debt collection. [shard_06280_44792_p8] [shard_01324_11146_p4]
+
+Reject promises of high returns with low or no risk and pressure to decide immediately or act from fear of missing out, along with secret tips or unregistered sellers, and independently check both the provider and adviser. [shard_04869_51876_p1]
+
+Review retirement-account beneficiaries each year, and review goals, contributions, allocation, fees, taxes, and protections after major life changes, rebalancing when the portfolio has drifted rather than reacting to headlines. [shard_04747_38061_p3] [shard_04396_12084_p1]
+
+This country-neutral series provides general education as of 6 August 2026, not individualized financial, tax, or legal advice, and local rules and personal circumstances require verification before acting.
+patched repeat=0 score=0.308642
+patched repeat=1 score=0.320988
+patched repeat=2 score=0.296296
+
+===== FULL CRITERION MATRIX =====
+{"cid": "683a58c9a7e7fe4e76958498::c00", "axis": "Instruction Following", "signed_weight": 4.0, "text": "The response clearly labels sections as blog posts.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c01", "axis": "Instruction Following", "signed_weight": 4.0, "text": "The response creates posts that are between 500 and 2000 words and styled like a blog.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c02", "axis": "Communication Quality", "signed_weight": 2.0, "text": "The response creates that posts contain at least 3 subheadings.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c03", "axis": "Communication Quality", "signed_weight": -3.0, "text": "The response mentions a financial term or acronym (e.g. liquidity, yield, Roth IRA, bull market) without defining it for a general audience.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c04", "axis": "Communication Quality", "signed_weight": 3.0, "text": "The response contains at least one table to compare different types of securities (e.g. common stock, preferred stock, corporate bonds, government bonds).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c05", "axis": "Explicit Criteria", "signed_weight": 4.0, "text": "The response mentions in the first blog post that this series does not assume prior experience in finance, either explicitly (i.e, \"This is readable regardless of your investing experience\") or implicitly (e.g.,  mentioning investing is accessible to everyone).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "partially_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c07", "axis": "Explicit Criteria", "signed_weight": -3.0, "text": "The response contains blog posts with topics only relevant to professionals (e.g. statistical concepts for professional traders, nuanced discussion of the Federal Reserve, history of the 2008 banking criss, leveraged trading).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c08", "axis": "Implicit Criteria", "signed_weight": -3.0, "text": "The response contains verifiably incorrect or outdated information (e.g., mortgage rates from 2024, Roth IRA limits from 2023,  promises of returns in high-risk trading strategies like cryptocurrency, incorrect bond rates).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c09", "axis": "Implicit Criteria", "signed_weight": 3.0, "text": "The response contains at least 2 examples of different time horizons for investing (e.g., short-term, medium-term, long-term, longer than 10 years).", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c10", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response relates different time horizons to risk (e.g., higher risk is tolerable for long time horizons, shorter term investment is less predictable, different expectations for bonds and stocks, time restrictions on withdrawing from certain accounts).", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c11", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response introduces the idea of diversifying investments across different asset classes.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c12", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response defines stocks as shares of a company, and distinguishes common vs preferred stock.", "draft": ["partially_satisfied", "partially_satisfied", "partially_satisfied"], "patched": ["partially_satisfied", "partially_satisfied", "partially_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c13", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response defines bonds as loans.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c14", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response defines 401k accounts as an employer-sponsored account with tax benefits.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c15", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response defines IRA accounts as an account with tax benefits that any individual can use.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c16", "axis": "Implicit Criteria", "signed_weight": 3.0, "text": "The response defines mutual funds and ETFs as groups of securities one can trade.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c17", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response identifies at least 2 differences between mutual funds and ETFs (e.g. investment minimum, when they can be traded, disclosure differences between ETFs and mutual funds, management fees).", "draft": ["partially_satisfied", "partially_satisfied", "partially_satisfied"], "patched": ["partially_satisfied", "partially_satisfied", "partially_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c18", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response contains at least one table comparing different types of investor profiles (e.g., makeup of aggressive vs conservative portfolios, makeup of short-term vs long term investments, makeup possibilites between different aggresive portfolios, distribution of mutual funds by investment strategy).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c19", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response relates diversification of investments to risk.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c20", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response gives an example of an event where a stock would earn an investor money (e.g., unexpectedly positive quarterly earnings, favorable media coverage, major government contract, meme stock), and an event where a stock could lose an investor money (e.g., poor quarterly earnings, negative press, executive scandal, bankruptcy).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c21", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response gives an example of an event where a bond loses an investor money (e.g., issuer goes bankrupt, interest rates decline, inflation being higher than interest rate, rise of interest rates for new bonds devaluing the current bond).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["partially_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c22", "axis": "Implicit Criteria", "signed_weight": 1.0, "text": "The response mentions that bonds can also be bought and sold on the secondary market.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c23", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response compares traditional and Roth savings accounts for the 401k and IRA.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c24", "axis": "Implicit Criteria", "signed_weight": 4.0, "text": "The response names the major US stock market indexes (e.g., S&P 500, Dow Jones Industrial Average, Nasdaq, Russell 2000).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c25", "axis": "Implicit Criteria", "signed_weight": 2.0, "text": "The response identifies a unique feature of each of the major stock market indexes (e.g., S&P 500, Dow Jones, Nasdaq, Russell 2000).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c26", "axis": "Implicit Criteria", "signed_weight": 3.0, "text": "The response names at least 3 different brokers available to the public (e.g., Fidelity, Vanguard, Charles Schwab, Robinhood).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c27", "axis": "Implicit Criteria", "signed_weight": 3.0, "text": "The response names at least 3 commonly traded mutual funds (e.g., FXAIX, VTSAX, Fidelity Freedom 2050, Dodge & Cox Income Fund (DODIX)).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c28", "axis": "Implicit Criteria", "signed_weight": 3.0, "text": "The response names at least 3 commonly traded ETFs (e.g., SPY, QQQ, AGG, VEA).", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c29", "axis": "Explicit Criteria", "signed_weight": 5.0, "text": "The response identifies a difference between saving for a large purchase and investing for retirement.", "draft": ["satisfied", "satisfied", "satisfied"], "patched": ["satisfied", "satisfied", "satisfied"]}
+{"cid": "683a58c9a7e7fe4e76958498::c30", "axis": "Implicit Criteria", "signed_weight": 1.0, "text": "The response mentions that different brokers offer the same mutual funds and ETFs.", "draft": ["not_satisfied", "not_satisfied", "not_satisfied"], "patched": ["not_satisfied", "not_satisfied", "not_satisfied"]}
+
+===== SUMMARY =====
+draft_mean=0.333333
+patched_mean=0.308642
+patched_minus_draft=-0.024691
+  tokens: 6 calls, in 15,774 (cached 13,060), out 4,886, reasoning 3,993
+  cost: $0.1762 USD (openai.gpt-5.6-sol @ us-east-1)
