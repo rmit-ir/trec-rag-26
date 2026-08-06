@@ -126,6 +126,11 @@ def test_commit_schema_and_normalizer_preserve_bounded_source_anchor() -> None:
     supports, errors = normalize_commit_supports(arguments, contract())
 
     assert "supports" in doc_schema["properties"]
+    support_schema = doc_schema["properties"]["supports"]["items"]["properties"]
+    assert support_schema["claim"]["maxLength"] == 500
+    assert support_schema["value_scope"]["maxLength"] == 300
+    assert support_schema["must_include"]["maxItems"] == 4
+    assert support_schema["must_include"]["items"]["maxLength"] == 80
     assert errors == []
     assert supports["P02"] == [EvidenceAnchor(
         "d1",
@@ -200,7 +205,7 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
                 "requirement_id": "P02",
                 "claim": "The study reported a 12% change in 2025.",
                 "value_scope": "measured against the pre-toll baseline",
-                "must_include": ["reported", "12", "pre-toll baseline"],
+                "must_include": ["12", "pre-toll baseline"],
             }],
         }],
     }, contract())
@@ -217,20 +222,97 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
         "document 'd1' does not contain exact must_include term(s): 12"
     ]
 
-    _supports, only_generic_errors = normalize_commit_supports({
+    mixed_supports, mixed_errors = normalize_commit_supports({
         "documents": [{
             "id": "d1",
             "supports": [{
                 "requirement_id": "P02",
-                "claim": "The study reported a change.",
-                "must_include": ["reported"],
+                "claim": "The study reported a 12% change.",
+                "must_include": ["reported", "12%"],
             }],
         }],
     }, contract())
+    assert mixed_supports == {}
     assert any(
         "uninformative" in error and "reported" in error
-        for error in only_generic_errors
+        for error in mixed_errors
     )
+
+
+def test_negative_findings_are_material_exact_terms() -> None:
+    """Rejecting “no evidence” erased a substantive saved study conclusion."""
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The global study found no evidence of population harm.",
+                "value_scope": "worldwide sample",
+                "must_include": ["no evidence", "worldwide sample"],
+            }],
+        }],
+    }, contract())
+
+    assert errors == []
+    assert supports["P02"][0].must_include == (
+        "no evidence", "worldwide sample")
+
+
+def test_oversized_anchor_text_is_rejected_without_prefix_truncation() -> None:
+    """A truncated invariant can pass while changing what the model promised."""
+    long_term = "complete source phrase " + ("x" * 70)
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": f"The finding was {long_term}.",
+                "must_include": [long_term],
+            }],
+        }],
+    }, contract())
+
+    assert len(long_term) > 80
+    assert supports == {}
+    assert errors == [
+        "document 'd1' support 1 has a "
+        f"{len(long_term)}-character must_include term; maximum is 80; "
+        "submit a shorter complete source-verbatim fragment"
+    ]
+
+
+def test_anchor_card_bounds_reject_whole_rows_instead_of_slicing_them() -> None:
+    """Schema overflow must trigger bounded correction, not invisible data loss."""
+    base = {
+        "requirement_id": "P02",
+        "claim": "A complete material claim.",
+        "must_include": ["material claim"],
+    }
+    cases = [
+        (
+            [{**base, "claim": "x" * 501}],
+            "document 'd1' support 1 claim is 501 characters; maximum is 500",
+        ),
+        (
+            [{**base, "value_scope": "x" * 301}],
+            "document 'd1' support 1 value_scope is 301 characters; maximum is 300",
+        ),
+        (
+            [{**base, "must_include": ["one", "two", "three", "four", "five"]}],
+            "document 'd1' support 1 has 5 must_include terms; maximum is 4",
+        ),
+        (
+            [dict(base) for _ in range(13)],
+            "document 'd1' has 13 supports; maximum is 12",
+        ),
+    ]
+    for raw_supports, expected in cases:
+        supports, errors = normalize_commit_supports({
+            "documents": [{"id": "d1", "supports": raw_supports}],
+        }, contract())
+
+        assert supports == {}
+        assert errors == [expected]
 
 
 def test_material_anchor_allows_single_domain_terms_and_named_entities() -> None:

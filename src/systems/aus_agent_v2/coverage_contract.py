@@ -44,6 +44,14 @@ _UNINFORMATIVE_ANCHOR_TERMS = {
     "value", "values", "with",
 }
 _ANCHOR_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
+_ANCHOR_CLAIM_MAX_CHARS = 500
+_ANCHOR_SCOPE_MAX_CHARS = 300
+_ANCHOR_TERM_MAX_CHARS = 80
+_ANCHOR_TERMS_MAX_ITEMS = 4
+_NEGATIVE_ANCHOR_TOKENS = {
+    "failed", "failure", "lack", "lacked", "lacks", "neither", "never",
+    "no", "none", "not", "without", "zero",
+}
 
 
 @dataclass(frozen=True)
@@ -216,6 +224,13 @@ def _material_anchor_term(term: str) -> bool:
         token for token in tokens
         if token.casefold() not in _UNINFORMATIVE_ANCHOR_TERMS
     ]
+    # A source-verbatim negative finding can be substantive even when the
+    # noun by itself is generic ("no evidence", "no effect"). Exact claim,
+    # source, route, and final-answer checks still apply to the whole phrase.
+    if (len(tokens) >= 2
+            and any(token.casefold() in _NEGATIVE_ANCHOR_TOKENS
+                    for token in tokens)):
+        return True
     if len(content) >= 2:
         return True
     if len(content) == 1:
@@ -416,10 +431,12 @@ def commit_tool_with_contract() -> dict[str, Any]:
                 "requirement_id": {"type": "string"},
                 "claim": {
                     "type": "string",
+                    "maxLength": _ANCHOR_CLAIM_MAX_CHARS,
                     "description": "What this unit directly establishes.",
                 },
                 "value_scope": {
                     "type": "string",
+                    "maxLength": _ANCHOR_SCOPE_MAX_CHARS,
                     "description": (
                         "Exact value, population, jurisdiction, date, or other "
                         "boundary needed to finish the claim."
@@ -428,12 +445,18 @@ def commit_tool_with_contract() -> dict[str, Any]:
                 "must_include": {
                     "type": "array",
                     "minItems": 1,
-                    "maxItems": 4,
-                    "items": {"type": "string"},
+                    "maxItems": _ANCHOR_TERMS_MAX_ITEMS,
+                    "items": {
+                        "type": "string",
+                        "maxLength": _ANCHOR_TERM_MAX_CHARS,
+                    },
                     "description": (
-                        "One to four exact source-supported names, values, "
-                        "dates, populations, or scope qualifiers that a final "
-                        "sentence using this anchor must repeat verbatim."
+                        "One to four short, complete, exact source-supported "
+                        "names, values, dates, populations, negative findings, "
+                        "or scope qualifiers that occur verbatim in claim or "
+                        "value_scope and that a final sentence using this "
+                        "anchor must repeat verbatim. Never paste a long "
+                        "sentence or rely on truncation."
                     ),
                 },
             },
@@ -481,33 +504,86 @@ def normalize_commit_supports(
         if not isinstance(raw_supports, list):
             errors.append(f"document {doc_index} supports must be an array")
             continue
-        for support_index, raw in enumerate(raw_supports[:12], 1):
+        if len(raw_supports) > 12:
+            errors.append(
+                f"document {document_id!r} has {len(raw_supports)} supports; "
+                "maximum is 12")
+            continue
+        for support_index, raw in enumerate(raw_supports, 1):
             if not isinstance(raw, dict):
                 errors.append(
                     f"document {doc_index} support {support_index} is not an object")
                 continue
             requirement_id = str(raw.get("requirement_id") or "").strip()
-            claim = _compact(raw.get("claim"), 500)
-            value_scope = _compact(raw.get("value_scope"), 300)
+            raw_claim = raw.get("claim")
+            raw_value_scope = raw.get("value_scope", "")
+            claim = (
+                " ".join(raw_claim.split())
+                if isinstance(raw_claim, str) else ""
+            )
+            value_scope = (
+                " ".join(raw_value_scope.split())
+                if isinstance(raw_value_scope, str) else ""
+            )
             raw_must_include = raw.get("must_include")
             if requirement_id not in known:
                 errors.append(
                     f"unknown coverage-contract id {requirement_id!r} in "
                     f"document {document_id!r}")
                 continue
+            if not isinstance(raw_claim, str):
+                errors.append(
+                    f"document {document_id!r} support {support_index} claim "
+                    "must be a string")
+                continue
             if not document_id or not claim:
                 errors.append(
                     f"document {doc_index} support {support_index} needs id and claim")
+                continue
+            if len(claim) > _ANCHOR_CLAIM_MAX_CHARS:
+                errors.append(
+                    f"document {document_id!r} support {support_index} claim "
+                    f"is {len(claim)} characters; maximum is "
+                    f"{_ANCHOR_CLAIM_MAX_CHARS}")
+                continue
+            if not isinstance(raw_value_scope, str):
+                errors.append(
+                    f"document {document_id!r} support {support_index} "
+                    "value_scope must be a string")
+                continue
+            if len(value_scope) > _ANCHOR_SCOPE_MAX_CHARS:
+                errors.append(
+                    f"document {document_id!r} support {support_index} "
+                    f"value_scope is {len(value_scope)} characters; maximum "
+                    f"is {_ANCHOR_SCOPE_MAX_CHARS}")
                 continue
             if not isinstance(raw_must_include, list) or not raw_must_include:
                 errors.append(
                     f"document {document_id!r} support {support_index} needs "
                     "a non-empty must_include array")
                 continue
+            if len(raw_must_include) > _ANCHOR_TERMS_MAX_ITEMS:
+                errors.append(
+                    f"document {document_id!r} support {support_index} has "
+                    f"{len(raw_must_include)} must_include terms; maximum is "
+                    f"{_ANCHOR_TERMS_MAX_ITEMS}")
+                continue
             must_include: list[str] = []
             term_errors: list[str] = []
-            for raw_term in raw_must_include[:4]:
-                term = _compact(raw_term, 80)
+            for raw_term in raw_must_include:
+                if not isinstance(raw_term, str):
+                    term_errors.append(
+                        f"document {document_id!r} support {support_index} has "
+                        "a non-string must_include term")
+                    continue
+                term = " ".join(raw_term.split())
+                if len(term) > _ANCHOR_TERM_MAX_CHARS:
+                    term_errors.append(
+                        f"document {document_id!r} support {support_index} has "
+                        f"a {len(term)}-character must_include term; maximum is "
+                        f"{_ANCHOR_TERM_MAX_CHARS}; submit a shorter complete "
+                        "source-verbatim fragment")
+                    continue
                 if not term or not _material_anchor_term(term):
                     term_errors.append(
                         f"document {document_id!r} support {support_index} has "
@@ -519,7 +595,10 @@ def normalize_commit_supports(
                         f"must_include term {term!r} outside its claim/scope")
                 elif term not in must_include:
                     must_include.append(term)
-            if not must_include:
+            # Never silently filter a bad requested invariant. A mixed row is
+            # corrected as a unit so trace state and model intent cannot
+            # disagree about which literals the final answer must carry.
+            if term_errors:
                 errors.extend(term_errors)
                 continue
             anchor = EvidenceAnchor(

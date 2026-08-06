@@ -68,6 +68,13 @@ that bypasses prose cleanup and must compile before acceptance. Every selected
 finish-the-claim literal is boundary-matched in the declared claim/scope, the
 staged source, and the final cited prose.
 
+Anchor strings are accepted exactly or rejected; the harness never turns a
+long value into a different invariant by silently slicing it. Claims, scopes,
+term counts, and term lengths are bounded in both the advertised tool schema
+and runtime validation. A mixed valid/invalid term list rejects the whole
+support row for bounded correction, while exact negative findings such as
+"no evidence" remain material when they occur in claim, source, and answer.
+
 If only the contract support annotation is invalid, the full staged evidence
 is not destroyed immediately. The harness returns the exact validation errors
 and permits two correction turns using the same batch; a valid correction
