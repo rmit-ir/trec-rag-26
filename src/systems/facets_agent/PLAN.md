@@ -321,3 +321,117 @@ The arena is the wrong primary metric here and the repo's own worklogs prove it:
 Supporting (validation): `/home/el7/E103037/repos/trec-rag-26/worklogs/assets/2026-08-05-trajectory-behavior-analysis.py`, `/home/el7/E103037/repos/trec-rag-26/worklogs/assets/2026-08-05-llm-diagnosis-results.json` (the named-entity evidence for row 7), `/home/el7/E103037/repos/trec-rag-26/tasks/task-comparison/scripts/arena_aus_agent_vs_facets_agent_rubric.py`, `/home/el7/E103037/repos/trec-rag-26/tasks/task-comparison/scripts/rubric_scorecard_aus_agent_vs_facets_agent.py`.
 
 Reference for the divergence being declared: `/home/el7/E103037/repos/trec-rag-26/src/systems/aus_agent/prompts/system/default.md:72–80` (aus_agent's round-one anti-seeding rule — to be left untouched and cited in facets_agent's module docstring as the rule it deliberately departs from).
+
+---
+
+## 7. Phase 4 (2026-08-06) — closing the post-decomposition gap
+
+Phases 1–3 above are complete and shipped (see `prompts.py`'s own docstring).
+Since then, `src/systems/aus_agent/context.py`/`providers/`/`tools/` moved to
+a real top-level `src/agent_harness/` package (`worklogs/2026-08-06-agent-harness-extraction.md`)
+— every path below uses the new location; `aus_agent.agent`/`aus_agent.context`
+paths in §0–§6 above are historical.
+
+**Motivated by** `worklogs/2026-08-06-facets-agent-loss-factor-analysis.md`,
+a version-tagged 15-topic re-run (both systems on current code, HEAD
+`5728aff`) scored against aus_agent: aus_agent won 86.7% of rubric battles.
+Root-cause diagnosis (gpt-5.6-sol, 15 topics) attributed the weighted loss
+almost evenly to two stages, unrelated to the requirement ledger this file's
+Phases 1–3 already fixed:
+
+- **`not_decomposed` (47.8%)** — an implicit, context-inferred requirement
+  (compliance regime, cost analysis, trade-offs, term definitions) never
+  makes it into the step-1 facet list at all, because the request never
+  named it.
+- **`covered_but_shallow` (47.4%)** — the facet IS decomposed and searched,
+  but the final answer names a category ("use caching") instead of the
+  specific mechanism the corpus surfaced (Redis + TTL/eviction).
+
+Both are **post-decomposition** gaps Phases 1–3 cannot reach (that plan only
+instruments *pre*-search planning). Three follow-up designs, ranked by
+risk/self-containedness:
+
+### 7.1 `pre_final_hook` — the coverage gate this file already spec'd (§3), now built
+
+§3 above deferred exactly this ("Not required... If measurement shows the
+model setting `ready_to_report: true` while entries are still `open`... add
+a hook to the `if not calls:` branch"). Building it now because §7's
+diagnosis gives a second, independent reason: it is also the natural place
+to catch `covered_but_shallow` — a requirement marked `covered` in the
+ledger but whose answer text never surfaced the specific names/numbers the
+corpus returned for it.
+
+**Harness change** (`src/agent_harness/agent.py::run_agent`): one new
+parameter, `pre_final_hook: Callable[[dict], str | None] | None = None`.
+Fires at most once per run (a `pre_final_hook_fired` flag, so it structurally
+cannot loop), at both existing `if candidate is not None:` break points,
+right before the `break`. Receives a plain dict (`query_id`, `query`,
+`ledger`, `candidate_sentences`, `raw_messages`) — the harness stays
+system-agnostic; all facets_agent-specific parsing (its own `coverage`
+schema) lives in the hook function it supplies, not in shared code. Returns
+`None` → finalize as normal (byte-identical to today for every caller that
+doesn't pass one — aus_agent, facet_rag untouched). Returns a string →
+injected as a user-message continuation, same pattern as an existing
+rejected-report retry, and the loop continues instead of breaking. The extra
+turn is within budget: `hard_round_cap = safety_max_rounds +
+FINISHING_ROUNDS_GRACE` already reserves grace rounds for exactly this shape
+of "one more look before finalizing" turn.
+
+**facets_agent's hook** (`src/systems/facets_agent/review.py`, new): scans
+the last `commit_context` call's `coverage` payload (from `raw_messages`,
+since the ledger itself only tracks committed/rejected ids, not
+facets_agent's own schema) for entries still `open` — PLAN §3's original
+minimal check — and returns feedback naming them if any exist, else `None`.
+**Deferred to a later increment, not this one:** using the judge tool (§7.2)
+to re-scan `ledger.rejected_ids`' original text (recoverable from
+`ledger.call_history`, confirmed still holding full per-document text for
+the run's life even after compaction) for material that could close a
+`covered_but_shallow` gap without a new search. That is a real second
+capability, not a bigger version of the same check, and deserves its own
+measurement pass rather than shipping bundled with an unrelated harness
+change.
+
+### 7.2 External-judge tool (Qwen / gpt-oss via Bedrock) — not built this session
+
+Self-contained (new tool in `facets_agent/tools.py` + a handler that spins up
+`make_provider("bedrock", "<judge-model>")` for one judge turn — `Provider`
+is already model-agnostic, confirmed in `agent_harness/providers/base.py`).
+Needs a genuine `agent_harness/agent.py` dispatch change (new tool name in
+`_execute_tool_calls`'s three-bucket dispatch — currently `commit_context` /
+`search` / `get_documents` only; an unhandled name raises `KeyError` and
+fails the run, per §0.2). Additive and opt-in (only fires when the tool def
+is in `tool_definitions`), so aus_agent/facet_rag are unaffected either way,
+same safety property as `pre_final_hook`. Purpose per the loss diagnosis:
+offload the tedious per-staged-document relevance read from the expensive
+primary model during `commit_context`, freeing its effort for decomposition
+completeness and answer specificity — the two factors actually driving the
+gap. Explicitly NOT a way to cut search volume (search stays generous; this
+tool never touches the search tool).
+
+### 7.3 Citation selection ("top 3 per sentence") — prompt-only tier shipped, ranking tier deferred
+
+Current mechanism is **shared code** in `agent_harness/agent.py`
+(`_parse_final_prose`, `_map_citations`): a sentence's citations beyond 3 are
+dropped positionally (first-listed, not best) — confirmed in the current
+source, same behavior pre- and post- the agent_harness extraction. Two
+tiers:
+- **Shipped this session, prompt-only, facets_agent-only**: a line in
+  `prompts.py`'s closing paragraph telling the model to list a sentence's
+  strongest-supporting id first when more than 3 committed ids could apply.
+  Zero shared-code risk, reverts as one sentence.
+- **Deferred**: real re-ranking (via §7.2's judge tool) before the
+  positional truncation. That means either a new `citation_ranker` hook on
+  `run_agent` (mirroring `pre_final_hook`'s pattern) or changing
+  `_parse_final_prose` itself — a 3-system-shared change (aus_agent,
+  facets_agent, facet_rag all route through it), needs its own test pass and
+  measurement, not bundled here.
+
+### Sequencing
+
+Phase 4a (this session): §7.1's harness hook + facets_agent's coverage-open
+check, §7.3's prompt line. Tests: `tests/agent_harness_context/` for the
+generic hook firing-once/no-op-when-absent behavior, `tests/systems/test_facets_agent.py`
+for the coverage-check hook itself. Phase 4b (future): §7.2's judge tool,
+§7.1's judge-based rejected-doc rescue, §7.3's ranking tier — each is an
+independent, separately-measurable increment, same principle as Phases 1/2
+above.

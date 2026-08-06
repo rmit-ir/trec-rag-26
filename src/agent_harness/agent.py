@@ -33,7 +33,7 @@ import re
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime
 from time import perf_counter
-from typing import Any
+from typing import Any, Callable
 
 from ragrun import (
     TrajectoryBuilder,
@@ -533,6 +533,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               default_k_by_engine: dict[str, int] | None = None,
               commit_context_tool: dict[str, Any] | None = None,
               search_tool_def: dict[str, Any] | None = None,
+              pre_final_hook: (
+                  Callable[[dict[str, Any]], str | None] | None) = None,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -566,6 +568,25 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     call was given — never pass a module-level constant built for a
     different engine set, or the advertised enum and the run's actual
     enabled engines will desync.
+    ``pre_final_hook`` — when given — is called at most ONCE per run, the
+    first time the model produces a valid final report (a candidate that
+    already passed ``_parse_final_prose``'s citation/length checks), before
+    that report is accepted. It receives a plain dict (``query_id``,
+    ``query``, ``ledger``, ``candidate_sentences``, ``last_commit_arguments``
+    — the most recent ``commit_context`` call's normalized ``arguments``
+    dict, or ``None`` if nothing was ever committed — and ``raw_messages``
+    for anything provider-native) and returns either ``None`` (accept the
+    report; behavior is byte-identical to not passing a hook at all) or a
+    feedback string, which is injected as a user-message continuation — the
+    same shape as an existing rejected-report retry — so the model gets
+    exactly one more look before finalizing. Firing at most once makes an
+    infinite loop structurally impossible; the harness stays system-agnostic
+    because all schema-specific parsing (e.g. a caller's own coverage
+    ledger) lives in the hook function the caller supplies, not here.
+    ``last_commit_arguments`` — not ``raw_messages`` — is the right source
+    for that: ``raw_messages`` is each provider's OWN native format (see
+    ``providers/base.py``), so a hook that parses it directly only works
+    against one backend.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -590,6 +611,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     sentences: list[dict[str, Any]] | None = None
     repairs: list[str] = []
     uncited_refusals = 0
+    pre_final_hook_fired = False
+    last_commit_arguments: dict[str, Any] | None = None
     context_tokens = 0
     peak_context_tokens = 0
 
@@ -723,6 +746,21 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 peak_context_tokens=peak_context_tokens,
             ),
         )
+
+    def run_pre_final_hook(candidate: list[dict[str, Any]]) -> str | None:
+        """Fire ``pre_final_hook`` at most once; see its param docstring."""
+        nonlocal pre_final_hook_fired
+        if pre_final_hook is None or pre_final_hook_fired:
+            return None
+        pre_final_hook_fired = True
+        return pre_final_hook({
+            "query_id": query_id,
+            "query": query,
+            "ledger": ledger,
+            "candidate_sentences": candidate,
+            "last_commit_arguments": last_commit_arguments,
+            "raw_messages": provider.raw_messages,
+        })
 
     def expire_staged_context(reason: str, turn: int | None, *,
                               failed: bool = True,
@@ -877,6 +915,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             finishing
                             or uncited_refusals >= MAX_UNCITED_REFUSALS))
                     if candidate is not None:
+                        hook_feedback = run_pre_final_hook(candidate)
+                        if hook_feedback:
+                            provider.add_user_message(hook_feedback)
+                            next_model_input = {
+                                "kind": "user_message", "text": hook_feedback}
+                            continue
                         sentences = candidate
                         repairs = notes
                         break
@@ -992,6 +1036,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     allow_uncited=(
                         finishing or uncited_refusals >= MAX_UNCITED_REFUSALS))
                 if candidate is not None:
+                    hook_feedback = run_pre_final_hook(candidate)
+                    if hook_feedback:
+                        provider.add_user_message(hook_feedback)
+                        next_model_input = {
+                            "kind": "user_message", "text": hook_feedback}
+                        continue
                     sentences = candidate
                     repairs = notes
                     break
@@ -1039,6 +1089,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             # and gives the next same-loop turn a clean context.
             if commit_calls:
                 call = commit_calls[0]
+                last_commit_arguments = call["arguments"]
                 ct0 = now_iso()
                 started = perf_counter()
                 pending_before = list(ledger.pending)

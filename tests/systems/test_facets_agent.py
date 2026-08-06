@@ -302,6 +302,96 @@ def test_named_candidate_query_hint_only_appears_when_keyword_is_enabled(
     assert "named candidate" not in without_desc
 
 
+# ---------------------------------------------------------------------------
+# Phase 4 §7.1 — review.coverage_gate, the default pre_final_hook
+# ---------------------------------------------------------------------------
+from facets_agent.review import coverage_gate  # noqa: E402
+
+
+def test_coverage_gate_is_a_noop_when_nothing_was_ever_committed() -> None:
+    """No commit_context call yet (e.g. an uncited-report edge case) must not
+    crash — ``last_commit_arguments`` is ``None``, not a missing key."""
+    assert coverage_gate({"last_commit_arguments": None}) is None
+
+
+def test_coverage_gate_is_a_noop_when_commit_call_carried_no_coverage() -> None:
+    """A commit call that omits ``coverage`` entirely (e.g. a scripted test,
+    or a model turn that malformed the field) is accepted, not crashed —
+    the schema is a forcing function, never a failure mode, same principle
+    as ``tools.py``'s own docstring states for every field it adds."""
+    assert coverage_gate({"last_commit_arguments": {"documents": []}}) is None
+
+
+def test_coverage_gate_is_a_noop_when_every_entry_is_covered_or_unavailable() -> None:
+    assert coverage_gate({"last_commit_arguments": {"coverage": [
+        {"requirement": "A", "status": "covered", "note": "id_1"},
+        {"requirement": "B", "status": "unavailable", "note": "searched, nothing"},
+    ]}}) is None
+
+
+def test_coverage_gate_names_every_open_requirement() -> None:
+    feedback = coverage_gate({"last_commit_arguments": {"coverage": [
+        {"requirement": "A", "status": "covered", "note": "id_1"},
+        {"requirement": "B", "status": "open", "note": "next query: X"},
+        {"requirement": "C", "status": "open", "note": ""},
+    ]}})
+    assert feedback is not None
+    assert "B" in feedback and "next query: X" in feedback
+    assert "C" in feedback
+    assert "2 entries" in feedback  # only the two `open` ones, not `A`
+
+
+COVERAGE_GATE_SCRIPT = [
+    model_turn(reasoning=["Search hybrid first."],
+               tool_calls=[tool_call(
+                   "search", {"query": "congestion pricing revenue plan",
+                              "search_engine": "hybrid"}, id="s1")]),
+    # ready_to_report=True but one requirement is still `open` — the gate
+    # must catch this inconsistency even though the model itself claimed
+    # it was done.
+    model_turn(text="Ready to report.",
+               tool_calls=[tool_call("commit_context", {
+                   "documents": [{"docid": CLIMBMIX_DOCIDS[0],
+                                  "reason": "covers requirement A"}],
+                   "coverage": [
+                       {"requirement": "A", "status": "covered",
+                        "note": CLIMBMIX_DOCIDS[0]},
+                       {"requirement": "B", "status": "open",
+                        "note": "not yet searched"},
+                   ],
+                   "ready_to_report": True,
+               }, id="c1")]),
+    model_turn(text=f"First finding. [{CLIMBMIX_DOCIDS[0]}]"),
+    model_turn(text=f"Revised, complete finding. [{CLIMBMIX_DOCIDS[0]}]"),
+]
+
+
+def test_coverage_gate_is_wired_in_by_default_and_blocks_a_premature_report(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """End-to-end: ``facets_run_agent`` needs no extra argument for this —
+    ``pre_final_hook`` defaults to ``coverage_gate`` — and the harness's own
+    ``pre_final_hook`` mechanism (tested generically in
+    ``tests/agent_harness_context/test_pre_final_hook.py``) is what actually
+    sends the model back. Proves the wiring, not the mechanism twice."""
+    result = drive(list(COVERAGE_GATE_SCRIPT))
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].user_messages[-1].startswith(
+        "Before this report is accepted")
+    assert "B" in result["provider"].user_messages[-1]
+    output = __import__("json").loads(result["summary"]["paths"]["output"].read_text())
+    assert output["answer"][0]["text"] == "Revised, complete finding."
+
+
+def test_coverage_gate_can_be_disabled_via_pre_final_hook_none(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """``pre_final_hook=None`` must accept the SAME script's first report
+    attempt as-is, proving the default is genuinely overridable."""
+    result = drive(list(COVERAGE_GATE_SCRIPT[:3]), pre_final_hook=None)
+    assert result["summary"]["status"] == "completed"
+    output = __import__("json").loads(result["summary"]["paths"]["output"].read_text())
+    assert output["answer"][0]["text"] == "First finding."
+
+
 @pytest.mark.live
 def test_run_agent_live() -> None:
     """Same path against the real ClimbMix + OpenAI endpoints (needs creds)."""

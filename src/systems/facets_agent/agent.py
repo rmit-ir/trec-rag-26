@@ -38,6 +38,7 @@ from agent_harness.agent import (
 )
 
 from .prompts import SYSTEM_PROMPT
+from .review import coverage_gate
 from .tools import COMMIT_CONTEXT_TOOL, build_search_tool_def
 
 SYSTEM_NAME = "facets_agent"
@@ -126,8 +127,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
               max_committed_per_step: int = DEFAULT_MAX_COMMITTED_PER_STEP,
               run_id: str = "facets-agent-dev",
               run_desc: str | None = None,
+              pre_final_hook: Any = coverage_gate,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end through the shared harness, facets_agent-configured.
+
+    ``pre_final_hook`` defaults to ``review.coverage_gate`` (PLAN.md Phase 4,
+    §7.1): before accepting a final report, sends the model back once if its
+    own requirement ledger still lists an entry `open`. Pass ``None`` to
+    disable (e.g. in tests exercising the bare harness behavior).
 
     ``**kwargs`` passes through to ``agent_harness.agent.run_agent`` unchanged
     (``context_token_budget``, ``safety_max_rounds``, ...).
@@ -141,4 +148,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
         system_prompt=system_prompt, prompt_variant="facets_agent_minimal",
         default_k_by_engine={"hybrid": hybrid_k},
         commit_context_tool=COMMIT_CONTEXT_TOOL,
-        search_tool_def=build_search_tool_def(engines), **kwargs)
+        search_tool_def=build_search_tool_def(engines),
+        pre_final_hook=pre_final_hook, **kwargs)

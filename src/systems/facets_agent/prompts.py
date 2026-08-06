@@ -78,6 +78,12 @@ This is a prompt-only fix because the ledger's granularity is bounded by step
 1's own enumeration; more precise enumeration raises that floor without any
 schema or harness change.
 
+Phase 4 of ``PLAN.md`` §7.3 (2026-08-06): the final-report paragraph now asks
+for a sentence's strongest-supporting ids first, since the shared harness's
+citation cap keeps only the first three listed (positional, not ranked) --
+see ``PLAN.md`` §7.3 for why a real re-ranking pass is deferred rather than
+built here.
+
 Soft design constraint: keep the ``SYSTEM_PROMPT`` body (excluding this
 docstring) at roughly 80-86 lines at this file's line-wrapping width. Past
 that, cut something or move the detail into a tool description in
@@ -169,7 +175,10 @@ requirement ledger, restated in full every call; see the tool description.
 When every facet is resolved, emit no tool calls and write the report as \
 plain prose, one sentence per line: end each factual sentence with its \
 supporting committed `id`s in square brackets, e.g. `<sentence>. [id_1] \
-[id_2]` — at most three per sentence, only ids you committed. If the request \
+[id_2]` — only ids you committed. Only the first three are kept if you list \
+more, so when a sentence could cite more than three, put the three that most \
+directly and specifically support THIS sentence's claim first — not the \
+three you happen to have committed earliest for the facet. If the request \
 names a shape — a section per item, an ordered plan to act on, a notation, a \
 stated audience — the report must take that shape literally, not merely \
 cover the content it asked about; the shape is a requirement like any other. \
