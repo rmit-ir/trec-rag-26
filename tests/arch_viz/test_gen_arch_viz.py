@@ -166,3 +166,54 @@ def test_arch_stages_override_preserves_types_instead_of_stringifying(tmp_path) 
         "id": "a", "label": "A", "kind": "llm", "note": "n",
         "prompt": ["systems/o3_deep_research/run.py::SYSTEM_PROMPT"],
     }]
+
+
+def _shared_rooted_imports(name: str, py_files: list) -> list[str]:
+    """Every ``ragrun``/``tools``/``utils``/``agent_harness`` import in
+    ``py_files`` that ``_classify_import`` can't turn into an edge and that
+    isn't explicitly named in ``UNMODELED_SHARED_IMPORTS`` -- i.e. a gap.
+    """
+    roots = ("ragrun", "tools", "utils", "agent_harness")
+    gaps = []
+    for py in py_files:
+        for mod, names in gav._imported_names(py).items():
+            if mod.split(".")[0] not in roots:
+                continue
+            if mod in gav.UNMODELED_SHARED_IMPORTS:
+                continue
+            if gav._classify_import(name, mod, names):
+                continue
+            gaps.append(f"{py.relative_to(gav.REPO_ROOT)}: {mod}")
+    return gaps
+
+
+def test_every_shared_rooted_import_is_classified_or_explicitly_unmodeled() -> None:
+    """Nothing under ragrun/tools/utils/agent_harness may go un-diagrammed silently.
+
+    The point of this test: it fails the moment someone adds a NEW shared-layer
+    import to a system (or to agent_harness/ragrun themselves), not months
+    later when a human notices the overview graph is missing an edge. The fix
+    when it fails is always one of two things -- add a ``_classify_import``
+    branch (+ a ``SHARED`` catalog entry) for the new import, or add it to
+    ``UNMODELED_SHARED_IMPORTS`` with a one-line reason if it's genuinely
+    internal plumbing, not an architectural component worth its own node.
+
+    Also covers shared-layer packages scanning THEMSELVES (mirroring
+    ``_shared_internal_edges``): a new dependency agent_harness or ragrun
+    picks up must be classified too, or the one-hop expansion in
+    ``build_model`` would silently miss it for every consumer.
+    """
+    gaps: list[str] = []
+    for pkg in sorted(p for p in gav.SYSTEMS_DIR.iterdir() if p.is_dir()):
+        if pkg.name == "__pycache__":
+            continue
+        scan = [p for p in pkg.rglob("*.py") if "__pycache__" not in p.parts]
+        gaps += _shared_rooted_imports(pkg.name, scan)
+    for shared in gav.SHARED:
+        pkg_dir = gav.SRC / shared["id"]
+        if not pkg_dir.is_dir():
+            continue
+        scan = [p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts]
+        gaps += _shared_rooted_imports(shared["id"], scan)
+    assert gaps == [], (
+        "shared-layer import(s) the diagram can't classify:\n" + "\n".join(gaps))

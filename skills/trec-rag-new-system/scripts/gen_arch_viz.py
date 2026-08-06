@@ -9,8 +9,11 @@ Two zoom levels in one page:
   - OVERVIEW  — every ``src/systems/<name>`` wired to the shared layers
                 (ragrun, tools.search_tool + its 4 selectable engines,
                 utils.search dense+sparse RRF, utils.fetch_doc,
-                ali_deepresearch.answer_format, agent_harness.agent's
-                run_agent loop + make_provider) and the output artifacts.
+                ali_deepresearch.answer_format, agent_harness's run_agent
+                loop, agent_harness.agent.make_provider -- kept as its own
+                node/edge, distinct from the loop, since facet_rag imports
+                ONLY this and never touches the loop, and the MCP server
+                o3_deep_research calls over HTTP) and the output artifacts.
                 Edges are colored + legended by type.
                 A system's edges are expanded one hop through any shared
                 layer's OWN imports of another shared layer (see
@@ -18,6 +21,12 @@ Two zoom levels in one page:
                 ``agent_harness`` still draws a direct ``search_tool`` edge --
                 ``agent_harness.tools.search`` wraps it, and stopping at the
                 first hop would draw it as never touching retrieval at all.
+                Every shared-rooted import a system (or a shared layer itself)
+                makes must resolve to a real edge or an explicit entry in
+                ``UNMODELED_SHARED_IMPORTS`` --
+                ``tests/arch_viz/test_gen_arch_viz.py`` enforces this, so a
+                newly added tool/component fails CI instead of silently
+                missing from the diagram.
   - DRILL-IN  — click a system card to see its per-stage pipeline.
 
 Stage flows come from a hand-authored ``STAGE_REGISTRY`` below, OVERRIDDEN per
@@ -58,10 +67,19 @@ SEARCH_TOOL = SRC / "tools" / "search_tool.py"
 # from ENGINE_INFO in tools/search_tool.py so it never drifts.
 # ---------------------------------------------------------------------------
 SHARED = [
-    {"id": "agent_harness", "label": "agent_harness",
-     "role": "harness", "detail": "shared staged-context tool-calling loop "
-             "(run_agent, ContextLedger, commit_context/get_documents/search "
-             "tools) plus make_provider — pluggable Bedrock/OpenAI backends"},
+    {"id": "agent_harness", "label": "agent_harness.run_agent",
+     "role": "harness", "detail": "shared staged-context tool-calling loop: "
+             "ContextLedger + commit_context/get_documents/search tool "
+             "builders"},
+    {"id": "make_provider", "label": "make_provider",
+     "role": "provider", "detail": "agent_harness.agent.make_provider — "
+             "pluggable Bedrock/OpenAI backends, usable standalone (facet_rag) "
+             "or as what run_agent calls internally"},
+    {"id": "mcp_server", "label": "mcp/climbmix_server",
+     "role": "mcp", "detail": "src/mcp/climbmix_server.py — MCP server "
+             "exposing search + fetch_doc as MCP tools over HTTP. Reached by "
+             "URL (--mcp-url/O3DR_MCP_URL), not a Python import, so this edge "
+             "is hand-attributed (see MANUAL_EDGES) rather than AST-derived"},
     {"id": "answer_format", "label": "format_answer",
      "role": "answer-format", "detail": "ali_deepresearch.answer_format — prose -> references[] + per-sentence citations"},
     {"id": "search_tool", "label": "tools.search_tool",
@@ -83,6 +101,15 @@ SHARED = [
 # every importer — aus_agent included — draws a genuine cross-layer edge, with
 # no self-import case to suppress.
 OWNERS = {"answer_format": "ali_deepresearch"}
+
+# Edges that exist but can never be AST-derived, because the dependency isn't
+# a Python import: o3_deep_research reaches the MCP server by URL
+# (--mcp-url/O3DR_MCP_URL) over HTTP, not `import`. Hand-maintained like
+# STAGE_REGISTRY/SYSTEM_BLURB below -- update this when a system starts (or
+# stops) calling an external service the same way.
+MANUAL_EDGES: dict[str, list[dict[str, str]]] = {
+    "o3_deep_research": [{"to": "mcp_server", "type": "mcp"}],
+}
 
 # ---------------------------------------------------------------------------
 # Hand-authored stage flows for the current systems (see each README/pipeline).
@@ -261,20 +288,26 @@ SYSTEM_BLURB = {
 # ---------------------------------------------------------------------------
 # AST extraction (no imports).
 # ---------------------------------------------------------------------------
-def _imported_modules(py: Path) -> set[str]:
-    """Return the set of dotted module names imported by ``py`` (from ... import ...)."""
-    mods: set[str] = set()
+def _imported_names(py: Path) -> dict[str, set[str]]:
+    """Map each absolute ``from X import a, b`` module to the names pulled from
+    it (empty set for a bare ``import X``). Module-level granularity alone
+    can't tell ``from agent_harness.agent import make_provider`` apart from
+    ``... import run_agent`` -- two very different relationships that happen
+    to share a module string -- so ``_edges_for_system`` needs the names too.
+    """
+    out: dict[str, set[str]] = {}
     try:
         tree = ast.parse(py.read_text(), filename=str(py))
     except (SyntaxError, UnicodeDecodeError):
-        return mods
+        return out
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            mods.add(node.module)
+            out.setdefault(node.module, set()).update(
+                alias.name for alias in node.names)
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                mods.add(alias.name)
-    return mods
+                out.setdefault(alias.name, set())
+    return out
 
 
 def _arch_stages_override(pkg: Path) -> list[dict[str, Any]] | None:
@@ -303,6 +336,65 @@ def _arch_stages_override(pkg: Path) -> list[dict[str, Any]] | None:
     return None
 
 
+def _classify_import(name: str, mod: str, imported: set[str]
+                     ) -> list[tuple[str, str]]:
+    """One import (module + the names pulled from it) -> zero or more
+    ``(shared_node_id, edge_type)`` pairs. Split out of ``_edges_for_system``
+    so the completeness check in ``tests/arch_viz`` can call it per-import
+    too (an import this returns nothing for, and that isn't in
+    ``UNMODELED_SHARED_IMPORTS``, is a real gap: a shared-layer import the
+    diagram doesn't know how to draw).
+    """
+    if mod == "ragrun" or mod.startswith("ragrun."):
+        return [("ragrun", "artifacts")]
+    if mod == "tools.search_tool":
+        return [("search_tool", "retrieval")]
+    if mod == "utils.search":
+        return [("hybrid_search", "retrieval")]
+    if mod == "utils.fetch_doc":
+        return [("fetch_doc", "fetch-doc")]
+    if mod.startswith("ali_deepresearch.answer_format") or \
+            mod.startswith("systems.ali_deepresearch.answer_format"):
+        return [] if OWNERS["answer_format"] == name else \
+            [("answer_format", "answer-format")]
+    if mod == "agent_harness.agent":
+        # Same module, two very different relationships: make_provider is a
+        # standalone factory (facet_rag uses ONLY this, never the loop), the
+        # rest (run_agent, DEFAULT_*, ...) is the staged-context harness
+        # itself. Route each name actually imported to its own edge rather
+        # than bucketing both under one node.
+        out: list[tuple[str, str]] = []
+        if "make_provider" in imported:
+            out.append(("make_provider", "provider"))
+        if not imported or imported - {"make_provider"}:
+            out.append(("agent_harness", "harness"))
+        return out
+    if mod == "agent_harness" or mod.startswith("agent_harness."):
+        return [("agent_harness", "harness")]
+    return []
+
+
+# Shared-rooted imports that are real but deliberately NOT their own overview
+# node -- low-level plumbing (env var reader, HTTP retry, hit-shape helper) or
+# an engine module only ever reached through tools.search_tool/utils.search,
+# never imported by a system directly (see ``_shared_internal_edges``'s
+# docstring for why that specific chain isn't propagated either). Add here,
+# with a one-line reason, rather than silencing the completeness check
+# blindly -- see ``tests/arch_viz/test_gen_arch_viz.py::test_...`` for what
+# happens when neither this nor ``_classify_import`` recognizes an import.
+UNMODELED_SHARED_IMPORTS = {
+    "utils.env": "env-var reader, not an architectural component",
+    "utils.http_retry": "internal retry/backoff plumbing behind every hosted call",
+    "utils.search_types": "SearchHit dataclass + id-shape helpers, not a node",
+    "utils.search_dense": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.search_sparse": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.search_lucene_bool": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.search_ssr": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.ssr_hydrate": "SSR-only helper, not imported outside utils.search_ssr",
+    "agent_harness.providers.base": "the Provider ABC -- providers are reached via make_provider, never subclassed directly by a system",
+}
+
+
 def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
     """Classify shared-layer edges from a system's import statements."""
     seen: set[tuple[str, str]] = set()
@@ -318,21 +410,10 @@ def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
     # byte-deterministic — a set's iteration order varies run to run (string hash
     # randomization), which would break --check and produce noisy diffs.
     for py in sorted(py_files):
-        for mod in sorted(_imported_modules(py)):
-            if mod == "ragrun" or mod.startswith("ragrun."):
-                add("ragrun", "artifacts")
-            elif mod == "tools.search_tool":
-                add("search_tool", "retrieval")
-            elif mod == "utils.search":
-                add("hybrid_search", "retrieval")
-            elif mod == "utils.fetch_doc":
-                add("fetch_doc", "fetch-doc")
-            elif mod.startswith("ali_deepresearch.answer_format") or \
-                    mod.startswith("systems.ali_deepresearch.answer_format"):
-                if OWNERS["answer_format"] != name:
-                    add("answer_format", "answer-format")
-            elif mod == "agent_harness" or mod.startswith("agent_harness."):
-                add("agent_harness", "harness")
+        imports = _imported_names(py)
+        for mod in sorted(imports):
+            for to, typ in _classify_import(name, mod, imports[mod]):
+                add(to, typ)
     return edges
 
 
@@ -563,6 +644,11 @@ def build_model() -> dict[str, Any]:
                         edges.append(extra)
                         next_frontier.append(extra)
             frontier = next_frontier
+        for extra in MANUAL_EDGES.get(name, []):
+            key = (extra["to"], extra["type"])
+            if key not in seen:
+                seen.add(key)
+                edges.append(extra)
         systems.append({
             "name": name,
             "kind": SYSTEM_KIND.get(name, "pipeline"),
@@ -599,6 +685,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     /* edge type palette (brand-neutral, >=3:1 vs bg, distinguishable) */
     --e-retrieval: #1a7f6b; --e-artifacts: #b45309; --e-answer-format: #7c3aed;
     --e-provider: #2563eb; --e-fetch-doc: #0891b2; --e-harness: #be185d;
+    --e-mcp: #65a30d;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -607,6 +694,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --accent: #7c8cff;
       --e-retrieval: #2dd4bf; --e-artifacts: #f59e0b; --e-answer-format: #a78bfa;
       --e-provider: #60a5fa; --e-fetch-doc: #22d3ee; --e-harness: #f472b6;
+      --e-mcp: #a3e635;
     }
   }
   * { box-sizing: border-box; }
@@ -707,6 +795,8 @@ const EDGE_TYPES = [
   ['fetch-doc','fetch_doc'],
   ['answer-format','answer_format (reuse)'],
   ['harness','agent_harness (reuse)'],
+  ['provider','make_provider (reuse)'],
+  ['mcp','MCP server (HTTP, hand-attributed)'],
   ['artifacts','Artifacts (ragrun)'],
 ];
 const edgeColor = t => getComputedStyle(document.documentElement)
