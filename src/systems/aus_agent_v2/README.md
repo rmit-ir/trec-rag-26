@@ -49,6 +49,9 @@ structured atomic plan + independent scouts -> stable Pxx/Sxx obligation ids
   -> submit_answer(typed answer items + evidence ids + satisfied ids)
   -> deterministic distinct-count/avoid/form/syntax/source-locality/citation
      validation
+  -> optional fresh semantic row audit of the post-handoff final submission
+       clear reject -> one submit-only correction by the same researcher
+       pass/abstain/provider fault -> bounded terminal decision, never a loop
   -> map + save
 ```
 
@@ -136,6 +139,24 @@ candidate, not a change to the 0.7042 `run_one` control. The candidate selects
 the atomic planner, bounded dynamic rows, and mandatory terminal handoff
 together.
 
+`run_semantic_contract_one` adds the missing meaning check without adding a
+second answer writer. After the same researcher receives the terminal source
+replay and submits the actual final answer, a fresh provider sees only the
+original request, typed answer items, one aggregate packet per asserted row,
+and the exact local quotes mapped to that row. It judges closure, source
+support, scope, evidence type, and semantic distinctness for `MIN > 1`. The
+typed verifier cannot request research, edit prose, or impose Markdown. Only a
+clear material rejection is actionable; uncertainty abstains and malformed or
+provider failures fail open.
+
+A rejection returns row and answer-item diagnostics to the evidence-owning
+conversation for exactly one correction. Every unflagged item and the
+unresolved inventory must remain byte-for-byte unchanged. The corrected
+submission is deterministically revalidated and semantically rechecked;
+persistent rejection or an invalid repair retains the complete pre-repair
+baseline instead of triggering a destructive rewrite loop. This candidate is
+still ungraded and does not replace the verified `run_one`.
+
 The system reuses `aus_agent.context`, `aus_agent.providers`, and
 `aus_agent.tools`. Planning, evidence-card construction, patch validation,
 orchestration, output namespace, and tests are owned here.
@@ -171,6 +192,10 @@ uv run --group aus-agent-v2 python src/systems/aus_agent_v2/run.py \
   --qid 683a58c9a7e7fe4e76958498 \
   --run-id sol-aus-v2-lean-contract-probe
 ```
+
+Add `--semantic-closure-verify` to run the post-handoff semantic candidate, or
+call `pipeline.run_semantic_contract_one`. The flag requires the terminal
+handoff and is deliberately off for the verified default and lean candidates.
 
 It is intentionally not the `run_one` default until a complete comparable
 30-topic generation and three-pass grade beats 0.7042.

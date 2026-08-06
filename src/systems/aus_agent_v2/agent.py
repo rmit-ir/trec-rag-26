@@ -20,6 +20,7 @@ tools and explicitly retained by the agent.
 """
 from __future__ import annotations
 
+import copy
 import json
 import logging
 import re
@@ -111,6 +112,8 @@ from .coverage_contract import (
     EvidenceLedger,
     build_atomic_coverage_contract,
     build_coverage_contract,
+    build_semantic_answer_items,
+    build_semantic_check_records,
     commit_tool_with_contract,
     contract_trace,
     normalize_commit_supports,
@@ -124,6 +127,15 @@ from .coverage_contract import (
     submit_answer_request,
     validate_support_routes,
     validate_submission,
+)
+from .semantic_closure import (
+    SEMANTIC_CLOSURE_SYSTEM,
+    SEMANTIC_CLOSURE_TOOL,
+    indeterminate_semantic_audit,
+    normalize_semantic_closure,
+    render_semantic_closure_findings,
+    semantic_closure_request,
+    semantic_revision_errors,
 )
 from aus_agent.providers.base import Provider
 from aus_agent.tools import (
@@ -716,6 +728,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               atomic_contract_plan: bool = False,
               dynamic_contract_rows: bool = False,
               terminal_evidence_handoff: bool = False,
+              semantic_closure_verify: bool = False,
               engines: list[str] | None = None) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -737,6 +750,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         raise ValueError("dynamic_contract_rows requires coverage_contract")
     if terminal_evidence_handoff and not coverage_contract:
         raise ValueError("terminal_evidence_handoff requires coverage_contract")
+    if semantic_closure_verify and not terminal_evidence_handoff:
+        raise ValueError(
+            "semantic_closure_verify requires terminal_evidence_handoff")
     if coverage_repair_strategy not in {"patch-first", "research-first"}:
         raise ValueError(
             "coverage_repair_strategy must be 'patch-first' or 'research-first'")
@@ -767,6 +783,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "atomic_contract_plan": atomic_contract_plan,
         "dynamic_contract_rows": dynamic_contract_rows,
         "terminal_evidence_handoff": terminal_evidence_handoff,
+        "semantic_closure_verify": semantic_closure_verify,
         "engines": engines,
     })
     log.info("[%s] starting: backend=%s model=%s k=%d run_id=%s budget=%d",
@@ -818,6 +835,26 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     coverage_submission_stats: dict[str, Any] = {}
     coverage_terminal_handoff_sent = False
     coverage_terminal_handoff_chars = 0
+    semantic_closure_checked = False
+    semantic_closure_requested = False
+    semantic_closure_audit: dict[str, Any] = {
+        "verdict": "not_run", "checks": [], "failures": [],
+        "parse_error": False, "errors": [],
+    }
+    semantic_closure_records = 0
+    semantic_closure_packet_chars = 0
+    semantic_closure_raw_chars = 0
+    semantic_closure_errors: list[str] = []
+    semantic_closure_attempts = 0
+    semantic_closure_corrections = 0
+    semantic_closure_history: list[dict[str, Any]] = []
+    semantic_closure_final_verified = False
+    semantic_closure_fallback: str | None = None
+    semantic_correction_pending = False
+    semantic_baseline_arguments: dict[str, Any] | None = None
+    semantic_baseline_sentences: list[dict[str, Any]] | None = None
+    semantic_baseline_submission_stats: dict[str, Any] | None = None
+    semantic_repairable_item_indices: set[int] = set()
     coverage_dynamic_promotions = 0
     coverage_commit_corrections = 0
     coverage_commit_expirations = 0
@@ -902,6 +939,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 f"coverage_plan={coverage_plan}, "
                 f"plan_critic={plan_critic}, "
                 f"coverage_contract={coverage_contract}, "
+                f"semantic_closure_verify={semantic_closure_verify}, "
                 f"engines={'+'.join(engines)}): "
                 + (
                     "isolated coverage planning, staged-context full-text "
@@ -966,6 +1004,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "atomic_contract_plan": atomic_contract_plan,
             "dynamic_contract_rows": dynamic_contract_rows,
             "terminal_evidence_handoff": terminal_evidence_handoff,
+            "semantic_closure_verify": semantic_closure_verify,
         }
         trajectory.trace["summary"]["context"] = {
             "committed": sorted(ledger.committed_ids),
@@ -1024,6 +1063,25 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "terminal_handoff_chars": coverage_terminal_handoff_chars,
             "dynamic_promotions": coverage_dynamic_promotions,
             **contract_trace(coverage_contract_items, coverage_evidence),
+        }
+        trajectory.trace["summary"]["semantic_closure_verify"] = {
+            "enabled": semantic_closure_verify,
+            "checked": semantic_closure_checked,
+            "requested": semantic_closure_requested,
+            "verdict": semantic_closure_audit.get("verdict"),
+            "checks": semantic_closure_records,
+            "failures": list(semantic_closure_audit.get("failures", [])),
+            "abstentions": list(
+                semantic_closure_audit.get("abstentions", [])),
+            "parse_error": bool(semantic_closure_audit.get("parse_error")),
+            "errors": list(semantic_closure_errors),
+            "packet_chars": semantic_closure_packet_chars,
+            "raw_chars": semantic_closure_raw_chars,
+            "attempts": semantic_closure_attempts,
+            "corrections_requested": semantic_closure_corrections,
+            "fallback": semantic_closure_fallback,
+            "final_verified": semantic_closure_final_verified,
+            "history": copy.deepcopy(semantic_closure_history),
         }
         trajectory.trace["summary"]["coverage_plan"] = {
             "enabled": coverage_plan,
@@ -1164,6 +1222,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         request: str,
         *,
         kind: str,
+        tools: list[dict[str, Any]] | None = None,
         max_attempts: int = 2,
         error_sink: list[str] | None = None,
     ) -> tuple[Provider, dict[str, Any], list[str]]:
@@ -1181,7 +1240,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         for attempt in range(1, max_attempts + 1):
             auxiliary = make_provider(backend, model)
             try:
-                auxiliary.start(system, [])
+                auxiliary.start(system, list(tools or []))
                 auxiliary.add_user_message(request)
                 auxiliary_turn_index = turn_idx + 1
                 t0 = now_iso()
@@ -1200,7 +1259,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     peak_context_tokens=auxiliary_context or 0,
                     provider=auxiliary,
                 )
-                _record_turn(
+                auxiliary_step_id = _record_turn(
                     tb,
                     turn,
                     narration_as_reasoning=False,
@@ -1215,6 +1274,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     stats=stats,
                     context=_context_snapshot(ledger),
                 )
+                turn["_trajectory_step_id"] = auxiliary_step_id
                 return auxiliary, turn, errors
             except Exception as exc:
                 last_error = exc
@@ -1226,6 +1286,164 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 )
         assert last_error is not None
         raise last_error
+
+    def run_semantic_closure_audit(
+        arguments: dict[str, Any],
+    ) -> tuple[dict[str, Any], list[dict[str, Any]]]:
+        """Audit one post-handoff final submission in a fresh typed context."""
+        nonlocal semantic_closure_checked, semantic_closure_requested
+        nonlocal semantic_closure_audit, semantic_closure_records
+        nonlocal semantic_closure_packet_chars, semantic_closure_raw_chars
+        nonlocal semantic_closure_attempts
+
+        semantic_closure_checked = True
+        records = build_semantic_check_records(
+            arguments, coverage_contract_items, coverage_evidence)
+        answer_items = build_semantic_answer_items(arguments)
+        semantic_closure_records = len(records)
+        if not records:
+            audit = {
+                "verdict": "pass",
+                "checks": [],
+                "failures": [],
+                "abstentions": [],
+                "parse_error": False,
+                "errors": [],
+            }
+            semantic_closure_audit = audit
+            semantic_closure_history.append({
+                "attempt": len(semantic_closure_history) + 1,
+                "verdict": "pass",
+                "checks": 0,
+                "failures": [],
+                "abstentions": [],
+                "parse_error": False,
+                "errors": [],
+                "packet_chars": 0,
+            })
+            return audit, records
+
+        try:
+            request = semantic_closure_request(query, answer_items, records)
+        except ValueError as exc:
+            message = str(exc)
+            semantic_closure_errors.append(message)
+            audit = indeterminate_semantic_audit([message])
+            semantic_closure_audit = audit
+            semantic_closure_history.append({
+                "attempt": len(semantic_closure_history) + 1,
+                "verdict": audit["verdict"],
+                "checks": len(records),
+                "failures": [],
+                "abstentions": [],
+                "parse_error": True,
+                "errors": [message],
+                "packet_chars": 0,
+            })
+            return audit, records
+
+        semantic_closure_packet_chars += len(request)
+        semantic_closure_requested = True
+        semantic_closure_attempts += 1
+        try:
+            verifier, verify_turn, _ = fresh_auxiliary_turn(
+                SEMANTIC_CLOSURE_SYSTEM,
+                request,
+                kind="fresh_semantic_closure_verify",
+                tools=[SEMANTIC_CLOSURE_TOOL],
+                max_attempts=1,
+                error_sink=semantic_closure_errors,
+            )
+            calls = list(verify_turn.get("tool_calls") or [])
+            valid_calls = [
+                call for call in calls
+                if call.get("name") == SEMANTIC_CLOSURE_TOOL["name"]
+            ]
+            protocol_errors: list[str] = []
+            if len(calls) != 1 or len(valid_calls) != 1:
+                protocol_errors.append(
+                    "call submit_semantic_closure exactly once and no other tool")
+            if str(verify_turn.get("text") or "").strip():
+                protocol_errors.append(
+                    "do not include prose outside submit_semantic_closure")
+            if protocol_errors:
+                audit = indeterminate_semantic_audit(protocol_errors)
+            else:
+                audit = normalize_semantic_closure(
+                    valid_calls[0].get("arguments"), records)
+            if audit.get("parse_error"):
+                semantic_closure_errors.extend(
+                    str(error) for error in audit.get("errors", []))
+
+            acknowledgement = json.dumps({
+                "recorded": not bool(audit.get("parse_error")),
+                "verdict": audit.get("verdict"),
+            })
+            if calls:
+                verifier.add_tool_results([{
+                    "id": call["id"],
+                    "content": acknowledgement,
+                    "is_error": bool(audit.get("parse_error")),
+                } for call in calls])
+                ts = now_iso()
+                for call in calls:
+                    tb.add_tool_call(
+                        str(call.get("name") or "unknown"),
+                        call.get("arguments"),
+                        acknowledgement,
+                        failed=bool(audit.get("parse_error")),
+                        t_start=ts,
+                        t_end=ts,
+                        turn=turn_idx,
+                        context=_context_snapshot(ledger),
+                        documents=[],
+                        parent_id=verify_turn.get("_trajectory_step_id"),
+                        tool_call_id=call.get("id"),
+                    )
+            verifier_raw = list(verifier.raw_messages)
+            semantic_closure_raw_chars += len(json.dumps(
+                verifier_raw, ensure_ascii=False, default=str))
+            auxiliary_raw_messages.extend([
+                {
+                    "type": "phase_boundary",
+                    "phase": "terminal_submission_to_fresh_semantic_verifier",
+                    "note": (
+                        "fresh context sees only request, typed final answer, "
+                        "row mappings, and their local source quotes"
+                    ),
+                },
+                *verifier_raw,
+            ])
+        except Exception as exc:
+            message = f"semantic verifier failed: {type(exc).__name__}: {exc}"
+            semantic_closure_errors.append(message)
+            audit = indeterminate_semantic_audit([message])
+            log.warning(
+                "[%s] semantic closure verifier failed; preserving the "
+                "deterministically valid answer: %s",
+                query_id, exc,
+            )
+
+        semantic_closure_audit = audit
+        semantic_closure_history.append({
+            "attempt": len(semantic_closure_history) + 1,
+            "verdict": audit.get("verdict"),
+            "checks": len(records),
+            "failures": copy.deepcopy(audit.get("failures", [])),
+            "abstentions": copy.deepcopy(audit.get("abstentions", [])),
+            "parse_error": bool(audit.get("parse_error")),
+            "errors": list(audit.get("errors", [])),
+            "packet_chars": len(request),
+        })
+        log.info(
+            "[%s] semantic closure verdict=%s checks=%d rejects=%d abstains=%d",
+            query_id,
+            audit.get("verdict"),
+            len(records),
+            len(audit.get("failures", [])),
+            len(audit.get("abstentions", [])),
+        )
+        return audit, records
 
     def action_feedback(content: str, duration_ms: float) -> tuple[
             str, dict[str, Any]]:
@@ -2024,6 +2242,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             trace_input["coverage_contract"] = contract_trace(
                 coverage_contract_items, coverage_evidence)
             trace_input["answer_form"] = answer_form_policy.trace()
+        if semantic_closure_verify:
+            trace_input["semantic_closure_system"] = SEMANTIC_CLOSURE_SYSTEM
+            trace_input["semantic_closure_tools"] = [SEMANTIC_CLOSURE_TOOL]
         if coverage_verify:
             trace_input["coverage_verify_system"] = COVERAGE_VERIFY_SYSTEM
             trace_input["claim_finish_system"] = CLAIM_FINISH_SYSTEM
@@ -2082,6 +2303,58 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             log.info("[%s] round %d: turn %s took %.1fs, context %s tok, "
                      "%d tool call(s)", query_id, rounds, ti,
                      last_turn[3] / 1000, f"{context_tokens:,}", len(calls))
+            semantic_correction_turn = False
+            if semantic_correction_pending:
+                # The verifier diagnoses; the evidence-owning writer gets one
+                # bounded submit-only repair. Any other trajectory would reopen
+                # research or permit a destructive whole-answer rewrite.
+                semantic_correction_pending = False
+                correction_submit_calls = [
+                    call for call in calls if call["name"] == "submit_answer"]
+                correction_protocol_valid = (
+                    len(calls) == 1
+                    and len(correction_submit_calls) == 1
+                    and not str(turn.get("text") or "").strip()
+                )
+                if correction_protocol_valid:
+                    semantic_correction_turn = True
+                else:
+                    semantic_closure_fallback = "invalid_correction_protocol"
+                    semantic_closure_final_verified = False
+                    semantic_closure_errors.append(
+                        "semantic correction was not exactly one submit_answer "
+                        "tool call with no companion prose")
+                    if calls:
+                        refusal, refusal_stats = action_feedback(json.dumps({
+                            "error": "semantic correction protocol violated",
+                            "instruction": (
+                                "The single correction opportunity is closed; "
+                                "the original deterministically valid answer "
+                                "will be retained."
+                            ),
+                        }), 0.0)
+                        ts = now_iso()
+                        results = []
+                        for call in calls:
+                            tb.add_tool_call(
+                                call["name"], call["arguments"], refusal,
+                                failed=True, t_start=ts, t_end=ts, turn=ti,
+                                stats=refusal_stats,
+                                context=_context_snapshot(ledger), documents=[],
+                                parent_id=generation_id,
+                                tool_call_id=call["id"],
+                            )
+                            results.append({
+                                "id": call["id"], "content": refusal,
+                                "is_error": True,
+                            })
+                        provider.add_tool_results(results)
+                    if semantic_baseline_sentences is None:
+                        raise RuntimeError(
+                            "semantic correction fallback has no valid baseline")
+                    sentences = copy.deepcopy(semantic_baseline_sentences)
+                    repairs = []
+                    break
             commit_calls = [
                 call for call in calls if call["name"] == "commit_context"]
             correcting_contract_commit = (
@@ -2828,6 +3101,136 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             max_words=MAX_REPORT_WORDS,
                         )
                     )
+                    if semantic_correction_turn and submitted is None:
+                        # A second writer turn is not available: invalid repair
+                        # falls back to the complete pre-repair submission.
+                        coverage_submission_errors.extend(submission_errors)
+                        semantic_closure_errors.extend(
+                            "correction validation: " + error
+                            for error in submission_errors)
+                        semantic_closure_fallback = "invalid_correction_submission"
+                        semantic_closure_final_verified = False
+                        if semantic_baseline_sentences is None:
+                            raise RuntimeError(
+                                "semantic correction fallback has no valid baseline")
+                        submitted = copy.deepcopy(semantic_baseline_sentences)
+                        if semantic_baseline_submission_stats is not None:
+                            coverage_submission_stats = copy.deepcopy(
+                                semantic_baseline_submission_stats)
+                        submission_errors = []
+                    elif submitted is not None and semantic_closure_verify:
+                        current_arguments = submit_calls[0]["arguments"]
+                        if semantic_correction_turn:
+                            if semantic_baseline_arguments is None:
+                                raise RuntimeError(
+                                    "semantic correction has no baseline arguments")
+                            preservation_errors = semantic_revision_errors(
+                                semantic_baseline_arguments,
+                                current_arguments,
+                                semantic_repairable_item_indices,
+                            )
+                            if preservation_errors:
+                                semantic_closure_errors.extend(
+                                    preservation_errors)
+                                semantic_closure_fallback = (
+                                    "invalid_correction_preservation")
+                                semantic_closure_final_verified = False
+                                if semantic_baseline_sentences is None:
+                                    raise RuntimeError(
+                                        "semantic correction fallback has no "
+                                        "valid baseline")
+                                submitted = copy.deepcopy(
+                                    semantic_baseline_sentences)
+                                if semantic_baseline_submission_stats is not None:
+                                    coverage_submission_stats = copy.deepcopy(
+                                        semantic_baseline_submission_stats)
+                            else:
+                                audit, records = run_semantic_closure_audit(
+                                    current_arguments)
+                                if audit["verdict"] == "pass":
+                                    semantic_closure_final_verified = True
+                                    auxiliary_raw_messages.append({
+                                        "type": "phase_boundary",
+                                        "phase": (
+                                            "semantic_verifier_to_terminal_accept"),
+                                        "note": (
+                                            "the preservation-safe correction "
+                                            "passed every row check"),
+                                    })
+                                elif audit["verdict"] == "abstain":
+                                    # Only a clear reject is blocking. The
+                                    # correction is deterministic-valid and was
+                                    # confined to verifier-flagged items.
+                                    semantic_closure_final_verified = False
+                                    semantic_closure_fallback = (
+                                        "corrected_answer_abstained_fail_open")
+                                else:
+                                    semantic_closure_final_verified = False
+                                    semantic_closure_fallback = (
+                                        "persistent_rejection"
+                                        if audit["verdict"] == "repair" else
+                                        "correction_verifier_indeterminate")
+                                    if semantic_baseline_sentences is None:
+                                        raise RuntimeError(
+                                            "semantic correction fallback has "
+                                            "no valid baseline")
+                                    submitted = copy.deepcopy(
+                                        semantic_baseline_sentences)
+                                    if semantic_baseline_submission_stats is not None:
+                                        coverage_submission_stats = copy.deepcopy(
+                                            semantic_baseline_submission_stats)
+                        else:
+                            semantic_baseline_arguments = copy.deepcopy(
+                                current_arguments)
+                            semantic_baseline_sentences = copy.deepcopy(submitted)
+                            semantic_baseline_submission_stats = copy.deepcopy(
+                                coverage_submission_stats)
+                            audit, records = run_semantic_closure_audit(
+                                current_arguments)
+                            if audit["verdict"] == "repair":
+                                semantic_repairable_item_indices = {
+                                    int(index)
+                                    for failure in audit.get("failures", [])
+                                    for index in failure.get("item_indices", [])
+                                }
+                                findings = render_semantic_closure_findings(
+                                    audit, records)
+                                if not findings or not semantic_repairable_item_indices:
+                                    semantic_closure_errors.append(
+                                        "semantic rejection had no safe repair "
+                                        "targets; retaining baseline")
+                                    semantic_closure_fallback = (
+                                        "rejection_without_repair_target")
+                                    semantic_closure_final_verified = False
+                                else:
+                                    semantic_closure_corrections += 1
+                                    semantic_correction_pending = True
+                                    submission_errors.append(findings)
+                                    submitted = None
+                                    auxiliary_raw_messages.append({
+                                        "type": "phase_boundary",
+                                        "phase": "semantic_verifier_to_same_writer",
+                                        "note": (
+                                            "one reject-only diagnostic is "
+                                            "returned to the evidence-owning "
+                                            "research conversation"),
+                                    })
+                            elif audit["verdict"] == "pass":
+                                semantic_closure_final_verified = True
+                                auxiliary_raw_messages.append({
+                                    "type": "phase_boundary",
+                                    "phase": (
+                                        "semantic_verifier_to_terminal_accept"),
+                                    "note": "the final submission passed every row check",
+                                })
+                            elif audit["verdict"] == "abstain":
+                                semantic_closure_fallback = (
+                                    "baseline_abstained_fail_open")
+                                semantic_closure_final_verified = False
+                            else:
+                                semantic_closure_fallback = (
+                                    "baseline_verifier_indeterminate")
+                                semantic_closure_final_verified = False
                 coverage_submission_errors.extend(submission_errors)
                 if opened_handoff:
                     payload = json.dumps({
@@ -2857,6 +3260,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         "accepted": True,
                         "sentences": len(submitted),
                         "coverage": coverage_submission_stats,
+                        "semantic_closure": (
+                            {
+                                "verdict": semantic_closure_audit.get("verdict"),
+                                "final_verified": semantic_closure_final_verified,
+                                "fallback": semantic_closure_fallback,
+                            }
+                            if semantic_closure_verify else None
+                        ),
                     }, ensure_ascii=False)
                     failed = False
                 payload, feedback_stats = action_feedback(payload, 0.0)

@@ -92,6 +92,23 @@ ARCH_STAGES = [
         ],
     },
     {
+        "id": "semantic", "label": "SEMANTIC CLOSURE", "kind": "llm",
+        "note": "fresh row-level reject-only audit; same writer gets one safe repair",
+        "prompt": [
+            "systems/aus_agent_v2/semantic_closure.py::SEMANTIC_CLOSURE_SYSTEM",
+        ],
+        "code": [
+            "systems/aus_agent_v2/coverage_contract.py::build_semantic_check_records",
+            "systems/aus_agent_v2/semantic_closure.py::normalize_semantic_closure",
+            "systems/aus_agent_v2/semantic_closure.py::semantic_revision_errors",
+            "systems/aus_agent_v2/agent.py::run_agent",
+        ],
+        "tools": [
+            {"name": "submit_semantic_closure", "ref":
+             "systems/aus_agent_v2/semantic_closure.py::SEMANTIC_CLOSURE_TOOL"},
+        ],
+    },
+    {
         "id": "map", "label": "VALIDATE + MAP", "kind": "format",
         "note": "obligation, syntax, exact-term, and citation checks",
         "code": [
@@ -193,6 +210,47 @@ def run_lean_contract_one(
         "atomic_contract_plan": True,
         "dynamic_contract_rows": True,
         "terminal_evidence_handoff": True,
+    }
+    options.update(kwargs)
+    return run_agent(
+        qid,
+        narrative,
+        backend=backend,
+        model=model_id,
+        run_id=run_id,
+        run_desc=run_desc,
+        **options,
+    )
+
+
+def run_semantic_contract_one(
+    *,
+    qid: str,
+    narrative: str,
+    run_id: str,
+    run_desc: str | None = None,
+    model_id: str | None = None,
+    backend: str = "openai",
+    **kwargs: Any,
+) -> dict[str, Any]:
+    """Run the isolated row-semantic candidate pending a full-30 grade."""
+    options: dict[str, Any] = {
+        "k": 20,
+        "safety_max_rounds": 40,
+        "coverage_plan": True,
+        "plan_critic": True,
+        "observable_scout": True,
+        "plan_reconcile": False,
+        "coverage_verify": False,
+        "audience_verify": False,
+        "finish_review": False,
+        "answer_blueprint": False,
+        "coverage_contract": True,
+        "prompt_variant": "contract-lean",
+        "atomic_contract_plan": True,
+        "dynamic_contract_rows": True,
+        "terminal_evidence_handoff": True,
+        "semantic_closure_verify": True,
     }
     options.update(kwargs)
     return run_agent(

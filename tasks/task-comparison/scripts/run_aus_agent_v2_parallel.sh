@@ -17,7 +17,7 @@ ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
 cd "$ROOT"
 
 TOPICS="${TOPICS:-data/official/trec-rag-2026-data/trec-rag-2026/development-data/topics/research-rubrics-topics-dev.tsv}"
-RUN_ID="${RUN_ID:-sol-aus-v2-lean-contract-dev30}"
+RUN_ID="${RUN_ID:-sol-aus-v2-semantic-contract-dev30}"
 BACKEND="${BACKEND:-openai}"
 MODEL="${MODEL:-openai.gpt-5.6-sol}"
 ENGINES="${ENGINES:-semantic,keyword}"
@@ -151,7 +151,7 @@ launch_one() {
     --search-backends "$ENGINES" \
     --coverage-contract --observable-scout \
     --atomic-contract-plan --dynamic-contract-rows \
-    --terminal-evidence-handoff \
+    --terminal-evidence-handoff --semantic-closure-verify \
     --prompt-variant "$PROMPT_VARIANT" \
     --run-id "$RUN_ID" >>"$LOG" 2>&1 &
   WORKERS["$!"]="$qid"

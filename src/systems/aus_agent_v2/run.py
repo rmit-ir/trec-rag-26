@@ -194,6 +194,12 @@ def main() -> None:
         default=env("RUN_AUS_AGENT_V2_TERMINAL_EVIDENCE_HANDOFF", False),
         help="force a harness-owned complete evidence replay before terminal "
              "submission (experimental; default: off)")
+    ap.add_argument(
+        "--semantic-closure-verify", action=argparse.BooleanOptionalAction,
+        default=env("RUN_AUS_AGENT_V2_SEMANTIC_CLOSURE_VERIFY", False),
+        help="fresh row-level semantic audit of the post-handoff final answer "
+             "with one preservation-safe correction (experimental; default: "
+             "off)")
     ap.add_argument("--run-id", default=env(
         "RUN_AUS_AGENT_V2_RUN_ID", "aus-agent-v2-dev"))
     ap.add_argument(
@@ -274,6 +280,8 @@ def main() -> None:
                                     args.dynamic_contract_rows),
                                 terminal_evidence_handoff=(
                                     args.terminal_evidence_handoff),
+                                semantic_closure_verify=(
+                                    args.semantic_closure_verify),
                                 engines=search_backends)
         except Exception:  # keep --all going
             failures += 1

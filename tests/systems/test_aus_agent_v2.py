@@ -45,6 +45,7 @@ def test_run_script_imports_sibling_systems_without_pytest_path_help() -> None:
     assert "--atomic-contract-plan" in completed.stdout
     assert "--dynamic-contract-rows" in completed.stdout
     assert "--terminal-evidence-handoff" in completed.stdout
+    assert "--semantic-closure-verify" in completed.stdout
 
 
 def test_public_pipeline_uses_only_the_confirmed_default_stages(
@@ -127,20 +128,59 @@ def test_lean_contract_pipeline_removes_legacy_prompt_without_promoting_it(
     assert captured["atomic_contract_plan"] is True
     assert captured["dynamic_contract_rows"] is True
     assert captured["terminal_evidence_handoff"] is True
+    assert captured.get("semantic_closure_verify", False) is False
+
+
+def test_semantic_contract_pipeline_is_a_separate_post_handoff_candidate(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """The new verifier must be explicit until an all-30 grade establishes it."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_semantic_contract_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="semantic-contract-candidate",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["coverage_contract"] is True
+    assert captured["prompt_variant"] == "contract-lean"
+    assert captured["terminal_evidence_handoff"] is True
+    assert captured["semantic_closure_verify"] is True
+
+
+def test_semantic_verifier_requires_the_terminal_evidence_handoff() -> None:
+    """Checking a preview would leave the actual final submission unaudited."""
+    with pytest.raises(
+            ValueError,
+            match="semantic_closure_verify requires terminal_evidence_handoff"):
+        run_agent(
+            QID,
+            QUERY,
+            run_id="invalid-semantic-without-handoff",
+            semantic_closure_verify=True,
+        )
 
 
 def test_full30_runner_selects_the_lean_contract_candidate() -> None:
-    """A costly dev run must not silently grade the older contradictory prompt."""
+    """A costly dev run must select the semantic candidate and all 30 topics."""
     root = Path(__file__).resolve().parents[2]
     runner = (
         root / "tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh"
     ).read_text(encoding="utf-8")
 
-    assert 'RUN_ID="${RUN_ID:-sol-aus-v2-lean-contract-dev30}"' in runner
+    assert 'RUN_ID="${RUN_ID:-sol-aus-v2-semantic-contract-dev30}"' in runner
     assert 'PROMPT_VARIANT="${PROMPT_VARIANT:-contract-lean}"' in runner
     assert '--prompt-variant "$PROMPT_VARIANT"' in runner
     assert "--atomic-contract-plan --dynamic-contract-rows" in runner
     assert "--terminal-evidence-handoff" in runner
+    assert "--semantic-closure-verify" in runner
 
 
 @pytest.fixture
@@ -663,6 +703,315 @@ def test_terminal_handoff_opens_only_after_a_valid_preview_submission(
         result["provider"].tool_results[2][0]["content"].splitlines()[0])
     assert handoff_payload["handoff_required"] is True
     assert "TERMINAL EVIDENCE HANDOFF" in handoff_payload["instruction"]
+
+
+def _semantic_contract_rows() -> list[dict[str, Any]]:
+    """Build a valid atomic inventory with one factual closure relationship."""
+    requirements = [
+        "Explain the measured traffic result for a general reader",
+        "Report the measured traffic outcome",
+        "Use language suitable for a general reader",
+        "State the observed policy effect",
+        "Keep the conclusion scoped to the reported baseline",
+        "Distinguish observation from certainty",
+        "Answer the effectiveness question directly",
+        "Describe the direction of the measured change",
+        "Avoid implying an unlimited causal conclusion",
+        "Close with the practical evidentiary limitation",
+    ]
+    return [{
+        "mode": "assert",
+        "kind": "evidence" if index == 2 else "deliverable",
+        "requirement": requirement,
+        "must_mention": [],
+        "must_avoid": [],
+        "minimum_count": 1,
+        "must_research": index == 2,
+        "must_answer": True,
+    } for index, requirement in enumerate(requirements, 1)]
+
+
+def _semantic_answers() -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return a source-local overclaim and its one-item bounded correction."""
+    flawed = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "For a general reader, traffic volumes fell below the pre-toll "
+                "baseline, proving pricing permanently eliminates congestion."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+        }, {
+            "kind": "prose",
+            "text": (
+                "The reported observation does not establish an unlimited "
+                "long-term causal conclusion."
+            ),
+            "evidence_ids": [],
+            "satisfies": ["P09", "P10"],
+        }],
+        "unresolved": [],
+    }
+    corrected = {
+        "answer_items": [dict(item) for item in flawed["answer_items"]],
+        "unresolved": [],
+    }
+    corrected["answer_items"][0] = {
+        **corrected["answer_items"][0],
+        "text": (
+            "For a general reader, early reporting showed traffic volumes "
+            "below the pre-toll baseline."
+        ),
+    }
+    return flawed, corrected
+
+
+def _semantic_verdicts(*, reject_p02: bool) -> dict[str, Any]:
+    """Build a complete native-tool inventory for the ten row packets."""
+    checks = []
+    for index in range(1, 11):
+        check_id = f"P{index:02d}"
+        answer_index = 1 if index <= 8 else 2
+        if index == 2 and reject_p02:
+            checks.append({
+                "check_id": check_id,
+                "verdict": "reject",
+                "closure": "complete",
+                "support": "partial",
+                "count": "not_applicable",
+                "failure_codes": ["SOURCE_UNSUPPORTED"],
+                "item_indices": [1],
+                "evidence_ids": [D[0]],
+                "diagnosis": (
+                    "The quote supports the observed baseline comparison, not "
+                    "permanent elimination of congestion."
+                ),
+            })
+        else:
+            checks.append({
+                "check_id": check_id,
+                "verdict": "pass",
+                "closure": "complete",
+                "support": (
+                    "direct_entailment" if index == 2 else "not_applicable"),
+                "count": "not_applicable",
+                "failure_codes": [],
+                "item_indices": [answer_index],
+                "evidence_ids": [D[0]] if index == 2 else [],
+                "diagnosis": "",
+            })
+    return {"checks": checks}
+
+
+def _semantic_research_provider(
+    flawed: dict[str, Any],
+    corrected: dict[str, Any] | None,
+) -> ScriptedProvider:
+    """Create the evidence-owning conversation through optional correction."""
+    turns = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": _semantic_contract_rows()}, id="p1")]),
+        model_turn(tool_calls=[tool_call(
+            "search", {
+                "query": "congestion pricing measured traffic outcome",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            }, id="s1")]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", {"documents": [{
+                "id": D[0],
+                "reason": "measured baseline result",
+                "supports": [{
+                    "requirement_id": "P02",
+                    "claim": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "source_quote": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "value_scope": "pre-toll baseline",
+                    "must_include": ["traffic volumes", "pre-toll baseline"],
+                }],
+            }]}, id="c1")]),
+        model_turn(tool_calls=[tool_call("submit_answer", flawed, id="a-preview")]),
+        model_turn(tool_calls=[tool_call("submit_answer", flawed, id="a-final")]),
+    ]
+    if corrected is not None:
+        turns.append(model_turn(tool_calls=[tool_call(
+            "submit_answer", corrected, id="a-corrected")]))
+    return ScriptedProvider(turns)
+
+
+def test_semantic_reject_repairs_only_flagged_item_then_verifies_final(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """Finish-the-claim must alter the final output, not merely annotate context."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, corrected)
+    first_verifier = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-1",
+    )])])
+    second_verifier = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=False),
+        id="semantic-2",
+    )])])
+    providers = iter([research, first_verifier, second_verifier])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-repair.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+    trajectory = json.loads(summary["paths"]["trajectory"].read_text())
+
+    assert summary["status"] == "completed"
+    assert output["answer"][0]["text"] == corrected["answer_items"][0]["text"]
+    assert output["answer"][1]["text"] == flawed["answer_items"][1]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["attempts"] == 2
+    assert semantic["corrections_requested"] == 1
+    assert semantic["verdict"] == "pass"
+    assert semantic["final_verified"] is True
+    assert semantic["fallback"] is None
+    assert [entry["verdict"] for entry in semantic["history"]] == [
+        "repair", "pass"]
+    correction_feedback = json.loads(
+        research.tool_results[-2][0]["content"].splitlines()[0])
+    assert "SEMANTIC CLOSURE FINDINGS" in "\n".join(
+        correction_feedback["problems"])
+    assert "TERMINAL EVIDENCE HANDOFF" in correction_feedback[
+        "terminal_evidence_handoff"]
+    assert first_verifier.tools[0]["name"] == "submit_semantic_closure"
+    assert second_verifier.tools[0]["name"] == "submit_semantic_closure"
+    phases = [
+        item.get("phase") for item in trajectory["raw_messages"]
+        if isinstance(item, dict) and item.get("type") == "phase_boundary"
+    ]
+    assert phases.count("terminal_submission_to_fresh_semantic_verifier") == 2
+    assert "semantic_verifier_to_same_writer" in phases
+    assert "semantic_verifier_to_terminal_accept" in phases
+    assert trajectory["tool_call_counts"]["submit_semantic_closure"] == 2
+
+
+def test_second_semantic_reject_is_bounded_and_retains_valid_baseline(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """Persistent judge rejection must not trigger a destructive third rewrite."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, corrected)
+    verifier_one = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-1",
+    )])])
+    verifier_two = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-2",
+    )])])
+    providers = iter([research, verifier_one, verifier_two])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-bounded.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert output["answer"][0]["text"] == flawed["answer_items"][0]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["attempts"] == 2
+    assert semantic["corrections_requested"] == 1
+    assert semantic["verdict"] == "repair"
+    assert semantic["final_verified"] is False
+    assert semantic["fallback"] == "persistent_rejection"
+    assert research.turn_index == 6
+
+
+def test_malformed_semantic_verifier_fails_open_without_writer_turn(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A verifier protocol fault cannot consume a valid answer or loop."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, None)
+    malformed = ScriptedProvider([model_turn(text="pass")])
+    providers = iter([research, malformed])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-malformed.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert output["answer"][0]["text"] == flawed["answer_items"][0]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["attempts"] == 1
+    assert semantic["corrections_requested"] == 0
+    assert semantic["verdict"] == "indeterminate"
+    assert semantic["final_verified"] is False
+    assert semantic["fallback"] == "baseline_verifier_indeterminate"
+    assert semantic["parse_error"] is True
+    assert research.turn_index == 5
 
 
 def test_atomic_planner_rejects_raw_json_then_corrects_typed_inventory(

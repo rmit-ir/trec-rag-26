@@ -1455,6 +1455,139 @@ def validate_submission(
     return sentences, [], stats
 
 
+def build_semantic_answer_items(arguments: dict[str, Any]) -> list[dict[str, Any]]:
+    """Project a deterministically valid answer into a bounded audit context."""
+    raw_items = arguments.get("answer_items")
+    if not isinstance(raw_items, list):
+        return []
+    projected: list[dict[str, Any]] = []
+    for answer_index, raw in enumerate(raw_items[:96], 1):
+        if not isinstance(raw, dict):
+            continue
+        kind = str(raw.get("kind") or "").strip().casefold()
+        raw_text = str(raw.get("text") or "")
+        text = (
+            raw_text.replace("\r\n", "\n").replace("\r", "\n").strip("\n")
+            if kind == "code" else _compact(raw_text, 8_000)
+        )
+        raw_evidence = raw.get("evidence_ids")
+        raw_satisfies = raw.get("satisfies")
+        evidence_ids = (
+            [str(value).strip() for value in raw_evidence[:3]]
+            if isinstance(raw_evidence, list) else []
+        )
+        satisfies = (
+            [str(value).strip() for value in raw_satisfies[:8]]
+            if isinstance(raw_satisfies, list) else []
+        )
+        projected.append({
+            "item_index": answer_index,
+            "kind": kind,
+            "text": text,
+            "evidence_ids": evidence_ids,
+            "satisfies": satisfies,
+        })
+    return projected
+
+
+def build_semantic_check_records(
+    arguments: dict[str, Any],
+    items: list[ContractItem],
+    ledger: EvidenceLedger,
+) -> list[dict[str, Any]]:
+    """Project a valid submission into one complete check per asserted row.
+
+    Row aggregation is deliberate: a comparison may need two answer sentences,
+    a ``MIN`` row needs semantic distinctness across all its examples, and a
+    broad deliverable or audience row is meaningful only in answer context.
+    Form and avoidance rows remain deterministic and are not delegated.
+    """
+    answer_items = build_semantic_answer_items(arguments)
+    records: list[dict[str, Any]] = []
+    for item in items:
+        if item.mode != "assert" or not item.must_answer:
+            continue
+        candidates = [
+            answer_item for answer_item in answer_items
+            if answer_item["kind"] == "prose"
+            and item.id in answer_item["satisfies"]
+        ]
+        # A valid unresolved research row has no answer relationship to audit.
+        if not candidates:
+            continue
+        candidate_indices = [
+            int(candidate["item_index"]) for candidate in candidates]
+        if item.kind in {"audience", "deliverable"}:
+            scope = "answer_global"
+        elif item.minimum_count > 1 or len(candidates) > 1:
+            scope = "row_aggregate"
+        else:
+            scope = "row_item"
+
+        evidence: list[dict[str, Any]] = []
+        if item.must_research:
+            for candidate in candidates:
+                candidate_text = str(candidate["text"])
+                candidate_evidence = set(candidate["evidence_ids"])
+                for anchor in ledger.anchors.get(item.id, []):
+                    if anchor.document_id not in candidate_evidence:
+                        continue
+                    if not all(
+                            _contains_exact_term(candidate_text, term)
+                            for term in anchor.must_include):
+                        continue
+                    existing = next((
+                        value for value in evidence
+                        if value["document_id"] == anchor.document_id
+                        and value["claim"] == anchor.claim
+                        and value["source_quote"] == anchor.source_quote
+                        and value["value_scope"] == anchor.value_scope
+                        and value["must_include"] == list(anchor.must_include)
+                    ), None)
+                    if existing is None:
+                        existing = {
+                            "document_id": anchor.document_id,
+                            "claim": anchor.claim,
+                            "source_quote": anchor.source_quote,
+                            "value_scope": anchor.value_scope,
+                            "must_include": list(anchor.must_include),
+                            "item_indices": [],
+                        }
+                        evidence.append(existing)
+                    candidate_index = int(candidate["item_index"])
+                    if candidate_index not in existing["item_indices"]:
+                        existing["item_indices"].append(candidate_index)
+
+        records.append({
+            "check_id": item.id,
+            "scope": scope,
+            "row": {
+                "id": item.id,
+                "origin": item.origin,
+                "kind": item.kind,
+                "requirement": item.requirement,
+                "must_mention": list(item.must_mention),
+                "minimum_count": item.minimum_count,
+                "must_research": item.must_research,
+            },
+            "candidate_item_indices": candidate_indices,
+            "repairable_item_indices": candidate_indices,
+            "evidence": evidence,
+            "deterministic_state": {
+                "submission_valid": True,
+                "routes_valid": True,
+                "required_literals_present": True,
+                "sentence_local": True,
+                "distinct_item_count": len({
+                    _answer_item_fingerprint(str(candidate["text"]))
+                    for candidate in candidates
+                }),
+                "packet_complete": True,
+            },
+        })
+    return records
+
+
 def contract_trace(items: list[ContractItem], ledger: EvidenceLedger) -> dict[str, Any]:
     """Serialize current contract state for durable diagnostics."""
     return {
