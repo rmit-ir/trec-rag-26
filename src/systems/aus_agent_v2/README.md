@@ -41,12 +41,14 @@ atomic, mutable coverage contract:
 ```text
 structured atomic plan + independent scouts -> stable Pxx/Sxx obligation ids
   -> search(for_requirements=[...])
-  -> commit_context(supports=[requirement + claim/scope + exact literals])
+  -> commit_context(supports=[requirement + extractive claim/source quote
+                               + scope + exact literals])
        optionally promotes at most six evidence-backed Dxx obligations
   -> bounded closure status after every commit
   -> first submit opens a harness-owned terminal evidence replay
   -> submit_answer(typed answer items + evidence ids + satisfied ids)
-  -> deterministic count/avoid/form/syntax/exact-literal/citation validation
+  -> deterministic distinct-count/avoid/form/syntax/source-locality/citation
+     validation
   -> map + save
 ```
 
@@ -73,12 +75,15 @@ It also fixes the old blueprint's central validation defect: every
 must-answer plan row must be satisfied or explicitly unresolved, search and
 commit support are tied to the same stable row, exact scout terms are checked,
 and a citation is accepted for a row only when the cited committed unit was
-explicitly mapped to it. The final answer is the terminal tool call itself, so
-there is no second writer. The first otherwise-valid submission is deliberately
-intercepted: the harness replays every answer row, count, avoidance constraint,
-and up to four complete anchor choices per row, and the same researcher submits
-the real answer on the next turn. This closes the missing commit-to-answer state
-transition without restoring the old undifferentiated 22--35 KB fact dump.
+explicitly mapped to it. Each anchor claim is copied verbatim inside one
+contiguous source quote, and claim, scope, and exact carry-through terms must
+all occur in that same local span. The final answer is the terminal tool call
+itself, so there is no second writer. The first otherwise-valid submission is
+deliberately intercepted: the harness replays every answer row, count,
+avoidance constraint, and one complete local source quote per row, and the same
+researcher submits the real answer on the next turn. This closes the missing
+commit-to-answer state transition without restoring the old undifferentiated
+22--35 KB fact dump.
 
 Frozen three-repeat rubric verdicts quantify why these changes are structural,
 not prompt decoration. The fixed current row inventory has an optimistic
@@ -106,7 +111,11 @@ support row for bounded correction, while exact negative findings such as
 "no evidence" remain material when they occur in claim, source, and answer.
 Every numeric/date literal stated in a commit claim or scope must be one of the
 final-answer invariants, and a nonempty scope must contribute an exact
-invariant. A source-valid page may support any known row regardless of the
+invariant. Submitted prose items are restricted to one sentence so one
+citation set cannot launder an unsupported second claim, while one sentence
+may still close overlapping rows. Requested minimum counts use distinct
+normalized item text rather than raw array length. A source-valid page may
+support any known row regardless of the
 query purpose that happened to find it; purpose ids remain an audit/search
 record, not an evidence ACL.
 

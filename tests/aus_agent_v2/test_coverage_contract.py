@@ -119,6 +119,10 @@ def test_commit_schema_and_normalizer_preserve_bounded_source_anchor() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "Traditional contributions can be tax deferred.",
+                "source_quote": (
+                    "Traditional contributions can be tax deferred. US federal "
+                    "tax treatment; plan rules vary."
+                ),
                 "value_scope": "US federal tax treatment; plan rules vary",
                 "must_include": [
                     "Traditional contributions", "plan rules vary"],
@@ -131,15 +135,20 @@ def test_commit_schema_and_normalizer_preserve_bounded_source_anchor() -> None:
     assert "supports" in doc_schema["properties"]
     support_schema = doc_schema["properties"]["supports"]["items"]["properties"]
     assert support_schema["claim"]["maxLength"] == 500
+    assert support_schema["source_quote"]["maxLength"] == 600
     assert support_schema["value_scope"]["maxLength"] == 300
     assert support_schema["must_include"]["maxItems"] == 4
     assert support_schema["must_include"]["items"]["maxLength"] == 80
+    assert "source_quote" in doc_schema["properties"]["supports"][
+        "items"]["required"]
     assert errors == []
     assert supports["P02"] == [EvidenceAnchor(
         "d1",
         "Traditional contributions can be tax deferred.",
         "US federal tax treatment; plan rules vary",
         ("Traditional contributions", "plan rules vary"),
+        "Traditional contributions can be tax deferred. US federal tax "
+        "treatment; plan rules vary.",
     )]
 
 
@@ -155,6 +164,9 @@ def test_commit_can_promote_a_bounded_retrieval_discovered_atomic_row() -> None:
             "must_mention": ["12%"],
             "minimum_count": 1,
             "claim": "The measured outcome was 12%.",
+            "source_quote": (
+                "The measured outcome was 12%. This applies among adults."
+            ),
             "value_scope": "among adults",
             "must_include": ["12%", "among adults"],
         }],
@@ -170,6 +182,7 @@ def test_commit_can_promote_a_bounded_retrieval_discovered_atomic_row() -> None:
     assert supports == {"D01": [EvidenceAnchor(
         "d1", "The measured outcome was 12%.", "among adults",
         ("12%", "among adults"),
+        "The measured outcome was 12%. This applies among adults.",
     )]}
 
 
@@ -184,6 +197,7 @@ def test_dynamic_promotions_fail_as_a_batch_instead_of_dropping_rows() -> None:
             "must_mention": ["missing literal"],
             "minimum_count": 1,
             "claim": "A measured result was reported.",
+            "source_quote": "A measured result was reported.",
             "must_include": ["measured result"],
         }],
     }
@@ -196,6 +210,32 @@ def test_dynamic_promotions_fail_as_a_batch_instead_of_dropping_rows() -> None:
     assert errors == [
         "promotion 1 must_mention term 'missing literal' does not occur "
         "exactly in its requirement"
+    ]
+
+
+def test_dynamic_promotions_reject_visibly_compound_requirements() -> None:
+    """Retrieval-time rows must not reopen the broad-obligation closure defect."""
+    arguments = {
+        "documents": [{"id": "d1", "reason": "comparison"}],
+        "promotions": [{
+            "document_id": "d1",
+            "kind": "comparison",
+            "requirement": "Compare cost, safety and efficacy",
+            "must_mention": [],
+            "minimum_count": 1,
+            "claim": "Cost was lower.",
+            "source_quote": "Cost was lower.",
+            "must_include": ["Cost"],
+        }],
+    }
+
+    additions, supports, errors = normalize_commit_promotions(
+        arguments, contract(), eligible_document_ids={"d1"})
+
+    assert additions == []
+    assert supports == {}
+    assert errors == [
+        "promotion 1 requirement contains multiple clauses"
     ]
 
 
@@ -221,9 +261,11 @@ def test_commit_support_can_cross_search_purpose_when_source_grounded() -> None:
     """A query purpose is not an ACL on other exact facts the page supplies."""
     supports = {
         "P02": [EvidenceAnchor(
-            "d1", "Account tax treatment.", must_include=("traditional",))],
+            "d1", "traditional account", must_include=("traditional",),
+            source_quote="A traditional account is named 401(k).")],
         "S01": [EvidenceAnchor(
-            "d1", "The account name.", must_include=("401(k)",))],
+            "d1", "named 401(k)", must_include=("401(k)",),
+            source_quote="A traditional account is named 401(k).")],
     }
     staged = [{
         "id": "d1",
@@ -240,7 +282,9 @@ def test_commit_anchor_terms_must_exist_verbatim_in_the_source() -> None:
     """A model cannot invent a convenient value and make carry-through validate it."""
     supports = {
         "P02": [EvidenceAnchor(
-            "d1", "Traffic changed.", must_include=("12%", "2025"))],
+            "d1", "reported a 12% change in 2025",
+            must_include=("12%", "2025"),
+            source_quote="The evaluation reported a 12% change in 2025.")],
     }
     staged = [{
         "id": "d1",
@@ -251,7 +295,122 @@ def test_commit_anchor_terms_must_exist_verbatim_in_the_source() -> None:
     errors = validate_support_routes(supports, staged)
 
     assert errors == [
-        "document 'd1' does not contain exact must_include term(s): 12%, 2025"
+        "document 'd1' does not contain the exact contiguous source_quote"
+    ]
+
+
+def test_commit_rejects_claim_laundering_inside_a_real_source_quote() -> None:
+    """A real percentage cannot support a different outcome the source negates."""
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "Treatment reduced mortality by 20%.",
+                "source_quote": (
+                    "20% of participants withdrew; mortality was not evaluated."
+                ),
+                "must_include": ["20%"],
+            }],
+        }],
+    }, contract())
+
+    assert supports == {}
+    assert errors == [
+        "document 'd1' support 1 claim is not copied verbatim inside "
+        "source_quote"
+    ]
+
+
+def test_commit_rejects_missing_or_oversized_source_quotes() -> None:
+    """The locality boundary must fail closed instead of inferring a source span."""
+    base = {
+        "requirement_id": "P02",
+        "claim": "A complete material claim.",
+        "must_include": ["material claim"],
+    }
+    cases = [
+        (
+            base,
+            "document 'd1' support 1 needs a non-empty source_quote copied "
+            "from the selected unit",
+        ),
+        (
+            {**base, "source_quote": "x" * 601},
+            "document 'd1' support 1 source_quote is 601 characters; maximum "
+            "is 600",
+        ),
+    ]
+
+    for support, expected in cases:
+        supports, errors = normalize_commit_supports({
+            "documents": [{"id": "d1", "supports": [support]}],
+        }, contract())
+
+        assert supports == {}
+        assert errors == [expected]
+
+
+def test_commit_rejects_scope_or_claim_outside_the_quote() -> None:
+    """A local quote must contain every assertion carried into the final claim."""
+    scope_supports, scope_errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The measured change was 12%.",
+                "source_quote": "The measured change was 12%.",
+                "value_scope": "among adults",
+                "must_include": ["12%", "among adults"],
+            }],
+        }],
+    }, contract())
+    claim_supports, claim_errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The measured change was 12% among adults.",
+                "source_quote": "The measured change was 12%.",
+                "must_include": ["12%", "among adults"],
+            }],
+        }],
+    }, contract())
+
+    assert scope_supports == {}
+    assert scope_errors == [
+        "document 'd1' support 1 value_scope is not copied verbatim inside "
+        "source_quote"
+    ]
+    assert claim_supports == {}
+    assert claim_errors == [
+        "document 'd1' support 1 claim is not copied verbatim inside "
+        "source_quote"
+    ]
+
+
+def test_commit_rejects_a_quote_stitched_across_distant_source_spans() -> None:
+    """Terms found globally must not fabricate one local evidentiary passage."""
+    supports = {
+        "P02": [EvidenceAnchor(
+            "d1",
+            "Mortality was not evaluated.",
+            must_include=("Mortality", "20%"),
+            source_quote="Mortality was not evaluated. 20% withdrew.",
+        )],
+    }
+    staged = [{
+        "id": "d1",
+        "text": (
+            "Mortality was not evaluated. The methods and limitations fill "
+            "several intervening paragraphs. 20% withdrew."
+        ),
+    }]
+
+    errors = validate_support_routes(supports, staged)
+
+    assert errors == [
+        "document 'd1' does not contain the exact contiguous source_quote"
     ]
 
 
@@ -263,6 +422,10 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The study reported 12 observations.",
+                "source_quote": (
+                    "The study reported 12 observations. These were measured "
+                    "against the pre-toll baseline."
+                ),
                 "value_scope": "measured against the pre-toll baseline",
                 "must_include": ["12", "pre-toll baseline"],
             }],
@@ -278,7 +441,7 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
     assert errors == []
     assert supports["P02"][0].must_include == ("12", "pre-toll baseline")
     assert route_errors == [
-        "document 'd1' does not contain exact must_include term(s): 12"
+        "document 'd1' does not contain the exact contiguous source_quote"
     ]
 
     mixed_supports, mixed_errors = normalize_commit_supports({
@@ -287,6 +450,7 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The study reported a 12% change.",
+                "source_quote": "The study reported a 12% change.",
                 "must_include": ["reported", "12%"],
             }],
         }],
@@ -306,6 +470,10 @@ def test_quantified_claim_literals_cannot_bypass_finish_the_claim() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "Traffic volumes fell by 12%.",
+                "source_quote": (
+                    "Traffic volumes fell by 12%. The pre-toll baseline in "
+                    "2025 was the comparison."
+                ),
                 "value_scope": "pre-toll baseline in 2025",
                 "must_include": ["traffic volumes", "pre-toll baseline"],
             }],
@@ -327,6 +495,10 @@ def test_selected_quantified_literals_must_also_exist_in_the_source() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "Traffic volumes fell by 12%.",
+                "source_quote": (
+                    "Traffic volumes fell by 12%. The pre-toll baseline in "
+                    "2025 was the comparison."
+                ),
                 "value_scope": "pre-toll baseline in 2025",
                 "must_include": ["12%", "pre-toll baseline", "2025"],
             }],
@@ -340,7 +512,7 @@ def test_selected_quantified_literals_must_also_exist_in_the_source() -> None:
 
     assert errors == []
     assert route_errors == [
-        "document 'd1' does not contain exact must_include term(s): 12%, 2025"
+        "document 'd1' does not contain the exact contiguous source_quote"
     ]
 
 
@@ -352,6 +524,10 @@ def test_nonempty_scope_must_contribute_a_final_answer_literal() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The measured change was 12%.",
+                "source_quote": (
+                    "The measured change was 12%. The sample was among "
+                    "Australian adults."
+                ),
                 "value_scope": "among Australian adults",
                 "must_include": ["12%"],
             }],
@@ -373,6 +549,10 @@ def test_scope_year_does_not_stand_in_for_a_named_population() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The measured change was 12%.",
+                "source_quote": (
+                    "The measured change was 12%. The sample was among adults "
+                    "in 2025."
+                ),
                 "value_scope": "among adults in 2025",
                 "must_include": ["12%", "2025"],
             }],
@@ -394,6 +574,10 @@ def test_negative_findings_are_material_exact_terms() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The global study found no evidence of population harm.",
+                "source_quote": (
+                    "The global study found no evidence of population harm. "
+                    "This covered the worldwide sample."
+                ),
                 "value_scope": "worldwide sample",
                 "must_include": ["no evidence", "worldwide sample"],
             }],
@@ -414,6 +598,7 @@ def test_oversized_anchor_text_is_rejected_without_prefix_truncation() -> None:
             "supports": [{
                 "requirement_id": "P02",
                 "claim": f"The finding was {long_term}.",
+                "source_quote": f"The finding was {long_term}.",
                 "must_include": [long_term],
             }],
         }],
@@ -433,6 +618,7 @@ def test_anchor_card_bounds_reject_whole_rows_instead_of_slicing_them() -> None:
     base = {
         "requirement_id": "P02",
         "claim": "A complete material claim.",
+        "source_quote": "A complete material claim.",
         "must_include": ["material claim"],
     }
     cases = [
@@ -470,6 +656,10 @@ def test_material_anchor_allows_single_domain_terms_and_named_entities() -> None
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "Cellpose estimates spatial gradients.",
+                "source_quote": (
+                    "Cellpose estimates spatial gradients. Performance under "
+                    "inflation was measured."
+                ),
                 "value_scope": "performance under inflation",
                 "must_include": ["Cellpose", "inflation"],
             }],
@@ -487,10 +677,15 @@ def populated_ledger() -> EvidenceLedger:
     ledger.record_supports({
         "P02": [EvidenceAnchor(
             "d1", "Traditional tax treatment.",
-            must_include=("traditional", "plan rules"))],
+            must_include=("traditional", "plan rules"),
+            source_quote=(
+                "A traditional account follows tax treatment subject to plan "
+                "rules."
+            ))],
         "S01": [EvidenceAnchor(
             "d1", "The account is named 401(k).",
-            must_include=("401(k)",))],
+            must_include=("401(k)",),
+            source_quote="The account is named 401(k).")],
     })
     return ledger
 
@@ -637,6 +832,56 @@ def test_valid_submission_keeps_untagged_synthesis_sentence() -> None:
     assert stats["missing"] == []
 
 
+def test_prose_item_cannot_hide_an_uncited_second_sentence() -> None:
+    """Citation support must stay local to one independently emitted sentence."""
+    arguments = valid_arguments()
+    arguments["answer_items"][1]["text"] += (
+        " This proves the account is always optimal."
+    )
+
+    answer, errors, _ = validate_submission(
+        arguments, contract(), populated_ledger(), {"d1"})
+
+    assert answer is None
+    assert (
+        "answer item 2 prose must not contain multiple sentences or line "
+        "breaks; split separately citable claims into separate items"
+    ) in errors
+
+
+def test_common_initialism_does_not_create_a_false_prose_boundary() -> None:
+    """Sentence locality must not reject ordinary U.S. research prose."""
+    arguments = valid_arguments()
+    arguments["answer_items"][0]["text"] = (
+        "Blog post 1 introduces the U.S. account context."
+    )
+
+    answer, errors, _ = validate_submission(
+        arguments, contract(), populated_ledger(), {"d1"})
+
+    assert errors == []
+    assert answer is not None
+
+
+def test_research_abbreviations_do_not_create_false_prose_boundaries() -> None:
+    """Locality checks must preserve ordinary scholarly abbreviations."""
+    variants = (
+        "Smith et al. reported the account context.",
+        "A Ph.D. researcher reported the account context.",
+        "The result, e.g. the account context, was reported.",
+        "The result was reported at 9 a.m. in the account context.",
+    )
+    for text in variants:
+        arguments = valid_arguments()
+        arguments["answer_items"][0]["text"] = text
+
+        answer, errors, _ = validate_submission(
+            arguments, contract(), populated_ledger(), {"d1"})
+
+        assert errors == [], text
+        assert answer is not None
+
+
 def test_counted_and_avoidance_rows_are_terminally_enforced() -> None:
     """Typed rows must protect list cardinality and penalties, not just row tags."""
     items = [
@@ -674,6 +919,71 @@ def test_counted_and_avoidance_rows_are_terminally_enforced() -> None:
     assert stats["counted_rows"] == 1
 
 
+def test_repeated_text_does_not_satisfy_a_distinct_minimum_count() -> None:
+    """Copying one example twice cannot masquerade as two requested examples."""
+    items = [ContractItem(
+        "P01", "planner", "example", "Give two distinct examples",
+        must_research=False, must_answer=True, minimum_count=2,
+    )]
+    arguments = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The example is request-grounded.",
+                "evidence_ids": [],
+                "satisfies": ["P01"],
+            },
+            {
+                "kind": "prose",
+                "text": "  the   example is REQUEST-grounded  ",
+                "evidence_ids": [],
+                "satisfies": ["P01"],
+            },
+        ],
+        "unresolved": [],
+    }
+
+    answer, errors, _ = validate_submission(
+        arguments, items, EvidenceLedger(), set())
+
+    assert answer is None
+    assert errors == [
+        "coverage row P01 requires at least 2 distinct tagged answer items; "
+        "found 1"
+    ]
+
+
+def test_genuinely_distinct_items_satisfy_a_minimum_count() -> None:
+    """The count guard must preserve two different examples after deduplication."""
+    items = [ContractItem(
+        "P01", "planner", "example", "Give two distinct examples",
+        must_research=False, must_answer=True, minimum_count=2,
+    )]
+    arguments = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first example uses a fixed toll.",
+                "evidence_ids": [],
+                "satisfies": ["P01"],
+            },
+            {
+                "kind": "prose",
+                "text": "The second example uses a variable toll.",
+                "evidence_ids": [],
+                "satisfies": ["P01"],
+            },
+        ],
+        "unresolved": [],
+    }
+
+    answer, errors, _ = validate_submission(
+        arguments, items, EvidenceLedger(), set())
+
+    assert errors == []
+    assert answer is not None
+
+
 def test_terminal_handoff_replays_every_row_and_multiple_anchor_choices() -> None:
     """The final writer needs a complete recency transition, not a lossy status."""
     ledger = populated_ledger()
@@ -682,6 +992,7 @@ def test_terminal_handoff_replays_every_row_and_multiple_anchor_choices() -> Non
             EvidenceAnchor(
                 f"d{index}", f"Alternative claim {index}.",
                 must_include=(f"alternative {index}",),
+                source_quote=f"Alternative claim {index}.",
             )
             for index in range(2, 5)
         ],
@@ -693,8 +1004,9 @@ def test_terminal_handoff_replays_every_row_and_multiple_anchor_choices() -> Non
     assert "P01 ASSERT MIN=1" in handoff
     assert "P02 ASSERT MIN=1" in handoff
     assert "S01 ASSERT MIN=1" in handoff
-    assert "CHOICE [d1] Traditional tax treatment." in handoff
-    assert "CHOICE [d4] Alternative claim 4." in handoff
+    assert "CHOICE [d1] SOURCE QUOTE:" in handoff
+    assert "3 additional corroborating/alternative anchor(s)" in handoff
+    assert "CHOICE [d4]" not in handoff
     assert "P03" not in handoff  # budget is not an answer obligation
 
 

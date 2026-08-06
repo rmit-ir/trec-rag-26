@@ -8,8 +8,9 @@ without asking another model to rewrite the answer.
 
 The contract is intentionally semantic-light.  The harness can prove that all
 rows were routed through the pipeline, that exact required terms survived, and
-that cited evidence was explicitly mapped to the row it is claimed to support.
-It cannot prove entailment; the research model still owns that judgment.
+that each model-selected claim is an extractive span inside one contiguous
+source quote from the cited unit.  It cannot prove paraphrase entailment; the
+research model still owns that judgment.
 """
 from __future__ import annotations
 
@@ -31,6 +32,16 @@ _PLAN_ITEM_RE = re.compile(
 _EXACT_RE = re.compile(r"\s+EXACT:\s*(.*?)(?=\s+SEARCH:|\.?\s*$)", re.I)
 _SEARCH_SUFFIX_RE = re.compile(r"\s+SEARCH:\s*.*?\.?\s*$", re.I)
 _CITATIONISH_RE = re.compile(r"\[[\w.-]+(?:[,;\s]+[\w.-]+)*\]")
+_SERIAL_REQUIREMENT_RE = re.compile(
+    r",\s*[^,;]+(?:,\s*[^,;]+)*,?\s+(?:and|or)\s+[^,;]+$",
+    re.IGNORECASE,
+)
+_COORDINATED_REQUIREMENT_RE = re.compile(
+    r"\band\s+(?:also\s+)?(?:address|analyze|assess|compare|cover|define|"
+    r"describe|distinguish|evaluate|examine|explain|identify|include|map|"
+    r"recommend|report|state|verify)\b",
+    re.IGNORECASE,
+)
 
 _NO_ANSWER_KINDS = {"budget", "penalty"}
 _NO_RESEARCH_KINDS = {"deliverable", "audience", "format", "budget", "penalty"}
@@ -55,6 +66,7 @@ _QUANTIFIED_LITERAL_RE = re.compile(
 )
 _ANCHOR_CLAIM_MAX_CHARS = 500
 _ANCHOR_SCOPE_MAX_CHARS = 300
+_ANCHOR_SOURCE_QUOTE_MAX_CHARS = 600
 _ANCHOR_TERM_MAX_CHARS = 80
 _ANCHOR_TERMS_MAX_ITEMS = 4
 _DYNAMIC_REQUIREMENTS_MAX = 6
@@ -89,6 +101,7 @@ class EvidenceAnchor:
     claim: str
     value_scope: str = ""
     must_include: tuple[str, ...] = ()
+    source_quote: str = ""
 
 
 @dataclass
@@ -152,7 +165,7 @@ SUBMIT_ANSWER_TOOL: dict[str, Any] = {
                             "type": "string",
                             "maxLength": 8000,
                             "description": (
-                                "One prose answer unit, a short nonfactual "
+                                "One prose sentence, a short nonfactual "
                                 "part label, or raw complete multiline Python. "
                                 "Code has no Markdown fences. Do not put "
                                 "citation markers in prose or label text."
@@ -225,6 +238,34 @@ def _contains_exact_term(text: str, term: str) -> bool:
         normalized_text,
         re.IGNORECASE,
     ))
+
+
+_PROSE_INITIALISM_RE = re.compile(r"\b(?:[A-Za-z]\.){2,}")
+_PROSE_ABBREVIATION_RE = re.compile(
+    r"\b(?:al|Art|cf|Ch|Dr|e\.g|Eq|etc|Fig|i\.e|Jr|Mr|Mrs|Ms|No|p|pp|"
+    r"Prof|Sec|Sr|St|Vol|vs)\.",
+    re.IGNORECASE,
+)
+_PROSE_COMPLEX_ABBREVIATION_RE = re.compile(
+    r"\b(?:D\.Phil|M\.D|Ph\.D)\.", re.IGNORECASE)
+_PROSE_SENTENCE_BOUNDARY_RE = re.compile(r"[.!?][\"')\]]*\s+\S")
+
+
+def _has_multiple_prose_sentences(text: str) -> bool:
+    """Detect a second sentence while preserving common abbreviations."""
+    probe = _PROSE_COMPLEX_ABBREVIATION_RE.sub(
+        lambda match: match.group(0).replace(".", "\u2024"), text)
+    probe = _PROSE_INITIALISM_RE.sub(
+        lambda match: match.group(0).replace(".", "\u2024"), probe)
+    probe = _PROSE_ABBREVIATION_RE.sub(
+        lambda match: match.group(0).replace(".", "\u2024"), probe)
+    return bool(_PROSE_SENTENCE_BOUNDARY_RE.search(probe))
+
+
+def _answer_item_fingerprint(text: str) -> str:
+    """Normalize only presentation noise when checking requested cardinality."""
+    compact = " ".join(text.casefold().split())
+    return re.sub(r"[.!?]+$", "", compact).strip()
 
 
 def _material_anchor_term(term: str) -> bool:
@@ -557,7 +598,9 @@ def commit_tool_with_contract(*, allow_promotions: bool = False) -> dict[str, An
         "following turn. Select only exact returned ids whose full text should "
         "persist; every unlisted result is compacted. For each selected unit, "
         "state its distinct contribution and map only the coverage rows it "
-        "directly supports. Use an empty documents list when nothing is useful. "
+        "directly supports. Copy each support claim inside one exact contiguous "
+        "source_quote from the selected unit. Use an empty documents list when "
+        "nothing is useful. "
         "Never edit page suffixes or recommit an id. If validation returns a "
         "correction request, correct this commit before taking another action."
     )
@@ -577,7 +620,20 @@ def commit_tool_with_contract(*, allow_promotions: bool = False) -> dict[str, An
                 "claim": {
                     "type": "string",
                     "maxLength": _ANCHOR_CLAIM_MAX_CHARS,
-                    "description": "What this unit directly establishes.",
+                    "description": (
+                        "The smallest complete claim copied verbatim from "
+                        "source_quote. Do not paraphrase or infer."
+                    ),
+                },
+                "source_quote": {
+                    "type": "string",
+                    "maxLength": _ANCHOR_SOURCE_QUOTE_MAX_CHARS,
+                    "description": (
+                        "One exact contiguous quote copied from this selected "
+                        "unit. It must contain claim, value_scope when present, "
+                        "and every must_include term. Keep only enough local "
+                        "context to preserve qualification and polarity."
+                    ),
                 },
                 "value_scope": {
                     "type": "string",
@@ -612,7 +668,8 @@ def commit_tool_with_contract(*, allow_promotions: bool = False) -> dict[str, An
                     ),
                 },
             },
-            "required": ["requirement_id", "claim", "must_include"],
+            "required": [
+                "requirement_id", "claim", "source_quote", "must_include"],
         },
     }
     if allow_promotions:
@@ -660,9 +717,26 @@ def commit_tool_with_contract(*, allow_promotions: bool = False) -> dict[str, An
                     },
                     "claim": {
                         "type": "string", "maxLength": _ANCHOR_CLAIM_MAX_CHARS,
+                        "description": (
+                            "The smallest complete claim copied verbatim from "
+                            "source_quote; never paraphrase or infer."
+                        ),
+                    },
+                    "source_quote": {
+                        "type": "string",
+                        "maxLength": _ANCHOR_SOURCE_QUOTE_MAX_CHARS,
+                        "description": (
+                            "One exact contiguous quote copied from the "
+                            "selected unit containing claim, any value_scope, "
+                            "and every must_include term."
+                        ),
                     },
                     "value_scope": {
                         "type": "string", "maxLength": _ANCHOR_SCOPE_MAX_CHARS,
+                        "description": (
+                            "Optional exact source-copied population, place, "
+                            "date, or qualification needed to bound the claim."
+                        ),
                     },
                     "must_include": {
                         "type": "array", "minItems": 1,
@@ -670,11 +744,16 @@ def commit_tool_with_contract(*, allow_promotions: bool = False) -> dict[str, An
                         "items": {
                             "type": "string", "maxLength": _ANCHOR_TERM_MAX_CHARS,
                         },
+                        "description": (
+                            "One to four material exact terms occurring in "
+                            "claim/value_scope and source_quote that the final "
+                            "cited sentence must repeat."
+                        ),
                     },
                 },
                 "required": [
                     "document_id", "kind", "requirement", "must_mention",
-                    "minimum_count", "claim", "must_include",
+                    "minimum_count", "claim", "source_quote", "must_include",
                 ],
             },
         }
@@ -735,6 +814,7 @@ def normalize_commit_supports(
                 continue
             requirement_id = str(raw.get("requirement_id") or "").strip()
             raw_claim = raw.get("claim")
+            raw_source_quote = raw.get("source_quote")
             raw_value_scope = raw.get("value_scope", "")
             claim = (
                 " ".join(raw_claim.split())
@@ -743,6 +823,10 @@ def normalize_commit_supports(
             value_scope = (
                 " ".join(raw_value_scope.split())
                 if isinstance(raw_value_scope, str) else ""
+            )
+            source_quote = (
+                " ".join(raw_source_quote.split())
+                if isinstance(raw_source_quote, str) else ""
             )
             raw_must_include = raw.get("must_include")
             if requirement_id not in known:
@@ -765,6 +849,22 @@ def normalize_commit_supports(
                     f"is {len(claim)} characters; maximum is "
                     f"{_ANCHOR_CLAIM_MAX_CHARS}")
                 continue
+            if not isinstance(raw_source_quote, str) or not source_quote:
+                errors.append(
+                    f"document {document_id!r} support {support_index} needs "
+                    "a non-empty source_quote copied from the selected unit")
+                continue
+            if len(source_quote) > _ANCHOR_SOURCE_QUOTE_MAX_CHARS:
+                errors.append(
+                    f"document {document_id!r} support {support_index} "
+                    f"source_quote is {len(source_quote)} characters; maximum "
+                    f"is {_ANCHOR_SOURCE_QUOTE_MAX_CHARS}")
+                continue
+            if not _contains_exact_term(source_quote, claim):
+                errors.append(
+                    f"document {document_id!r} support {support_index} claim "
+                    "is not copied verbatim inside source_quote")
+                continue
             if not isinstance(raw_value_scope, str):
                 errors.append(
                     f"document {document_id!r} support {support_index} "
@@ -775,6 +875,12 @@ def normalize_commit_supports(
                     f"document {document_id!r} support {support_index} "
                     f"value_scope is {len(value_scope)} characters; maximum "
                     f"is {_ANCHOR_SCOPE_MAX_CHARS}")
+                continue
+            if (value_scope
+                    and not _contains_exact_term(source_quote, value_scope)):
+                errors.append(
+                    f"document {document_id!r} support {support_index} "
+                    "value_scope is not copied verbatim inside source_quote")
                 continue
             if not isinstance(raw_must_include, list) or not raw_must_include:
                 errors.append(
@@ -812,6 +918,10 @@ def normalize_commit_supports(
                     term_errors.append(
                         f"document {document_id!r} support {support_index} has "
                         f"must_include term {term!r} outside its claim/scope")
+                elif not _contains_exact_term(source_quote, term):
+                    term_errors.append(
+                        f"document {document_id!r} support {support_index} has "
+                        f"must_include term {term!r} outside source_quote")
                 elif term not in must_include:
                     must_include.append(term)
             # Never silently filter a bad requested invariant. A mixed row is
@@ -848,7 +958,12 @@ def normalize_commit_supports(
                     "term")
                 continue
             anchor = EvidenceAnchor(
-                document_id, claim, value_scope, tuple(must_include))
+                document_id=document_id,
+                claim=claim,
+                value_scope=value_scope,
+                must_include=tuple(must_include),
+                source_quote=source_quote,
+            )
             values = supports.setdefault(requirement_id, [])
             if anchor not in values:
                 values.append(anchor)
@@ -917,8 +1032,12 @@ def normalize_commit_promotions(
                 f"promotion {row_number} requirement exceeds the 240-character "
                 "or 36-word atomic bound")
             continue
-        if ";" in requirement or re.search(
-                r"[.!?]\s+\S", requirement):
+        if (
+            ";" in requirement
+            or re.search(r"[.!?]\s+\S", requirement)
+            or _SERIAL_REQUIREMENT_RE.search(requirement)
+            or _COORDINATED_REQUIREMENT_RE.search(requirement)
+        ):
             errors.append(
                 f"promotion {row_number} requirement contains multiple clauses")
             continue
@@ -982,6 +1101,7 @@ def normalize_commit_promotions(
             "supports": [{
                 "requirement_id": item_id,
                 "claim": raw.get("claim"),
+                "source_quote": raw.get("source_quote"),
                 "value_scope": raw.get("value_scope", ""),
                 "must_include": raw.get("must_include"),
             }],
@@ -1018,15 +1138,35 @@ def validate_support_routes(
     errors: list[str] = []
     for requirement_id, anchors in supports.items():
         for anchor in anchors:
-            missing_terms = [
-                term for term in anchor.must_include
-                if not _contains_exact_term(
-                    source_text.get(anchor.document_id, ""), term)
-            ]
-            if missing_terms:
+            document_text = source_text.get(anchor.document_id, "")
+            if not anchor.source_quote:
                 errors.append(
-                    f"document {anchor.document_id!r} does not contain exact "
-                    "must_include term(s): " + ", ".join(missing_terms))
+                    f"document {anchor.document_id!r} anchor for "
+                    f"{requirement_id} has no source_quote")
+                continue
+            if not _contains_exact_term(document_text, anchor.source_quote):
+                errors.append(
+                    f"document {anchor.document_id!r} does not contain the "
+                    "exact contiguous source_quote")
+                continue
+            if not _contains_exact_term(anchor.source_quote, anchor.claim):
+                errors.append(
+                    f"document {anchor.document_id!r} source_quote does not "
+                    "contain its exact claim")
+            if (anchor.value_scope and not _contains_exact_term(
+                    anchor.source_quote, anchor.value_scope)):
+                errors.append(
+                    f"document {anchor.document_id!r} source_quote does not "
+                    "contain its exact value_scope")
+            missing_quote_terms = [
+                term for term in anchor.must_include
+                if not _contains_exact_term(anchor.source_quote, term)
+            ]
+            if missing_quote_terms:
+                errors.append(
+                    f"document {anchor.document_id!r} source_quote does not "
+                    "contain exact must_include term(s): "
+                    + ", ".join(missing_quote_terms))
     return errors
 
 
@@ -1082,6 +1222,13 @@ def validate_submission(
         if not text:
             errors.append(f"answer item {index} has empty text")
             continue
+        if kind == "prose" and (
+                "\n" in raw_text or "\r" in raw_text
+                or _has_multiple_prose_sentences(text)):
+            errors.append(
+                f"answer item {index} prose must not contain multiple "
+                "sentences or line breaks; split separately citable claims "
+                "into separate items")
         if kind != "code" and _CITATIONISH_RE.search(text):
             errors.append(
                 f"answer item {index} contains citation markers; use evidence_ids")
@@ -1251,12 +1398,16 @@ def validate_submission(
                 errors.append(
                     f"coverage row {item.id} is tagged but omits exact term(s): "
                     + ", ".join(absent))
+        distinct_tagged = {
+            _answer_item_fingerprint(text)
+            for text in tagged_text.get(item.id, [])
+        }
         if (item.id in satisfied
-                and len(tagged_text.get(item.id, [])) < item.minimum_count):
+                and len(distinct_tagged) < item.minimum_count):
             errors.append(
                 f"coverage row {item.id} requires at least "
                 f"{item.minimum_count} distinct tagged answer items; found "
-                f"{len(tagged_text.get(item.id, []))}")
+                f"{len(distinct_tagged)}")
         if (item.id in satisfied and item.kind == "python_code"
                 and "code" not in tagged_kinds.get(item.id, set())):
             errors.append(
@@ -1370,7 +1521,7 @@ def render_terminal_evidence_handoff(
     items: list[ContractItem],
     ledger: EvidenceLedger,
     *,
-    max_anchors_per_row: int = 4,
+    max_anchors_per_row: int = 1,
 ) -> str:
     """Replay every closure row and bounded anchor choices before submission."""
     lines = [
@@ -1378,7 +1529,8 @@ def render_terminal_evidence_handoff(
         "Your first submit_answer call opened this mandatory final state; its "
         "draft was not evaluated. On the next turn call submit_answer again. "
         "For each atomic research row, use one complete mapped anchor choice "
-        "and repeat every USE EXACT term in the same cited prose item. A row "
+        "and repeat every USE EXACT term in the same cited prose item. Each "
+        "prose item is exactly one sentence so its citations stay local. A row "
         "with MIN > 1 needs that many distinct tagged items. Preserve every "
         "supported row; unresolved is only for a researched row with no "
         "committed support after a tagged attempt.",
@@ -1403,9 +1555,12 @@ def render_terminal_evidence_handoff(
         anchors = ledger.anchors.get(item.id, [])
         if anchors:
             for anchor in anchors[:max_anchors_per_row]:
-                claim = _compact(anchor.claim, 260)
                 scope = _compact(anchor.value_scope, 160)
-                line = f"  CHOICE [{anchor.document_id}] {claim}"
+                line = (
+                    f"  CHOICE [{anchor.document_id}] SOURCE QUOTE: "
+                    + _compact(
+                        anchor.source_quote, _ANCHOR_SOURCE_QUOTE_MAX_CHARS)
+                )
                 if scope:
                     line += " | SCOPE: " + scope
                 line += " | USE EXACT: " + "; ".join(anchor.must_include)
@@ -1414,8 +1569,9 @@ def render_terminal_evidence_handoff(
             if omitted > 0:
                 lines.append(
                     f"  {omitted} additional corroborating/alternative "
-                    "anchor(s) remain in conversation history; four bounded "
-                    "choices are replayed here."
+                    "anchor(s) remain in conversation history; "
+                    f"{max_anchors_per_row} bounded choice(s) are replayed "
+                    "here to protect terminal context."
                 )
         elif item.must_research:
             attempts = ledger.attempted_queries.get(item.id, [])

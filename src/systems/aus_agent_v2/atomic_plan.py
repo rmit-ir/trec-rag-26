@@ -37,6 +37,7 @@ ASSERT_KINDS = frozenset({
     "scope",
     "term",
 })
+REQUEST_GROUNDED_ASSERT_KINDS = frozenset({"audience", "deliverable"})
 
 _ASSERT_KEYS = frozenset({
     "mode",
@@ -67,7 +68,10 @@ _TOOL_KEYS = frozenset({
 })
 _MULTI_SENTENCE_RE = re.compile(r"[.!?]\s+\S")
 _INITIALISM_RE = re.compile(r"\b(?:[A-Za-z]\.){2,}")
-_SERIAL_LIST_RE = re.compile(r",.+,\s*(?:and|or)\s+[^,]+$", re.IGNORECASE)
+_SERIAL_LIST_RE = re.compile(
+    r",\s*[^,;]+(?:,\s*[^,;]+)*,?\s+(?:and|or)\s+[^,;]+$",
+    re.IGNORECASE,
+)
 _COORDINATED_DIRECTIVE_RE = re.compile(
     r"\band\s+(?:also\s+)?(?:address|analyze|assess|compare|cover|define|"
     r"describe|distinguish|evaluate|examine|explain|identify|include|map|"
@@ -251,6 +255,8 @@ def _normalize_assert(raw: dict[str, Any]) -> dict[str, Any] | None:
         or type(minimum_count) is not int
         or not 1 <= minimum_count <= MAX_MINIMUM_COUNT
         or type(raw.get("must_research")) is not bool
+        or (raw.get("must_research") is False
+            and kind not in REQUEST_GROUNDED_ASSERT_KINDS)
         or raw.get("must_answer") is not True
     ):
         return None
@@ -338,6 +344,11 @@ def _diagnose_mode_row(raw: dict[str, Any], index: int) -> list[str]:
             problems.append(f"row {index} minimum_count is invalid")
         if type(raw.get("must_research")) is not bool:
             problems.append(f"row {index} must_research must be boolean")
+        elif (raw.get("must_research") is False
+              and raw.get("kind") not in REQUEST_GROUNDED_ASSERT_KINDS):
+            problems.append(
+                f"row {index} kind {raw.get('kind')!r} cannot set "
+                "must_research false")
         if raw.get("must_answer") is not True:
             problems.append(f"row {index} assert must_answer must be true")
     elif mode == "avoid":

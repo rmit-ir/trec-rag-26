@@ -2798,11 +2798,25 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 if (not submission_errors
                         and terminal_evidence_handoff
                         and not coverage_terminal_handoff_sent):
-                    handoff = render_terminal_evidence_handoff(
-                        coverage_contract_items, coverage_evidence)
-                    coverage_terminal_handoff_sent = True
-                    coverage_terminal_handoff_chars = len(handoff)
-                    opened_handoff = True
+                    preview, preview_errors, preview_stats = (
+                        validate_submission(
+                            submit_calls[0]["arguments"],
+                            coverage_contract_items,
+                            coverage_evidence,
+                            set(ledger.committed_ids),
+                            answer_form=answer_form_policy,
+                            max_words=MAX_REPORT_WORDS,
+                        )
+                    )
+                    coverage_submission_stats = preview_stats
+                    if preview is None:
+                        submission_errors.extend(preview_errors)
+                    else:
+                        handoff = render_terminal_evidence_handoff(
+                            coverage_contract_items, coverage_evidence)
+                        coverage_terminal_handoff_sent = True
+                        coverage_terminal_handoff_chars = len(handoff)
+                        opened_handoff = True
                 elif not submission_errors:
                     submitted, submission_errors, coverage_submission_stats = (
                         validate_submission(
@@ -2833,7 +2847,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         "terminal_evidence_handoff": (
                             render_terminal_evidence_handoff(
                                 coverage_contract_items, coverage_evidence)
-                            if terminal_evidence_handoff else None
+                            if (terminal_evidence_handoff
+                                and coverage_terminal_handoff_sent) else None
                         ),
                     }, ensure_ascii=False)
                     failed = True

@@ -383,7 +383,14 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
                 "reason": "measured effect",
                 "supports": [{
                     "requirement_id": "P02",
-                    "claim": "Traffic volumes fell below the pre-toll baseline.",
+                    "claim": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "source_quote": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
                     "value_scope": "pre-toll baseline",
                     "must_include": ["traffic volumes", "pre-toll baseline"],
                 }],
@@ -500,7 +507,12 @@ def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
                     "supports": [{
                         "requirement_id": "P02",
                         "claim": (
-                            "Traffic volumes fell below the pre-toll baseline."
+                            "early reporting showed traffic volumes below the "
+                            "pre-toll baseline."
+                        ),
+                        "source_quote": (
+                            "early reporting showed traffic volumes below the "
+                            "pre-toll baseline."
                         ),
                         "value_scope": "pre-toll baseline",
                         "must_include": [
@@ -514,7 +526,12 @@ def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
                     "must_mention": ["pre-toll baseline"],
                     "minimum_count": 1,
                     "claim": (
-                        "Traffic volumes fell below the pre-toll baseline."
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "source_quote": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
                     ),
                     "value_scope": "pre-toll baseline",
                     "must_include": [
@@ -569,6 +586,83 @@ def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
     assert "TERMINAL EVIDENCE HANDOFF" in handoff
     assert "D01 ASSERT MIN=1" in handoff
     assert "pre-toll baseline" in handoff
+
+
+def test_terminal_handoff_opens_only_after_a_valid_preview_submission(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A malformed rehearsal must get closure errors before evidence replay opens."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    complete = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first eight requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+            },
+            {
+                "kind": "prose",
+                "text": "The final two requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": ["P09", "P10"],
+            },
+        ],
+        "unresolved": [],
+    }
+    incomplete = {
+        "answer_items": [dict(item) for item in complete["answer_items"]],
+        "unresolved": [],
+    }
+    incomplete["answer_items"][1] = {
+        **incomplete["answer_items"][1],
+        "satisfies": ["P09"],
+    }
+    script = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id="p1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", incomplete, id="a-bad")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", complete, id="a-preview")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", complete, id="a-final")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    contract = result["trace"]["summary"]["coverage_contract"]
+    assert contract["submission_attempts"] == 3
+    assert contract["terminal_handoff_sent"] is True
+    assert any("P10" in error for error in contract["submission_errors"])
+    invalid_payload = json.loads(
+        result["provider"].tool_results[1][0]["content"].splitlines()[0])
+    assert invalid_payload["terminal_evidence_handoff"] is None
+    assert "P10" in " ".join(invalid_payload["problems"])
+    handoff_payload = json.loads(
+        result["provider"].tool_results[2][0]["content"].splitlines()[0])
+    assert handoff_payload["handoff_required"] is True
+    assert "TERMINAL EVIDENCE HANDOFF" in handoff_payload["instruction"]
 
 
 def test_atomic_planner_rejects_raw_json_then_corrects_typed_inventory(
@@ -796,6 +890,7 @@ def test_contract_commit_annotation_can_be_corrected_without_research_loss(
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "Traffic volumes fell by 12%.",
+                "source_quote": "Traffic volumes fell by 12%.",
                 "must_include": ["12%"],
             }],
         }],
@@ -806,7 +901,14 @@ def test_contract_commit_annotation_can_be_corrected_without_research_loss(
             "reason": "measured effect",
             "supports": [{
                 "requirement_id": "P02",
-                "claim": "Traffic volumes fell from the pre-toll baseline.",
+                "claim": (
+                    "early reporting showed traffic volumes below the pre-toll "
+                    "baseline."
+                ),
+                "source_quote": (
+                    "early reporting showed traffic volumes below the pre-toll "
+                    "baseline."
+                ),
                 "must_include": ["traffic volumes", "pre-toll baseline"],
             }],
         }],
@@ -867,7 +969,7 @@ def test_contract_commit_annotation_can_be_corrected_without_research_loss(
     assert contract_summary["commit_corrections"] == 1
     assert contract_summary["commit_expirations"] == 0
     assert len(contract_summary["commit_validation_errors"]) == 1
-    assert "does not contain exact must_include term(s): 12%" in (
+    assert "does not contain the exact contiguous source_quote" in (
         contract_summary["commit_validation_errors"][0])
     correction = result["provider"].tool_results[1][0]["content"]
     assert "staged evidence remains available" in correction
@@ -897,6 +999,7 @@ def test_contract_commit_corrections_expire_after_the_bounded_retry_window(
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The study reported a change.",
+                "source_quote": "The study reported a change.",
                 "must_include": ["reported"],
             }],
         }],
@@ -963,6 +1066,7 @@ def test_contract_commit_does_not_offer_retry_without_submit_headroom(
             "supports": [{
                 "requirement_id": "P02",
                 "claim": "The study reported a change.",
+                "source_quote": "The study reported a change.",
                 "must_include": ["reported"],
             }],
         }],

@@ -199,6 +199,7 @@ def test_any_invalid_row_rejects_the_whole_inventory() -> None:
     cases = [
         assert_row(0, kind="penalty"),
         assert_row(0, must_answer=False),
+        assert_row(0, must_research=False),
         assert_row(0, must_research="yes"),
         assert_row(0, minimum_count=True),
         assert_row(0, minimum_count=51),
@@ -216,6 +217,7 @@ def test_strings_terms_and_atomic_clause_bounds_reject_without_slicing() -> None
         assert_row(0, requirement="Report A; report B"),
         assert_row(0, requirement="Report A. Report B"),
         assert_row(0, requirement="Compare treatment A, treatment B, and placebo"),
+        assert_row(0, requirement="Compare cost, safety and efficacy"),
         assert_row(0, requirement="Report safety and explain efficacy"),
         assert_row(0, must_mention=["one", "two", "three", "four"]),
         assert_row(0, must_mention=["x" * 81]),
@@ -240,6 +242,22 @@ def test_initialisms_do_not_create_false_sentence_boundaries() -> None:
     assert normalized[0]["requirement"] == (
         "Compare U.S. outcomes with Australian outcomes"
     )
+
+
+def test_only_request_grounded_kinds_may_skip_research() -> None:
+    """The planner cannot declare factual evidence self-supporting by assertion."""
+    rows = [assert_row(index) for index in range(10)]
+    rows[0] = assert_row(
+        0,
+        kind="deliverable",
+        requirement="Address the requested general-reader deliverable",
+        must_research=False,
+    )
+
+    normalized = normalize_atomic_plan(packet(rows))
+
+    assert normalized[0]["kind"] == "deliverable"
+    assert normalized[0]["must_research"] is False
 
 
 def test_duplicate_requirements_reject_the_whole_inventory() -> None:
