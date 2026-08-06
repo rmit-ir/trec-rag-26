@@ -95,8 +95,11 @@ from .answer_blueprint import (
     commit_context_tool_with_facts,
     normalize_answer_blueprint,
 )
+from .answer_form import (
+    infer_answer_form_policy,
+    render_terminal_system_addendum,
+)
 from .coverage_contract import (
-    SUBMIT_ANSWER_TOOL,
     EvidenceLedger,
     build_coverage_contract,
     commit_tool_with_contract,
@@ -106,6 +109,7 @@ from .coverage_contract import (
     render_contract_status,
     render_research_contract,
     search_tool_with_contract,
+    submit_answer_tool,
     submit_answer_request,
     validate_support_routes,
     validate_submission,
@@ -709,6 +713,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "coverage_repair_strategy must be 'patch-first' or 'research-first'")
     if not 1 <= plan_critic_max_additions <= 12:
         raise ValueError("plan_critic_max_additions must be between 1 and 12")
+    answer_form_policy = infer_answer_form_policy(query)
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
     provider = make_provider(backend, model)
     tb = TrajectoryBuilder(query_id, query, metadata={
@@ -962,6 +967,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         }
         trajectory.trace["summary"]["coverage_contract"] = {
             "enabled": coverage_contract,
+            "answer_form": answer_form_policy.trace(),
             "submission_attempts": coverage_submission_attempts,
             "submission_errors": list(coverage_submission_errors),
             "submission": dict(coverage_submission_stats),
@@ -1511,6 +1517,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     try:
         system_prompt = load_system_prompt(max_committed_per_step,
                                             prompt_variant)
+        if coverage_contract:
+            system_prompt += (
+                "\n\n" + render_terminal_system_addendum(answer_form_policy)
+            )
         search_tool_definition = build_search_tool_def(engines)
         if coverage_contract:
             search_tool_definition = search_tool_with_contract(
@@ -1528,7 +1538,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         if answer_blueprint:
             tool_definitions.append(PREPARE_ANSWER_TOOL)
         if coverage_contract:
-            tool_definitions.append(SUBMIT_ANSWER_TOOL)
+            tool_definitions.append(submit_answer_tool(answer_form_policy))
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         if coverage_plan:
             provider.start(COVERAGE_PLAN_SYSTEM, [])
@@ -1743,13 +1753,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 coverage_contract_items = build_coverage_contract(
                     coverage_plan_text,
                     list(obligation_audit.get("additions", [])),
+                    answer_form=answer_form_policy,
                 )
                 if not coverage_contract_items:
                     raise RuntimeError(
                         "coverage plan produced no executable contract items")
                 user_message += (
                     "\n\n"
-                    + render_research_contract(coverage_contract_items)
+                    + render_research_contract(
+                        coverage_contract_items, answer_form_policy)
                 )
         trace_input = {
             "system_prompt": system_prompt,
@@ -1778,6 +1790,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         if coverage_contract:
             trace_input["coverage_contract"] = contract_trace(
                 coverage_contract_items, coverage_evidence)
+            trace_input["answer_form"] = answer_form_policy.trace()
         if coverage_verify:
             trace_input["coverage_verify_system"] = COVERAGE_VERIFY_SYSTEM
             trace_input["claim_finish_system"] = CLAIM_FINISH_SYSTEM
@@ -2413,6 +2426,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             coverage_contract_items,
                             coverage_evidence,
                             set(ledger.committed_ids),
+                            answer_form=answer_form_policy,
                             max_words=MAX_REPORT_WORDS,
                         )
                     )

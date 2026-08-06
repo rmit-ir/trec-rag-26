@@ -20,9 +20,12 @@ from typing import Any
 
 from aus_agent.tools import COMMIT_CONTEXT_TOOL
 
+from .answer_form import AnswerFormPolicy
+
 
 _PLAN_ITEM_RE = re.compile(
-    r"(?ms)^\s*\d+\.\s*([A-Z][A-Z _/-]{1,30}):\s*(.*?)"
+    r"(?ms)^\s*\d+\.\s*(?:\*\*)?([A-Z][A-Z _/-]{1,30}):"
+    r"(?:\*\*)?\s*(.*?)"
     r"(?=^\s*\d+\.|\Z)"
 )
 _EXACT_RE = re.compile(r"\s+EXACT:\s*(.*?)(?=\s+SEARCH:|\.?\s*$)", re.I)
@@ -31,6 +34,16 @@ _CITATIONISH_RE = re.compile(r"\[[\w.-]+(?:[,;\s]+[\w.-]+)*\]")
 
 _NO_ANSWER_KINDS = {"budget", "penalty"}
 _NO_RESEARCH_KINDS = {"deliverable", "audience", "format", "budget", "penalty"}
+_UNINFORMATIVE_ANCHOR_TERMS = {
+    "a", "amount", "amounts", "an", "and", "article", "authors", "change",
+    "changes", "claim", "data", "date", "dates", "document", "effect",
+    "effects", "evidence", "finding", "findings", "for", "from", "in",
+    "information", "measure", "measured", "number", "numbers", "of", "paper",
+    "population", "populations", "reported", "research", "result", "results",
+    "said", "scope", "source", "states", "study", "that", "the", "this", "to",
+    "value", "values", "with",
+}
+_ANCHOR_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
 
 
 @dataclass(frozen=True)
@@ -53,6 +66,7 @@ class EvidenceAnchor:
     document_id: str
     claim: str
     value_scope: str = ""
+    must_include: tuple[str, ...] = ()
 
 
 @dataclass
@@ -87,7 +101,8 @@ SUBMIT_ANSWER_TOOL: dict[str, Any] = {
     "description": (
         "Submit the final answer and its obligation coverage in one terminal "
         "call. Use only after research is complete and no staged batch is "
-        "open. Each item is one answer sentence or a short nonfactual label. "
+        "open. Each typed item is prose, a request-authorized nonfactual "
+        "label, or request-authorized raw Python. "
         "Attach committed evidence ids and the exact coverage-contract ids "
         "that the item satisfies. Every must-answer id must be satisfied or "
         "listed as unresolved. This call replaces a free-prose answer turn."
@@ -95,20 +110,30 @@ SUBMIT_ANSWER_TOOL: dict[str, Any] = {
     "input_schema": {
         "type": "object",
         "properties": {
-            "sentences": {
+            "answer_items": {
                 "type": "array",
                 "minItems": 1,
                 "maxItems": 96,
                 "items": {
                     "type": "object",
                     "properties": {
+                        "kind": {
+                            "type": "string",
+                            "enum": ["prose", "label", "code"],
+                            "description": (
+                                "Use prose normally. Use label only for an "
+                                "explicit repeated deliverable and code only "
+                                "when the coverage contract authorizes Python."
+                            ),
+                        },
                         "text": {
                             "type": "string",
+                            "maxLength": 8000,
                             "description": (
-                                "One final answer sentence, or a short "
-                                "nonfactual part label when the requested "
-                                "deliverable needs visible parts. Do not put "
-                                "citation markers in this field."
+                                "One prose answer unit, a short nonfactual "
+                                "part label, or raw complete multiline Python. "
+                                "Code has no Markdown fences. Do not put "
+                                "citation markers in prose or label text."
                             ),
                         },
                         "evidence_ids": {
@@ -122,7 +147,8 @@ SUBMIT_ANSWER_TOOL: dict[str, Any] = {
                             "items": {"type": "string"},
                         },
                     },
-                    "required": ["text", "evidence_ids", "satisfies"],
+                    "required": [
+                        "kind", "text", "evidence_ids", "satisfies"],
                 },
             },
             "unresolved": {
@@ -136,9 +162,27 @@ SUBMIT_ANSWER_TOOL: dict[str, Any] = {
                 ),
             },
         },
-        "required": ["sentences", "unresolved"],
+        "required": ["answer_items", "unresolved"],
     },
 }
+
+
+def submit_answer_tool(policy: AnswerFormPolicy) -> dict[str, Any]:
+    """Return a tool description that advertises only request-authorized forms."""
+    tool = copy.deepcopy(SUBMIT_ANSWER_TOOL)
+    if policy.python_code:
+        tool["description"] += (
+            " This request authorizes raw Python code items; their syntax is "
+            "compiled before acceptance."
+        )
+    else:
+        tool["description"] += " This request does not authorize code items."
+    if policy.minimum_labels:
+        tool["description"] += (
+            f" Use at least {policy.minimum_labels} distinct "
+            f"{policy.repeated_label} label items."
+        )
+    return tool
 
 
 def _compact(value: Any, limit: int = 600) -> str:
@@ -146,9 +190,48 @@ def _compact(value: Any, limit: int = 600) -> str:
     return " ".join(str(value or "").split())[:limit]
 
 
+def _contains_exact_term(text: str, term: str) -> bool:
+    """Match a normalized literal without accepting alphanumeric substrings."""
+    normalized_text = " ".join(str(text or "").split())
+    normalized_term = " ".join(str(term or "").split())
+    if not normalized_term:
+        return False
+    left = r"(?<![A-Za-z0-9])" if normalized_term[0].isalnum() else ""
+    right = r"(?![A-Za-z0-9])" if normalized_term[-1].isalnum() else ""
+    return bool(re.search(
+        left + re.escape(normalized_term) + right,
+        normalized_text,
+        re.IGNORECASE,
+    ))
+
+
+def _material_anchor_term(term: str) -> bool:
+    """Reject generic or fragmentary literals that do not finish a claim."""
+    tokens = _ANCHOR_TOKEN_RE.findall(term)
+    if not tokens or term.casefold() in _UNINFORMATIVE_ANCHOR_TERMS:
+        return False
+    if any(any(character.isdigit() for character in token) for token in tokens):
+        return True
+    content = [
+        token for token in tokens
+        if token.casefold() not in _UNINFORMATIVE_ANCHOR_TERMS
+    ]
+    if len(content) >= 2:
+        return True
+    if len(content) == 1:
+        token = content[0]
+        return (
+            (len(token) >= 2 and any(character.isupper() for character in token))
+            or len(token) >= 4
+        )
+    return False
+
+
 def build_coverage_contract(
     plan: str,
     scout_additions: list[dict[str, Any]] | None = None,
+    *,
+    answer_form: AnswerFormPolicy | None = None,
 ) -> list[ContractItem]:
     """Parse the plan and structured scout rows into stable ``P``/``S`` ids.
 
@@ -218,23 +301,68 @@ def build_coverage_contract(
                 must_research=kind not in _NO_RESEARCH_KINDS,
                 must_answer=kind not in _NO_ANSWER_KINDS,
             ))
+    answer_form = answer_form or AnswerFormPolicy()
+    f_index = 0
+    if answer_form.python_code:
+        f_index += 1
+        items.append(ContractItem(
+            id=f"F{f_index:02d}",
+            origin="request",
+            kind="python_code",
+            requirement=(
+                "Provide syntactically valid raw Python for the requested key "
+                "components, preserving indentation and operators"
+            ),
+            must_research=False,
+            must_answer=True,
+        ))
+    if answer_form.minimum_labels:
+        f_index += 1
+        items.append(ContractItem(
+            id=f"F{f_index:02d}",
+            origin="request",
+            kind="repeated_labels",
+            requirement=(
+                f"Separate the requested series with at least "
+                f"{answer_form.minimum_labels} distinct plain "
+                f"{answer_form.repeated_label} labels"
+            ),
+            must_research=False,
+            must_answer=True,
+        ))
     return items
 
 
-def render_research_contract(items: list[ContractItem]) -> str:
+def render_research_contract(
+    items: list[ContractItem],
+    answer_form: AnswerFormPolicy | None = None,
+) -> str:
     """Render the compact protocol and stable ids for the research context."""
     lines = [
         "EXECUTABLE COVERAGE CONTRACT",
         "The ids below are harness-owned. Tag every search with the ids it "
         "investigates, map committed evidence to the ids it directly supports, "
         "and finish with submit_answer. Do not write a free-prose final turn.",
-        "A nonfactual label may satisfy a deliverable/format row without a "
-        "citation; factual rows need directly mapped committed evidence. "
-        "Untagged synthesis sentences are allowed. For a requested series or "
-        "repeated deliverable, use a plain label prefix on each part's opening "
-        "sentence (for example, 'Blog post 1 — ...'); do not enable broad "
-        "Markdown, tables, or uncited factual cells.",
+        "Factual prose rows need directly mapped committed evidence and must "
+        "carry the selected anchor's exact name/value/scope terms. Untagged "
+        "synthesis prose is allowed. Do not enable broad Markdown, tables, or "
+        "uncited factual cells.",
     ]
+    answer_form = answer_form or AnswerFormPolicy()
+    if answer_form.minimum_labels:
+        lines.append(
+            f"This request authorizes plain nonfactual label items: use at "
+            f"least {answer_form.minimum_labels} distinct "
+            f"'{answer_form.repeated_label} N —' labels. Labels carry no "
+            "citations; cite the factual prose item that follows."
+        )
+    if answer_form.python_code:
+        lines.append(
+            "This request authorizes raw multiline Python code items without "
+            "Markdown fences. Preserve indentation and bracket expressions. "
+            "Code may be uncited original synthesis; keep evidence-grounded "
+            "architecture and performance claims in cited prose items."
+        )
     for item in items:
         flags = []
         if item.must_research:
@@ -297,8 +425,19 @@ def commit_tool_with_contract() -> dict[str, Any]:
                         "boundary needed to finish the claim."
                     ),
                 },
+                "must_include": {
+                    "type": "array",
+                    "minItems": 1,
+                    "maxItems": 4,
+                    "items": {"type": "string"},
+                    "description": (
+                        "One to four exact source-supported names, values, "
+                        "dates, populations, or scope qualifiers that a final "
+                        "sentence using this anchor must repeat verbatim."
+                    ),
+                },
             },
-            "required": ["requirement_id", "claim"],
+            "required": ["requirement_id", "claim", "must_include"],
         },
     }
     return tool
@@ -350,6 +489,7 @@ def normalize_commit_supports(
             requirement_id = str(raw.get("requirement_id") or "").strip()
             claim = _compact(raw.get("claim"), 500)
             value_scope = _compact(raw.get("value_scope"), 300)
+            raw_must_include = raw.get("must_include")
             if requirement_id not in known:
                 errors.append(
                     f"unknown coverage-contract id {requirement_id!r} in "
@@ -359,7 +499,31 @@ def normalize_commit_supports(
                 errors.append(
                     f"document {doc_index} support {support_index} needs id and claim")
                 continue
-            anchor = EvidenceAnchor(document_id, claim, value_scope)
+            if not isinstance(raw_must_include, list) or not raw_must_include:
+                errors.append(
+                    f"document {document_id!r} support {support_index} needs "
+                    "a non-empty must_include array")
+                continue
+            must_include: list[str] = []
+            term_errors: list[str] = []
+            for raw_term in raw_must_include[:4]:
+                term = _compact(raw_term, 80)
+                if not term or not _material_anchor_term(term):
+                    term_errors.append(
+                        f"document {document_id!r} support {support_index} has "
+                        f"an uninformative must_include term {term!r}")
+                elif not _contains_exact_term(
+                        f"{claim} {value_scope}", term):
+                    term_errors.append(
+                        f"document {document_id!r} support {support_index} has "
+                        f"must_include term {term!r} outside its claim/scope")
+                elif term not in must_include:
+                    must_include.append(term)
+            if not must_include:
+                errors.extend(term_errors)
+                continue
+            anchor = EvidenceAnchor(
+                document_id, claim, value_scope, tuple(must_include))
             values = supports.setdefault(requirement_id, [])
             if anchor not in values:
                 values.append(anchor)
@@ -372,6 +536,7 @@ def validate_support_routes(
 ) -> list[str]:
     """Require commit support to follow the search purpose that found the unit."""
     purposes: dict[str, set[str]] = {}
+    source_text: dict[str, str] = {}
     for document in staged_documents:
         document_id = str(document.get("id") or "").strip()
         metadata = document.get("metadata")
@@ -379,6 +544,7 @@ def validate_support_routes(
             metadata, dict) else []
         purposes.setdefault(document_id, set()).update(
             str(value).strip() for value in values if str(value).strip())
+        source_text[document_id] = str(document.get("text") or "").casefold()
     errors: list[str] = []
     for requirement_id, anchors in supports.items():
         for anchor in anchors:
@@ -386,6 +552,15 @@ def validate_support_routes(
                 errors.append(
                     f"document {anchor.document_id!r} was not retrieved for "
                     f"coverage row {requirement_id}")
+            missing_terms = [
+                term for term in anchor.must_include
+                if not _contains_exact_term(
+                    source_text.get(anchor.document_id, ""), term)
+            ]
+            if missing_terms:
+                errors.append(
+                    f"document {anchor.document_id!r} does not contain exact "
+                    "must_include term(s): " + ", ".join(missing_terms))
     return errors
 
 
@@ -395,15 +570,17 @@ def validate_submission(
     ledger: EvidenceLedger,
     committed_ids: set[str],
     *,
+    answer_form: AnswerFormPolicy | None = None,
     max_words: int = 1024,
 ) -> tuple[list[dict[str, Any]] | None, list[str], dict[str, Any]]:
     """Validate a terminal answer against every executable contract row."""
+    answer_form = answer_form or AnswerFormPolicy()
     by_id = {item.id: item for item in items}
-    raw_sentences = arguments.get("sentences")
+    raw_answer_items = arguments.get("answer_items")
     raw_unresolved = arguments.get("unresolved")
     errors: list[str] = []
-    if not isinstance(raw_sentences, list) or not raw_sentences:
-        return None, ["sentences must be a non-empty array"], {}
+    if not isinstance(raw_answer_items, list) or not raw_answer_items:
+        return None, ["answer_items must be a non-empty array"], {}
     if not isinstance(raw_unresolved, list):
         return None, ["unresolved must be an array"], {}
 
@@ -417,25 +594,84 @@ def validate_submission(
 
     sentences: list[dict[str, Any]] = []
     tagged_text: dict[str, list[str]] = {}
+    tagged_kinds: dict[str, set[str]] = {}
     satisfied: set[str] = set()
-    for index, raw in enumerate(raw_sentences[:96], 1):
+    python_items = 0
+    label_ordinals: list[int] = []
+    for index, raw in enumerate(raw_answer_items[:96], 1):
         if not isinstance(raw, dict):
-            errors.append(f"sentence {index} is not an object")
+            errors.append(f"answer item {index} is not an object")
             continue
-        text = _compact(raw.get("text"), 8_000)
-        if not text:
-            errors.append(f"sentence {index} has empty text")
-            continue
-        if _CITATIONISH_RE.search(text):
+        kind = str(raw.get("kind") or "").strip().casefold()
+        if kind not in {"prose", "label", "code"}:
             errors.append(
-                f"sentence {index} contains citation markers; use evidence_ids")
+                f"answer item {index} kind must be prose, label, or code")
+            continue
+        raw_text = str(raw.get("text") or "")
+        if kind == "code":
+            text = raw_text.replace("\r\n", "\n").replace("\r", "\n")
+            text = text.strip("\n")
+        else:
+            text = _compact(raw_text, 8_000)
+        if not text:
+            errors.append(f"answer item {index} has empty text")
+            continue
+        if kind != "code" and _CITATIONISH_RE.search(text):
+            errors.append(
+                f"answer item {index} contains citation markers; use evidence_ids")
+        if kind == "code":
+            python_items += 1
+            oversized = len(text) > 8_000
+            if not answer_form.python_code:
+                errors.append(
+                    f"answer item {index} uses code not authorized by the request")
+            if oversized:
+                errors.append(
+                    f"answer item {index} code is {len(text)} characters; "
+                    "hard maximum is 8000")
+            if "```" in text or "\x00" in text:
+                errors.append(
+                    f"answer item {index} code must be raw source without "
+                    "Markdown fences or NUL bytes")
+            elif not oversized:
+                try:
+                    compile(text, "<submitted-python>", "exec")
+                except SyntaxError as exc:
+                    errors.append(
+                        f"answer item {index} Python syntax error at line "
+                        f"{exc.lineno}: {exc.msg}")
+        elif kind == "label":
+            if not answer_form.minimum_labels:
+                errors.append(
+                    f"answer item {index} uses a label not authorized by the request")
+            if "\n" in raw_text or len(text.split()) > 18:
+                errors.append(
+                    f"answer item {index} label must be one short nonfactual line")
+            elif answer_form.repeated_label:
+                label_match = re.match(
+                    rf"^{re.escape(answer_form.repeated_label)}\s+"
+                    r"(?P<ordinal>\d+)\s*[—–:-]",
+                    text,
+                    re.IGNORECASE,
+                )
+                if label_match is None:
+                    errors.append(
+                        f"answer item {index} label must begin with "
+                        f"'{answer_form.repeated_label} N —'")
+                else:
+                    ordinal = int(label_match.group("ordinal"))
+                    if ordinal in label_ordinals:
+                        errors.append(
+                            f"answer item {index} duplicates "
+                            f"{answer_form.repeated_label} {ordinal}")
+                    label_ordinals.append(ordinal)
         raw_evidence = raw.get("evidence_ids")
         raw_satisfies = raw.get("satisfies")
         if not isinstance(raw_evidence, list):
-            errors.append(f"sentence {index} evidence_ids must be an array")
+            errors.append(f"answer item {index} evidence_ids must be an array")
             raw_evidence = []
         if not isinstance(raw_satisfies, list):
-            errors.append(f"sentence {index} satisfies must be an array")
+            errors.append(f"answer item {index} satisfies must be an array")
             raw_satisfies = []
 
         evidence_ids: list[str] = []
@@ -443,34 +679,59 @@ def validate_submission(
             document_id = str(value).strip()
             if document_id not in committed_ids:
                 errors.append(
-                    f"sentence {index} cites uncommitted id {document_id!r}")
+                    f"answer item {index} cites uncommitted id {document_id!r}")
             elif document_id not in evidence_ids:
                 evidence_ids.append(document_id)
+        if kind in {"code", "label"} and evidence_ids:
+            errors.append(
+                f"answer item {index} {kind} must not carry citations; put "
+                "source-grounded claims in an adjacent prose item")
         satisfies: list[str] = []
         for value in raw_satisfies[:8]:
             item_id = str(value).strip()
             if item_id not in by_id:
                 errors.append(
-                    f"sentence {index} tags unknown coverage-contract id {item_id!r}")
+                    f"answer item {index} tags unknown coverage-contract id "
+                    f"{item_id!r}")
             elif item_id not in satisfies:
                 satisfies.append(item_id)
                 satisfied.add(item_id)
                 tagged_text.setdefault(item_id, []).append(text)
+                tagged_kinds.setdefault(item_id, set()).add(kind)
 
         for item_id in satisfies:
             item = by_id[item_id]
             if not item.must_research:
                 continue
-            mapped = {
-                anchor.document_id for anchor in ledger.anchors.get(item_id, [])
-            }
+            mapped_anchors = [
+                anchor for anchor in ledger.anchors.get(item_id, [])
+                if anchor.document_id in evidence_ids
+            ]
             if not evidence_ids:
                 errors.append(
-                    f"sentence {index} satisfies research row {item_id} "
+                    f"answer item {index} satisfies research row {item_id} "
                     "without evidence_ids")
-            elif not any(document_id in mapped for document_id in evidence_ids):
+            elif not mapped_anchors:
                 errors.append(
-                    f"sentence {index} has no evidence explicitly mapped to {item_id}")
+                    f"answer item {index} has no evidence explicitly mapped "
+                    f"to {item_id}")
+            elif kind != "prose":
+                errors.append(
+                    f"answer item {index} satisfies research row {item_id} "
+                    f"with {kind} instead of cited prose")
+            elif not any(
+                all(_contains_exact_term(text, term)
+                    for term in anchor.must_include)
+                for anchor in mapped_anchors
+            ):
+                choices = [
+                    " + ".join(anchor.must_include)
+                    for anchor in mapped_anchors
+                ]
+                errors.append(
+                    f"answer item {index} does not finish research row "
+                    f"{item_id}; include every exact term from one cited "
+                    "anchor: " + " OR ".join(choices))
         sentences.append({"text": text, "citations": evidence_ids})
 
     overlap = satisfied.intersection(unresolved)
@@ -490,14 +751,36 @@ def validate_submission(
             errors.append(
                 f"unresolved research row {item_id} has no tagged search attempt")
     for item in items:
-        if item.id not in satisfied or not item.must_mention:
-            continue
-        haystack = " ".join(tagged_text.get(item.id, [])).casefold()
-        absent = [term for term in item.must_mention if term.casefold() not in haystack]
-        if absent:
+        if item.id in satisfied and item.must_mention:
+            haystack = " ".join(tagged_text.get(item.id, [])).casefold()
+            absent = [
+                term for term in item.must_mention
+                if not _contains_exact_term(haystack, term)
+            ]
+            if absent:
+                errors.append(
+                    f"coverage row {item.id} is tagged but omits exact term(s): "
+                    + ", ".join(absent))
+        if (item.id in satisfied and item.kind == "python_code"
+                and "code" not in tagged_kinds.get(item.id, set())):
             errors.append(
-                f"coverage row {item.id} is tagged but omits exact term(s): "
-                + ", ".join(absent))
+                f"coverage row {item.id} requires a code answer item")
+        if (item.id in satisfied and item.kind == "repeated_labels"
+                and "label" not in tagged_kinds.get(item.id, set())):
+            errors.append(
+                f"coverage row {item.id} requires a label answer item")
+
+    if answer_form.python_code and python_items == 0:
+        errors.append("the request requires at least one valid Python code item")
+    if answer_form.minimum_labels:
+        required_ordinals = set(range(1, answer_form.minimum_labels + 1))
+        missing_ordinals = required_ordinals - set(label_ordinals)
+        if missing_ordinals:
+            errors.append(
+                f"the requested series requires distinct "
+                f"{answer_form.repeated_label} labels numbered 1 through "
+                f"{answer_form.minimum_labels}; missing "
+                + ", ".join(str(value) for value in sorted(missing_ordinals)))
 
     words = sum(len(sentence["text"].split()) for sentence in sentences)
     if words > max_words:
@@ -512,6 +795,8 @@ def validate_submission(
         "unresolved": len(unresolved),
         "missing": sorted(missing),
         "words": words,
+        "python_items": python_items,
+        "label_items": len(label_ordinals),
         "search_rows": len(ledger.attempted_queries),
         "supported_rows": len(ledger.anchors),
         "anchors": sum(len(values) for values in ledger.anchors.values()),
@@ -552,6 +837,8 @@ def render_contract_status(
             anchor_text = " ; ".join(
                 f"[{anchor.document_id}] {anchor.claim}"
                 + (f" | {anchor.value_scope}" if anchor.value_scope else "")
+                + (" | USE EXACT: " + "; ".join(anchor.must_include)
+                   if anchor.must_include else "")
                 for anchor in anchors[:2]
             )
             line = f"{item.id} SUPPORTED: {anchor_text}"
@@ -576,7 +863,7 @@ def submit_answer_request(
     request = (
         "Do not write the final answer as free prose. Research is complete only "
         "through the terminal submit_answer tool. Call submit_answer now and "
-        "tag every final sentence with the coverage ids it satisfies. Every "
+        "tag every final answer item with the coverage ids it satisfies. Every "
         f"must-answer id must be satisfied or honestly unresolved: {required}."
     )
     if ledger is not None:

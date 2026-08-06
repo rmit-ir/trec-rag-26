@@ -27,8 +27,15 @@ ARCH_STAGES = [
         ],
     },
     {
+        "id": "form", "label": "REQUEST FORM GATE", "kind": "no-llm",
+        "note": "literal request cues authorize raw Python or repeated labels",
+        "code": [
+            "systems/aus_agent_v2/answer_form.py::infer_answer_form_policy",
+        ],
+    },
+    {
         "id": "research", "label": "RESEARCH LOOP", "kind": "loop",
-        "note": "search, retain evidence, and draft in staged context",
+        "note": "route obligations through search and exact-term anchors",
         "back_to": "search", "back_from": "commit",
         "back_label": "evidence gaps",
         "prompt": ["systems/aus_agent_v2/prompts/system/default.md"],
@@ -38,8 +45,13 @@ ARCH_STAGES = [
              "systems/aus_agent_v2/search.py::SEARCH_TOOL_DEF"},
             {"name": "commit_context", "ref":
              "systems/aus_agent/tools/commit_context.py::COMMIT_CONTEXT_TOOL"},
+            {"name": "submit_answer", "ref":
+             "systems/aus_agent_v2/coverage_contract.py::SUBMIT_ANSWER_TOOL"},
         ],
-        "tools_note": "reuses the stable staged-context tool protocol",
+        "tools_note": (
+            "contract candidate adds requirement ids and exact claim terms; "
+            "verified default retains the stable staged-context protocol"
+        ),
     },
     {
         "id": "search", "label": "SEARCH", "kind": "retrieval",
@@ -49,19 +61,29 @@ ARCH_STAGES = [
     },
     {
         "id": "commit", "label": "COMMIT EVIDENCE", "kind": "no-llm",
-        "note": "selected units persist; rejected units compact",
-        "code": ["systems/aus_agent/tools/commit_context.py::apply_commit"],
+        "note": "selected units persist with obligation-bound claim anchors",
+        "code": [
+            "systems/aus_agent/tools/commit_context.py::apply_commit",
+            "systems/aus_agent_v2/coverage_contract.py::normalize_commit_supports",
+        ],
     },
     {
-        "id": "draft", "label": "CITED DRAFT", "kind": "llm",
-        "note": "research model writes the complete answer once",
+        "id": "draft", "label": "ANSWER / TERMINAL SUBMIT", "kind": "llm",
+        "note": "default writes cited prose; candidate submits typed answer items",
         "prompt": ["systems/aus_agent_v2/prompts/system/default.md"],
-        "code": ["systems/aus_agent_v2/agent.py::run_agent"],
+        "code": [
+            "systems/aus_agent_v2/agent.py::run_agent",
+            "systems/aus_agent_v2/answer_form.py::render_terminal_system_addendum",
+            "systems/aus_agent_v2/coverage_contract.py::validate_submission",
+        ],
     },
     {
         "id": "map", "label": "VALIDATE + MAP", "kind": "format",
-        "note": "deterministic parser and citation remapping",
-        "code": ["systems/aus_agent_v2/agent.py::_map_citations"],
+        "note": "obligation, syntax, exact-term, and citation checks",
+        "code": [
+            "systems/aus_agent_v2/coverage_contract.py::validate_submission",
+            "systems/aus_agent_v2/agent.py::_map_citations",
+        ],
     },
     {
         "id": "save", "label": "SAVE", "kind": "artifact",

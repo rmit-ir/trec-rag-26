@@ -298,18 +298,22 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
         "2. EVIDENCE: Quantify the measured traffic change with its scope."
     )
     partial = {
-        "sentences": [{
-            "text": "Traffic volume fell by 12% in the priced zone in 2025.",
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "Traffic volumes fell by 12% from the pre-toll baseline in 2025."
+            ),
             "evidence_ids": [D[0]],
             "satisfies": ["P02"],
         }],
         "unresolved": [],
     }
     complete = {
-        "sentences": [{
+        "answer_items": [{
+            "kind": "prose",
             "text": (
                 "For a general reader, the measured result is that traffic "
-                "volume fell by 12% in the priced zone in 2025."
+                "volumes fell by 12% from the pre-toll baseline in 2025."
             ),
             "evidence_ids": [D[0]],
             "satisfies": ["P01", "P02"],
@@ -335,8 +339,9 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
                 "reason": "measured effect",
                 "supports": [{
                     "requirement_id": "P02",
-                    "claim": "Traffic volume fell by 12%.",
-                    "value_scope": "priced zone in 2025",
+                    "claim": "Traffic volumes fell by 12%.",
+                    "value_scope": "pre-toll baseline in 2025",
+                    "must_include": ["traffic volumes", "pre-toll baseline"],
                 }],
             }]},
             id="c1",
@@ -357,7 +362,7 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
     assert result["summary"]["status"] == "completed"
     assert result["provider"].turn_index == 6
     assert result["output"]["answer"] == [{
-        "text": complete["sentences"][0]["text"],
+        "text": complete["answer_items"][0]["text"],
         "citations": [0],
     }]
     assert "EXECUTABLE COVERAGE CONTRACT" in result["trace"]["input"][
@@ -370,6 +375,61 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
     assert sum(len(values) for values in contract_summary["anchors"].values()) == 1
     assert "COVERAGE CLOSURE STATUS" in (
         result["provider"].tool_results[1][0]["content"])
+
+
+def test_terminal_contract_preserves_request_authorized_runnable_python(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Organizer projection must not corrupt indentation, operators, or indexing."""
+    query = (
+        "Design a modified U-Net and include Python code for the model and loss."
+    )
+    code = (
+        "class Block:\n"
+        "    def __init__(self, values):\n"
+        "        self.first = values[0]\n\n"
+        "def loss(p, y):\n"
+        "    return p * y + (1 - p) * (1 - y)"
+    )
+    provider = ScriptedProvider([
+        model_turn(text="1. FORMAT: Include runnable Python model and loss code."),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer",
+            {
+                "answer_items": [{
+                    "kind": "code",
+                    "text": code,
+                    "evidence_ids": [],
+                    "satisfies": ["P01", "F01"],
+                }],
+                "unresolved": [],
+            },
+            id="a1",
+        )]),
+    ])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: provider,
+    )
+
+    summary = run_agent(
+        "mock_aus_v2_python",
+        query,
+        run_id="aus-agent-v2.python.mock",
+        safety_max_rounds=10,
+        coverage_plan=True,
+        plan_critic=False,
+        coverage_verify=False,
+        audience_verify=False,
+        finish_review=False,
+        coverage_contract=True,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert output["answer"] == [{"text": code, "citations": []}]
+    assert output["trace"]["input"]["answer_form"]["python_code"] is True
+    assert "raw, complete, multiline Python" in output["trace"]["input"][
+        "system_prompt"]
 
 
 def test_fresh_verifier_routes_gap_to_preservation_safe_claim_patcher(
