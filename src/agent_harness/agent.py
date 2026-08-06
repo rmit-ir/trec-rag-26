@@ -183,6 +183,24 @@ def _apply_search_result_filter(
         return out, documents
 
 
+def _truncate_snippet(text: str, max_chars: int) -> tuple[str, bool]:
+    """piika-style preview (``pyserini_rest/adapter.ts::truncateSnippet``,
+    verified against its source 2026-08-06): collapse ALL whitespace
+    (including newlines) to single spaces first, so a preview budget is
+    never wasted on line breaks the original chunk text happens to carry.
+    Improves on piika's own version in one way (per user request): never
+    cuts mid-word -- backs up to the last space before the limit, or hard-
+    cuts only if the very first ``max_chars`` characters contain no space
+    at all (a pathological single long token)."""
+    compact = " ".join(text.split())
+    if len(compact) <= max_chars:
+        return compact, False
+    cut = compact.rfind(" ", 0, max_chars)
+    if cut <= 0:
+        cut = max_chars
+    return compact[:cut].rstrip() + "...", True
+
+
 def _apply_search_preview(
         out: str, documents: list[dict[str, Any]],
         preview_chars: int | None) -> tuple[str, list[dict[str, Any]]]:
@@ -200,16 +218,18 @@ def _apply_search_preview(
         data = json.loads(out)
         for result in data.get("results", []):
             text = result.get("text")
-            if isinstance(text, str) and len(text) > preview_chars:
-                result["text"] = text[:preview_chars]
-                result["preview_truncated"] = True
-        new_documents = [
-            {**d, "text": (d.get("text") or "")[:preview_chars]}
-            if isinstance(d.get("text"), str)
-               and len(d["text"]) > preview_chars
-            else d
-            for d in documents
-        ]
+            if isinstance(text, str):
+                snippet, truncated = _truncate_snippet(text, preview_chars)
+                result["text"] = snippet
+                if truncated:
+                    result["preview_truncated"] = True
+        new_documents = []
+        for d in documents:
+            text = d.get("text")
+            if isinstance(text, str):
+                snippet, _truncated = _truncate_snippet(text, preview_chars)
+                d = {**d, "text": snippet}
+            new_documents.append(d)
         return json.dumps(data, ensure_ascii=False), new_documents
     except Exception:
         return out, documents

@@ -160,9 +160,11 @@ def main() -> None:
              "full-text read (staged as usual). Not facets_agent's default.")
     ap.add_argument(
         "--two-tier-preview-chars", type=int,
-        default=env("RUN_FACETS_AGENT_TWO_TIER_PREVIEW_CHARS", 400),
+        default=env("RUN_FACETS_AGENT_TWO_TIER_PREVIEW_CHARS", 500),
         help="preview length in characters when --two-tier-search is set "
-             "(default: 400, roughly piika's snippet size)")
+             "(default: 500, matching piika's own pyserini_rest adapter "
+             "default; unlike piika's, whitespace-collapsed and never cut "
+             "mid-word -- see agent_harness.agent._truncate_snippet)")
     args = ap.parse_args()
     engines = [e.strip() for e in str(args.engines).split(",") if e.strip()]
 

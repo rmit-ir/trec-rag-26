@@ -11,6 +11,46 @@ from typing import Any
 
 from agent_harness_context.fakes import DOC_SETS, call, staged_text, turn
 
+from agent_harness.agent import _truncate_snippet
+
+
+# ---------------------------------------------------------------------------
+# _truncate_snippet -- piika-style, whitespace-collapsed, word-boundary aware
+# ---------------------------------------------------------------------------
+def test_truncate_snippet_collapses_all_whitespace_including_newlines() -> None:
+    text = "Page 1 of document:\nFirst line.\n\nSecond   line with  gaps."
+    snippet, truncated = _truncate_snippet(text, 1000)
+    assert "\n" not in snippet
+    assert "  " not in snippet
+    assert not truncated
+
+
+def test_truncate_snippet_never_cuts_mid_word() -> None:
+    text = "one two three four five six seven eight nine ten"
+    snippet, truncated = _truncate_snippet(text, 20)
+    assert truncated
+    assert snippet.endswith("...")
+    body = snippet[:-3].rstrip()
+    # every word in the snippet must be a COMPLETE word from the original
+    words = text.split()
+    assert all(w in words for w in body.split())
+    assert len(snippet) <= 23  # 20 + "..." plus rstrip slack
+
+
+def test_truncate_snippet_hard_cuts_a_single_long_token() -> None:
+    """No space anywhere before the limit -- must still produce something
+    bounded rather than looping or returning the whole (pathological) text."""
+    text = "a" * 50
+    snippet, truncated = _truncate_snippet(text, 10)
+    assert truncated
+    assert len(snippet) <= 13  # 10 + "..."
+
+
+def test_truncate_snippet_is_a_noop_under_the_limit() -> None:
+    snippet, truncated = _truncate_snippet("short text", 500)
+    assert snippet == "short text"
+    assert not truncated
+
 
 def _search_payload(provider: Any, call_id: str) -> dict[str, Any]:
     for turn_results in provider.tool_results:
@@ -49,7 +89,10 @@ def test_search_preview_chars_truncates_every_result(run_agent_capture) -> None:
     provider = StrictScriptedProvider(list(script))
     run_agent_capture(provider, search_preview_chars=5)
     payload = _search_payload(provider, "s1")
-    assert all(len(r["text"]) <= 5 for r in payload["results"])
+    # word-boundary-aware truncation may back up before 5 chars and append
+    # "..." -- bounded, not an exact 5-char cap (see _truncate_snippet).
+    assert all(len(r["text"]) < len(staged_text(r["id"]))
+              for r in payload["results"])
     assert all(r.get("preview_truncated") for r in payload["results"])
 
 
