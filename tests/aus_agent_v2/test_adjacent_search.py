@@ -61,7 +61,8 @@ def test_search_merges_fetched_neighbors_into_the_same_staged_batch(
     )
 
     result = search_mod.execute_full_text_search(
-        {"query": "q", "search_engine": "semantic"},
+        {"query": "q", "search_engine": "semantic",
+         "for_requirements": ["P02", "S01"]},
         default_k=10,
         seen_docids=set(),
         engines=["semantic"],
@@ -73,4 +74,8 @@ def test_search_merges_fetched_neighbors_into_the_same_staged_batch(
     assert [item["id"] for item in payload["results"]] == [
         "shard_9_p2", "shard_9_p1"]
     assert payload["automatic_adjacent_pages"]["missing"] == ["shard_9_p3"]
+    assert payload["for_requirements"] == ["P02", "S01"]
+    assert result.trace_output["for_requirements"] == ["P02", "S01"]
+    assert all(document["metadata"]["for_requirements"] == ["P02", "S01"]
+               for document in result.documents)
     assert result.returned == [{"docid": "shard_9", "score": 4.2}]

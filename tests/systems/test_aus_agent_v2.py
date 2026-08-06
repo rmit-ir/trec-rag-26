@@ -41,6 +41,7 @@ def test_run_script_imports_sibling_systems_without_pytest_path_help() -> None:
     assert "--plan-critic" in completed.stdout
     assert "--coverage-scout" in completed.stdout
     assert "--plan-reconcile" in completed.stdout
+    assert "--coverage-contract" in completed.stdout
 
 
 def test_public_pipeline_uses_only_the_confirmed_default_stages(
@@ -71,6 +72,31 @@ def test_public_pipeline_uses_only_the_confirmed_default_stages(
     assert captured["audience_verify"] is False
     assert captured["finish_review"] is False
     assert captured["answer_blueprint"] is False
+    assert captured["coverage_contract"] is False
+
+
+def test_contract_pipeline_is_explicitly_separate_from_confirmed_default(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """An ungraded architecture must be runnable without silently becoming control."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_contract_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="contract-candidate",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["coverage_contract"] is True
+    assert captured["observable_scout"] is True
+    assert captured["answer_blueprint"] is False
+    assert captured["coverage_verify"] is False
 
 
 @pytest.fixture
@@ -262,6 +288,88 @@ def test_answer_blueprint_replays_commit_facts_before_accepting_prose(
     assert blueprint["prepared"] is True
     assert blueprint["mapped_claims"] == 1
     assert blueprint["fact_cards"] == 1
+
+
+def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A partial answer must fail before organizer output even when its citation is valid."""
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect for a general reader.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    partial = {
+        "sentences": [{
+            "text": "Traffic volume fell by 12% in the priced zone in 2025.",
+            "evidence_ids": [D[0]],
+            "satisfies": ["P02"],
+        }],
+        "unresolved": [],
+    }
+    complete = {
+        "sentences": [{
+            "text": (
+                "For a general reader, the measured result is that traffic "
+                "volume fell by 12% in the priced zone in 2025."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": ["P01", "P02"],
+        }],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{
+                "id": D[0],
+                "reason": "measured effect",
+                "supports": [{
+                    "requirement_id": "P02",
+                    "claim": "Traffic volume fell by 12%.",
+                    "value_scope": "priced zone in 2025",
+                }],
+            }]},
+            id="c1",
+        )]),
+        model_turn(text=f"Traffic fell after pricing. [{D[0]}]"),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", partial, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", complete, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].turn_index == 6
+    assert result["output"]["answer"] == [{
+        "text": complete["sentences"][0]["text"],
+        "citations": [0],
+    }]
+    assert "EXECUTABLE COVERAGE CONTRACT" in result["trace"]["input"][
+        "user_message"]
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["submission_attempts"] == 2
+    assert contract_summary["submission"]["missing"] == []
+    assert any("P01" in error
+               for error in contract_summary["submission_errors"])
+    assert sum(len(values) for values in contract_summary["anchors"].values()) == 1
+    assert "COVERAGE CLOSURE STATUS" in (
+        result["provider"].tool_results[1][0]["content"])
 
 
 def test_fresh_verifier_routes_gap_to_preservation_safe_claim_patcher(

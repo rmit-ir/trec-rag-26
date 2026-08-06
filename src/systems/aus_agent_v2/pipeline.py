@@ -86,6 +86,37 @@ def run_one(*, qid: str, narrative: str, run_id: str,
         "audience_verify": False,
         "finish_review": False,
         "answer_blueprint": False,
+        "coverage_contract": False,
+    }
+    options.update(kwargs)
+    return run_agent(
+        qid,
+        narrative,
+        backend=backend,
+        model=model_id,
+        run_id=run_id,
+        run_desc=run_desc,
+        **options,
+    )
+
+
+def run_contract_one(*, qid: str, narrative: str, run_id: str,
+                     run_desc: str | None = None,
+                     model_id: str | None = None,
+                     backend: str = "openai", **kwargs: Any) -> dict[str, Any]:
+    """Run the obligation/evidence-ledger candidate pending a full-30 grade."""
+    options: dict[str, Any] = {
+        "k": 20,
+        "safety_max_rounds": 40,
+        "coverage_plan": True,
+        "plan_critic": True,
+        "observable_scout": True,
+        "plan_reconcile": False,
+        "coverage_verify": False,
+        "audience_verify": False,
+        "finish_review": False,
+        "answer_blueprint": False,
+        "coverage_contract": True,
     }
     options.update(kwargs)
     return run_agent(

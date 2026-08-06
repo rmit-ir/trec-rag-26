@@ -174,6 +174,11 @@ def main() -> None:
         default=env("RUN_AUS_AGENT_V2_ANSWER_BLUEPRINT", False),
         help="mandatory evidence-to-answer claim map with commit-time fact "
              "replay immediately before final prose (experimental; default: off)")
+    ap.add_argument(
+        "--coverage-contract", action=argparse.BooleanOptionalAction,
+        default=env("RUN_AUS_AGENT_V2_COVERAGE_CONTRACT", False),
+        help="harness-owned requirement/evidence ledger with terminal "
+             "submit_answer validation (experimental; default: off)")
     ap.add_argument("--run-id", default=env(
         "RUN_AUS_AGENT_V2_RUN_ID", "aus-agent-v2-dev"))
     ap.add_argument(
@@ -247,6 +252,7 @@ def main() -> None:
                                     args.coverage_repair_strategy),
                                 audience_verify=args.audience_verify,
                                 answer_blueprint=args.answer_blueprint,
+                                coverage_contract=args.coverage_contract,
                                 engines=search_backends)
         except Exception:  # keep --all going
             failures += 1

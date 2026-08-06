@@ -84,6 +84,28 @@ def execute_full_text_search(
     if execution.failed or not execution.documents:
         return execution
 
+    requirement_ids = [
+        str(value).strip()
+        for value in arguments.get("for_requirements", [])
+        if str(value).strip()
+    ]
+    if requirement_ids:
+        routed_data = json.loads(execution.output)
+        routed_data["for_requirements"] = requirement_ids
+        for document in execution.documents:
+            document.setdefault("metadata", {})[
+                "for_requirements"] = list(requirement_ids)
+        execution = base_search.SearchExecution(
+            output=json.dumps(routed_data, ensure_ascii=False),
+            trace_output={
+                **execution.trace_output,
+                "for_requirements": requirement_ids,
+            },
+            returned=execution.returned,
+            failed=False,
+            documents=execution.documents,
+        )
+
     unit_ids = [str(document["id"]) for document in execution.documents]
     requested = adjacent_page_ids(unit_ids)
     if not requested:
@@ -110,6 +132,7 @@ def execute_full_text_search(
         document.setdefault("metadata", {}).update({
             "source": "automatic_adjacent_page",
             "query": data.get("query"),
+            "for_requirements": list(requirement_ids),
         })
     data["results"] = existing_results + adjacent_results
     data["automatic_adjacent_pages"] = {

@@ -95,6 +95,21 @@ from .answer_blueprint import (
     commit_context_tool_with_facts,
     normalize_answer_blueprint,
 )
+from .coverage_contract import (
+    SUBMIT_ANSWER_TOOL,
+    EvidenceLedger,
+    build_coverage_contract,
+    commit_tool_with_contract,
+    contract_trace,
+    normalize_commit_supports,
+    normalize_requirement_ids,
+    render_contract_status,
+    render_research_contract,
+    search_tool_with_contract,
+    submit_answer_request,
+    validate_support_routes,
+    validate_submission,
+)
 from aus_agent.providers.base import Provider
 from aus_agent.tools import (
     COMMIT_CONTEXT_TOOL,
@@ -673,6 +688,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               coverage_repair_strategy: str = "patch-first",
               audience_verify: bool = False,
               answer_blueprint: bool = False,
+              coverage_contract: bool = False,
               engines: list[str] | None = None) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -682,6 +698,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
+    if answer_blueprint and coverage_contract:
+        raise ValueError(
+            "answer_blueprint and coverage_contract are alternative terminal "
+            "handoffs and cannot both be enabled")
+    if coverage_contract and not coverage_plan:
+        raise ValueError("coverage_contract requires coverage_plan")
     if coverage_repair_strategy not in {"patch-first", "research-first"}:
         raise ValueError(
             "coverage_repair_strategy must be 'patch-first' or 'research-first'")
@@ -707,6 +729,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "coverage_repair_strategy": coverage_repair_strategy,
         "audience_verify": audience_verify,
         "answer_blueprint": answer_blueprint,
+        "coverage_contract": coverage_contract,
         "engines": engines,
     })
     log.info("[%s] starting: backend=%s model=%s k=%d run_id=%s budget=%d",
@@ -748,6 +771,11 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     answer_blueprint_invalidations = 0
     answer_blueprint_errors: list[str] = []
     answer_handoff_chars = 0
+    coverage_contract_items = []
+    coverage_evidence = EvidenceLedger()
+    coverage_submission_attempts = 0
+    coverage_submission_errors: list[str] = []
+    coverage_submission_stats: dict[str, Any] = {}
     committed_documents: dict[str, dict[str, Any]] = {}
     archived_raw_messages: list[Any] = []
     auxiliary_raw_messages: list[Any] = []
@@ -826,6 +854,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 f"finish_review={finish_review}, "
                 f"coverage_plan={coverage_plan}, "
                 f"plan_critic={plan_critic}, "
+                f"coverage_contract={coverage_contract}, "
                 f"engines={'+'.join(engines)}): "
                 + (
                     "isolated coverage planning, staged-context full-text "
@@ -837,8 +866,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     if coverage_plan or finish_review else
                     "continuous single-agent full-text research; "
                 )
-                + "line-per-sentence cited prose is parsed into the organizer "
-                  "schema."),
+                + (
+                    "requirement-tagged terminal answer is validated and "
+                    "mapped into the organizer schema."
+                    if coverage_contract else
+                    "line-per-sentence cited prose is parsed into the "
+                    "organizer schema."
+                )),
             references=references,
             answer=answer,
         )
@@ -881,6 +915,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "coverage_repair_strategy": coverage_repair_strategy,
             "audience_verify": audience_verify,
             "answer_blueprint": answer_blueprint,
+            "coverage_contract": coverage_contract,
         }
         trajectory.trace["summary"]["context"] = {
             "committed": sorted(ledger.committed_ids),
@@ -924,6 +959,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "handoff_chars": answer_handoff_chars,
             "errors": list(answer_blueprint_errors),
             "fact_cards": sum(len(cards) for cards in fact_ledger.values()),
+        }
+        trajectory.trace["summary"]["coverage_contract"] = {
+            "enabled": coverage_contract,
+            "submission_attempts": coverage_submission_attempts,
+            "submission_errors": list(coverage_submission_errors),
+            "submission": dict(coverage_submission_stats),
+            **contract_trace(coverage_contract_items, coverage_evidence),
         }
         trajectory.trace["summary"]["coverage_plan"] = {
             "enabled": coverage_plan,
@@ -1469,16 +1511,24 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     try:
         system_prompt = load_system_prompt(max_committed_per_step,
                                             prompt_variant)
+        search_tool_definition = build_search_tool_def(engines)
+        if coverage_contract:
+            search_tool_definition = search_tool_with_contract(
+                search_tool_definition)
         tool_definitions = [
-            build_search_tool_def(engines),
+            search_tool_definition,
             # Fact cards are requested only for the evidence-to-answer arm.
             # The original system and the v2 control retain the unchanged
             # commit schema, keeping this a clean architectural intervention.
-            (commit_context_tool_with_facts()
+            (commit_tool_with_contract()
+             if coverage_contract else
+             commit_context_tool_with_facts()
              if answer_blueprint else COMMIT_CONTEXT_TOOL),
         ]
         if answer_blueprint:
             tool_definitions.append(PREPARE_ANSWER_TOOL)
+        if coverage_contract:
+            tool_definitions.append(SUBMIT_ANSWER_TOOL)
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         if coverage_plan:
             provider.start(COVERAGE_PLAN_SYSTEM, [])
@@ -1689,6 +1739,18 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     "evidence, draft instead of searching exhaustively:\n\n"
                     + coverage_plan_text
                 )
+            if coverage_contract:
+                coverage_contract_items = build_coverage_contract(
+                    coverage_plan_text,
+                    list(obligation_audit.get("additions", [])),
+                )
+                if not coverage_contract_items:
+                    raise RuntimeError(
+                        "coverage plan produced no executable contract items")
+                user_message += (
+                    "\n\n"
+                    + render_research_contract(coverage_contract_items)
+                )
         trace_input = {
             "system_prompt": system_prompt,
             "user_message": user_message,
@@ -1713,6 +1775,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             })
         if plan_reconcile and coverage_plan:
             trace_input["plan_reconcile_system"] = PLAN_RECONCILE_SYSTEM
+        if coverage_contract:
+            trace_input["coverage_contract"] = contract_trace(
+                coverage_contract_items, coverage_evidence)
         if coverage_verify:
             trace_input["coverage_verify_system"] = COVERAGE_VERIFY_SYSTEM
             trace_input["claim_finish_system"] = CLAIM_FINISH_SYSTEM
@@ -1807,6 +1872,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     # The turn may itself be a valid final report. Staged
                     # (uncommitted) evidence can never be cited, so accepting
                     # it after the expiry loses nothing and saves a turn.
+                    if coverage_contract:
+                        feedback = submit_answer_request(
+                            coverage_contract_items, coverage_evidence)
+                        provider.add_user_message(feedback)
+                        next_model_input = {
+                            "kind": "submit_answer_request",
+                            "text": feedback,
+                        }
+                        continue
                     if answer_blueprint and not answer_blueprint_prepared:
                         answer_blueprint_requests += 1
                         feedback = answer_blueprint_request(coverage_plan_text)
@@ -2006,6 +2080,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
             if not calls:
                 report_text = turn.get("text")
+                if coverage_contract:
+                    feedback = submit_answer_request(
+                        coverage_contract_items, coverage_evidence)
+                    provider.add_user_message(feedback)
+                    next_model_input = {
+                        "kind": "submit_answer_request",
+                        "text": feedback,
+                    }
+                    continue
                 if answer_blueprint and not answer_blueprint_prepared:
                     answer_blueprint_requests += 1
                     feedback = answer_blueprint_request(coverage_plan_text)
@@ -2149,6 +2232,22 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 committed_before = set(ledger.committed_ids)
                 rejected_before = set(ledger.rejected_ids)
                 try:
+                    contract_supports = {}
+                    if coverage_contract:
+                        contract_supports, support_errors = (
+                            normalize_commit_supports(
+                                call["arguments"], coverage_contract_items)
+                        )
+                        support_errors.extend(validate_support_routes(
+                            contract_supports,
+                            [
+                                document
+                                for pending in ledger.pending
+                                for document in pending.documents
+                            ],
+                        ))
+                        if support_errors:
+                            raise ValueError("; ".join(support_errors))
                     handled = apply_commit(
                         ledger,
                         call["arguments"],
@@ -2205,6 +2304,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         str(document["id"]): dict(document)
                         for document in documents
                     })
+                    if coverage_contract:
+                        committed_now = set(decision.committed)
+                        coverage_evidence.record_supports({
+                            requirement_id: [
+                                anchor for anchor in anchors
+                                if anchor.document_id in committed_now
+                            ]
+                            for requirement_id, anchors in contract_supports.items()
+                            if any(anchor.document_id in committed_now
+                                   for anchor in anchors)
+                        })
                     facts_added = capture_committed_facts(
                         call["arguments"], decision.committed, fact_ledger)
                     if facts_added:
@@ -2215,6 +2325,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             facts_added,
                             sum(len(facts) for facts in fact_ledger.values()),
                         )
+                    if coverage_contract:
+                        commit_payload = json.loads(out)
+                        commit_payload["coverage_contract_status"] = (
+                            render_contract_status(
+                                coverage_contract_items, coverage_evidence)
+                        )
+                        out = json.dumps(commit_payload, ensure_ascii=False)
                 ct1 = now_iso()
                 duration_ms = round(
                     (perf_counter() - started) * 1000, 3)
@@ -2265,6 +2382,94 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         "tool_call_ids": [call["id"] for call in calls],
                     }
                     continue
+
+            submit_calls = [
+                call for call in calls if call["name"] == "submit_answer"]
+            if submit_calls:
+                coverage_submission_attempts += len(submit_calls)
+                concurrent = [
+                    call for call in calls
+                    if call["name"] != "submit_answer"
+                    and call["id"] not in noop_commit_ids
+                ]
+                submission_errors: list[str] = []
+                submitted: list[dict[str, Any]] | None = None
+                if not coverage_contract:
+                    submission_errors.append(
+                        "submit_answer is unavailable in this architecture")
+                if len(submit_calls) != 1:
+                    submission_errors.append(
+                        "exactly one submit_answer call is allowed per turn")
+                if ledger.has_staged:
+                    submission_errors.append(
+                        "resolve the staged evidence batch before submission")
+                if concurrent:
+                    submission_errors.append(
+                        "submit_answer cannot share a turn with other actions")
+                if not submission_errors:
+                    submitted, submission_errors, coverage_submission_stats = (
+                        validate_submission(
+                            submit_calls[0]["arguments"],
+                            coverage_contract_items,
+                            coverage_evidence,
+                            set(ledger.committed_ids),
+                            max_words=MAX_REPORT_WORDS,
+                        )
+                    )
+                coverage_submission_errors.extend(submission_errors)
+                if submitted is None:
+                    payload = json.dumps({
+                        "error": "invalid terminal answer submission",
+                        "problems": submission_errors,
+                        "instruction": (
+                            "Fix every problem and call submit_answer again. "
+                            "Do not emit free prose or other tool calls."
+                        ),
+                    }, ensure_ascii=False)
+                    failed = True
+                else:
+                    payload = json.dumps({
+                        "accepted": True,
+                        "sentences": len(submitted),
+                        "coverage": coverage_submission_stats,
+                    }, ensure_ascii=False)
+                    failed = False
+                payload, feedback_stats = action_feedback(payload, 0.0)
+                ts = now_iso()
+                submit_ids = {call["id"] for call in submit_calls}
+                for call in calls:
+                    if (call["id"] in noop_commit_ids
+                            or call["id"] in result_by_id):
+                        continue
+                    call_failed = failed or call["id"] not in submit_ids
+                    call_payload = payload
+                    if call["id"] not in submit_ids:
+                        call_payload, _ = action_feedback(json.dumps({
+                            "error": "action refused because submit_answer "
+                                     "must be the only action in its turn"
+                        }), 0.0)
+                    tb.add_tool_call(
+                        call["name"], call["arguments"], call_payload,
+                        failed=call_failed, t_start=ts, t_end=ts, turn=ti,
+                        stats=feedback_stats,
+                        context=_context_snapshot(ledger), documents=[],
+                        tool_call_id=call["id"],
+                    )
+                    result_by_id[call["id"]] = {
+                        "id": call["id"], "content": call_payload,
+                        "is_error": call_failed,
+                    }
+                provider.add_tool_results(
+                    [result_by_id[call["id"]] for call in calls])
+                if submitted is not None:
+                    sentences = submitted
+                    repairs = []
+                    break
+                next_model_input = {
+                    "kind": "tool_results",
+                    "tool_call_ids": [call["id"] for call in calls],
+                }
+                continue
 
             prepare_calls = [
                 call for call in calls if call["name"] == "prepare_answer"]
@@ -2364,15 +2569,49 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             elif retrieval_calls:
                 if coverage_repair_active:
                     coverage_repair_search_batches += 1
+                executable_calls: list[dict[str, Any]] = []
+                if coverage_contract:
+                    ts = now_iso()
+                    for call in retrieval_calls:
+                        requirement_ids, requirement_errors = (
+                            normalize_requirement_ids(
+                                call["arguments"].get("for_requirements"),
+                                coverage_contract_items,
+                            )
+                        )
+                        if requirement_errors:
+                            invalid, invalid_stats = action_feedback(json.dumps({
+                                "error": "invalid search coverage routing",
+                                "problems": requirement_errors,
+                            }, ensure_ascii=False), 0.0)
+                            tb.add_tool_call(
+                                call["name"], call["arguments"], invalid,
+                                failed=True, t_start=ts, t_end=ts, turn=ti,
+                                stats=invalid_stats,
+                                context=_context_snapshot(ledger), documents=[],
+                                tool_call_id=call["id"],
+                            )
+                            result_by_id[call["id"]] = {
+                                "id": call["id"], "content": invalid,
+                                "is_error": True,
+                            }
+                            continue
+                        coverage_evidence.record_search(
+                            requirement_ids,
+                            str(call["arguments"].get("query") or ""),
+                        )
+                        executable_calls.append(call)
+                else:
+                    executable_calls = retrieval_calls
                 # Calls from one model turn execute concurrently. The builder
                 # records their real overlapping bounds for the viewer.
                 executed = _execute_tool_calls(
-                    retrieval_calls, k=k, seen_docids=seen_docids,
-                    engines=engines)
+                    executable_calls, k=k, seen_docids=seen_docids,
+                    engines=engines) if executable_calls else []
                 for call, (
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms
-                ) in zip(retrieval_calls, executed):
+                ) in zip(executable_calls, executed):
                     out, feedback_stats = action_feedback(out, duration_ms)
                     context = {
                         "staged": [

@@ -28,7 +28,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 RESULTS = ROOT / "docs/auto-optimize/rubric-results.jsonl"
 OUT = ROOT / "docs/auto-optimize/progress.svg"
-GOAL, FLOOR, BUDGET = 0.80, 0.65, 500.0
+GOAL, FLOOR, BUDGET = 0.80, 0.65, 300.0
 # One panel per row, full bleed. Two columns worked at 6 arms and stopped
 # working at 15: bar labels collided with each other and value labels collided
 # with the bars above them. A chart you have to squint at gets skimmed, and a
@@ -279,16 +279,18 @@ def main() -> int:
     parts.append(f'<text x="{ox}" y="{oy-26}" font-size="14.5" font-weight="600" '
                  f'fill="#1f2933">Budget</text>')
     parts.append(f'<text x="{ox}" y="{oy-10}" font-size="11" fill="#7b8794">'
-                 f'API spend across every dev30 run, priced from recorded '
-                 f'token counts</text>')
+                 f'Optimization-loop generation and judging spend, priced '
+                 f'from recorded token counts</text>')
     spent = a.spent if a.spent is not None else 0.0
-    frac = min(spent / BUDGET, 1.0)
+    used = spent / BUDGET
+    frac = min(used, 1.0)
+    budget_fill = "#e0245e" if used >= 1 else "#1f9d55"
     parts.append(f'<rect x="{ox+20}" y="{oy+52}" width="{PANEL_W-40}" height="34" '
                  f'fill="#eef1f4"/>')
     parts.append(f'<rect x="{ox+20}" y="{oy+52}" width="{(PANEL_W-40)*frac:.1f}" '
-                 f'height="34" fill="#1f9d55"/>')
+                 f'height="34" fill="{budget_fill}"/>')
     parts.append(f'<text x="{ox+20}" y="{oy+112}" font-size="14" fill="#3e4c59">'
-                 f'${spent:.2f} of ${BUDGET:.0f} ({frac:.1%})</text>')
+                 f'${spent:.2f} of ${BUDGET:.0f} ({used:.1%})</text>')
     parts.append(f'<text x="{ox+20}" y="{oy+136}" font-size="12" fill="#7b8794">'
                  f'luna generation $3.45/arm &#183; sol generation $31.88/arm '
                  f'(9x) &#183; sol grading ~$3.40/arm</text>')
