@@ -26,6 +26,7 @@ from aus_agent_v2.semantic_closure import (
     SEMANTIC_CLOSURE_SYSTEM,
     SEMANTIC_CLOSURE_TOOL,
     normalize_semantic_closure,
+    render_semantic_closure_findings,
     semantic_closure_request,
     semantic_revision_errors,
 )
@@ -56,6 +57,7 @@ def _normalization_record(
     must_research: bool = False,
     minimum_count: int = 1,
     evidence_ids: tuple[str, ...] = (),
+    context_evidence_ids: tuple[str, ...] = (),
 ) -> dict[str, object]:
     """Make a minimal trusted record for verifier-output validation."""
     return {
@@ -67,6 +69,10 @@ def _normalization_record(
         },
         "evidence": [
             {"document_id": document_id} for document_id in evidence_ids
+        ],
+        "context_evidence": [
+            {"document_id": document_id}
+            for document_id in context_evidence_ids
         ],
     }
 
@@ -197,7 +203,7 @@ def test_multi_item_row_becomes_one_aggregate_check_packet() -> None:
 
 
 def test_shared_sentence_is_projected_independently_for_each_row() -> None:
-    """One valid sentence may close two rows without merging their evidence."""
+    """Each row owns support while seeing anchors for the sentence's other clause."""
     arguments = {
         "answer_items": [{
             "kind": "prose",
@@ -234,6 +240,72 @@ def test_shared_sentence_is_projected_independently_for_each_row() -> None:
         [entry["document_id"] for entry in record["evidence"]]
         for record in records
     ] == [["d1"], ["d2"]]
+    assert [
+        [entry["document_id"] for entry in record["context_evidence"]]
+        for record in records
+    ] == [["d2"], ["d1"]]
+
+
+def test_global_row_can_target_any_visible_answer_item() -> None:
+    """A whole-answer defect must not be visible yet impossible to repair."""
+    arguments = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "This guide is for clinicians.",
+            "evidence_ids": [],
+            "satisfies": ["P01"],
+        }, {
+            "kind": "prose",
+            "text": "The unexplained acronym XYZ appears here.",
+            "evidence_ids": [],
+            "satisfies": ["P02"],
+        }],
+    }
+
+    [record] = build_semantic_check_records(
+        arguments,
+        [_contract_item("P01", must_research=False, kind="audience")],
+        EvidenceLedger(),
+    )
+
+    assert record["scope"] == "answer_global"
+    assert record["candidate_item_indices"] == [1]
+    assert record["repairable_item_indices"] == [1, 2]
+
+
+def test_semantic_evidence_exposes_available_source_provenance() -> None:
+    """Evidence-type judgments need the retrieval provenance the harness has."""
+    arguments = {"answer_items": [{
+        "kind": "prose",
+        "text": "Alpha reduced latency by 20 percent.",
+        "evidence_ids": ["d1"],
+        "satisfies": ["P01"],
+    }]}
+    ledger = EvidenceLedger(anchors={"P01": [EvidenceAnchor(
+        "d1",
+        "Alpha reduced latency.",
+        must_include=("Alpha", "20 percent"),
+        source_quote="Alpha reduced latency by 20 percent.",
+    )]})
+    documents = {"d1": {
+        "id": "d1", "docid": "parent-1", "kind": "chunk",
+        "metadata": {
+            "source": "semantic", "query": "alpha trial",
+            "publisher": "Example Institute",
+        },
+    }}
+
+    [record] = build_semantic_check_records(
+        arguments, [_contract_item("P01")], ledger, documents)
+
+    evidence = record["evidence"][0]
+    assert evidence["parent_docid"] == "parent-1"
+    assert evidence["document_kind"] == "chunk"
+    assert evidence["source_provenance"] == {
+        "source": "semantic",
+        "query": "alpha trial",
+        "publisher": "Example Institute",
+    }
 
 
 def test_evidence_projection_requires_source_anchor_terms_in_its_candidate() -> None:
@@ -274,6 +346,35 @@ def test_evidence_projection_requires_source_anchor_terms_in_its_candidate() -> 
         "must_include": ["Alpha", "20 percent"],
         "item_indices": [1],
     }]
+
+
+def test_evidence_projection_reports_bounded_omissions() -> None:
+    """A packet that drops excess anchors must declare itself incomplete."""
+    arguments = {"answer_items": [{
+        "kind": "prose",
+        "text": "Alpha reduced latency by 20 percent.",
+        "evidence_ids": ["d1"],
+        "satisfies": ["P01"],
+    }]}
+    ledger = EvidenceLedger(anchors={"P01": [
+        EvidenceAnchor(
+            "d1",
+            f"Alpha claim {index}.",
+            must_include=("Alpha",),
+            source_quote=f"Alpha source quote {index}.",
+        )
+        for index in range(13)
+    ]})
+
+    [record] = build_semantic_check_records(
+        arguments, [_contract_item("P01")], ledger)
+
+    assert len(record["evidence"]) == 12
+    assert record["deterministic_state"]["projection_complete"] is False
+    assert record["deterministic_state"]["projection_omissions"] == {
+        "row_evidence": 1,
+        "context_evidence": 0,
+    }
 
 
 def test_normalizer_accepts_strict_pass_reject_and_abstain_rows() -> None:
@@ -319,6 +420,97 @@ def test_normalizer_accepts_strict_pass_reject_and_abstain_rows() -> None:
     assert [check["check_id"] for check in audit["abstentions"]] == ["P03"]
 
 
+def test_incomplete_packet_abstains_instead_of_becoming_a_repair() -> None:
+    """Missing context is uncertainty, never a failure code aimed at prose."""
+    check = _check(
+        "P01",
+        "abstain",
+        closure="unclear",
+        support="not_applicable",
+        count="not_applicable",
+        diagnosis="The packet lacks enough context to judge this row.",
+    )
+
+    audit = normalize_semantic_closure(
+        {"checks": [check]}, [_normalization_record("P01", [1])])
+
+    assert audit["verdict"] == "abstain"
+    assert audit["parse_error"] is False
+    failure_enum = (
+        SEMANTIC_CLOSURE_TOOL["input_schema"]["properties"]["checks"]
+        ["items"]["properties"]["failure_codes"]["items"]["enum"]
+    )
+    assert "PACKET_INCOMPLETE" not in failure_enum
+
+
+def test_reject_requires_a_failing_dimension_and_matching_code() -> None:
+    """An arbitrary code cannot turn all-pass semantic labels into a repair."""
+    check = _check(
+        "P01",
+        "reject",
+        closure="complete",
+        support="not_applicable",
+        count="not_applicable",
+        failure_codes=["CLOSURE_PARTIAL"],
+        item_indices=[1],
+        diagnosis="A claimed defect with no failing label.",
+    )
+
+    audit = normalize_semantic_closure(
+        {"checks": [check]}, [_normalization_record("P01", [1])])
+
+    assert audit["verdict"] == "indeterminate"
+    assert any(
+        "no failing semantic dimension" in error for error in audit["errors"])
+
+
+def test_reject_cannot_target_context_only_evidence() -> None:
+    """Neighboring-row quotes explain clauses but cannot indict this row's source."""
+    check = _check(
+        "P01",
+        "reject",
+        closure="complete",
+        support="unsupported",
+        count="not_applicable",
+        failure_codes=["SOURCE_UNSUPPORTED"],
+        item_indices=[1],
+        evidence_ids=["d-context"],
+        diagnosis="The neighboring quote does not support this row.",
+    )
+    record = _normalization_record(
+        "P01",
+        [1],
+        must_research=True,
+        evidence_ids=("d-owned",),
+        context_evidence_ids=("d-context",),
+    )
+
+    audit = normalize_semantic_closure({"checks": [check]}, [record])
+
+    assert audit["verdict"] == "indeterminate"
+    assert audit["errors"] == ["check P01 names out-of-scope evidence"]
+
+
+def test_scope_overreach_is_valid_for_nonresearch_partial_closure() -> None:
+    """A request-scope defect must not need a fictional source-support failure."""
+    check = _check(
+        "P01",
+        "reject",
+        closure="partial",
+        support="not_applicable",
+        count="not_applicable",
+        failure_codes=["SCOPE_OVERREACH"],
+        item_indices=[1],
+        diagnosis="The answer changes the requested temporal boundary.",
+    )
+
+    audit = normalize_semantic_closure(
+        {"checks": [check]}, [_normalization_record("P01", [1])])
+
+    assert audit["verdict"] == "repair"
+    assert audit["failures"][0]["failure_codes"] == ["SCOPE_OVERREACH"]
+
+
 @pytest.mark.parametrize(
     ("check", "error_fragment"),
     [
@@ -330,7 +522,7 @@ def test_normalizer_accepts_strict_pass_reject_and_abstain_rows() -> None:
                 support="direct_entailment",
                 count="not_applicable",
             ),
-            "inconsistent pass fields",
+            "nonresearch support must be not_applicable",
         ),
         (
             _check(
@@ -429,6 +621,54 @@ def test_semantic_revision_may_change_only_explicit_repair_targets() -> None:
     revision["answer_items"][0]["text"] = "Rewritten one."
     assert semantic_revision_errors(original, revision, {2}) == [
         "semantic correction changed unflagged answer item 1"]
+
+
+def test_semantic_revision_cannot_reroute_a_flagged_item() -> None:
+    """The writer may fix wording but cannot swap its obligation or evidence."""
+    original = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "Original claim.",
+            "evidence_ids": ["d1"],
+            "satisfies": ["P01"],
+        }],
+        "unresolved": [],
+    }
+    revision = copy.deepcopy(original)
+    revision["answer_items"][0].update({
+        "text": "Rerouted claim.",
+        "evidence_ids": ["d2"],
+        "satisfies": ["P02"],
+    })
+
+    assert semantic_revision_errors(original, revision, {1}) == [
+        "semantic correction changed routing metadata for flagged answer "
+        "item 1; only text may change"]
+
+
+def test_semantic_findings_replay_named_rejected_quote() -> None:
+    """The correction turn needs the exact source target the verifier rejected."""
+    audit = {"failures": [{
+        "check_id": "P01",
+        "failure_codes": ["SOURCE_UNSUPPORTED"],
+        "item_indices": [1],
+        "evidence_ids": ["d1"],
+        "diagnosis": "The conclusion exceeds the quote.",
+    }]}
+    records = [{
+        "check_id": "P01",
+        "row": {"requirement": "Report the observed result."},
+        "evidence": [{
+            "document_id": "d1",
+            "source_quote": "Traffic remained below the pre-toll baseline.",
+        }],
+        "context_evidence": [],
+    }]
+
+    findings = render_semantic_closure_findings(audit, records)
+
+    assert "evidence d1" in findings
+    assert "Traffic remained below the pre-toll baseline." in findings
 
 
 @pytest.mark.parametrize(

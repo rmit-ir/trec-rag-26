@@ -1,9 +1,12 @@
 """Public pipeline facade and architecture model for ``aus_agent_v2``."""
 from __future__ import annotations
 
-from typing import Any
+from typing import Any, Callable
 
-from .agent import run_agent
+from ragrun import TrajectoryBuilder, build_rag_output, now_iso, save_run
+
+from .agent import make_provider, run_agent
+from .candidate_union import candidate_union_usage, select_candidate_union
 
 SYSTEM_NAME = "aus_agent_v2"
 
@@ -106,6 +109,22 @@ ARCH_STAGES = [
         "tools": [
             {"name": "submit_semantic_closure", "ref":
              "systems/aus_agent_v2/semantic_closure.py::SEMANTIC_CLOSURE_TOOL"},
+        ],
+    },
+    {
+        "id": "union", "label": "EXTRACTIVE CANDIDATE UNION", "kind": "llm",
+        "note": "optional complete-answer union selects immutable cited items",
+        "prompt": [
+            "systems/aus_agent_v2/candidate_union.py::CANDIDATE_UNION_SYSTEM",
+        ],
+        "code": [
+            "systems/aus_agent_v2/candidate_union.py::select_candidate_union",
+            "systems/aus_agent_v2/candidate_union.py::normalize_candidate_union",
+            "systems/aus_agent_v2/pipeline.py::run_candidate_union_one",
+        ],
+        "tools": [
+            {"name": "submit_candidate_union", "ref":
+             "systems/aus_agent_v2/candidate_union.py::CANDIDATE_UNION_TOOL"},
         ],
     },
     {
@@ -262,3 +281,125 @@ def run_semantic_contract_one(
         run_desc=run_desc,
         **options,
     )
+
+
+def run_candidate_union_one(
+    *,
+    qid: str,
+    narrative: str,
+    run_id: str,
+    candidate_outputs: list[dict[str, Any]],
+    anchor_run_id: str,
+    run_desc: str | None = None,
+    model_id: str | None = None,
+    backend: str = "openai",
+    provider_factory: Callable[[], Any] | None = None,
+) -> dict[str, Any]:
+    """Select an immutable cited union from complete same-topic candidates."""
+    started_at = now_iso()
+    factory = provider_factory or (lambda: make_provider(backend, model_id))
+    selected = select_candidate_union(
+        narrative,
+        candidate_outputs,
+        expected_qid=qid,
+        anchor_run_id=anchor_run_id,
+        provider_factory=factory,
+    )
+    ended_at = now_iso()
+    attempts = selected["attempts"]
+    actual_model = next((
+        str(attempt.get("model_id") or "")
+        for attempt in attempts if attempt.get("model_id")
+    ), str(model_id or "unknown"))
+    answer_words = sum(
+        len(item["text"].split()) for item in selected["answer"])
+    union_summary = {
+        "accepted": selected["accepted"],
+        "fallback": selected["fallback"],
+        "errors": list(selected["errors"]),
+        "attempts": len(attempts),
+        "packet_chars": selected["packet_chars"],
+        "selected_items": len(selected["selected_item_ids"]),
+        "answer_words": answer_words,
+        "candidate_runs": [
+            str(output.get("metadata", {}).get("run_id") or "")
+            for output in candidate_outputs
+        ],
+        "anchor_run": anchor_run_id,
+        "coverage_accounting": list(selected["coverage"]),
+        "anchor_replacements": list(selected["anchor_replacements"]),
+    }
+    builder = TrajectoryBuilder(qid, narrative, metadata={
+        "model": actual_model,
+        "backend": backend,
+        "run_id": run_id,
+        "architecture": "extractive_candidate_union",
+    })
+    builder.set_trace_input({
+        "query": narrative,
+        "packet": selected["packet"],
+    })
+    raw_messages: list[Any] = []
+    for turn, attempt in enumerate(attempts):
+        if raw_messages:
+            raw_messages.append({
+                "type": "phase_boundary",
+                "phase": "candidate_union_retry",
+                "attempt": int(attempt.get("attempt") or turn + 1),
+            })
+        raw_messages.extend(list(attempt.get("raw_messages") or []))
+        builder.add_model_step(
+            input={
+                "kind": "candidate_union_selection",
+                "attempt": int(attempt.get("attempt") or turn + 1),
+            },
+            output={
+                "errors": list(attempt.get("errors") or []),
+                "stats": dict(attempt.get("stats") or {}),
+            },
+            t_start=str(attempt.get("started_at") or started_at),
+            t_end=str(attempt.get("ended_at") or ended_at),
+            turn=turn,
+            stats={"tokens": candidate_union_usage([attempt])},
+        )
+    builder.set_trace_output({
+        "accepted": selected["accepted"],
+        "fallback": selected["fallback"],
+        "references": selected["references"],
+        "answer": selected["answer"],
+    })
+    builder.add_output_text(
+        " ".join(item["text"] for item in selected["answer"]),
+        t_start=ended_at,
+        t_end=ended_at,
+        turn=max(0, len(attempts) - 1),
+        record_trace=False,
+    )
+    trajectory = builder.finalize(
+        "completed",
+        raw_messages=raw_messages,
+        started_at=started_at,
+        ended_at=ended_at,
+    )
+    trajectory.trace["summary"]["candidate_union"] = union_summary
+    output = build_rag_output(
+        narrative_id=qid,
+        narrative=narrative,
+        run_id=run_id,
+        run_desc=(run_desc or (
+            "Extractive citation-preserving union over complete candidate "
+            "research answers.")),
+        references=selected["references"],
+        answer=selected["answer"],
+    )
+    paths = save_run(
+        SYSTEM_NAME, narrative, trajectory=trajectory, output=output)
+    return {
+        "status": "completed",
+        "paths": paths,
+        "accepted": selected["accepted"],
+        "fallback": selected["fallback"],
+        "n_references": len(selected["references"]),
+        "n_sentences": len(selected["answer"]),
+        "words": answer_words,
+    }

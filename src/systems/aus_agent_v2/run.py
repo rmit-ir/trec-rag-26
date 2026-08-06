@@ -289,7 +289,7 @@ def main() -> None:
             continue
         summary["paths"] = {k: str(v) for k, v in summary["paths"].items()}
         print(json.dumps(summary, indent=2), flush=True)
-        if summary["status"] == "failed":
+        if summary["status"] not in {"completed", "budget_exhausted"}:
             failures += 1
     sys.exit(1 if failures else 0)
 

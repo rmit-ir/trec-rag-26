@@ -1494,6 +1494,7 @@ def build_semantic_check_records(
     arguments: dict[str, Any],
     items: list[ContractItem],
     ledger: EvidenceLedger,
+    documents: dict[str, dict[str, Any]] | None = None,
 ) -> list[dict[str, Any]]:
     """Project a valid submission into one complete check per asserted row.
 
@@ -1503,14 +1504,70 @@ def build_semantic_check_records(
     Form and avoidance rows remain deterministic and are not delegated.
     """
     answer_items = build_semantic_answer_items(arguments)
+    documents = documents or {}
+    max_evidence_per_channel = 12
+
+    def append_anchor(
+        target: list[dict[str, Any]],
+        anchor: EvidenceAnchor,
+        candidate: dict[str, Any],
+    ) -> None:
+        """Add one locally cited anchor with bounded available provenance."""
+        candidate_text = str(candidate["text"])
+        if anchor.document_id not in set(candidate["evidence_ids"]):
+            return
+        if not all(
+                _contains_exact_term(candidate_text, term)
+                for term in anchor.must_include):
+            return
+        existing = next((
+            value for value in target
+            if value["document_id"] == anchor.document_id
+            and value["claim"] == anchor.claim
+            and value["source_quote"] == anchor.source_quote
+            and value["value_scope"] == anchor.value_scope
+            and value["must_include"] == list(anchor.must_include)
+        ), None)
+        if existing is None:
+            document = documents.get(anchor.document_id) or {}
+            metadata = (
+                document.get("metadata")
+                if isinstance(document.get("metadata"), dict) else {}
+            )
+            provenance = {
+                key: _compact(metadata.get(key), 300)
+                for key in (
+                    "source", "query", "title", "url", "date",
+                    "publisher", "document_type",
+                )
+                if _compact(metadata.get(key), 300)
+            }
+            existing = {
+                "document_id": anchor.document_id,
+                "claim": anchor.claim,
+                "source_quote": anchor.source_quote,
+                "value_scope": anchor.value_scope,
+                "must_include": list(anchor.must_include),
+                "item_indices": [],
+            }
+            if document:
+                existing.update({
+                    "parent_docid": _compact(document.get("docid"), 160),
+                    "document_kind": _compact(document.get("kind"), 40),
+                    "source_provenance": provenance,
+                })
+            target.append(existing)
+        candidate_index = int(candidate["item_index"])
+        if candidate_index not in existing["item_indices"]:
+            existing["item_indices"].append(candidate_index)
+
     records: list[dict[str, Any]] = []
     for item in items:
         if item.mode != "assert" or not item.must_answer:
             continue
         candidates = [
             answer_item for answer_item in answer_items
-            if answer_item["kind"] == "prose"
-            and item.id in answer_item["satisfies"]
+            if item.id in answer_item["satisfies"]
         ]
         # A valid unresolved research row has no answer relationship to audit.
         if not candidates:
@@ -1527,36 +1584,44 @@ def build_semantic_check_records(
         evidence: list[dict[str, Any]] = []
         if item.must_research:
             for candidate in candidates:
-                candidate_text = str(candidate["text"])
-                candidate_evidence = set(candidate["evidence_ids"])
                 for anchor in ledger.anchors.get(item.id, []):
-                    if anchor.document_id not in candidate_evidence:
-                        continue
-                    if not all(
-                            _contains_exact_term(candidate_text, term)
-                            for term in anchor.must_include):
-                        continue
-                    existing = next((
-                        value for value in evidence
-                        if value["document_id"] == anchor.document_id
-                        and value["claim"] == anchor.claim
-                        and value["source_quote"] == anchor.source_quote
-                        and value["value_scope"] == anchor.value_scope
-                        and value["must_include"] == list(anchor.must_include)
-                    ), None)
-                    if existing is None:
-                        existing = {
-                            "document_id": anchor.document_id,
-                            "claim": anchor.claim,
-                            "source_quote": anchor.source_quote,
-                            "value_scope": anchor.value_scope,
-                            "must_include": list(anchor.must_include),
-                            "item_indices": [],
-                        }
-                        evidence.append(existing)
-                    candidate_index = int(candidate["item_index"])
-                    if candidate_index not in existing["item_indices"]:
-                        existing["item_indices"].append(candidate_index)
+                    append_anchor(evidence, anchor, candidate)
+
+        # A sentence may satisfy several rows. The checked row owns only
+        # ``evidence`` above, while these neighboring anchors explain the other
+        # clauses so the verifier does not falsely reject a fully supported
+        # multi-row sentence as partly unsupported.
+        context_evidence: list[dict[str, Any]] = []
+        for candidate in candidates:
+            for related_id in candidate["satisfies"]:
+                if related_id == item.id:
+                    continue
+                for anchor in ledger.anchors.get(related_id, []):
+                    append_anchor(context_evidence, anchor, candidate)
+        owned_fingerprints = {
+            (
+                value["document_id"], value["claim"], value["source_quote"],
+                value["value_scope"], tuple(value["must_include"]),
+            )
+            for value in evidence
+        }
+        context_evidence = [
+            value for value in context_evidence
+            if (
+                value["document_id"], value["claim"], value["source_quote"],
+                value["value_scope"], tuple(value["must_include"]),
+            ) not in owned_fingerprints
+        ]
+        evidence_omitted = max(0, len(evidence) - max_evidence_per_channel)
+        context_omitted = max(
+            0, len(context_evidence) - max_evidence_per_channel)
+        evidence = evidence[:max_evidence_per_channel]
+        context_evidence = context_evidence[:max_evidence_per_channel]
+
+        repairable_indices = (
+            [int(answer_item["item_index"]) for answer_item in answer_items]
+            if scope == "answer_global" else candidate_indices
+        )
 
         records.append({
             "check_id": item.id,
@@ -1571,8 +1636,9 @@ def build_semantic_check_records(
                 "must_research": item.must_research,
             },
             "candidate_item_indices": candidate_indices,
-            "repairable_item_indices": candidate_indices,
+            "repairable_item_indices": repairable_indices,
             "evidence": evidence,
+            "context_evidence": context_evidence,
             "deterministic_state": {
                 "submission_valid": True,
                 "routes_valid": True,
@@ -1582,7 +1648,12 @@ def build_semantic_check_records(
                     _answer_item_fingerprint(str(candidate["text"]))
                     for candidate in candidates
                 }),
-                "packet_complete": True,
+                "projection_complete": not (
+                    evidence_omitted or context_omitted),
+                "projection_omissions": {
+                    "row_evidence": evidence_omitted,
+                    "context_evidence": context_omitted,
+                },
             },
         })
     return records

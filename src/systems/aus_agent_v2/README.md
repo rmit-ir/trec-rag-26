@@ -55,12 +55,23 @@ structured atomic plan + independent scouts -> stable Pxx/Sxx obligation ids
   -> map + save
 ```
 
-This is a claim-union architecture, not a completed-answer selector. Offline
-three-pass verdict caches show why: a perfect whole-answer selector over the
-four complete core architectures reaches only 0.7445, while their
+The contract is a claim-union architecture rather than a whole-answer selector.
+Offline three-pass verdict caches show why: a perfect whole-answer selector
+over the four complete core architectures reaches only 0.7445, while their
 criterion-by-criterion union reaches 0.8048 (all eight Sol-written runs reach
 0.8284). The contract attempts to assemble complementary obligations before
-one draft. An offline audit of the exact promoted 30-topic planner outputs
+one draft. A separate optional extractive candidate-union stage now tests that
+0.8284 signal directly on all eight already-paid Sol-written answers: a fresh
+selector may
+return only immutable item ids, and the harness copies their original text and
+citations. It must contribute non-anchor content, retain at least 60% of the
+anchor's items and 65% of its words, explicitly account for every dropped
+anchor item with selected replacements, preserve each source's order, map every
+selected item to an audit requirement, and remain within 1,024 words. Candidate
+labels are shuffled deterministically by qid and every input must match the
+exact qid and full request; any fault restores the exact anchor.
+
+An offline audit of the exact promoted 30-topic planner outputs
 found that 310/341 rows (90.9%) bundled multiple likely checks, so the
 candidate-specific planner now returns 10--24 structured atomic rows instead
 of prose bundles. Retrieval may add at most two request-material rows per
@@ -149,13 +160,21 @@ typed verifier cannot request research, edit prose, or impose Markdown. Only a
 clear material rejection is actionable; uncertainty abstains and malformed or
 provider failures fail open.
 
-A rejection returns row and answer-item diagnostics to the evidence-owning
-conversation for exactly one correction. Every unflagged item and the
-unresolved inventory must remain byte-for-byte unchanged. The corrected
-submission is deterministically revalidated and semantically rechecked;
-persistent rejection or an invalid repair retains the complete pre-repair
-baseline instead of triggering a destructive rewrite loop. This candidate is
-still ungraded and does not replace the verified `run_one`.
+A rejection returns row, answer-item, evidence-id, and exact-quote diagnostics
+to the evidence-owning conversation for exactly one correction. Every item may
+change only its text when flagged; its kind, evidence ids, satisfied obligation
+ids, ordering, and the unresolved inventory are immutable. Multi-row sentences
+carry bounded neighboring evidence so another supported clause is not mistaken
+for an overclaim. The corrected submission is deterministically revalidated and
+semantically rechecked. Persistent clear rejection or an invalid repair retains
+the complete baseline for diagnostics but marks the run `semantic_rejected`, so
+batch resume and export cannot treat a known-bad answer as completed. Genuine
+uncertainty—including incomplete context—abstains and remains fail-open. If a
+clear first rejection is followed by an unavailable or malformed recheck, the
+text-only correction is retained diagnostically as `semantic_unverified`, not
+published as completed. The CLI treats either noncompleted semantic status as a
+failure and the full-30 runner recounts exactly 30 completed artifacts. This
+candidate is still ungraded and does not replace the verified `run_one`.
 
 The system reuses `aus_agent.context`, `aus_agent.providers`, and
 `aus_agent.tools`. Planning, evidence-card construction, patch validation,
@@ -199,6 +218,27 @@ handoff and is deliberately off for the verified default and lean candidates.
 
 It is intentionally not the `run_one` default until a complete comparable
 30-topic generation and three-pass grade beats 0.7042.
+
+The cached candidate-union path can be prepared across all 30 topics with zero
+provider calls. The model-visible packets use anonymous candidate ids and do
+not contain the legacy run labels:
+
+```bash
+uv run --group aus-agent-v2 python \
+  src/systems/aus_agent_v2/union_run.py --all --prepare-only
+```
+
+A live invocation selects from all eight complete frozen Sol-written source
+runs and saves strict trajectory plus rich organizer artifacts through the
+shared `ragrun` layer. It checks the authoritative cross-system spend before
+every topic and currently refuses before provider creation because the tracked
+$1,096.72 total exceeds the standing $300 cap:
+
+```bash
+uv run --group aus-agent-v2 python \
+  src/systems/aus_agent_v2/union_run.py --all --skip-existing \
+  --budget-cap <explicit-new-total-cap> --per-topic-reserve-usd 10
+```
 
 The full-30 candidate has a separate resumable parallel runner. It still
 evaluates all 30 topics; `CONCURRENCY=6` means six independent topics are in

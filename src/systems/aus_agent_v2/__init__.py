@@ -6,6 +6,7 @@ are written under ``data/outputs/aus_agent_v2/`` via ``ragrun.save_run``.
 """
 from .pipeline import (
     SYSTEM_NAME,
+    run_candidate_union_one,
     run_contract_one,
     run_lean_contract_one,
     run_one,
@@ -13,6 +14,7 @@ from .pipeline import (
 
 __all__ = [
     "SYSTEM_NAME",
+    "run_candidate_union_one",
     "run_contract_one",
     "run_lean_contract_one",
     "run_one",

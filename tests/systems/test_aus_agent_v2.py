@@ -181,6 +181,11 @@ def test_full30_runner_selects_the_lean_contract_candidate() -> None:
     assert "--atomic-contract-plan --dynamic-contract-rows" in runner
     assert "--terminal-evidence-handoff" in runner
     assert "--semantic-closure-verify" in runner
+    assert "verify_completed_dev30" in runner
+    assert 'FINAL_COMPLETED="$(verify_completed_dev30)"' in runner
+    cli = (root / "src/systems/aus_agent_v2/run.py").read_text(
+        encoding="utf-8")
+    assert 'summary["status"] not in {"completed", "budget_exhausted"}' in cli
 
 
 @pytest.fixture
@@ -778,7 +783,7 @@ def _semantic_verdicts(*, reject_p02: bool) -> dict[str, Any]:
                 "check_id": check_id,
                 "verdict": "reject",
                 "closure": "complete",
-                "support": "partial",
+                "support": "unsupported",
                 "count": "not_applicable",
                 "failure_codes": ["SOURCE_UNSUPPORTED"],
                 "item_indices": [1],
@@ -786,6 +791,21 @@ def _semantic_verdicts(*, reject_p02: bool) -> dict[str, Any]:
                 "diagnosis": (
                     "The quote supports the observed baseline comparison, not "
                     "permanent elimination of congestion."
+                ),
+            })
+        elif index in {5, 6} and reject_p02:
+            checks.append({
+                "check_id": check_id,
+                "verdict": "reject",
+                "closure": "partial",
+                "support": "not_applicable",
+                "count": "not_applicable",
+                "failure_codes": ["CLOSURE_PARTIAL"],
+                "item_indices": [1],
+                "evidence_ids": [],
+                "diagnosis": (
+                    "The sentence changes a scoped observation into a "
+                    "permanent causal certainty."
                 ),
             })
         else:
@@ -960,6 +980,8 @@ def test_second_semantic_reject_is_bounded_and_retains_valid_baseline(
     )
     output = json.loads(summary["paths"]["output"].read_text())
 
+    assert summary["status"] == "semantic_rejected"
+    assert output["trace"]["status"] == "semantic_rejected"
     assert output["answer"][0]["text"] == flawed["answer_items"][0]["text"]
     semantic = output["trace"]["summary"]["semantic_closure_verify"]
     assert semantic["attempts"] == 2
@@ -967,7 +989,57 @@ def test_second_semantic_reject_is_bounded_and_retains_valid_baseline(
     assert semantic["verdict"] == "repair"
     assert semantic["final_verified"] is False
     assert semantic["fallback"] == "persistent_rejection"
+    assert semantic["saved_answer_audit"]["verdict"] == "repair"
     assert research.turn_index == 6
+
+
+def test_indeterminate_second_audit_is_noncompleted_and_keeps_correction(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A repaired answer needs a valid recheck before batch completion."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, corrected)
+    first_verifier = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-1",
+    )])])
+    malformed_second = ScriptedProvider([model_turn(text="probably fixed")])
+    providers = iter([research, first_verifier, malformed_second])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-unverified.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert summary["status"] == "semantic_unverified"
+    assert output["trace"]["status"] == "semantic_unverified"
+    assert output["answer"][0]["text"] == corrected["answer_items"][0]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["verdict"] == "indeterminate"
+    assert semantic["saved_answer_audit"]["verdict"] == "indeterminate"
+    assert semantic["fallback"] == "corrected_answer_indeterminate"
+    accepted = json.loads(research.tool_results[-1][0]["content"].splitlines()[0])
+    assert accepted["accepted"] is False
 
 
 def test_malformed_semantic_verifier_fails_open_without_writer_turn(

@@ -850,10 +850,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     semantic_closure_history: list[dict[str, Any]] = []
     semantic_closure_final_verified = False
     semantic_closure_fallback: str | None = None
+    semantic_saved_answer_audit: dict[str, Any] = {
+        "verdict": "not_run", "checks": [], "failures": [],
+        "abstentions": [], "parse_error": False, "errors": [],
+    }
     semantic_correction_pending = False
     semantic_baseline_arguments: dict[str, Any] | None = None
     semantic_baseline_sentences: list[dict[str, Any]] | None = None
     semantic_baseline_submission_stats: dict[str, Any] | None = None
+    semantic_baseline_audit: dict[str, Any] | None = None
     semantic_repairable_item_indices: set[int] = set()
     coverage_dynamic_promotions = 0
     coverage_commit_corrections = 0
@@ -1081,6 +1086,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "corrections_requested": semantic_closure_corrections,
             "fallback": semantic_closure_fallback,
             "final_verified": semantic_closure_final_verified,
+            "saved_answer_audit": copy.deepcopy(
+                semantic_saved_answer_audit),
             "history": copy.deepcopy(semantic_closure_history),
         }
         trajectory.trace["summary"]["coverage_plan"] = {
@@ -1298,12 +1305,16 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
         semantic_closure_checked = True
         records = build_semantic_check_records(
-            arguments, coverage_contract_items, coverage_evidence)
+            arguments,
+            coverage_contract_items,
+            coverage_evidence,
+            committed_documents,
+        )
         answer_items = build_semantic_answer_items(arguments)
         semantic_closure_records = len(records)
         if not records:
             audit = {
-                "verdict": "pass",
+                "verdict": "not_applicable",
                 "checks": [],
                 "failures": [],
                 "abstentions": [],
@@ -1313,7 +1324,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             semantic_closure_audit = audit
             semantic_closure_history.append({
                 "attempt": len(semantic_closure_history) + 1,
-                "verdict": "pass",
+                "verdict": "not_applicable",
                 "checks": 0,
                 "failures": [],
                 "abstentions": [],
@@ -2321,6 +2332,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 else:
                     semantic_closure_fallback = "invalid_correction_protocol"
                     semantic_closure_final_verified = False
+                    status = "semantic_rejected"
+                    semantic_saved_answer_audit = copy.deepcopy(
+                        semantic_baseline_audit or semantic_closure_audit)
                     semantic_closure_errors.append(
                         "semantic correction was not exactly one submit_answer "
                         "tool call with no companion prose")
@@ -3110,6 +3124,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             for error in submission_errors)
                         semantic_closure_fallback = "invalid_correction_submission"
                         semantic_closure_final_verified = False
+                        status = "semantic_rejected"
+                        semantic_saved_answer_audit = copy.deepcopy(
+                            semantic_baseline_audit or semantic_closure_audit)
                         if semantic_baseline_sentences is None:
                             raise RuntimeError(
                                 "semantic correction fallback has no valid baseline")
@@ -3135,6 +3152,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                 semantic_closure_fallback = (
                                     "invalid_correction_preservation")
                                 semantic_closure_final_verified = False
+                                status = "semantic_rejected"
+                                semantic_saved_answer_audit = copy.deepcopy(
+                                    semantic_baseline_audit or semantic_closure_audit)
                                 if semantic_baseline_sentences is None:
                                     raise RuntimeError(
                                         "semantic correction fallback has no "
@@ -3149,6 +3169,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                     current_arguments)
                                 if audit["verdict"] == "pass":
                                     semantic_closure_final_verified = True
+                                    semantic_saved_answer_audit = copy.deepcopy(audit)
                                     auxiliary_raw_messages.append({
                                         "type": "phase_boundary",
                                         "phase": (
@@ -3164,12 +3185,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                     semantic_closure_final_verified = False
                                     semantic_closure_fallback = (
                                         "corrected_answer_abstained_fail_open")
-                                else:
+                                    semantic_saved_answer_audit = copy.deepcopy(audit)
+                                elif audit["verdict"] == "repair":
                                     semantic_closure_final_verified = False
-                                    semantic_closure_fallback = (
-                                        "persistent_rejection"
-                                        if audit["verdict"] == "repair" else
-                                        "correction_verifier_indeterminate")
+                                    semantic_closure_fallback = "persistent_rejection"
+                                    status = "semantic_rejected"
+                                    semantic_saved_answer_audit = copy.deepcopy(
+                                        semantic_baseline_audit or audit)
                                     if semantic_baseline_sentences is None:
                                         raise RuntimeError(
                                             "semantic correction fallback has "
@@ -3179,6 +3201,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                     if semantic_baseline_submission_stats is not None:
                                         coverage_submission_stats = copy.deepcopy(
                                             semantic_baseline_submission_stats)
+                                else:
+                                    # The correction is deterministic-valid and
+                                    # can change text only; an unavailable or
+                                    # malformed second audit is therefore an
+                                    # indeterminate gate, not evidence that the
+                                    # known-rejected baseline is safer.
+                                    semantic_closure_final_verified = False
+                                    semantic_closure_fallback = (
+                                        "corrected_answer_indeterminate")
+                                    status = "semantic_unverified"
+                                    semantic_saved_answer_audit = copy.deepcopy(audit)
                         else:
                             semantic_baseline_arguments = copy.deepcopy(
                                 current_arguments)
@@ -3187,6 +3220,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                 coverage_submission_stats)
                             audit, records = run_semantic_closure_audit(
                                 current_arguments)
+                            semantic_baseline_audit = copy.deepcopy(audit)
                             if audit["verdict"] == "repair":
                                 semantic_repairable_item_indices = {
                                     int(index)
@@ -3202,6 +3236,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                     semantic_closure_fallback = (
                                         "rejection_without_repair_target")
                                     semantic_closure_final_verified = False
+                                    status = "semantic_rejected"
+                                    semantic_saved_answer_audit = copy.deepcopy(audit)
                                 else:
                                     semantic_closure_corrections += 1
                                     semantic_correction_pending = True
@@ -3217,6 +3253,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                     })
                             elif audit["verdict"] == "pass":
                                 semantic_closure_final_verified = True
+                                semantic_saved_answer_audit = copy.deepcopy(audit)
                                 auxiliary_raw_messages.append({
                                     "type": "phase_boundary",
                                     "phase": (
@@ -3227,10 +3264,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                                 semantic_closure_fallback = (
                                     "baseline_abstained_fail_open")
                                 semantic_closure_final_verified = False
+                                semantic_saved_answer_audit = copy.deepcopy(audit)
+                            elif audit["verdict"] == "not_applicable":
+                                semantic_closure_fallback = (
+                                    "no_applicable_semantic_checks")
+                                semantic_closure_final_verified = False
+                                semantic_saved_answer_audit = copy.deepcopy(audit)
                             else:
                                 semantic_closure_fallback = (
                                     "baseline_verifier_indeterminate")
                                 semantic_closure_final_verified = False
+                                semantic_saved_answer_audit = copy.deepcopy(audit)
                 coverage_submission_errors.extend(submission_errors)
                 if opened_handoff:
                     payload = json.dumps({
@@ -3256,8 +3300,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     }, ensure_ascii=False)
                     failed = True
                 else:
+                    semantic_blocked = (
+                        semantic_closure_verify
+                        and status in {"semantic_rejected", "semantic_unverified"}
+                    )
                     payload = json.dumps({
-                        "accepted": True,
+                        "accepted": not semantic_blocked,
                         "sentences": len(submitted),
                         "coverage": coverage_submission_stats,
                         "semantic_closure": (
@@ -3269,7 +3317,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             if semantic_closure_verify else None
                         ),
                     }, ensure_ascii=False)
-                    failed = False
+                    failed = semantic_blocked
                 payload, feedback_stats = action_feedback(payload, 0.0)
                 ts = now_iso()
                 submit_ids = {call["id"] for call in submit_calls}

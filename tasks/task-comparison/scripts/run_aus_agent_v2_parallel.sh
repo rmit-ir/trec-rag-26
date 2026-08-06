@@ -63,8 +63,44 @@ if [[ "$TOTAL" -ne 30 ]]; then
   echo "refusing: comparable dev evaluation requires exactly 30 topics" >&2
   exit 2
 fi
+verify_completed_dev30() {
+  PYTHONPATH=src uv run --group aus-agent-v2 python - "$TOPICS" "$RUN_ID" <<'PY'
+import json
+import sys
+from collections import Counter
+from pathlib import Path
+
+topics_path, run_id = sys.argv[1], sys.argv[2]
+topics = [
+    line.split("\t", 1)[0].strip()
+    for line in Path(topics_path).read_text(encoding="utf-8").splitlines()
+    if line.strip()
+]
+completed = []
+for path in Path("data/outputs/aus_agent_v2").glob("*.output.json"):
+    try:
+        obj = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        continue
+    if (obj.get("metadata", {}).get("run_id") == run_id
+            and (obj.get("trace") or {}).get("status") == "completed"):
+        completed.append(str(obj.get("metadata", {}).get("narrative_id") or ""))
+counts = Counter(completed)
+missing = [qid for qid in topics if counts[qid] == 0]
+duplicates = sorted(qid for qid, count in counts.items() if count > 1)
+extra = sorted(qid for qid in counts if qid not in set(topics))
+if len(completed) != 30 or missing or duplicates or extra:
+    raise SystemExit(
+        "incomplete dev30 artifacts: "
+        f"completed={len(completed)} missing={missing} "
+        f"duplicates={duplicates} extra={extra}")
+print("30")
+PY
+}
+
 if [[ "${#TODO[@]}" -eq 0 ]]; then
-  echo "nothing to do"
+  verify_completed_dev30 >/dev/null
+  echo "full dev30 generation already completed: $RUN_ID"
   exit 0
 fi
 
@@ -191,6 +227,11 @@ if [[ "$stopped_for_budget" -eq 1 ]]; then
 fi
 if [[ "$failed" -ne 0 ]]; then
   echo "$failed topic worker(s) failed; rerun with the same RUN_ID to resume" >&2
+  exit 1
+fi
+FINAL_COMPLETED="$(verify_completed_dev30)" || exit 1
+if [[ "$FINAL_COMPLETED" != "30" ]]; then
+  echo "final dev30 artifact verification returned $FINAL_COMPLETED" >&2
   exit 1
 fi
 echo "full dev30 generation completed: $RUN_ID"

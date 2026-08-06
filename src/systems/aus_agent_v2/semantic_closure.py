@@ -43,7 +43,6 @@ FAILURE_CODES = frozenset({
     "WRONG_EVIDENCE_TYPE",
     "COUNT_NOT_MET",
     "SEMANTIC_DUPLICATE",
-    "PACKET_INCOMPLETE",
 })
 
 
@@ -62,7 +61,7 @@ One answer sentence may legitimately pass several rows, and several candidate
 sentences or source quotes may jointly close one row.
 
 The top-level answer_items array is the complete final answer. In each check,
-candidate_item_indices names the prose explicitly mapped to that row and each
+candidate_item_indices names the typed answer content explicitly mapped to that row and each
 evidence entry names the answer items it can support. For scope=row_item, judge
 the named item while using neighboring answer items only to resolve references.
 For scope=row_aggregate, judge the named items together. For
@@ -71,6 +70,12 @@ deliverable or audience row, while still naming only repairable_item_indices
 as possible correction targets. On reject, item_indices must identify only the
 materially defective repairable items; evidence_ids must identify only the
 mapped evidence relevant to the defect.
+
+The row-owned evidence array is the only evidence that may satisfy the checked
+row. A bounded context_evidence array may also appear when one candidate item
+closes several rows; use it only to recognize that the item's other clauses are
+supported, never to substitute for missing row-owned support. On reject,
+evidence_ids may name row-owned evidence only, never context_evidence.
 
 Closure:
 - complete: the candidate answer content itself fulfills the row;
@@ -85,7 +90,9 @@ population, time, jurisdiction, modality, comparison, and negation when
 material. Direct entailment, joint entailment, and a conservative synthesis
 are valid. A related source, missing qualification, changed scope, opposite
 finding, or wrong evidence type is not. For must_research=false, support is
-not_applicable and the original request is the authority.
+not_applicable and the original request is the authority. If deciding evidence
+type would require provenance that the packet does not contain, abstain on that
+dimension rather than guessing.
 
 For minimum_count greater than one, judge whether the required number of
 semantically distinct instances is present; paraphrases of the same instance
@@ -94,8 +101,18 @@ do not count twice. Otherwise count is not_applicable.
 This is a high-precision reject-only gate. Use reject only for a clear material
 defect and include concrete failure codes. Use abstain—not reject—for genuine
 ambiguity, normative synthesis, insufficient excerpts, or incomplete packet
-context. A pass requires complete closure, valid support when research is
-required, and a valid distinct count when applicable.
+context. An abstention must mark at least one applicable dimension unclear and
+must leave failure_codes, item_indices, and evidence_ids empty. A pass requires
+complete closure, valid support when research is required, and a valid distinct
+count when applicable.
+
+Failure-code mapping is explicit: partial closure uses CLOSURE_PARTIAL or, when
+the partial answer changes a requested boundary, SCOPE_OVERREACH; unrelated
+closure uses CLOSURE_UNRELATED; meta-only closure uses META_ASSERTION_ONLY.
+Partial or unsupported research support uses SOURCE_PARTIAL or
+SOURCE_UNSUPPORTED respectively, with SCOPE_OVERREACH or WRONG_EVIDENCE_TYPE
+when that is the concrete defect; contradiction uses SOURCE_CONTRADICTED.
+Count failures use COUNT_NOT_MET or SEMANTIC_DUPLICATE.
 
 Call submit_semantic_closure exactly once with one result for every check_id,
 in the supplied order, and emit no prose outside the tool call.\
@@ -303,7 +320,7 @@ def normalize_semantic_closure(
         allowed_indices = set(record.get("repairable_item_indices") or [])
         allowed_evidence = {
             str(item.get("document_id") or "")
-            for item in record.get("evidence", [])
+            for item in (record.get("evidence") or [])
         }
         if not set(indices).issubset(allowed_indices):
             errors.append(f"check {check_id} names an out-of-scope answer item")
@@ -318,6 +335,25 @@ def normalize_semantic_closure(
 
         must_research = bool(record.get("row", {}).get("must_research"))
         minimum_count = int(record.get("row", {}).get("minimum_count") or 1)
+        if must_research:
+            if support == "not_applicable":
+                errors.append(
+                    f"check {check_id} research support cannot be not_applicable")
+                continue
+        elif support != "not_applicable":
+            errors.append(
+                f"check {check_id} nonresearch support must be not_applicable")
+            continue
+        if minimum_count > 1:
+            if count == "not_applicable":
+                errors.append(
+                    f"check {check_id} counted row cannot be not_applicable")
+                continue
+        elif count != "not_applicable":
+            errors.append(
+                f"check {check_id} uncounted row must be not_applicable")
+            continue
+
         if verdict == "pass":
             valid_support = (
                 support in {
@@ -342,6 +378,42 @@ def normalize_semantic_closure(
             if closure == "unclear" or support == "unclear" or count == "unclear":
                 errors.append(f"check {check_id} uncertainty must abstain")
                 continue
+            code_groups: list[set[str]] = []
+            if closure == "partial":
+                code_groups.append({"CLOSURE_PARTIAL", "SCOPE_OVERREACH"})
+            elif closure == "unrelated":
+                code_groups.append({"CLOSURE_UNRELATED"})
+            elif closure == "meta_only":
+                code_groups.append({"META_ASSERTION_ONLY"})
+            if must_research and support == "partial":
+                code_groups.append({
+                    "SOURCE_PARTIAL", "SCOPE_OVERREACH",
+                    "WRONG_EVIDENCE_TYPE",
+                })
+            elif must_research and support == "unsupported":
+                code_groups.append({
+                    "SOURCE_UNSUPPORTED", "SCOPE_OVERREACH",
+                    "WRONG_EVIDENCE_TYPE",
+                })
+            elif must_research and support == "contradicted":
+                code_groups.append({"SOURCE_CONTRADICTED"})
+            if minimum_count > 1 and count == "not_met":
+                code_groups.append({"COUNT_NOT_MET"})
+            elif minimum_count > 1 and count == "semantic_duplicates":
+                code_groups.append({"SEMANTIC_DUPLICATE"})
+            allowed_codes = set().union(*code_groups) if code_groups else set()
+            if not code_groups:
+                errors.append(
+                    f"check {check_id} reject has no failing semantic dimension")
+                continue
+            if not set(codes).issubset(allowed_codes):
+                errors.append(
+                    f"check {check_id} failure_codes do not match its labels")
+                continue
+            if any(not (set(codes) & group) for group in code_groups):
+                errors.append(
+                    f"check {check_id} lacks a code for each failing dimension")
+                continue
         else:
             if codes or indices or evidence_ids:
                 errors.append(
@@ -349,6 +421,15 @@ def normalize_semantic_closure(
                 continue
             if not diagnosis:
                 errors.append(f"check {check_id} abstain needs a diagnosis")
+                continue
+            applicable_unclear = (
+                closure == "unclear"
+                or (must_research and support == "unclear")
+                or (minimum_count > 1 and count == "unclear")
+            )
+            if not applicable_unclear:
+                errors.append(
+                    f"check {check_id} abstain needs an unclear applicable dimension")
                 continue
 
         clean.append({
@@ -397,9 +478,30 @@ def semantic_revision_errors(
         errors.append(
             "semantic correction must preserve the answer item count and ordering")
     for position, original_item in enumerate(original_items, 1):
-        if position in repairable_item_indices:
+        if position > len(revision_items):
+            errors.append(
+                f"semantic correction changed unflagged answer item {position}")
             continue
-        if position > len(revision_items) or revision_items[position - 1] != original_item:
+        revision_item = revision_items[position - 1]
+        if position in repairable_item_indices:
+            if not isinstance(original_item, dict) or not isinstance(
+                    revision_item, dict):
+                errors.append(
+                    f"semantic correction item {position} must remain an object")
+                continue
+            original_routing = {
+                key: value for key, value in original_item.items()
+                if key != "text"
+            }
+            revision_routing = {
+                key: value for key, value in revision_item.items()
+                if key != "text"
+            }
+            if revision_routing != original_routing:
+                errors.append(
+                    f"semantic correction changed routing metadata for flagged "
+                    f"answer item {position}; only text may change")
+        elif revision_item != original_item:
             errors.append(
                 f"semantic correction changed unflagged answer item {position}")
     if revision.get("unresolved") != original.get("unresolved"):
@@ -434,4 +536,16 @@ def render_semantic_closure_findings(
             f"{failure.get('diagnosis')} | requirement: "
             f"{row.get('requirement', '')}"
         )
+        named_evidence = set(failure.get("evidence_ids", []))
+        for evidence in [
+                *(record.get("evidence") or []),
+                *(record.get("context_evidence") or []),
+        ]:
+            document_id = str(evidence.get("document_id") or "")
+            if document_id not in named_evidence:
+                continue
+            lines.append(
+                f"  evidence {document_id}: "
+                f"{str(evidence.get('source_quote') or '').strip()}"
+            )
     return "\n".join(lines)
