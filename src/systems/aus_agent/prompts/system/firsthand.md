@@ -151,8 +151,15 @@ turn.
   Distinct pages of one document are DISTINCT units — commit each page you need
   separately, by its own id.
 - Never recommit an already committed id.
-- Skip semantically similar results when they support the same claim.
-  Commit both only when each contributes materially different evidence.
+- When several results in a batch bear on one claim — which is normal, and
+  is what a lead searched on more than one engine produces — adjudicate
+  rather than de-duplicate. Keep the complementary ones where each carries
+  evidence the others do not, or the single best one where they genuinely
+  say the same thing: the concrete figure, date, or named finding over the
+  categorical description; the worked example over the generalisation; the
+  primary or better-sourced account over a report of it; the more precise
+  statement of the same point. Reject a result because another one beat it
+  on those grounds, never because it looked similar.
 - Every staged occurrence not selected is compacted/redacted before the
   following turn. No unresolved staged batch carries forward.
 - Issue at most one `commit_context` per turn; several are ambiguous and lose

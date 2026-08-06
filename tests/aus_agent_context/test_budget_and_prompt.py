@@ -122,6 +122,60 @@ def test_the_prompt_renders_exactly_one_placeholder() -> None:
     assert "Commit at most `4` results" in prompt
 
 
+def _prompt_variants() -> list[str]:
+    return sorted(p.stem for p in agent.SYSTEM_PROMPTS_DIR.glob("*.md"))
+
+
+@pytest.mark.parametrize("variant", _prompt_variants())
+def test_every_variant_keeps_the_shared_harness_contract(variant: str) -> None:
+    """Variants are full copies, so the shared contract can drift silently.
+
+    Each file under ``prompts/system/`` restates the whole system prompt, and
+    an A/B is only single-variable if the parts that are NOT the experiment
+    stay identical in substance. These are the clauses the harness itself
+    enforces — the staged/committed protocol, the commit-then-report ordering,
+    the budget the loop compares against, the report parser's two rules, and
+    the one runtime placeholder. A variant that dropped any of them would fail
+    as a run, not as a worse score, and the cause would be invisible in the
+    scores it is being compared on.
+    """
+    template = (agent.SYSTEM_PROMPTS_DIR / f"{variant}.md").read_text(
+        encoding="utf-8")
+    assert template.count(agent.MAX_COMMITTED_PLACEHOLDER) == 1
+
+    prompt = agent.load_system_prompt(7, variant)
+    flat = " ".join(prompt.split())
+    assert agent.MAX_COMMITTED_PLACEHOLDER not in prompt
+    assert "Commit at most `7` results" in prompt
+    assert "## Staged and committed evidence" in prompt
+    assert "## Final response contract" in prompt
+    assert "exactly one sentence per line" in prompt
+    assert f"{agent.DEFAULT_CONTEXT_TOKEN_BUDGET:,} tokens" in prompt
+    assert "commit first, and write the report on the following turn" in flat
+    assert "Its results are staged exactly like a search batch" in flat
+    # The two deliberate absences (see the default-prompt tests below).
+    assert "ClimbMix" not in prompt
+    assert "scratchpad" not in prompt.lower()
+
+
+@pytest.mark.parametrize("variant", _prompt_variants())
+def test_no_variant_reinstates_blanket_de_duplication(variant: str) -> None:
+    """The selection rule is shared policy, not an experimental variable.
+
+    ``commit_context``'s tool description now tells the model to adjudicate
+    competing results against specificity criteria rather than discard
+    similar-looking ones. A prompt that still said "skip semantically similar
+    results" would contradict the tool on the one turn that matters, and would
+    silently cancel a paired-engine round by throwing away the second engine's
+    contribution as duplicate — the failure would look like "pairing did not
+    help" rather than like a contradiction.
+    """
+    prompt = agent.load_system_prompt(7, variant)
+    flat = " ".join(prompt.split())
+    assert "Skip semantically similar results" not in flat
+    assert "adjudicate" in flat.lower()
+
+
 def test_the_prompt_teaches_the_commit_protocol_and_its_ordering() -> None:
     """The commit protocol is unusual enough that the prompt must state it.
 
@@ -241,7 +295,8 @@ def test_full_text_is_requested_from_the_engine_and_bounded_locally(
     monkeypatch.setattr(search_tool, "_DISPATCH",
                         {e: _long for e in search_tool._DISPATCH})
     execution = execute_full_text_search(
-        {"query": "full text"}, default_k=10, seen_docids=set())
+        {"query": "full text", "search_engine": "semantic"},
+        default_k=10, seen_docids=set())
 
     assert execution.failed is False
     # 900 chars is well under the 4096-token default bound, so nothing was cut.
@@ -269,7 +324,8 @@ def test_a_bounded_result_reports_what_it_cut(
     monkeypatch.setattr(search_tool, "_DISPATCH",
                         {e: _long for e in search_tool._DISPATCH})
     execution = execute_full_text_search(
-        {"query": "bounded", "budget_tokens_per_result": 4},
+        {"query": "bounded", "search_engine": "semantic",
+         "budget_tokens_per_result": 4},
         default_k=10, seen_docids=set())
 
     payload = json.loads(execution.output)
@@ -281,15 +337,15 @@ def test_a_bounded_result_reports_what_it_cut(
     assert payload["budget_tokens_per_result"] == 4
 
 
-def test_the_engine_choice_routes_by_model_argument_then_run_default(
+def test_the_model_engine_choice_is_the_only_thing_that_routes(
         monkeypatch) -> None:
-    """Three-level fallback: model's choice, then the run's, then the tool's.
+    """Only the model's own ``search_engine`` reaches the dispatch table.
 
-    An absent ``search_engine`` must not be forwarded as an explicit ``None``,
-    because that would override the run's ``default_engine`` — a single-engine
-    experiment would silently measure the shared tool's built-in ``semantic``
-    backend instead of the engine it was configured for, and the trajectory would
-    not show which one answered.
+    There is deliberately no harness-side fallback: if the adapter picked an
+    engine for a silent call, a trajectory row would attribute the hits to a
+    backend the model never chose, and the per-engine effectiveness comparison
+    that the whole single-engine run mode exists for would be measuring the
+    harness's default instead of the experiment's engine.
     """
     from tools import search_tool
 
@@ -303,17 +359,34 @@ def test_the_engine_choice_routes_by_model_argument_then_run_default(
 
     monkeypatch.setattr(search_tool, "_DISPATCH",
                         {e: _make(e) for e in search_tool._DISPATCH})
-    # The model names an engine: it wins.
-    execute_full_text_search({"query": "q", "search_engine": "keyword"},
-                             default_k=10, seen_docids=set(),
-                             default_engine="ssr")
-    # It stays silent: the run's engine is used, not the tool's own default.
-    execute_full_text_search({"query": "q"}, default_k=10, seen_docids=set(),
-                             default_engine="ssr")
-    # Neither is set: the shared tool falls back to its documented default.
-    execute_full_text_search({"query": "q"}, default_k=10, seen_docids=set())
+    for engine in ("keyword", "ssr"):
+        execute_full_text_search({"query": "q", "search_engine": engine},
+                                 default_k=10, seen_docids=set(),
+                                 engines=["semantic", "keyword", "ssr"])
 
-    assert routed == ["keyword", "ssr", "semantic"]
+    assert routed == ["keyword", "ssr"]
+
+
+def test_an_omitted_engine_is_an_error_naming_the_enabled_set(
+        monkeypatch) -> None:
+    """A silent ``search_engine`` costs the call, not a guess.
+
+    ``search_engine`` is required by the schema, so an omission is a model
+    mistake; answering it with an error that names the run's enabled engines
+    lets the model retry on the next turn, whereas routing it to a default
+    would hide the mistake and corrupt the engine attribution in the trace.
+    """
+    from tools import search_tool
+
+    monkeypatch.setattr(search_tool, "_DISPATCH",
+                        {e: lambda *a, **kw: pytest.fail("must not dispatch")
+                         for e in search_tool._DISPATCH})
+    execution = execute_full_text_search({"query": "q"}, default_k=10,
+                                         seen_docids=set(),
+                                         engines=["semantic", "ssr"])
+    assert execution.failed and execution.documents == []
+    assert "search_engine is required" in execution.trace_output["error"]
+    assert "'semantic', 'ssr'" in execution.trace_output["error"]
 
 
 def test_the_default_staging_budget_is_the_documented_one() -> None:

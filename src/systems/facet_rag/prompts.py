@@ -55,11 +55,19 @@ FACET: {facet_name}
 
 {facet_description}
 {context_block}
-Write a DIFFERENT, natural-language query for EACH of these three engines, \
-each phrased in that engine's own style (not a copy of the others):
+Write a DIFFERENT query for EACH of these three engines:
 - semantic: {semantic_blurb}
 - keyword: {keyword_blurb}
-- hybrid: {hybrid_blurb}
+- hybrid: write a HYPOTHETICAL ANSWER, not a search-style query — a short, \
+confident passage (2-4 sentences) that WOULD answer this facet's need, as \
+if it were an excerpt from a real ClimbMix document (the HyDE technique: a \
+fuller passage retrieves closer neighbors via dense embedding than a short \
+query phrase does). ALWAYS write a complete hypothetical answer, even if \
+you are not certain of the specific facts, dates, or numbers — invent \
+plausible-sounding specifics rather than hedging, staying generic, or \
+declining; this text is never shown to anyone and only used to find real \
+matching documents, so a confident wrong guess retrieves better than a \
+vague true one.
 
 If (and only if) this facet genuinely needs Boolean-precise co-occurrence, a \
 required term, or a phrase/proximity match that natural language can't \
@@ -87,11 +95,20 @@ EVIDENCE ALREADY SAVED FOR THIS FACET:
 NEWLY RETRIEVED PASSAGES:
 {passages}
 
-For each newly retrieved passage that supports the facet, keep it: note what \
-it supports and why. Then judge whether the facet is now adequately covered \
-by the saved + newly kept evidence together, or whether a specific gap \
-remains that another search could fill (name the gap concretely, e.g. what \
-aspect, entity, or comparison is still missing — not "need more info").
+For each newly retrieved passage that supports the facet, keep it. Its note \
+must be a pre-written list of the SPECIFIC facts this passage contributes — \
+numbers, dates, names, figures — not a topic label ("Detailed 401k vs Roth \
+IRA comparison: contribution limits ($22,500/$6,500 2023), RMD age 73, \
+employer match" is a usable note; "discusses retirement accounts" is not). \
+Also name the passage's ROLE: is it core support, a counter-argument or \
+caveat, a concrete example, or background context? Actively look for \
+counter-evidence, contradictions, and limitations, not only confirming \
+material — a passage that complicates or qualifies the facet's claim is as \
+worth keeping as one that supports it, and its note should say so. Then \
+judge whether the facet is now adequately covered by the saved + newly kept \
+evidence together, or whether a specific gap remains that another search \
+could fill (name the gap concretely, e.g. what aspect, entity, or comparison \
+is still missing — not "need more info").
 
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
 {{"relevant": [{{"docid": "<docid from the passages above>", \

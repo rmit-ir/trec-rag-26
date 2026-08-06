@@ -48,6 +48,7 @@ from .tools import (
     expire_staged,
 )
 
+# Dense + sparse, both enabled by default; the model must name one per call.
 DEFAULT_ENGINES = ["semantic", "keyword"]
 
 DEFAULT_CONTEXT_TOKEN_BUDGET = 500_000
@@ -134,20 +135,27 @@ def make_provider(backend: str, model: str | None,
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
                         seen_docids: set[str],
-                        default_engine: str | None = None) -> list[tuple]:
+                        engines: list[str] | None = None,
+                        default_k_by_engine: dict[str, int] | None = None,
+                        ) -> list[tuple]:
     """Execute one model turn's tool calls IN PARALLEL (threads; the tools are
     I/O-bound and thread-safe). Returns, in the model's tool_use order, one
     ``(output, trace_output, returned, failed, documents, t_start, t_end,
     duration_ms)``
     tuple per call — each
-    call carries its own real wall-clock bounds. ``default_engine`` pins a
-    single-engine run to its engine when the model omits ``search_engine``."""
+    call carries its own real wall-clock bounds. ``engines`` is the run's
+    enabled set, named back to the model when a call omits the required
+    ``search_engine``. ``default_k_by_engine`` overrides ``k`` for a named
+    engine when the model's call omits ``k`` (e.g. a HyDE-style hybrid query
+    benefits from a wider net than a short keyword query)."""
     def timed(call: dict[str, Any]) -> tuple:
         t0 = now_iso()
         started = perf_counter()
+        engine = call["arguments"].get("search_engine")
+        eff_default_k = (default_k_by_engine or {}).get(engine, k)
         execution = execute_full_text_search(
-            call["arguments"], default_k=k, seen_docids=seen_docids,
-            default_engine=default_engine)
+            call["arguments"], default_k=eff_default_k, seen_docids=seen_docids,
+            engines=engines)
         return (execution.output, execution.trace_output,
                 execution.returned, execution.failed, execution.documents,
                 t0, now_iso(),
@@ -537,17 +545,46 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               run_id: str = "aus-agent-dev",
               run_desc: str | None = None,
               prompt_variant: str = DEFAULT_PROMPT_VARIANT,
-              engines: list[str] | None = None) -> dict[str, Any]:
+              engines: list[str] | None = None,
+              system_name: str = "aus_agent",
+              system_prompt: str | None = None,
+              default_k_by_engine: dict[str, int] | None = None,
+              commit_context_tool: dict[str, Any] | None = None,
+              search_tool_def: dict[str, Any] | None = None,
+              ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
     ``engines`` selects which retrieval backends the search tool exposes (e.g.
     ``["ssr"]`` to test SSR Boolean in isolation); defaults to the hybrid
     ``semantic`` + ``keyword`` pair.
+
+    This is the shared staged-context harness: ``system_name`` picks the
+    ``data/outputs/<system_name>/`` artifact directory (a sibling system reusing
+    this loop, e.g. ``facets_agent``, passes its own name so the two never mix
+    outputs) and ``system_prompt`` — when given — is used verbatim instead of
+    ``load_system_prompt(max_committed_per_step, prompt_variant)``, so a caller
+    with its own prompt does not need a file under this package's
+    ``prompts/system/``. ``default_k_by_engine`` overrides the per-call result
+    count for a named engine when the model's call omits ``k``.
+    ``commit_context_tool`` — when given — is advertised to the model instead
+    of this module's own ``COMMIT_CONTEXT_TOOL``; ``apply_commit`` already
+    handles a ``release`` argument whenever the call carries one regardless of
+    which tool definition advertised it, so a caller only needs to supply a
+    schema that documents the field (e.g. one extending ``COMMIT_CONTEXT_TOOL``
+    with a ``release`` property) to expose it. ``search_tool_def`` — when
+    given — is advertised instead of this module's own
+    ``build_search_tool_def(engines)``; unlike ``commit_context_tool`` the
+    search definition is ENGINE-DEPENDENT (its ``search_engine`` enum and
+    query guidance are derived from ``engines``, which this function also
+    uses separately in the error path when a call omits ``search_engine``),
+    so a caller must build its override from the same ``engines`` list this
+    call was given — never pass a module-level constant built for a
+    different engine set, or the advertised enum and the run's actual
+    enabled engines will desync.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
-    default_engine = engines[0]
     provider = make_provider(backend, model)
     tb = TrajectoryBuilder(query_id, query, metadata={
         "model": provider.model_id,
@@ -591,8 +628,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             narrative=query,
             run_id=run_id,
             run_desc=run_desc or (
-                f"aus_agent research harness ({backend}/{provider.model_id}, "
-                f"prompt={prompt_variant}): "
+                f"{system_name} research harness ({backend}/{provider.model_id}, "
+                f"prompt={prompt_variant}, "
+                f"engines={'+'.join(engines)}): "
                 f"continuous single-agent full-text search with sparse "
                 f"committed context and line-per-sentence cited prose answers "
                 f"parsed into the organizer schema."),
@@ -653,7 +691,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             return
         last_partial_save = now
         try:
-            save_run("aus_agent", query,
+            save_run(system_name, query,
                      trajectory=build_trajectory("running"),
                      output=build_output([], []),
                      timestamp=run_ts, validate=False,
@@ -750,12 +788,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         return output
 
     try:
-        system_prompt = load_system_prompt(max_committed_per_step,
-                                            prompt_variant)
+        if system_prompt is None:
+            system_prompt = load_system_prompt(max_committed_per_step,
+                                                prompt_variant)
         tool_definitions = [
-            build_search_tool_def(engines),
+            search_tool_def or build_search_tool_def(engines),
             GET_DOCUMENTS_TOOL,
-            COMMIT_CONTEXT_TOOL,
+            commit_context_tool or COMMIT_CONTEXT_TOOL,
         ]
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         tb.set_trace_input({
@@ -1023,6 +1062,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 pending_before = list(ledger.pending)
                 committed_before = set(ledger.committed_ids)
                 rejected_before = set(ledger.rejected_ids)
+                committed_call_id_before = dict(ledger.committed_call_id)
                 try:
                     handled = apply_commit(
                         ledger,
@@ -1038,6 +1078,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     ledger.pending = pending_before
                     ledger.committed_ids = committed_before
                     ledger.rejected_ids = rejected_before
+                    ledger.committed_call_id = committed_call_id_before
                     decision = expire_staged(
                         ledger,
                         max_documents=max_committed_per_step,
@@ -1062,8 +1103,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     context = decision.context
                     documents = []
                 else:
+                    # A release (if any) touches call_ids OUTSIDE this turn's
+                    # staged batch, so it is merged into the SAME compaction
+                    # call as the normal commit -- one atomic provider-history
+                    # rewrite either way.
+                    replacements = dict(decision.replacements)
+                    if handled.release is not None:
+                        replacements.update(handled.release.replacements)
                     try:
-                        provider.compact_tool_results(decision.replacements)
+                        provider.compact_tool_results(replacements)
                     except Exception:
                         # Provider-history compaction is atomic with the ledger
                         # update. A backend failure ends the run rather than
@@ -1071,10 +1119,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         ledger.pending = pending_before
                         ledger.committed_ids = committed_before
                         ledger.rejected_ids = rejected_before
+                        ledger.committed_call_id = committed_call_id_before
                         raise
                     out = json.dumps(handled.payload, ensure_ascii=False)
                     failed = False
                     context = decision.context
+                    if handled.release is not None:
+                        context = {**context,
+                                  "released": handled.release.released}
                     documents = decision.documents
                 ct1 = now_iso()
                 duration_ms = round(
@@ -1159,7 +1211,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 # records their real overlapping bounds for the viewer.
                 executed = _execute_tool_calls(
                     retrieval_calls, k=k, seen_docids=seen_docids,
-                    default_engine=default_engine)
+                    engines=engines, default_k_by_engine=default_k_by_engine)
                 for call, (
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms
@@ -1293,7 +1345,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     trajectory = build_trajectory(status)
     # The final save is the only one that writes the trajectory, validates, and
     # carries a terminal status — it overwrites the last partial in place.
-    paths = save_run("aus_agent", query, trajectory=trajectory, output=output,
+    paths = save_run(system_name, query, trajectory=trajectory, output=output,
                      timestamp=run_ts)
     return {"status": status, "paths": paths,
             "tool_call_counts": trajectory["tool_call_counts"],

@@ -152,7 +152,9 @@ def main() -> None:
             make_orchestrator, make_analyzer, qid=qid, narrative=narrative,
             engines=engines, run_id=args.run_id, run_desc=args.run_desc,
             orchestrator_model_id=args.orchestrator_model,
-            analyzer_model_id=args.analyzer_model, max_chars=args.max_chars,
+            analyzer_model_id=args.analyzer_model,
+            orchestrator_region=args.orchestrator_region,
+            analyzer_region=args.analyzer_region, max_chars=args.max_chars,
             min_facets=args.min_facets, max_facets=args.max_facets,
             format_llm=not args.no_format_llm)
         paths = result["paths"]

@@ -226,6 +226,7 @@ SYSTEM_KIND = {
     "facet_rag": "agent",
     "ali_deepresearch": "agent",
     "aus_agent": "agent",
+    "facets_agent": "agent",
     "o3_deep_research": "single-file",
     "claude-code-research": "manual",
 }
@@ -235,6 +236,9 @@ SYSTEM_BLURB = {
                  "judges + fact-checks, per-facet loops run concurrently",
     "ali_deepresearch": "Alibaba Tongyi DeepResearch ReAct port; owns answer_format",
     "aus_agent": "staged-context research agent; owns the pluggable providers",
+    "facets_agent": "gpt-5.6-luna on the shared aus_agent harness, minimal "
+                    "prompt covering facet_rag's process (decompose, "
+                    "multi-engine per facet, curate, self-check)",
     "o3_deep_research": "minimal single-file runner (hosted DR + MCP)",
     "claude-code-research": "workflow-driven research (no python pipeline package)",
 }

@@ -66,10 +66,34 @@ def test_the_description_states_the_one_turn_window_and_the_empty_case() -> None
     """
     description = COMMIT_CONTEXT_TOOL["description"]
     assert "MOST RECENT" in description
-    assert "first control action" in description
+    assert "immediately following model turn" in description
+    # The window is the turn, NOT a slot within it: the loop applies commits
+    # before the same turn's searches whatever order the model emitted them in
+    # (test_the_commits_position_within_the_turn_does_not_matter). The old text
+    # said "first control action", which trains the model against a constraint
+    # the harness does not have.
+    assert "in any position among that turn's actions" in description
     empty_case = (COMMIT_CONTEXT_TOOL["input_schema"]["properties"]
                   ["documents"]["description"])
     assert "empty" in empty_case and "rejects the whole staged batch" in empty_case
+
+
+def test_the_description_adjudicates_rather_than_de_duplicates() -> None:
+    """A paired-engine round is worthless if the second engine reads as a dupe.
+
+    Searching one lead on both engines returns different documents supporting
+    the same point by design. The previous rule — "do not select a semantically
+    redundant result supporting the same claim" — told the model to discard
+    exactly that, so the run would pay for the dual retrieval and throw the
+    result away, and the failure would look like "pairing did not help". The
+    replacement must state comparison criteria and must NOT reinstate a
+    similarity-based skip.
+    """
+    description = COMMIT_CONTEXT_TOOL["description"]
+    assert "ADJUDICATE, DO NOT DE-DUPLICATE" in description
+    assert "semantically redundant" not in description
+    # Rejection is by losing a comparison, never by resemblance.
+    assert "never because it looked similar" in description
 
 
 def test_the_reason_field_describes_what_distinct_means() -> None:
@@ -231,6 +255,71 @@ def test_no_instruction_is_added_while_research_can_continue(
     handled = apply_commit(ledger, {"documents": []},
                            max_documents=3, finishing=False)
     assert "instruction" not in handled.payload
+
+
+# ---------------------------------------------------------------------------
+# apply_commit — release (opt-in: only touched when the call carries one)
+# ---------------------------------------------------------------------------
+def test_apply_commit_ignores_a_call_with_no_release_key(
+        ledger_with) -> None:
+    """The common case (a system whose tool schema never advertises
+    ``release``, or a call that just doesn't use it) must be byte-identical
+    to before this feature existed: no ``released`` key, no ``.release``."""
+    ledger = ledger_with(("search-1", "alpha"))
+    handled = apply_commit(ledger, {"documents": [
+        {"docid": "b", "reason": "direct evidence"}]},
+        max_documents=3, finishing=False)
+    assert set(handled.payload) == {"committed", "rejected"}
+    assert handled.release is None
+
+
+def test_apply_commit_processes_a_release_alongside_a_commit(
+        ledger_with) -> None:
+    """The documented use case: commit a better document, release the one it
+    supersedes, in one call."""
+    ledger = ledger_with(("search-1", "alpha"))
+    apply_commit(ledger, {"documents": [
+        {"docid": "a", "reason": "first pass"}]},
+        max_documents=3, finishing=False)
+
+    ledger.stage("search-2", "search", '{"query": "beta", "k": 10, '
+                 '"results": [{"rank": 1, "id": "z", "docid": "z", '
+                 '"kind": "document", "score": 1.0, "text": "better text"}]}',
+                 [{"id": "z", "docid": "z", "kind": "document", "score": 1.0,
+                   "text": "better text"}])
+    handled = apply_commit(ledger, {
+        "documents": [{"docid": "z", "reason": "states it more precisely"}],
+        "release": [{"id": "a", "reason": "z supersedes this"}],
+    }, max_documents=3, finishing=False)
+
+    assert handled.release is not None
+    assert handled.release.released == [
+        {"docid": "a", "reason": "z supersedes this"}]
+    assert handled.payload["released"] == handled.release.released
+    assert ledger.committed_ids == {"z"}
+    assert "search-1" in handled.release.replacements
+
+
+def test_apply_commit_propagates_a_release_validation_error_unchanged(
+        ledger_with) -> None:
+    """A release naming an uncommitted id must fail the same way an invalid
+    commit selection does -- ``run_agent`` catches ``ValueError`` uniformly
+    and expires the whole batch."""
+    ledger = ledger_with(("search-1", "alpha"))
+    with pytest.raises(ValueError, match="not currently committed"):
+        apply_commit(ledger, {
+            "documents": [{"docid": "b", "reason": "kept"}],
+            "release": [{"id": "a", "reason": "never committed"}],
+        }, max_documents=3, finishing=False)
+
+
+def test_apply_commit_rejects_a_non_list_release_argument(
+        ledger_with) -> None:
+    ledger = ledger_with(("search-1", "alpha"))
+    ledger.commit([{"docid": "a", "reason": "kept"}], max_documents=3)
+    with pytest.raises(ValueError, match="release must be an array"):
+        apply_commit(ledger, {"documents": [], "release": "a"},
+                     max_documents=3, finishing=False)
 
 
 # ---------------------------------------------------------------------------

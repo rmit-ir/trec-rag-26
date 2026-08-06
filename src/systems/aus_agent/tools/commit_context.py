@@ -4,21 +4,32 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Any
 
-from ..context import CommitDecision, ContextLedger
+from ..context import CommitDecision, ContextLedger, ReleaseDecision
 
 COMMIT_CONTEXT_TOOL: dict[str, Any] = {
     "name": "commit_context",
     "description": (
         "Select the small subset of results from the MOST RECENT staged batch "
-        "(search or get_documents) whose full text should persist. This MUST be "
-        "the first control action on the immediately following model turn. "
-        "Every staged occurrence not listed is compacted before the next turn. "
-        "Pass each result's `id` EXACTLY as it was returned (a chunk id like "
-        "`shard_00042_1337_p3` when the backend is paginated — do not strip the "
-        "`_p<page>` suffix). Distinct pages of one document are distinct units: "
-        "commit each page you actually need. Do not select an id already "
-        "committed, or a semantically redundant result supporting the same "
-        "claim, unless it adds materially different evidence."
+        "(search or get_documents) whose full text should persist. Call it on "
+        "the immediately following model turn, in any position among that "
+        "turn's actions. Every staged occurrence not listed is compacted "
+        "before the next turn. Pass each result's `id` EXACTLY as it was "
+        "returned (a chunk id like `shard_00042_1337_p3` when the backend is "
+        "paginated — do not strip the `_p<page>` suffix). Distinct pages of "
+        "one document are distinct units: commit each page you actually need. "
+        "Never select an id already committed. "
+        "ADJUDICATE, DO NOT DE-DUPLICATE. A batch routinely holds several "
+        "results bearing on one claim, especially when a lead was searched on "
+        "more than one engine — that is the batch working as intended, not "
+        "redundancy to discard. Compare them and keep the complementary ones "
+        "where each carries evidence the others do not, or the single best one "
+        "where they genuinely say the same thing. Better means: states the "
+        "concrete figure, date, or named finding rather than describing it "
+        "categorically; gives the worked example rather than the "
+        "generalisation; is the primary or better-sourced account rather than "
+        "a report of it; and, between two results making the same point, says "
+        "it more precisely. A result is rejected because another one beat it "
+        "on those grounds, never because it looked similar."
     ),
     "input_schema": {
         "type": "object",
@@ -44,7 +55,11 @@ COMMIT_CONTEXT_TOOL: dict[str, Any] = {
                             "description": (
                                 "The distinct evidence, claim, perspective, "
                                 "date, name, counter-evidence, or coverage area "
-                                "this result uniquely contributes."
+                                "this result uniquely contributes. Where it was "
+                                "kept over a competing result in the same "
+                                "batch, name the specific thing it has that "
+                                "the other did not — the figure, the example, "
+                                "the primary account, the sharper statement."
                             ),
                         },
                     },
@@ -61,6 +76,12 @@ COMMIT_CONTEXT_TOOL: dict[str, Any] = {
 class CommitHandlerResult:
     decision: CommitDecision
     payload: dict[str, Any]
+    # None when the call carried no ``release`` (the common case, and the
+    # only case aus_agent's own tool schema can produce — it does not
+    # advertise the field). A system whose tool schema DOES advertise
+    # ``release`` (see facets_agent) gets it populated whenever the model
+    # actually uses it.
+    release: ReleaseDecision | None = None
 
 
 def apply_commit(
@@ -79,13 +100,29 @@ def apply_commit(
         "committed": decision.committed,
         "rejected": decision.rejected,
     }
+
+    # ``release`` is opt-in and additive: only present in ``payload`` (and
+    # only touches the ledger at all) when the call actually carries one, so
+    # a caller whose tool schema never advertises the field sees byte-identical
+    # behavior to before this existed.
+    release: ReleaseDecision | None = None
+    raw_release = arguments.get("release") or []
+    if raw_release:
+        if not isinstance(raw_release, list):
+            raise ValueError("release must be an array")
+        release_selected = [item for item in raw_release
+                            if isinstance(item, dict)]
+        release = ledger.release_committed(release_selected)
+        payload["released"] = release.released
+
     if finishing:
         payload["instruction"] = (
             "Research budget is exhausted; write the final report now (plain "
             "prose, one sentence per line, [id] citation markers citing the "
             "exact committed ids) using only committed evidence."
         )
-    return CommitHandlerResult(decision=decision, payload=payload)
+    return CommitHandlerResult(decision=decision, payload=payload,
+                               release=release)
 
 
 def expire_staged(

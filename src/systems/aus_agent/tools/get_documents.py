@@ -7,6 +7,15 @@ neighbouring pages ``shard_x_p1``, ``shard_x_p2`` (or any constructed id) to rea
 the surrounding context, then commit the pages it actually needs. Unknown or
 out-of-range ids (e.g. a ``_p`` past the document's last page) come back in
 ``missing`` and are simply not staged.
+
+Note what the agent is NOT given: the backend's ``/doc/<id>`` response is
+``{docid, text}`` only, with no page count, and the search envelope carries no
+total either. The chunk text opens with ``Page <n> of document:`` — the page
+number but not the denominator. So the ONLY way to learn a document's extent is
+to request the next id and see whether it lands in ``missing``, which is why
+the tool description sells that probe as free. Putting ``Page <n> of <m>`` into
+the docstore's prefix at index-build time would remove the need for the probe
+entirely; see the 2026-08-05 worklog.
 """
 from __future__ import annotations
 
@@ -39,12 +48,22 @@ GET_DOCUMENTS_TOOL: dict[str, Any] = {
     "description": (
         "Fetch specific retrieval units by id and stage them like a search "
         "batch (commit_context on the next turn keeps the ones you need). "
-        "Backends return paginated chunk ids `<docid>_p<page>`; to read more "
-        "context around a useful hit, construct the neighbouring page ids "
-        "(same docid, adjacent `_p<page>` numbers) and request them here. "
-        "Prefer this to re-searching when you already know which document/pages "
-        "you want to read further. Unknown or out-of-range ids are returned in "
-        "`missing` and not staged."
+        "Backends return paginated chunk ids `<docid>_p<page>`, and each "
+        "chunk's text opens with `Page <n> of document:`. A search returns ONE "
+        "page of a document, never the whole document, and nothing in the "
+        "result says how many pages the document has — so a hit on "
+        "`shard_x_p5` means pages 1-4 exist and were not shown to you, and "
+        "further pages may exist too. To read the rest, construct the "
+        "neighbouring page ids (same docid, `_p<page>` ± 1) and request them "
+        "here. Asking for a page that does not exist is FREE: it comes back in "
+        "`missing`, stages nothing, and costs no context — so requesting the "
+        "next page is also how you discover where a document ends. Keep going "
+        "on a document that is paying off: fetch the next pages, and the pages "
+        "after those, until you have read enough of it to have what you came "
+        "for or until the pages come back `missing`. One document read through "
+        "is worth more than one page each from several. Prefer this to "
+        "re-searching whenever you already know which document you want more "
+        "of."
     ),
     "input_schema": {
         "type": "object",

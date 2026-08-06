@@ -1,0 +1,58 @@
+aus_agent topics: 15, facets_agent topics: 15, shared: 15
+
+================================================================================
+aus_agent (n=15 topics)
+================================================================================
+searches/topic:        mean=10.5 min=7 max=17 total=158
+commit_context/topic:  mean=2.7 min=2 max=5 total=40
+get_documents/topic:   mean=0.0 min=0 max=0 total=0
+committed docs/topic:  mean=17.4 min=10 max=24 total=261
+rejected docs/topic:   mean=71.1 min=30 max=153 total=1066
+release() uses/topic:  mean=0.0 min=0 max=0 total=0  (total release events: 0)
+model turns/topic:     mean=7.2 min=5 max=11 total=108
+wall-clock s/topic:    mean=67.3 min=36.197 max=107.027 total=1009.803
+processed tokens/topic:mean=88227.6 min=50614 max=144304 total=1323414
+failed search calls:   0
+
+engine usage counts:   {'semantic': 134, 'keyword': 24}
+  semantic   k: mean=8.4 min=5 max=10  query_words: mean=8.6 min=5 max=15
+  keyword    k: mean=9.0 min=6 max=10  query_words: mean=8.4 min=5 max=13
+
+================================================================================
+facets_agent (n=15 topics)
+================================================================================
+searches/topic:        mean=18.6 min=8 max=39 total=279
+commit_context/topic:  mean=3.6 min=1 max=6 total=54
+get_documents/topic:   mean=0.6 min=0 max=4 total=9
+committed docs/topic:  mean=16.2 min=6 max=26 total=243
+rejected docs/topic:   mean=200.3 min=69 max=383 total=3005
+release() uses/topic:  mean=0.0 min=0 max=0 total=0  (total release events: 0)
+model turns/topic:     mean=8.5 min=3 max=13 total=127
+wall-clock s/topic:    mean=61.7 min=29.489 max=87.459 total=924.877
+processed tokens/topic:mean=195047.3 min=81780 max=335537 total=2925709
+failed search calls:   0
+
+engine usage counts:   {'semantic': 96, 'hybrid': 92, 'keyword': 91}
+  semantic   k: mean=10.8 min=8 max=15  query_words: mean=11.8 min=6 max=21
+  hybrid     k: mean=15.2 min=10 max=20  query_words: mean=19.3 min=9 max=31
+  keyword    k: mean=10.9 min=8 max=15  query_words: mean=9.7 min=5 max=17
+
+================================================================================
+facets_agent: does reasoning actually mention decomposing into facets?
+================================================================================
+  [958498] 'facet' mentioned 3x in reasoning (2524 chars total)
+  [9af325] 'facet' mentioned 1x in reasoning (1796 chars total)
+  [9af32d] 'facet' mentioned 2x in reasoning (944 chars total)
+  [60535d] 'facet' mentioned 1x in reasoning (1478 chars total)
+  [605367] 'facet' mentioned 3x in reasoning (1768 chars total)
+  [605387] 'facet' mentioned 5x in reasoning (1858 chars total)
+  [605391] 'facet' mentioned 3x in reasoning (1612 chars total)
+  [605404] 'facet' mentioned 4x in reasoning (2936 chars total)
+  [60542a] 'facet' mentioned 4x in reasoning (2953 chars total)
+  [605476] 'facet' mentioned 2x in reasoning (1591 chars total)
+  [60547e] 'facet' mentioned 6x in reasoning (3035 chars total)
+  [60547f] 'facet' mentioned 2x in reasoning (1302 chars total)
+  [605492] 'facet' mentioned 3x in reasoning (918 chars total)
+  [605493] 'facet' mentioned 2x in reasoning (1864 chars total)
+  [6054a7] 'facet' mentioned 1x in reasoning (3564 chars total)
+topics with >=1 'facet' mention in reasoning: 15/15

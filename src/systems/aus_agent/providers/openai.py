@@ -37,12 +37,47 @@ try:  # creds from the repo root .env
 except ImportError:  # pragma: no cover
     pass
 
+from utils.env import env
+
 from .base import ModelTurn, Provider
 
 DEFAULT_MODEL_ID = "gpt-5.6-luna"
 # Mirror of bedrock.py's guard: a turn with no text and no tool calls is
 # unusable (the loop would stall), so ask again rather than append it.
 EMPTY_RESPONSE_RETRIES = 3
+
+# Per-attempt HTTP timeouts. The read bound is the one that matters: a hung
+# socket is invisible until it expires, so `timeout=600.0` (the old single
+# scalar) stalled a run for ten minutes before the retry that fixed it in under
+# a second.
+#
+# It is MODEL-DEPENDENT and therefore not a constant to tune once. Measured on
+# `gpt-5.6-luna` over 447 turns (2026-08-05 prompt-variant runs): p50 5.4s,
+# p90 15.6s, p99 25.2s, longest legitimate turn ~26s. A larger generator
+# (`gpt-5.6-sol`) or `reasoning.mode=pro` raises all of those, so the default
+# below is deliberately sized for the SLOWER model rather than the measured
+# one — the two failure modes are not symmetric:
+#
+#   too high -> one hung socket stalls the run for the timeout's duration;
+#   too low  -> legitimate generations are cancelled mid-flight, and since each
+#               retry re-sends the entire accumulated conversation, a too-tight
+#               bound burns tokens and can never converge on the long turns it
+#               keeps killing.
+#
+# The second is far worse, so the default keeps ~12x headroom over luna's p99
+# (room for a ~10x slower model) while still halving the old stall. Tune per
+# model with AUS_AGENT_READ_TIMEOUT_S rather than editing this; re-measure with
+#
+#   grep -ho "turn [0-9]* took [0-9.]*s" <run log> | grep -o "[0-9.]*s$"
+#
+# and set it to roughly 5x the observed p99. NB: a turn-duration distribution
+# gathered under an existing timeout cannot show anything above that timeout,
+# so read the p99 of the SUCCESSFUL turns and ignore the pile-up at the ceiling.
+CONNECT_TIMEOUT_S = env("AUS_AGENT_CONNECT_TIMEOUT_S", 15.0)
+READ_TIMEOUT_S = env("AUS_AGENT_READ_TIMEOUT_S", 300.0)
+WRITE_TIMEOUT_S = env("AUS_AGENT_WRITE_TIMEOUT_S", 60.0)  # body = whole convo
+POOL_TIMEOUT_S = env("AUS_AGENT_POOL_TIMEOUT_S", 15.0)
+MAX_RETRIES = env("AUS_AGENT_MAX_RETRIES", 5)
 
 
 class OpenAIProvider(Provider):
@@ -58,9 +93,21 @@ class OpenAIProvider(Provider):
 
     def _ensure_client(self) -> Any:
         if self._client is None:
+            import httpx
             from openai import OpenAI
 
-            self._client = OpenAI(timeout=600.0, max_retries=5)
+            # Split rather than one scalar: a stalled *read* is the failure we
+            # actually see, and it needs a much tighter bound than the write of
+            # a request body that grows to the whole accumulated conversation.
+            self._client = OpenAI(
+                timeout=httpx.Timeout(
+                    READ_TIMEOUT_S,
+                    connect=CONNECT_TIMEOUT_S,
+                    write=WRITE_TIMEOUT_S,
+                    pool=POOL_TIMEOUT_S,
+                ),
+                max_retries=MAX_RETRIES,
+            )
         return self._client
 
     # -- Provider contract ---------------------------------------------------

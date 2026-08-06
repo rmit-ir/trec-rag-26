@@ -19,9 +19,10 @@ Search and document results use a staged/committed context protocol:
    20,480 characters and cut at the preceding line break). The trace records
    docids and compact truncation metadata, never document text.
 2. That batch exists for exactly the immediately following model turn.
-   `commit_context` must be the first action on that turn and selects a sparse
-   evidence-worthy subset. Every selection reason names the distinct evidence
-   or coverage aspect being retained.
+   `commit_context` must be called on that turn — its position among the
+   turn's actions does not matter, since commits are applied before the same
+   turn's searches — and selects a sparse evidence-worthy subset. Every
+   selection reason names the distinct evidence or coverage aspect retained.
 3. Selected text stays in provider history. Rejected text is replaced by
    `the agent decided this document is irrelevant: <docid>`. The rich trace
    retains docids and decisions only; the viewer fetches document text from
@@ -29,9 +30,17 @@ Search and document results use a staged/committed context protocol:
 4. If the model fails to commit first, the entire staged batch expires and is
    compacted before another turn. An unresolved batch never carries forward.
 5. An already committed docid is never retained again. Later occurrences
-   become `duplicate/already committed` tombstones. The prompt also instructs
-   the model to skip semantically redundant different docids unless each adds
-   materially different evidence.
+   become `duplicate/already committed` tombstones. Beyond that exact-id rule,
+   selection **adjudicates rather than de-duplicates**: several results bearing
+   on one claim is the batch working (especially when a lead was searched on
+   more than one engine), so the model keeps the complementary ones — or the
+   single best where they genuinely coincide — against stated criteria
+   (concrete figure/date/named finding over categorical description, worked
+   example over generalisation, primary over a report of it, the more precise
+   statement of the same point). A result is rejected because another beat it,
+   never because it looked similar. The earlier "skip semantically redundant"
+   rule silently cancelled dual-engine retrieval and was removed from the tool
+   description and every prompt variant together.
 
 This keeps long research runs tractable without destroying retrieval or
 selection evidence.
@@ -42,10 +51,25 @@ selection evidence.
   `--prompt-variant <stem>`. `default.md` is the live baseline (the complete
   system contract: scope interpretation, internal success requirements,
   research workflow, staged evidence protocol, 500K stopping policy, and the
-  final prose-report contract); other files (e.g. `firsthand.md`) are variants,
-  and the chosen variant is recorded in the run metadata + `run_desc`. Runtime
-  substitution uses the single distinctive `__MAX_COMMITTED_DOCS__`
+  final prose-report contract); the others are single-variable arms branched
+  from it, and the chosen variant is recorded in the run metadata + `run_desc`.
+  Runtime substitution uses the single distinctive `__MAX_COMMITTED_DOCS__`
   placeholder.
+
+  | variant | the one thing it changes |
+  |---|---|
+  | `default` | — (control) |
+  | `firsthand` | favours first-hand / original sources |
+  | `paired-lead` | a lead is not ready to judge until *both* engines have answered it (volume-neutral: fewer leads per round, covered properly) |
+  | `done-condition` | a lead ledger (resolved / refuted / needs-depth) plus marginal-yield termination, replacing the coverage-area stopping rule |
+  | `evidence-dense` | answer-side only: cite every world-asserting sentence or cut it, carry the specific figure out of the committed passage, no unrequested localization |
+
+  Because each is a full copy, a parametrized test
+  (`test_every_variant_keeps_the_shared_harness_contract`) asserts every file
+  still carries the clauses the harness enforces — a variant that dropped one
+  would fail as a run, and the cause would be invisible in the scores.
+  Variants are generated from `default.md` by anchored replacement of only the
+  section being changed, so a score difference is attributable.
 - `agent.py` — harness loop, staged-context state machine, parallel tool
   execution, current-context token budget, same-loop final-report
   parsing/validation/correction, docid→reference-index mapping, and
@@ -193,7 +217,16 @@ separate final prompt or compressor call is introduced.
 
 Search is the normal evidence tool. AUS requests full backend hits and applies
 its own independent per-result staging budget before returning text to the
-model. The only advertised tools are `search` and `commit_context`.
+model. The advertised tools are `search`, `get_documents`, and `commit_context`.
+
+`search_engine` is **required on every search call**, including in a
+single-engine run: the model names the backend it wrote the query for, and an
+omitted engine comes back as an error envelope naming the run's enabled set
+rather than being routed to a harness-chosen default. That keeps engine
+attribution in the trajectory honest — the per-subquery labels feed retriever
+fine-tuning, and a hit filed under an engine nothing selected is label noise.
+The default enabled set is the dense+sparse pair `semantic,keyword`
+(`--search-backends`).
 
 ### Adding Azure OpenAI / OpenAI Responses
 

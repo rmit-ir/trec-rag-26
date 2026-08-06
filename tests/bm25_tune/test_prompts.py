@@ -80,14 +80,11 @@ def test_umbrela_template_is_byte_identical_to_the_prior_bedrock_run() -> None:
     clause makes that column incomparable, which is worse than not having it,
     because the report would present it as continuous with the old numbers.
     """
-    tasks = (REPO_ROOT / "evaluation-results" / "aus-agent" /
-             "umbrela-bedrock" / "tasks.jsonl")
-    # Asserted rather than skipped: the file is committed, so its absence means a
-    # broken checkout, and this suite is skip-free by design (a skip here would
-    # fail scripts/test.sh anyway). Read one line — the file is ~35 MB.
-    assert tasks.is_file(), f"{tasks} is committed but missing from this checkout"
-    with tasks.open(encoding="utf-8") as handle:
-        row = json.loads(handle.readline())
+    # evaluation-results/ is gitignored (synced via Downloads, not git), so this
+    # reads a committed one-row fixture copied from that run's tasks.jsonl instead
+    # of the ~35 MB original — same first row, so the pin still holds.
+    fixture = Path(__file__).parent / "data" / "umbrela_bedrock_sample_row.jsonl"
+    row = json.loads(fixture.read_text(encoding="utf-8"))
     rendered = PROMPTS["umbrela-v1"].render(row["metadata"]["query"],
                                             row["metadata"]["passage"])
     assert rendered == row["instruction"]

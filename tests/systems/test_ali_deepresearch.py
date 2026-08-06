@@ -750,6 +750,54 @@ def test_format_answer_llm_path_uses_the_model_sentences() -> None:
     assert '["d1", "d2"]' in llm.prompts[0]
 
 
+def test_format_answer_llm_prompt_carries_excerpts_when_evidence_text_given() -> None:
+    """PLAN.md §3.4: when the caller has evidence text (facet_rag does; the
+    other two systems that call format_answer today don't), the formatter
+    prompt must show it so the model can verify a citation instead of
+    matching an opaque id blind -- the diagnosed cause of a real
+    all-zero-citation run this session."""
+    llm = _FormatterLLM(json.dumps({"sentences": [
+        {"text": "Grounded claim.", "citations": ["d1"]}]}))
+    format_answer("draft", ["d1", "d2"], llm=llm,
+                  evidence_text={"d1": "d1's full passage text goes here."})
+    prompt = llm.prompts[0]
+    assert '"docid": "d1"' in prompt
+    assert "d1's full passage text goes here." in prompt
+    # d2 has no evidence text -- it must still appear (still citable) but
+    # without a fabricated excerpt.
+    assert '"docid": "d2"' in prompt
+
+
+def test_format_answer_llm_prompt_truncates_long_excerpts() -> None:
+    """A 20 000-char evidence item (facet_rag's new --max-chars ceiling)
+    must not balloon the formatter prompt to the same size for every
+    candidate -- this call only needs enough text to verify one fact."""
+    from ali_deepresearch.answer_format import EXCERPT_CHARS
+
+    llm = _FormatterLLM(json.dumps({"sentences": [
+        {"text": "x.", "citations": ["d1"]}]}))
+    long_text = "A" * (EXCERPT_CHARS * 5)
+    format_answer("draft", ["d1"], llm=llm, evidence_text={"d1": long_text})
+
+    prompt = llm.prompts[0]
+    assert "A" * EXCERPT_CHARS in prompt
+    assert "A" * (EXCERPT_CHARS + 1) not in prompt
+
+
+def test_format_answer_llm_without_evidence_text_is_unchanged() -> None:
+    """The other two format_answer callers (ali_deepresearch itself,
+    o3_deep_research) don't pass evidence_text -- confirms the bare-docid
+    prompt shape from before PLAN.md §3.4 is still exactly what they get."""
+    llm = _FormatterLLM(json.dumps({"sentences": [
+        {"text": "x.", "citations": ["d1"]}]}))
+    format_answer("draft", ["d1", "d2"], llm=llm)
+    # The ALLOWED DOCIDS payload itself (not the fixed instructions, which
+    # now mention "excerpt" as a possible field regardless) stays a bare
+    # string list -- no {"docid": ...} objects.
+    payload = re.search(r"ALLOWED DOCIDS:\s*(.*)", llm.prompts[0]).group(1)
+    assert payload.strip() == '["d1", "d2"]'
+
+
 def test_format_answer_llm_citations_are_constrained_to_the_allow_list() -> None:
     """CORRECTNESS-CRITICAL: a hallucinated docid must never reach references.
 

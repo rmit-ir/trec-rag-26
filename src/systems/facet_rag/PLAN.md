@@ -352,7 +352,72 @@ effect, one-line change, no architecture risk), re-measure, then revisit
 > "suggested order" above accordingly before spending more judge budget on
 > `--max-chars` alone.
 
+> **Verified 2026-08-05 (later same day) — `DEFAULT_TOP_N` 3→5 + formatter
+> length floor is the fix that actually worked, at a real cost.**
+> `curator.DEFAULT_TOP_N` 3→5, `FORMAT_ANSWER_PROMPT` gained "preserve every
+> fact... use as much of the 1024-word budget as the draft supports" (commit
+> `0f11a86`), same 5 topics re-run as `facet_rag.top5floor_5topic`. Worklog:
+> `worklogs/2026-08-05-facet-rag-top5floor-and-cost-timing.md`.
+>
+> | topic | words (20k/t3→20k/t5+floor) | cited% | UMBRELA mean | vs aus_agent |
+> |---|---|---|---|---|
+> | CSGO | 317→571 | 94%→86% | 1.636→1.650 | 2.083 |
+> | SCALING | 591→987 | 94%→73% | 1.133→1.300 | 1.667 |
+> | RETIRE | 437→733 | 100%→97% | 1.500→1.579 | 1.583 (essentially matched) |
+> | PRESCHOOL | 613→722 | 100%→100% | 0.800→0.762 | 1.467 |
+> | SWARM | 346→539 | 100%→90% | 0.800→1.087 | 1.294 |
+>
+> Mean words 460.8→710.4 (the real jump `--max-chars` alone never produced).
+> UMBRELA improved on 3/5 topics. **Cost: citation coverage dropped below the
+> ≥95% target on CSGO (86%) and SCALING (73%)** — confirming §5's
+> precision-vs-recall tension is real, not theoretical. One topic (SCALING)
+> also produced a first-ever `status=no_references` run (60/60 sentences
+> uncited despite the curator keeping 19-23 items/facet) — root-caused to
+> §3.4 below, retried once to get a comparable run. Noise check (3 trials
+> each on CSGO/SWARM, word/cited%/refs only — UMBRELA-level noise judging
+> failed on persistent API 429s): word count fairly stable (~6% spread on
+> CSGO, ~29% on SWARM), cited% noisier (12-14pt spread either topic) — several
+> deltas above are at that noise boundary.
+
+> **Verified 2026-08-05 (later still) — §3.2/§3.4/§3.5 fixed the citation
+> regression, at the cost of the word-count gain.** Commit `5c122c7`: richer
+> `ANALYZER_PROMPT` notes (§3.2 below), `format_answer` now sees evidence
+> excerpts not bare docids (§3.4), uncited factual claims get deleted not
+> kept (§3.5). Same 5 topics re-run as `facet_rag.improved_5topic` (no
+> `no_references` failures this time). Worklog:
+> `worklogs/2026-08-05-facet-rag-improved-3topics-and-hyde.md`.
+>
+> | topic | words (t5+floor→improved) | cited% | UMBRELA mean | support p_o_f |
+> |---|---|---|---|---|
+> | CSGO | 571→264 | 86%→**100%** | 1.650→**1.917** (closest yet to 2.083) | 0.923→0.846 |
+> | SCALING | 987→354 | 73%→**95%** | 1.300→1.105 | 0.759→**0.929** |
+> | RETIRE | 733→529 | 97%→100% | 1.579→1.500 | 1.000→0.854 |
+> | PRESCHOOL | 722→406 | 100%→100% | 0.762→0.812 | 0.807→0.833 |
+> | SWARM | 539→640 | 100%→100% | 1.087→1.000 | 0.783→**0.935** |
+>
+> Mean words 710.4→438.6 — **worse than the very first `opus_plan_5topic`
+> baseline (471.8)**. §3.5's "delete an unsupportable factual sentence rather
+> than leave it uncited" rule recovered CSGO/SCALING's citation coverage
+> (86%→100%, 73%→95%) exactly as designed, and support `partial_or_full`
+> improved on 3/5 topics (aggregate 0.841→0.882) — but it does this by
+> *deleting* content, which is the same lever §3.1 just fought to raise. A1
+> (word budget) and A5 (citation coverage) are not two independent knobs to
+> both max out — they trade directly against each other through the same
+> mechanism (how many unverifiable sentences survive formatting). **This is
+> §5's tension made concrete, not resolved**: whichever of A1 vs A5 the
+> submission should optimize for is still an open human call, and every
+> `DEFAULT_TOP_N`/formatter change from here should be evaluated against both
+> together, not just the one it targets. CSGO's UMBRELA (1.917) is the
+> closest facet_rag has come to aus_agent on any topic all session. Full run
+> cost (all 5 topics, cost tracking from §6.1): **$0.34**, 100% of calls
+> priced.
+
 ### 3.2 Commit-reason style — the analyzer/curator notes are the wrong shape *(→ A2, A3)*
+
+**Done 2026-08-05** — see the "improved_5topic" verification note above.
+`ANALYZER_PROMPT` now demands specific facts/dates/names per passage and its
+role (support/counter-argument/example/background), and explicitly asks for
+counter-evidence (commit `5c122c7`).
 
 This is the sharpest, most copyable difference. aus_agent's `commit_context`
 reasons, verbatim from `aus-agent-dev-full`:
@@ -398,6 +463,33 @@ evidence, claim, perspective, date, name, counter-evidence, or coverage area
 this result **uniquely** contributes".
 
 ### 3.3 Search shape — 5× the calls for 1/3 the answer *(→ A2)*
+
+**Partially addressed 2026-08-05 — a different slice than this section's own
+diagnosis.** The user asked specifically for hybrid's query to become a HyDE
+(hypothetical-document-embedding) hypothetical-answer passage instead of a
+short phrase, with a wider net (`k` 10→15) to match — implemented in
+`ORCHESTRATOR_QUERY_PROMPT`/`loop.py` (`HYBRID_K = 15`), always writes a
+confident hypothetical answer even when unsure (never a hedge/refusal, since
+the text is retrieval-only and never shown to anyone). This is **not** the
+"N distinct sub-questions instead of one question × 3 engines" restructure
+this section itself recommends below (query diversity beat engine
+diversity) — that's still open.
+
+**Verification attempted 2026-08-05, half-blocked.** `facet_rag.hyde_5topic`
+run completed all 5 topics; spot-checking the CSGO trajectory confirms the
+mechanism works exactly as designed — hybrid queries are genuine multi-sentence
+hypothetical-answer passages at k=15 (e.g. "CS:GO's enduring popularity stems
+from its tight, skill-based gunplay...", confidently inventing plausible
+specifics like "$250 million per quarter by 2022" rather than hedging), a
+completely different shape from the old short keyword phrases. **But the
+AWS SSO session token expired partway through judging** — UMBRELA came back
+82/88 `ExpiredTokenException` failures, support 152/152 — so there is **no
+valid answer-quality measurement** for this variant. Not fabricated or
+reported as data; the resolved answers (`evaluation-results/facet_rag/
+hyde_5topic/answers.resolved.jsonl`) are kept so a re-judge doesn't need to
+re-resolve. **Action for whoever picks this up: `aws sso login`, re-check
+`sts get-caller-identity`, then re-run just the UMBRELA/support judge steps
+against the already-resolved file** — no need to re-run facet_rag itself.
 
 Measured from the trajectories (each row re-verified against
 `tool_call_counts` and the run's `references` count; the manifest's "tool
@@ -447,6 +539,18 @@ Two structural reasons aus_agent gets more out of fewer calls:
 
 ### 3.4 The two stages aus_agent doesn't have *(→ A6, A7)*
 
+**Root-caused and partially addressed 2026-08-05.** This section's own
+diagnosis ("the reformat is a lossy re-write by a model that never saw the
+evidence text") turned out to be the exact cause of a real
+`status=no_references` (0/60 sentences cited) run this session. Took the
+cheaper of the two options below: `format_answer` now accepts an optional
+`evidence_text` dict and shows each candidate docid with an 800-char excerpt
+when the caller has one (facet_rag does now; commit `5c122c7`), instead of a
+bare id list. The **bigger** option — fact-check emits the final
+one-sentence-per-line `[docid]` form directly, `format_answer` reduced to a
+parser — is still open; structure/thesis/conclusion still die at the
+formatter stage regardless of whether it can now verify citations.
+
 aus_agent's system prompt ends: *"There is no separate finalizer, formatter, or
 compression phase"* (`default.md:260`). The model writes one sentence per line
 with `[id]` markers, directly. facet_rag runs **draft → fact-check → LLM
@@ -460,6 +564,13 @@ Worth evaluating: have the fact-check stage emit the final one-sentence-per-line
 rewriter. `answer_format._heuristic` stays as the safety net.
 
 ### 3.5 A spec detail the prompts currently get backwards *(→ A5)*
+
+**Done 2026-08-05.** `FORMAT_ANSWER_PROMPT` now instructs the model to delete
+an uncited factual claim rather than keep it (nuance preserved: a pure
+transition/framing sentence asserting nothing about the world may still stay
+uncited) — commit `5c122c7`. Verified in the "improved_5topic" run above:
+CSGO/SCALING's cited% recovered to 100%/95%, but mean words dropped
+710.4→438.6 in the same run — see that note for why this isn't a free win.
 
 `rag-task.md:131`: "An answer object with no citations is omitted from
 citation-precision scoring and receives a support score of 0 for weighted
@@ -544,6 +655,52 @@ item's "prior art").
 
 ### 6.1 Cost tracking and analysis
 
+**Done 2026-08-05.** `src/ragrun/pricing.py` — `Rates`/`load_rates`/`call_cost`
+ported from `bm25_tune` as designed below (budget-ceiling/ledger machinery
+left behind). Two rate tables fetched live from the AWS Pricing API and
+committed: `src/ragrun/prices/bedrock-openai-gpt-oss-120b-1-0-apsoutheast2-2026-08-05.json`
+and `...-qwen-qwen3-next-80b-a3b-useast1-2026-08-05.json` (facet_rag's
+orchestrator/analyzer models). Confirmed by a live Bedrock `converse()` call
+that the response never carries a dollar figure — only
+`usage.{input,output,cacheRead,cacheWrite}Tokens` — so cost is always
+*computed*, never read off a response; a per-call "empirical" cost does not
+exist (the only real empirical figure is AWS Cost Explorer/CUR, which lags
+24-48h and is a daily account aggregate, not per-call — deliberately not
+built, see the session's discussion).
+
+`BedrockProvider` now exposes `.region` (`aus_agent/providers/bedrock.py`,
+previously constructed straight into the boto3 client and discarded) so a
+step's `stats.cost` can be computed from the same provider instance that
+already exposed `.model_id`. `TrajectoryBuilder.finalize()` sums every step's
+`stats.cost.usd` into `trace.summary.cost` (`{usd, priced_calls,
+unpriced_calls}`) — pure aggregation, works for any system once it starts
+attaching per-step cost, so aus_agent/o3_deep_research/etc. get the rollup for
+free the moment they wire a step's `stats={"tokens":..., "cost":...}`.
+
+facet_rag itself is now fully wired (`pipeline.py`): `_stats()` attaches cost
+to all 6 call sites (plan, per-facet orchestrator turns, per-facet
+analyzer/curator turns, draft, fact-check) using two `Rates` objects computed
+once at the top of `run_one` from `orchestrator_model_id`/`analyzer_model_id`
++ the new `orchestrator_region`/`analyzer_region` params (threaded from
+`run.py`'s existing `--orchestrator-region`/`--analyzer-region` flags).
+**Bonus fix while wiring this:** the format-answer LLM call
+(`_ProviderLLM(make_orchestrator())`) had **no trace step at all** before this
+— its tokens and cost were completely invisible. It now gets its own
+`"format"` step. Live-verified on a real 2-facet CSGO run:
+`trace.summary.cost = {"usd": 0.031069, "priced_calls": 16, "unpriced_calls":
+0}` — every model call in that run priced, no unknowns. Tests:
+`tests/shared/test_pricing.py` (rate loading/matching, unit-guard, cost
+arithmetic, unpriced-model degrades to `None` not a crash) and 4 rollup tests
+in `tests/contract/test_output_trajectory.py`.
+
+**Still open:** the per-role rollup (§4 item 2.2's "was the curator's extra
+call worth it") — the total is there, but nothing yet slices `trace.summary`
+by orchestrator-vs-analyzer/curator role. `trace_steps` already has enough
+(each step's `stats.tokens`/`stats.cost` plus which prompt/role produced it is
+inferable from step order within `_replay_events`, though not tagged
+explicitly) to build this without new instrumentation — a follow-up, not
+blocked on anything above.
+
 **Why it matters here specifically:** every number in §0/§3 came from token
 counts (`ragrun.TrajectoryBuilder`'s `stats.tokens` block, via
 `facet_rag.loop.usage_token_stats`), never dollars. The curator's "one more LLM
@@ -585,6 +742,25 @@ pulling in ragrun's artifact-writing dependencies) that:
   the curator's extra call worth it") with a number instead of a guess.
 
 ### 6.2 Timing — wall-clock duration, per run and per stage
+
+**Done 2026-08-05** (the rollup half; the per-stage timestamping gap noted
+below is not). `TrajectoryBuilder.finalize()` now also emits
+`trace.summary.duration = {total_ms, by_type_ms, steps_with_duration,
+steps_total}` — pure aggregation over whatever `t_start`/`t_end`/
+`stats.duration_ms` steps already carry, zero per-system wiring, so every
+system gets this immediately. Live-verified on the same CSGO run as §6.1:
+`{"total_ms": 135784, "by_type_ms": {"reasoning": 1706, "generation": 25543,
+"output_text": 19211}, "steps_with_duration": 5, "steps_total": 30}` — which
+also re-confirms the gap this section already named: only 5/30 steps on that
+run carry `duration_ms` (facet-loop replay events still don't set
+`t_start`/`t_end`), so `by_type_ms` undercounts badly for `"generation"` and
+omits `"tool_call"`/`"reasoning"`-from-facets entirely. The rollup surfaces
+that coverage gap (`steps_with_duration`/`steps_total`) rather than hiding
+it — fixing the gap itself (timestamping `_replay_events`'s per-facet steps)
+is a separate, still-open change to `pipeline.py`/`loop.py`. Tests:
+`test_duration_summary_breaks_down_by_step_type` and
+`test_duration_summary_absent_when_nothing_is_timestamped` in
+`tests/contract/test_output_trajectory.py`.
 
 **Prior art, and the gap:** `ragrun.TrajectoryBuilder._trace_step` already
 computes `duration_ms` for every individual step from its `t_start`/`t_end`
