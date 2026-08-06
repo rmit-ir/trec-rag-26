@@ -45,6 +45,11 @@ from .coverage_plan import (
     coverage_plan_request,
     normalize_coverage_plan,
 )
+from .atomic_plan import (
+    ATOMIC_PLAN_SYSTEM,
+    atomic_plan_request,
+    normalize_atomic_plan,
+)
 from .coverage_verify import (
     COVERAGE_VERIFY_SYSTEM,
     coverage_repair_request,
@@ -103,12 +108,15 @@ from .answer_form import (
 )
 from .coverage_contract import (
     EvidenceLedger,
+    build_atomic_coverage_contract,
     build_coverage_contract,
     commit_tool_with_contract,
     contract_trace,
     normalize_commit_supports,
+    normalize_commit_promotions,
     normalize_requirement_ids,
     render_contract_status,
+    render_terminal_evidence_handoff,
     render_research_contract,
     search_tool_with_contract,
     submit_answer_tool,
@@ -704,6 +712,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               audience_verify: bool = False,
               answer_blueprint: bool = False,
               coverage_contract: bool = False,
+              atomic_contract_plan: bool = False,
+              dynamic_contract_rows: bool = False,
+              terminal_evidence_handoff: bool = False,
               engines: list[str] | None = None) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -719,6 +730,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "handoffs and cannot both be enabled")
     if coverage_contract and not coverage_plan:
         raise ValueError("coverage_contract requires coverage_plan")
+    if atomic_contract_plan and not coverage_contract:
+        raise ValueError("atomic_contract_plan requires coverage_contract")
+    if dynamic_contract_rows and not coverage_contract:
+        raise ValueError("dynamic_contract_rows requires coverage_contract")
+    if terminal_evidence_handoff and not coverage_contract:
+        raise ValueError("terminal_evidence_handoff requires coverage_contract")
     if coverage_repair_strategy not in {"patch-first", "research-first"}:
         raise ValueError(
             "coverage_repair_strategy must be 'patch-first' or 'research-first'")
@@ -746,6 +763,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         "audience_verify": audience_verify,
         "answer_blueprint": answer_blueprint,
         "coverage_contract": coverage_contract,
+        "atomic_contract_plan": atomic_contract_plan,
+        "dynamic_contract_rows": dynamic_contract_rows,
+        "terminal_evidence_handoff": terminal_evidence_handoff,
         "engines": engines,
     })
     log.info("[%s] starting: backend=%s model=%s k=%d run_id=%s budget=%d",
@@ -788,10 +808,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     answer_blueprint_errors: list[str] = []
     answer_handoff_chars = 0
     coverage_contract_items = []
+    atomic_plan_rows: list[dict[str, Any]] = []
     coverage_evidence = EvidenceLedger()
     coverage_submission_attempts = 0
     coverage_submission_errors: list[str] = []
     coverage_submission_stats: dict[str, Any] = {}
+    coverage_terminal_handoff_sent = False
+    coverage_terminal_handoff_chars = 0
+    coverage_dynamic_promotions = 0
     coverage_commit_corrections = 0
     coverage_commit_expirations = 0
     coverage_commit_batch_failures = 0
@@ -936,6 +960,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "audience_verify": audience_verify,
             "answer_blueprint": answer_blueprint,
             "coverage_contract": coverage_contract,
+            "atomic_contract_plan": atomic_contract_plan,
+            "dynamic_contract_rows": dynamic_contract_rows,
+            "terminal_evidence_handoff": terminal_evidence_handoff,
         }
         trajectory.trace["summary"]["context"] = {
             "committed": sorted(ledger.committed_ids),
@@ -990,6 +1017,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             "submission_attempts": coverage_submission_attempts,
             "submission_errors": list(coverage_submission_errors),
             "submission": dict(coverage_submission_stats),
+            "terminal_handoff_sent": coverage_terminal_handoff_sent,
+            "terminal_handoff_chars": coverage_terminal_handoff_chars,
+            "dynamic_promotions": coverage_dynamic_promotions,
             **contract_trace(coverage_contract_items, coverage_evidence),
         }
         trajectory.trace["summary"]["coverage_plan"] = {
@@ -1542,6 +1572,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             system_prompt += (
                 "\n\n" + render_terminal_system_addendum(answer_form_policy)
             )
+            if terminal_evidence_handoff:
+                system_prompt += (
+                    "\n\nThe first otherwise-valid submit_answer call opens "
+                    "a mandatory harness-owned terminal evidence handoff; its "
+                    "draft is not evaluated. After reading that tool result, "
+                    "call submit_answer once more with the complete answer."
+                )
         search_tool_definition = build_search_tool_def(engines)
         if coverage_contract:
             search_tool_definition = search_tool_with_contract(
@@ -1551,7 +1588,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             # Fact cards are requested only for the evidence-to-answer arm.
             # The original system and the v2 control retain the unchanged
             # commit schema, keeping this a clean architectural intervention.
-            (commit_tool_with_contract()
+            (commit_tool_with_contract(
+                allow_promotions=dynamic_contract_rows)
              if coverage_contract else
              commit_context_tool_with_facts()
              if answer_blueprint else COMMIT_CONTEXT_TOOL),
@@ -1562,8 +1600,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             tool_definitions.append(submit_answer_tool(answer_form_policy))
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         if coverage_plan:
-            provider.start(COVERAGE_PLAN_SYSTEM, [])
-            planner_request = coverage_plan_request(query)
+            coverage_plan_system = (
+                ATOMIC_PLAN_SYSTEM
+                if atomic_contract_plan else COVERAGE_PLAN_SYSTEM
+            )
+            provider.start(coverage_plan_system, [])
+            planner_request = (
+                atomic_plan_request(query)
+                if atomic_contract_plan else coverage_plan_request(query)
+            )
             provider.add_user_message(planner_request)
             save_partial(force=True)
             plan_turn = timed_turn()
@@ -1581,8 +1626,34 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 context=_context_snapshot(ledger),
             )
             coverage_plan_requested = True
-            coverage_plan_initial = normalize_coverage_plan(
-                plan_turn.get("text"))
+            if atomic_contract_plan:
+                atomic_plan_rows = normalize_atomic_plan(
+                    plan_turn.get("text"))
+                if not atomic_plan_rows:
+                    raise RuntimeError(
+                        "atomic coverage planner returned no valid complete "
+                        "10-24 row inventory")
+                rendered_rows: list[str] = []
+                for index, row in enumerate(atomic_plan_rows, 1):
+                    label = (
+                        "PENALTY" if row["mode"] == "avoid"
+                        else str(row["kind"]).upper()
+                    )
+                    line = f"{index}. {label}: {row['requirement']}"
+                    literals = (
+                        row.get("must_avoid", [])
+                        if row["mode"] == "avoid"
+                        else row.get("must_mention", [])
+                    )
+                    if literals:
+                        line += " EXACT: " + "; ".join(literals)
+                    if row.get("minimum_count", 1) > 1:
+                        line += f" MINIMUM: {row['minimum_count']}"
+                    rendered_rows.append(line + ".")
+                coverage_plan_initial = "\n".join(rendered_rows)
+            else:
+                coverage_plan_initial = normalize_coverage_plan(
+                    plan_turn.get("text"))
             coverage_plan_text = coverage_plan_initial
             log.info(
                 "[%s] coverage plan: %d words in fresh planning context",
@@ -1759,7 +1830,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     "phase": "coverage_plan_to_research",
                     "note": "fresh research context starts after this item",
                 })
-            if coverage_plan_text:
+            if coverage_plan_text and not atomic_contract_plan:
                 user_message += (
                     "\n\nPre-research coverage plan from an isolated planning "
                     "stage. Treat it as a checklist of evidence needs and "
@@ -1771,11 +1842,18 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     + coverage_plan_text
                 )
             if coverage_contract:
-                coverage_contract_items = build_coverage_contract(
-                    coverage_plan_text,
-                    list(obligation_audit.get("additions", [])),
-                    answer_form=answer_form_policy,
-                )
+                if atomic_contract_plan:
+                    coverage_contract_items = build_atomic_coverage_contract(
+                        atomic_plan_rows,
+                        list(obligation_audit.get("additions", [])),
+                        answer_form=answer_form_policy,
+                    )
+                else:
+                    coverage_contract_items = build_coverage_contract(
+                        coverage_plan_text,
+                        list(obligation_audit.get("additions", [])),
+                        answer_form=answer_form_policy,
+                    )
                 if not coverage_contract_items:
                     raise RuntimeError(
                         "coverage plan produced no executable contract items")
@@ -1791,10 +1869,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         }
         if coverage_plan:
             trace_input.update({
-                "coverage_plan_system": COVERAGE_PLAN_SYSTEM,
+                "coverage_plan_system": coverage_plan_system,
                 "coverage_plan_initial": coverage_plan_initial or None,
                 "coverage_plan": coverage_plan_text or None,
             })
+            if atomic_contract_plan:
+                trace_input["atomic_plan_rows"] = list(atomic_plan_rows)
         if plan_critic and coverage_plan:
             trace_input.update({
                 "plan_critic_system": PLAN_CRITIC_SYSTEM,
@@ -2270,6 +2350,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 committed_before = set(ledger.committed_ids)
                 rejected_before = set(ledger.rejected_ids)
                 retry_preserved = False
+                promoted_items = []
                 try:
                     contract_supports = {}
                     if coverage_contract:
@@ -2277,6 +2358,33 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             normalize_commit_supports(
                                 call["arguments"], coverage_contract_items)
                         )
+                        if dynamic_contract_rows:
+                            selected_ids: list[str] = []
+                            for raw_document in call["arguments"].get(
+                                    "documents", []):
+                                if not isinstance(raw_document, dict):
+                                    continue
+                                document_id = str(
+                                    raw_document.get("id") or "").strip()
+                                if (document_id
+                                        and document_id not in selected_ids
+                                        and document_id not in
+                                        ledger.committed_ids):
+                                    selected_ids.append(document_id)
+                            eligible_ids = set(
+                                selected_ids[:max_committed_per_step])
+                            promoted_items, promoted_supports, promotion_errors = (
+                                normalize_commit_promotions(
+                                    call["arguments"],
+                                    coverage_contract_items,
+                                    eligible_document_ids=eligible_ids,
+                                )
+                            )
+                            support_errors.extend(promotion_errors)
+                            for requirement_id, anchors in (
+                                    promoted_supports.items()):
+                                contract_supports.setdefault(
+                                    requirement_id, []).extend(anchors)
                         support_errors.extend(validate_support_routes(
                             contract_supports,
                             [
@@ -2386,6 +2494,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     })
                     if coverage_contract:
                         committed_now = set(decision.committed)
+                        retained_promotions = [
+                            item for item in promoted_items
+                            if any(
+                                anchor.document_id in committed_now
+                                for anchor in contract_supports.get(item.id, [])
+                            )
+                        ]
+                        coverage_contract_items.extend(retained_promotions)
+                        coverage_dynamic_promotions += len(retained_promotions)
                         coverage_evidence.record_supports({
                             requirement_id: [
                                 anchor for anchor in anchors
@@ -2407,6 +2524,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         )
                     if coverage_contract:
                         commit_payload = json.loads(out)
+                        if retained_promotions:
+                            commit_payload["promoted_requirements"] = [
+                                {
+                                    "id": item.id,
+                                    "kind": item.kind,
+                                    "requirement": item.requirement,
+                                    "must_mention": list(item.must_mention),
+                                    "minimum_count": item.minimum_count,
+                                }
+                                for item in retained_promotions
+                            ]
                         commit_payload["coverage_contract_status"] = (
                             render_contract_status(
                                 coverage_contract_items, coverage_evidence)
@@ -2522,6 +2650,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 ]
                 submission_errors: list[str] = []
                 submitted: list[dict[str, Any]] | None = None
+                opened_handoff = False
                 if not coverage_contract:
                     submission_errors.append(
                         "submit_answer is unavailable in this architecture")
@@ -2534,7 +2663,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 if concurrent:
                     submission_errors.append(
                         "submit_answer cannot share a turn with other actions")
-                if not submission_errors:
+                if (not submission_errors
+                        and terminal_evidence_handoff
+                        and not coverage_terminal_handoff_sent):
+                    handoff = render_terminal_evidence_handoff(
+                        coverage_contract_items, coverage_evidence)
+                    coverage_terminal_handoff_sent = True
+                    coverage_terminal_handoff_chars = len(handoff)
+                    opened_handoff = True
+                elif not submission_errors:
                     submitted, submission_errors, coverage_submission_stats = (
                         validate_submission(
                             submit_calls[0]["arguments"],
@@ -2546,13 +2683,25 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         )
                     )
                 coverage_submission_errors.extend(submission_errors)
-                if submitted is None:
+                if opened_handoff:
+                    payload = json.dumps({
+                        "accepted": False,
+                        "handoff_required": True,
+                        "instruction": handoff,
+                    }, ensure_ascii=False)
+                    failed = False
+                elif submitted is None:
                     payload = json.dumps({
                         "error": "invalid terminal answer submission",
                         "problems": submission_errors,
                         "instruction": (
                             "Fix every problem and call submit_answer again. "
                             "Do not emit free prose or other tool calls."
+                        ),
+                        "terminal_evidence_handoff": (
+                            render_terminal_evidence_handoff(
+                                coverage_contract_items, coverage_evidence)
+                            if terminal_evidence_handoff else None
                         ),
                     }, ensure_ascii=False)
                     failed = True

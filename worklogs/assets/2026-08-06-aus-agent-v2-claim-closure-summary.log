@@ -1,0 +1,51 @@
+{
+  "topics": 30,
+  "rows": 1223,
+  "old_valid": 164,
+  "new_valid": 22,
+  "new_outcomes": {
+    "malformed": 3,
+    "out_of_claim_scope": 734,
+    "oversized_term": 321,
+    "quantified_literal_not_carried": 19,
+    "scope_not_carried": 124,
+    "valid": 22
+  },
+  "transition_matrix": [
+    {
+      "old": "malformed",
+      "new": "malformed",
+      "rows": 3
+    },
+    {
+      "old": "out_of_claim_scope",
+      "new": "out_of_claim_scope",
+      "rows": 734
+    },
+    {
+      "old": "oversized_term",
+      "new": "oversized_term",
+      "rows": 321
+    },
+    {
+      "old": "source_missing",
+      "new": "scope_not_carried",
+      "rows": 1
+    },
+    {
+      "old": "valid",
+      "new": "quantified_literal_not_carried",
+      "rows": 19
+    },
+    {
+      "old": "valid",
+      "new": "scope_not_carried",
+      "rows": 123
+    },
+    {
+      "old": "valid",
+      "new": "valid",
+      "rows": 22
+    }
+  ]
+}

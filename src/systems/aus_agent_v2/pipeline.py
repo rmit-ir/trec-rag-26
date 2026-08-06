@@ -11,9 +11,11 @@ SYSTEM_NAME = "aus_agent_v2"
 ARCH_STAGES = [
     {
         "id": "plan", "label": "COVERAGE PLAN", "kind": "llm",
-        "note": "fresh context decomposes requested and implied coverage",
+        "note": "control uses prose; candidate emits 10-24 atomic typed rows",
         "prompt": [
-            "systems/aus_agent_v2/coverage_plan.py::COVERAGE_PLAN_SYSTEM"],
+            "systems/aus_agent_v2/coverage_plan.py::COVERAGE_PLAN_SYSTEM",
+            "systems/aus_agent_v2/atomic_plan.py::ATOMIC_PLAN_SYSTEM",
+        ],
         "code": ["systems/aus_agent_v2/agent.py::run_agent"],
     },
     {
@@ -52,7 +54,7 @@ ARCH_STAGES = [
              "systems/aus_agent_v2/coverage_contract.py::SUBMIT_ANSWER_TOOL"},
         ],
         "tools_note": (
-            "contract candidate adds requirement ids and exact claim terms; "
+            "candidate adds ids, exact claims, and up to six Dxx discoveries; "
             "verified default retains the stable staged-context protocol"
         ),
     },
@@ -68,11 +70,12 @@ ARCH_STAGES = [
         "code": [
             "systems/aus_agent/tools/commit_context.py::apply_commit",
             "systems/aus_agent_v2/coverage_contract.py::normalize_commit_supports",
+            "systems/aus_agent_v2/coverage_contract.py::normalize_commit_promotions",
         ],
     },
     {
         "id": "draft", "label": "ANSWER / TERMINAL SUBMIT", "kind": "llm",
-        "note": "default writes cited prose; candidate submits typed answer items",
+        "note": "candidate gets mandatory evidence replay, then submits typed items",
         "prompt": [
             "systems/aus_agent_v2/prompts/system/default.md",
             "systems/aus_agent_v2/prompts/system/contract-lean.md",
@@ -81,6 +84,7 @@ ARCH_STAGES = [
             "systems/aus_agent_v2/agent.py::run_agent",
             "systems/aus_agent_v2/answer_form.py::render_terminal_system_addendum",
             "systems/aus_agent_v2/coverage_contract.py::validate_submission",
+            "systems/aus_agent_v2/coverage_contract.py::render_terminal_evidence_handoff",
         ],
     },
     {
@@ -182,6 +186,9 @@ def run_lean_contract_one(
         "answer_blueprint": False,
         "coverage_contract": True,
         "prompt_variant": "contract-lean",
+        "atomic_contract_plan": True,
+        "dynamic_contract_rows": True,
+        "terminal_evidence_handoff": True,
     }
     options.update(kwargs)
     return run_agent(

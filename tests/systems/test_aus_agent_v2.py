@@ -42,6 +42,9 @@ def test_run_script_imports_sibling_systems_without_pytest_path_help() -> None:
     assert "--coverage-scout" in completed.stdout
     assert "--plan-reconcile" in completed.stdout
     assert "--coverage-contract" in completed.stdout
+    assert "--atomic-contract-plan" in completed.stdout
+    assert "--dynamic-contract-rows" in completed.stdout
+    assert "--terminal-evidence-handoff" in completed.stdout
 
 
 def test_public_pipeline_uses_only_the_confirmed_default_stages(
@@ -121,6 +124,9 @@ def test_lean_contract_pipeline_removes_legacy_prompt_without_promoting_it(
     assert captured["coverage_contract"] is True
     assert captured["observable_scout"] is True
     assert captured["finish_review"] is False
+    assert captured["atomic_contract_plan"] is True
+    assert captured["dynamic_contract_rows"] is True
+    assert captured["terminal_evidence_handoff"] is True
 
 
 def test_full30_runner_selects_the_lean_contract_candidate() -> None:
@@ -133,6 +139,8 @@ def test_full30_runner_selects_the_lean_contract_candidate() -> None:
     assert 'RUN_ID="${RUN_ID:-sol-aus-v2-lean-contract-dev30}"' in runner
     assert 'PROMPT_VARIANT="${PROMPT_VARIANT:-contract-lean}"' in runner
     assert '--prompt-variant "$PROMPT_VARIANT"' in runner
+    assert "--atomic-contract-plan --dynamic-contract-rows" in runner
+    assert "--terminal-evidence-handoff" in runner
 
 
 @pytest.fixture
@@ -337,7 +345,7 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
         "answer_items": [{
             "kind": "prose",
             "text": (
-                "Traffic volumes fell by 12% from the pre-toll baseline in 2025."
+                "Traffic volumes fell below the pre-toll baseline."
             ),
             "evidence_ids": [D[0]],
             "satisfies": ["P02"],
@@ -349,7 +357,7 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
             "kind": "prose",
             "text": (
                 "For a general reader, the measured result is that traffic "
-                "volumes fell by 12% from the pre-toll baseline in 2025."
+                "volumes fell below the pre-toll baseline."
             ),
             "evidence_ids": [D[0]],
             "satisfies": ["P01", "P02"],
@@ -375,8 +383,8 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
                 "reason": "measured effect",
                 "supports": [{
                     "requirement_id": "P02",
-                    "claim": "Traffic volumes fell by 12%.",
-                    "value_scope": "pre-toll baseline in 2025",
+                    "claim": "Traffic volumes fell below the pre-toll baseline.",
+                    "value_scope": "pre-toll baseline",
                     "must_include": ["traffic volumes", "pre-toll baseline"],
                 }],
             }]},
@@ -411,6 +419,127 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
     assert sum(len(values) for values in contract_summary["anchors"].values()) == 1
     assert "COVERAGE CLOSURE STATUS" in (
         result["provider"].tool_results[1][0]["content"])
+
+
+def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The target candidate must carry post-plan facts through a mandatory retry."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "evidence" if index == 2 else "deliverable",
+            "requirement": (
+                "Report the measured traffic outcome" if index == 2 else
+                f"Address atomic request component {index}"
+            ),
+            "must_mention": [],
+            "minimum_count": 1,
+            "must_research": index == 2,
+            "must_answer": True,
+        }
+        for index in range(1, 10)
+    ]
+    rows.append({
+        "mode": "avoid",
+        "kind": "penalty",
+        "requirement": "Avoid claiming traffic is guaranteed to disappear",
+        "must_avoid": ["guaranteed elimination"],
+        "must_research": False,
+        "must_answer": False,
+    })
+    answer = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": (
+                    "For a general reader, traffic volumes fell below the "
+                    "pre-toll baseline."
+                ),
+                "evidence_ids": [D[0]],
+                "satisfies": [
+                    "P01", "P02", "P03", "P04", "P05", "P06", "D01",
+                ],
+            },
+            {
+                "kind": "prose",
+                "text": "The remaining requested components are addressed directly.",
+                "evidence_ids": [],
+                "satisfies": ["P07", "P08", "P09"],
+            },
+        ],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=json.dumps({"rows": rows})),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic outcome",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {
+                "documents": [{
+                    "id": D[0],
+                    "reason": "measured baseline result",
+                    "supports": [{
+                        "requirement_id": "P02",
+                        "claim": (
+                            "Traffic volumes fell below the pre-toll baseline."
+                        ),
+                        "value_scope": "pre-toll baseline",
+                        "must_include": [
+                            "traffic volumes", "pre-toll baseline"],
+                    }],
+                }],
+                "promotions": [{
+                    "document_id": D[0],
+                    "kind": "comparison",
+                    "requirement": "Report the pre-toll baseline comparison",
+                    "must_mention": ["pre-toll baseline"],
+                    "minimum_count": 1,
+                    "claim": (
+                        "Traffic volumes fell below the pre-toll baseline."
+                    ),
+                    "value_scope": "pre-toll baseline",
+                    "must_include": [
+                        "traffic volumes", "pre-toll baseline"],
+                }],
+            },
+            id="c1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["terminal_handoff_sent"] is True
+    assert contract_summary["terminal_handoff_chars"] > 0
+    assert contract_summary["dynamic_promotions"] == 1
+    assert contract_summary["submission_attempts"] == 2
+    assert any(item["id"] == "D01" for item in contract_summary["items"])
+    handoff = result["provider"].tool_results[-2][0]["content"]
+    assert "TERMINAL EVIDENCE HANDOFF" in handoff
+    assert "D01 ASSERT MIN=1" in handoff
+    assert "pre-toll baseline" in handoff
 
 
 def test_contract_commit_annotation_can_be_corrected_without_research_loss(

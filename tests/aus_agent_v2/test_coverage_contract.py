@@ -12,13 +12,16 @@ from aus_agent_v2.answer_form import (
     infer_answer_form_policy,
 )
 from aus_agent_v2.coverage_contract import (
+    ContractItem,
     EvidenceAnchor,
     EvidenceLedger,
     build_coverage_contract,
     commit_tool_with_contract,
+    normalize_commit_promotions,
     normalize_commit_supports,
     normalize_requirement_ids,
     render_contract_status,
+    render_terminal_evidence_handoff,
     search_tool_with_contract,
     submit_answer_tool,
     validate_support_routes,
@@ -140,6 +143,62 @@ def test_commit_schema_and_normalizer_preserve_bounded_source_anchor() -> None:
     )]
 
 
+def test_commit_can_promote_a_bounded_retrieval_discovered_atomic_row() -> None:
+    """Facts found after planning need a stable executable path into the answer."""
+    tool = commit_tool_with_contract(allow_promotions=True)
+    arguments = {
+        "documents": [{"id": "d1", "reason": "measured outcome"}],
+        "promotions": [{
+            "document_id": "d1",
+            "kind": "evidence",
+            "requirement": "Report the measured 12% outcome among adults",
+            "must_mention": ["12%"],
+            "minimum_count": 1,
+            "claim": "The measured outcome was 12%.",
+            "value_scope": "among adults",
+            "must_include": ["12%", "among adults"],
+        }],
+    }
+
+    additions, supports, errors = normalize_commit_promotions(
+        arguments, contract(), eligible_document_ids={"d1"})
+
+    assert "promotions" in tool["input_schema"]["required"]
+    assert errors == []
+    assert [(item.id, item.origin, item.minimum_count) for item in additions] == [
+        ("D01", "retrieval", 1)]
+    assert supports == {"D01": [EvidenceAnchor(
+        "d1", "The measured outcome was 12%.", "among adults",
+        ("12%", "among adults"),
+    )]}
+
+
+def test_dynamic_promotions_fail_as_a_batch_instead_of_dropping_rows() -> None:
+    """Silent filtering would make the model believe a missing row was installed."""
+    arguments = {
+        "documents": [{"id": "d1", "reason": "result"}],
+        "promotions": [{
+            "document_id": "d1",
+            "kind": "evidence",
+            "requirement": "Report measured result",
+            "must_mention": ["missing literal"],
+            "minimum_count": 1,
+            "claim": "A measured result was reported.",
+            "must_include": ["measured result"],
+        }],
+    }
+
+    additions, supports, errors = normalize_commit_promotions(
+        arguments, contract(), eligible_document_ids={"d1"})
+
+    assert additions == []
+    assert supports == {}
+    assert errors == [
+        "promotion 1 must_mention term 'missing literal' does not occur "
+        "exactly in its requirement"
+    ]
+
+
 def test_unknown_commit_mapping_is_rejected() -> None:
     """A globally committed document must not launder support for a fake row."""
     supports, errors = normalize_commit_supports({
@@ -158,8 +217,8 @@ def test_unknown_commit_mapping_is_rejected() -> None:
         "unknown coverage-contract id 'S99' in document 'd1'"]
 
 
-def test_commit_support_must_follow_the_search_route() -> None:
-    """A page found for one issue cannot silently close an unrelated obligation."""
+def test_commit_support_can_cross_search_purpose_when_source_grounded() -> None:
+    """A query purpose is not an ACL on other exact facts the page supplies."""
     supports = {
         "P02": [EvidenceAnchor(
             "d1", "Account tax treatment.", must_include=("traditional",))],
@@ -174,7 +233,7 @@ def test_commit_support_must_follow_the_search_route() -> None:
 
     errors = validate_support_routes(supports, staged)
 
-    assert errors == ["document 'd1' was not retrieved for coverage row S01"]
+    assert errors == []
 
 
 def test_commit_anchor_terms_must_exist_verbatim_in_the_source() -> None:
@@ -203,7 +262,7 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
             "id": "d1",
             "supports": [{
                 "requirement_id": "P02",
-                "claim": "The study reported a 12% change in 2025.",
+                "claim": "The study reported 12 observations.",
                 "value_scope": "measured against the pre-toll baseline",
                 "must_include": ["12", "pre-toll baseline"],
             }],
@@ -237,6 +296,94 @@ def test_commit_anchor_rejects_generic_fragments_and_substring_matches() -> None
         "uninformative" in error and "reported" in error
         for error in mixed_errors
     )
+
+
+def test_quantified_claim_literals_cannot_bypass_finish_the_claim() -> None:
+    """Invented values formerly survived by omitting them from must_include."""
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "Traffic volumes fell by 12%.",
+                "value_scope": "pre-toll baseline in 2025",
+                "must_include": ["traffic volumes", "pre-toll baseline"],
+            }],
+        }],
+    }, contract())
+
+    assert supports == {}
+    assert errors == [
+        "document 'd1' support 1 must_include omits quantitative/date "
+        "literal(s) stated in claim or value_scope: 12%, 2025"
+    ]
+
+
+def test_selected_quantified_literals_must_also_exist_in_the_source() -> None:
+    """Selecting an invented number cannot make a complete-looking anchor valid."""
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "Traffic volumes fell by 12%.",
+                "value_scope": "pre-toll baseline in 2025",
+                "must_include": ["12%", "pre-toll baseline", "2025"],
+            }],
+        }],
+    }, contract())
+    route_errors = validate_support_routes(supports, [{
+        "id": "d1",
+        "text": "Traffic volumes were below the pre-toll baseline.",
+        "metadata": {"for_requirements": ["P02"]},
+    }])
+
+    assert errors == []
+    assert route_errors == [
+        "document 'd1' does not contain exact must_include term(s): 12%, 2025"
+    ]
+
+
+def test_nonempty_scope_must_contribute_a_final_answer_literal() -> None:
+    """Scope metadata must not disappear while only a headline value survives."""
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The measured change was 12%.",
+                "value_scope": "among Australian adults",
+                "must_include": ["12%"],
+            }],
+        }],
+    }, contract())
+
+    assert supports == {}
+    assert errors == [
+        "document 'd1' support 1 value_scope contributes no exact textual "
+        "must_include term"
+    ]
+
+
+def test_scope_year_does_not_stand_in_for_a_named_population() -> None:
+    """A carried date must not let the population boundary disappear."""
+    supports, errors = normalize_commit_supports({
+        "documents": [{
+            "id": "d1",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The measured change was 12%.",
+                "value_scope": "among adults in 2025",
+                "must_include": ["12%", "2025"],
+            }],
+        }],
+    }, contract())
+
+    assert supports == {}
+    assert errors == [
+        "document 'd1' support 1 value_scope contributes no exact textual "
+        "must_include term"
+    ]
 
 
 def test_negative_findings_are_material_exact_terms() -> None:
@@ -456,6 +603,25 @@ def test_unresolved_research_row_requires_a_real_tagged_attempt() -> None:
     ]
 
 
+def test_unresolved_cannot_discard_structure_or_committed_support() -> None:
+    """Unresolved must represent missing evidence, not a general closure escape."""
+    arguments = valid_arguments()
+    arguments["answer_items"][0]["satisfies"] = []
+    arguments["answer_items"][1]["satisfies"] = ["S01"]
+    arguments["unresolved"] = ["P01", "P02"]
+
+    answer, errors, _ = validate_submission(
+        arguments, contract(), populated_ledger(), {"d1"})
+
+    assert answer is None
+    assert errors == [
+        "structural coverage row P01 cannot be unresolved; satisfy it "
+        "directly from the request",
+        "unresolved research row P02 already has committed support; use its "
+        "mapped anchor in the answer",
+    ]
+
+
 def test_valid_submission_keeps_untagged_synthesis_sentence() -> None:
     """Coverage routing must not atomize away transitions and integrated judgment."""
     answer, errors, stats = validate_submission(
@@ -469,6 +635,67 @@ def test_valid_submission_keeps_untagged_synthesis_sentence() -> None:
     }
     assert stats["satisfied"] == 3
     assert stats["missing"] == []
+
+
+def test_counted_and_avoidance_rows_are_terminally_enforced() -> None:
+    """Typed rows must protect list cardinality and penalties, not just row tags."""
+    items = [
+        ContractItem(
+            "P01", "planner", "example", "Give two distinct examples",
+            must_research=False, must_answer=True, minimum_count=2,
+        ),
+        ContractItem(
+            "P02", "planner", "penalty", "Avoid a guarantee",
+            must_research=False, must_answer=False, mode="avoid",
+            must_avoid=("guaranteed returns",),
+        ),
+    ]
+    arguments = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "One example cannot promise guaranteed returns.",
+            "evidence_ids": [],
+            "satisfies": ["P01"],
+        }],
+        "unresolved": [],
+    }
+
+    answer, errors, stats = validate_submission(
+        arguments, items, EvidenceLedger(), set())
+
+    assert answer is None
+    assert errors == [
+        "coverage row P01 requires at least 2 distinct tagged answer items; "
+        "found 1",
+        "avoidance row P02 forbids exact term(s) present in the answer: "
+        "guaranteed returns",
+    ]
+    assert stats["avoidance_rows"] == 1
+    assert stats["counted_rows"] == 1
+
+
+def test_terminal_handoff_replays_every_row_and_multiple_anchor_choices() -> None:
+    """The final writer needs a complete recency transition, not a lossy status."""
+    ledger = populated_ledger()
+    ledger.record_supports({
+        "P02": [
+            EvidenceAnchor(
+                f"d{index}", f"Alternative claim {index}.",
+                must_include=(f"alternative {index}",),
+            )
+            for index in range(2, 5)
+        ],
+    })
+
+    handoff = render_terminal_evidence_handoff(contract(), ledger)
+
+    assert "TERMINAL EVIDENCE HANDOFF" in handoff
+    assert "P01 ASSERT MIN=1" in handoff
+    assert "P02 ASSERT MIN=1" in handoff
+    assert "S01 ASSERT MIN=1" in handoff
+    assert "CHOICE [d1] Traditional tax treatment." in handoff
+    assert "CHOICE [d4] Alternative claim 4." in handoff
+    assert "P03" not in handoff  # budget is not an answer obligation
 
 
 def test_recency_status_replays_only_selected_bounded_anchors() -> None:

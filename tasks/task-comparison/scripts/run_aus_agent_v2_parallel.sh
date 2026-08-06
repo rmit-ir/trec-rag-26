@@ -150,6 +150,8 @@ launch_one() {
     --backend "$BACKEND" --model "$MODEL" \
     --search-backends "$ENGINES" \
     --coverage-contract --observable-scout \
+    --atomic-contract-plan --dynamic-contract-rows \
+    --terminal-evidence-handoff \
     --prompt-variant "$PROMPT_VARIANT" \
     --run-id "$RUN_ID" >>"$LOG" 2>&1 &
   WORKERS["$!"]="$qid"

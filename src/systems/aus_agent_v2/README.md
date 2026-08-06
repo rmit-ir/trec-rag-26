@@ -36,15 +36,18 @@ request shape and its routed full-30 confirmation was stopped at 22 topics by
 the experiment budget cap.
 
 The next candidate replaces that permissive blueprint with a harness-owned
-coverage contract:
+atomic, mutable coverage contract:
 
 ```text
-plan + independent scouts -> stable Pxx/Sxx obligation ids
+structured atomic plan + independent scouts -> stable Pxx/Sxx obligation ids
   -> search(for_requirements=[...])
   -> commit_context(supports=[requirement + claim/scope + exact literals])
+       optionally promotes at most six evidence-backed Dxx obligations
   -> bounded closure status after every commit
+  -> first submit opens a harness-owned terminal evidence replay
   -> submit_answer(typed answer items + evidence ids + satisfied ids)
-  -> deterministic form/syntax/exact-literal/citation validation -> map + save
+  -> deterministic count/avoid/form/syntax/exact-literal/citation validation
+  -> map + save
 ```
 
 This is a claim-union architecture, not a completed-answer selector. Offline
@@ -52,12 +55,32 @@ three-pass verdict caches show why: a perfect whole-answer selector over the
 four complete core architectures reaches only 0.7445, while their
 criterion-by-criterion union reaches 0.8048 (all eight Sol-written runs reach
 0.8284). The contract attempts to assemble complementary obligations before
-one draft. It also fixes the old blueprint's central validation defect: every
+one draft. An offline audit of the exact promoted 30-topic planner outputs
+found that 310/341 rows (90.9%) bundled multiple likely checks, so the
+candidate-specific planner now returns 10--24 structured atomic rows instead
+of prose bundles. Retrieval may add at most two request-material rows per
+commit and six per topic, giving genuinely post-plan facts an executable route
+into the answer rather than leaving them as inert commit metadata.
+
+It also fixes the old blueprint's central validation defect: every
 must-answer plan row must be satisfied or explicitly unresolved, search and
 commit support are tied to the same stable row, exact scout terms are checked,
 and a citation is accepted for a row only when the cited committed unit was
 explicitly mapped to it. The final answer is the terminal tool call itself, so
-there is no second writer and no 22–35 KB fact replay.
+there is no second writer. The first otherwise-valid submission is deliberately
+intercepted: the harness replays every answer row, count, avoidance constraint,
+and up to four complete anchor choices per row, and the same researcher submits
+the real answer on the next turn. This closes the missing commit-to-answer state
+transition without restoring the old undifferentiated 22--35 KB fact dump.
+
+Frozen three-repeat rubric verdicts quantify why these changes are structural,
+not prompt decoration. The fixed current row inventory has an optimistic
+0.7336 ceiling and all frozen planner/scout inventories together reach 0.7457.
+Content-only rows asymptote at 0.7935. An ideal typed mutable ledger reaches
+0.8002 with six added rows (0.8016 with five when reusing the full inventory).
+Those figures are oracle upper bounds, not an achieved candidate score; the
+best verified complete 30-topic run remains 0.7042 until this exact pipeline is
+generated and graded on all 30 topics.
 
 Broad Markdown remains disabled because the author baselines almost never use
 it and factual table cells complicate citation locality. The untouched request
@@ -74,6 +97,11 @@ term counts, and term lengths are bounded in both the advertised tool schema
 and runtime validation. A mixed valid/invalid term list rejects the whole
 support row for bounded correction, while exact negative findings such as
 "no evidence" remain material when they occur in claim, source, and answer.
+Every numeric/date literal stated in a commit claim or scope must be one of the
+final-answer invariants, and a nonempty scope must contribute an exact
+invariant. A source-valid page may support any known row regardless of the
+query purpose that happened to find it; purpose ids remain an audit/search
+record, not an evidence ACL.
 
 If only the contract support annotation is invalid, the full staged evidence
 is not destroyed immediately. The harness returns the exact validation errors
@@ -88,7 +116,9 @@ prose even after isolated planning and a typed `submit_answer` contract had
 already been installed. Its 417-word replacement states the research outcome
 and evidence invariants once; the executable contract and tool schemas own the
 detailed row, correction, and terminal mechanics. This is a separate ungraded
-candidate, not a change to the 0.7042 `run_one` control.
+candidate, not a change to the 0.7042 `run_one` control. The candidate selects
+the atomic planner, bounded dynamic rows, and mandatory terminal handoff
+together.
 
 The system reuses `aus_agent.context`, `aus_agent.providers`, and
 `aus_agent.tools`. Planning, evidence-card construction, patch validation,
@@ -119,6 +149,8 @@ the independent observable scout and can be launched with:
 uv run --group aus-agent-v2 python src/systems/aus_agent_v2/run.py \
   --backend openai --model openai.gpt-5.6-sol \
   --coverage-contract --observable-scout \
+  --atomic-contract-plan --dynamic-contract-rows \
+  --terminal-evidence-handoff \
   --prompt-variant contract-lean \
   --qid 683a58c9a7e7fe4e76958498 \
   --run-id sol-aus-v2-lean-contract-probe

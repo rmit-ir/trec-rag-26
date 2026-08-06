@@ -1,0 +1,10 @@
+command: bash scripts/test.sh
+mode: hermetic; credentials stripped; network disabled by tests/conftest.py
+collected: 1733
+selected: 1725
+live deselected: 8
+result: 1725 passed, 8 deselected, 1 warning in 16.62s
+warning: StarletteDeprecationWarning in tests/shared/test_mcp_server.py::test_bearer_guard_rejects_a_missing_token
+
+focused command: bash scripts/test.sh tests/aus_agent_v2/test_atomic_plan.py tests/aus_agent_v2/test_coverage_contract.py tests/systems/test_aus_agent_v2.py
+focused result: 73 passed, 1 deselected in 0.28s

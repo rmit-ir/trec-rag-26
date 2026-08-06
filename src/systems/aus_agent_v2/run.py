@@ -179,6 +179,21 @@ def main() -> None:
         default=env("RUN_AUS_AGENT_V2_COVERAGE_CONTRACT", False),
         help="harness-owned requirement/evidence ledger with terminal "
              "submit_answer validation (experimental; default: off)")
+    ap.add_argument(
+        "--atomic-contract-plan", action=argparse.BooleanOptionalAction,
+        default=env("RUN_AUS_AGENT_V2_ATOMIC_CONTRACT_PLAN", False),
+        help="use the structured 10-24 row atomic planner for the contract "
+             "candidate (experimental; default: off)")
+    ap.add_argument(
+        "--dynamic-contract-rows", action=argparse.BooleanOptionalAction,
+        default=env("RUN_AUS_AGENT_V2_DYNAMIC_CONTRACT_ROWS", False),
+        help="allow up to six evidence-backed atomic rows promoted during "
+             "commit_context (experimental; default: off)")
+    ap.add_argument(
+        "--terminal-evidence-handoff", action=argparse.BooleanOptionalAction,
+        default=env("RUN_AUS_AGENT_V2_TERMINAL_EVIDENCE_HANDOFF", False),
+        help="force a harness-owned complete evidence replay before terminal "
+             "submission (experimental; default: off)")
     ap.add_argument("--run-id", default=env(
         "RUN_AUS_AGENT_V2_RUN_ID", "aus-agent-v2-dev"))
     ap.add_argument(
@@ -253,6 +268,12 @@ def main() -> None:
                                 audience_verify=args.audience_verify,
                                 answer_blueprint=args.answer_blueprint,
                                 coverage_contract=args.coverage_contract,
+                                atomic_contract_plan=(
+                                    args.atomic_contract_plan),
+                                dynamic_contract_rows=(
+                                    args.dynamic_contract_rows),
+                                terminal_evidence_handoff=(
+                                    args.terminal_evidence_handoff),
                                 engines=search_backends)
         except Exception:  # keep --all going
             failures += 1

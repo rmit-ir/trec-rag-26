@@ -44,10 +44,21 @@ _UNINFORMATIVE_ANCHOR_TERMS = {
     "value", "values", "with",
 }
 _ANCHOR_TOKEN_RE = re.compile(r"[A-Za-z0-9]+")
+_QUANTIFIED_LITERAL_RE = re.compile(
+    r"(?<![A-Za-z0-9])"
+    r"(?:[$€£]\s*)?"
+    r"[+-]?(?:\d{1,3}(?:,\d{3})+|\d+)(?:\.\d+)?"
+    r"(?:\([A-Za-z]\))?"
+    r"(?:\s*(?:%|percent(?:age)?(?:\s+points?)?))?"
+    r"(?![A-Za-z0-9])",
+    re.IGNORECASE,
+)
 _ANCHOR_CLAIM_MAX_CHARS = 500
 _ANCHOR_SCOPE_MAX_CHARS = 300
 _ANCHOR_TERM_MAX_CHARS = 80
 _ANCHOR_TERMS_MAX_ITEMS = 4
+_DYNAMIC_REQUIREMENTS_MAX = 6
+_DYNAMIC_REQUIREMENTS_PER_COMMIT = 2
 _NEGATIVE_ANCHOR_TOKENS = {
     "failed", "failure", "lack", "lacked", "lacks", "neither", "never",
     "no", "none", "not", "without", "zero",
@@ -65,6 +76,9 @@ class ContractItem:
     must_mention: tuple[str, ...] = ()
     must_research: bool = True
     must_answer: bool = True
+    mode: str = "assert"
+    minimum_count: int = 1
+    must_avoid: tuple[str, ...] = ()
 
 
 @dataclass(frozen=True)
@@ -242,6 +256,16 @@ def _material_anchor_term(term: str) -> bool:
     return False
 
 
+def _quantified_literals(text: str) -> list[str]:
+    """Return every exact numeric/date literal a claim cannot safely drop."""
+    values: list[str] = []
+    for match in _QUANTIFIED_LITERAL_RE.finditer(text):
+        value = " ".join(match.group(0).split())
+        if value and value not in values:
+            values.append(value)
+    return values
+
+
 def build_coverage_contract(
     plan: str,
     scout_additions: list[dict[str, Any]] | None = None,
@@ -286,14 +310,17 @@ def build_coverage_contract(
         requirement = _SEARCH_SUFFIX_RE.sub("", requirement).strip().rstrip(".")
         if not requirement:
             continue
+        mode = "avoid" if kind == "penalty" else "assert"
         items.append(ContractItem(
             id=item_id,
             origin=origin,
             kind=kind,
             requirement=requirement,
-            must_mention=mentions,
+            must_mention=mentions if mode == "assert" else (),
             must_research=kind not in _NO_RESEARCH_KINDS,
             must_answer=kind not in _NO_ANSWER_KINDS,
+            mode=mode,
+            must_avoid=mentions if mode == "avoid" else (),
         ))
     if scout_additions is not None:
         for raw in scout_additions:
@@ -307,16 +334,27 @@ def build_coverage_contract(
                 for value in raw.get("must_mention", [])[:3]
                 if _compact(value, 80)
             )
+            mode = "avoid" if kind == "penalty" else "assert"
             items.append(ContractItem(
                 id=f"S{s_index:02d}",
                 origin="scout",
                 kind=kind,
                 requirement=requirement,
-                must_mention=mentions,
+                must_mention=mentions if mode == "assert" else (),
                 must_research=kind not in _NO_RESEARCH_KINDS,
                 must_answer=kind not in _NO_ANSWER_KINDS,
+                mode=mode,
+                must_avoid=mentions if mode == "avoid" else (),
             ))
-    answer_form = answer_form or AnswerFormPolicy()
+    _append_answer_form_items(items, answer_form or AnswerFormPolicy())
+    return items
+
+
+def _append_answer_form_items(
+    items: list[ContractItem],
+    answer_form: AnswerFormPolicy,
+) -> None:
+    """Append only forms authorized deterministically by the request."""
     f_index = 0
     if answer_form.python_code:
         f_index += 1
@@ -330,6 +368,7 @@ def build_coverage_contract(
             ),
             must_research=False,
             must_answer=True,
+            mode="form",
         ))
     if answer_form.minimum_labels:
         f_index += 1
@@ -344,7 +383,94 @@ def build_coverage_contract(
             ),
             must_research=False,
             must_answer=True,
+            mode="form",
         ))
+
+
+def build_atomic_coverage_contract(
+    planner_rows: list[dict[str, Any]],
+    scout_additions: list[dict[str, Any]] | None = None,
+    *,
+    answer_form: AnswerFormPolicy | None = None,
+) -> list[ContractItem]:
+    """Compile normalized structured rows without collapsing row semantics."""
+    items: list[ContractItem] = []
+    for index, row in enumerate(planner_rows, 1):
+        mode = str(row.get("mode") or "assert").casefold()
+        if mode not in {"assert", "avoid"}:
+            continue
+        requirement = _compact(row.get("requirement"))
+        if not requirement:
+            continue
+        mentions = tuple(
+            _compact(value, 80)
+            for value in row.get("must_mention", [])[:3]
+            if _compact(value, 80)
+        )
+        avoided = tuple(
+            _compact(value, 80)
+            for value in row.get("must_avoid", [])[:3]
+            if _compact(value, 80)
+        )
+        if mode == "avoid" and not avoided:
+            continue
+        try:
+            minimum_count = int(row.get("minimum_count", 1))
+        except (TypeError, ValueError):
+            minimum_count = 1
+        items.append(ContractItem(
+            id=f"P{index:02d}",
+            origin="planner",
+            kind=_compact(row.get("kind"), 40).casefold() or "explicit",
+            requirement=requirement,
+            must_mention=mentions if mode == "assert" else (),
+            must_research=(
+                bool(row.get("must_research", True)) if mode == "assert"
+                else False
+            ),
+            must_answer=(
+                bool(row.get("must_answer", True)) if mode == "assert"
+                else False
+            ),
+            mode=mode,
+            minimum_count=max(1, min(50, minimum_count)),
+            must_avoid=avoided,
+        ))
+    if scout_additions is not None:
+        s_index = 0
+        for row in scout_additions:
+            requirement = _compact(row.get("requirement"))
+            if not requirement:
+                continue
+            kind = _compact(row.get("kind"), 40).casefold() or "term"
+            mode = "avoid" if kind == "penalty" else "assert"
+            mentions = tuple(
+                _compact(value, 80)
+                for value in row.get("must_mention", [])[:3]
+                if _compact(value, 80)
+            )
+            if mode == "avoid" and not mentions:
+                continue
+            try:
+                minimum_count = int(row.get("minimum_count", 1))
+            except (TypeError, ValueError):
+                minimum_count = 1
+            s_index += 1
+            items.append(ContractItem(
+                id=f"S{s_index:02d}",
+                origin="scout",
+                kind=kind,
+                requirement=requirement,
+                must_mention=mentions if mode == "assert" else (),
+                must_research=(kind not in _NO_RESEARCH_KINDS
+                               if mode == "assert" else False),
+                must_answer=(kind not in _NO_ANSWER_KINDS
+                             if mode == "assert" else False),
+                mode=mode,
+                minimum_count=max(1, min(50, minimum_count)),
+                must_avoid=mentions if mode == "avoid" else (),
+            ))
+    _append_answer_form_items(items, answer_form or AnswerFormPolicy())
     return items
 
 
@@ -359,7 +485,10 @@ def render_research_contract(
         "tools. A research row closes only after a tagged search and committed "
         "support mapped to that row. In submit_answer, close every answer row "
         "or mark an attempted but unsupported research row unresolved. "
-        "Untagged synthesis prose is allowed.",
+        "Rows are atomic: do not treat one row as permission to omit another. "
+        "A row with MIN > 1 needs that many distinct tagged answer items. "
+        "AVOID rows are global constraints and are never satisfied or marked "
+        "unresolved. Untagged synthesis prose is allowed.",
     ]
     answer_form = answer_form or AnswerFormPolicy()
     if answer_form.minimum_labels:
@@ -377,12 +506,21 @@ def render_research_contract(
             "architecture and performance claims in cited prose items."
         )
     for item in items:
+        if item.mode == "avoid":
+            lines.append(
+                f"{item.id} [avoid; constraint] {item.requirement}"
+                + " | FORBID EXACT: " + "; ".join(item.must_avoid)
+            )
+            continue
         flags = []
         if item.must_research:
             flags.append("research")
         if item.must_answer:
             flags.append("answer")
-        line = f"{item.id} [{item.kind}; {'+'.join(flags) or 'constraint'}] {item.requirement}"
+        line = (
+            f"{item.id} [{item.kind}; {'+'.join(flags) or 'constraint'}; "
+            f"MIN={item.minimum_count}] {item.requirement}"
+        )
         if item.must_mention:
             line += " | EXACT: " + "; ".join(item.must_mention)
         lines.append(line)
@@ -411,7 +549,7 @@ def search_tool_with_contract(tool: dict[str, Any]) -> dict[str, Any]:
     return result
 
 
-def commit_tool_with_contract() -> dict[str, Any]:
+def commit_tool_with_contract(*, allow_promotions: bool = False) -> dict[str, Any]:
     """Return the v2-local commit schema with bounded requirement anchors."""
     tool = copy.deepcopy(COMMIT_CONTEXT_TOOL)
     tool["description"] = (
@@ -445,8 +583,11 @@ def commit_tool_with_contract() -> dict[str, Any]:
                     "type": "string",
                     "maxLength": _ANCHOR_SCOPE_MAX_CHARS,
                     "description": (
-                        "Exact value, population, jurisdiction, date, or other "
-                        "boundary needed to finish the claim."
+                        "Short value, population, jurisdiction, date, or other "
+                        "boundary needed to finish the claim. When non-empty, "
+                        "at least one exact phrase from this field must appear "
+                        "in must_include. Every numeric/date literal stated in "
+                        "claim or value_scope must also occur in must_include."
                     ),
                 },
                 "must_include": {
@@ -462,14 +603,85 @@ def commit_tool_with_contract() -> dict[str, Any]:
                         "names, values, dates, populations, negative findings, "
                         "or scope qualifiers that occur verbatim in claim or "
                         "value_scope and that a final sentence using this "
-                        "anchor must repeat verbatim. Never paste a long "
-                        "sentence or rely on truncation."
+                        "anchor must repeat verbatim. Include every numeric/date "
+                        "literal stated in claim or value_scope and at least one "
+                        "scope phrase when value_scope is non-empty. Split a "
+                        "dense claim into separate supports if four terms are "
+                        "not enough. Never paste a long sentence or rely on "
+                        "truncation."
                     ),
                 },
             },
             "required": ["requirement_id", "claim", "must_include"],
         },
     }
+    if allow_promotions:
+        tool["description"] += (
+            " The documents can also promote at most two high-value atomic "
+            "requirements that became visible only from this batch; use this "
+            "only for a material request-relevant gap absent from the existing "
+            "contract, never for an incidental fact."
+        )
+        schema = tool["input_schema"]
+        schema["properties"]["promotions"] = {
+            "type": "array",
+            "maxItems": _DYNAMIC_REQUIREMENTS_PER_COMMIT,
+            "description": (
+                "Zero to two newly discovered atomic answer obligations tied "
+                "to a selected document. The harness assigns Dxx ids. Do not "
+                "repeat an existing contract row or combine obligations."
+            ),
+            "items": {
+                "type": "object",
+                "properties": {
+                    "document_id": {"type": "string"},
+                    "kind": {
+                        "type": "string",
+                        "enum": [
+                            "term", "evidence", "mechanism", "comparison",
+                            "scope", "safety", "example",
+                        ],
+                    },
+                    "requirement": {
+                        "type": "string",
+                        "maxLength": 240,
+                        "description": (
+                            "One independently checkable, request-material "
+                            "obligation, not a list or general topic."
+                        ),
+                    },
+                    "must_mention": {
+                        "type": "array",
+                        "maxItems": 3,
+                        "items": {"type": "string", "maxLength": 80},
+                    },
+                    "minimum_count": {
+                        "type": "integer", "minimum": 1, "maximum": 4,
+                    },
+                    "claim": {
+                        "type": "string", "maxLength": _ANCHOR_CLAIM_MAX_CHARS,
+                    },
+                    "value_scope": {
+                        "type": "string", "maxLength": _ANCHOR_SCOPE_MAX_CHARS,
+                    },
+                    "must_include": {
+                        "type": "array", "minItems": 1,
+                        "maxItems": _ANCHOR_TERMS_MAX_ITEMS,
+                        "items": {
+                            "type": "string", "maxLength": _ANCHOR_TERM_MAX_CHARS,
+                        },
+                    },
+                },
+                "required": [
+                    "document_id", "kind", "requirement", "must_mention",
+                    "minimum_count", "claim", "must_include",
+                ],
+            },
+        }
+        required = list(schema.get("required", []))
+        if "promotions" not in required:
+            required.append("promotions")
+        schema["required"] = required
     return tool
 
 
@@ -608,6 +820,33 @@ def normalize_commit_supports(
             if term_errors:
                 errors.extend(term_errors)
                 continue
+            required_literals = _quantified_literals(
+                f"{claim} {value_scope}")
+            missing_literals = [
+                literal for literal in required_literals
+                if not any(_contains_exact_term(term, literal)
+                           for term in must_include)
+            ]
+            if missing_literals:
+                errors.append(
+                    f"document {document_id!r} support {support_index} "
+                    "must_include omits quantitative/date literal(s) stated "
+                    "in claim or value_scope: " + ", ".join(missing_literals))
+                continue
+            scope_has_words = any(
+                character.isalpha() for character in value_scope)
+            scope_term_present = any(
+                _contains_exact_term(value_scope, term)
+                and (not scope_has_words
+                     or any(character.isalpha() for character in term))
+                for term in must_include
+            )
+            if value_scope and not scope_term_present:
+                errors.append(
+                    f"document {document_id!r} support {support_index} "
+                    "value_scope contributes no exact textual must_include "
+                    "term")
+                continue
             anchor = EvidenceAnchor(
                 document_id, claim, value_scope, tuple(must_include))
             values = supports.setdefault(requirement_id, [])
@@ -616,28 +855,169 @@ def normalize_commit_supports(
     return supports, errors
 
 
+def normalize_commit_promotions(
+    arguments: dict[str, Any],
+    items: list[ContractItem],
+    *,
+    eligible_document_ids: set[str],
+) -> tuple[list[ContractItem], dict[str, list[EvidenceAnchor]], list[str]]:
+    """Validate bounded retrieval-discovered rows and their first anchors."""
+    raw_promotions = arguments.get("promotions", [])
+    if not isinstance(raw_promotions, list):
+        return [], {}, ["promotions must be an array"]
+    if len(raw_promotions) > _DYNAMIC_REQUIREMENTS_PER_COMMIT:
+        return [], {}, [
+            f"promotions has {len(raw_promotions)} rows; maximum per commit is "
+            f"{_DYNAMIC_REQUIREMENTS_PER_COMMIT}"
+        ]
+    existing_dynamic = [item for item in items if item.id.startswith("D")]
+    remaining = _DYNAMIC_REQUIREMENTS_MAX - len(existing_dynamic)
+    if len(raw_promotions) > remaining:
+        return [], {}, [
+            f"promotions would exceed the {_DYNAMIC_REQUIREMENTS_MAX}-row "
+            f"dynamic contract limit; {remaining} slot(s) remain"
+        ]
+    next_index = max(
+        (int(item.id[1:]) for item in existing_dynamic
+         if item.id[1:].isdigit()),
+        default=0,
+    ) + 1
+    seen_requirements = {
+        " ".join(item.requirement.casefold().split()) for item in items
+    }
+    additions: list[ContractItem] = []
+    supports: dict[str, list[EvidenceAnchor]] = {}
+    errors: list[str] = []
+    allowed_kinds = {
+        "term", "evidence", "mechanism", "comparison", "scope", "safety",
+        "example",
+    }
+    for offset, raw in enumerate(raw_promotions):
+        row_number = offset + 1
+        if not isinstance(raw, dict):
+            errors.append(f"promotion {row_number} is not an object")
+            continue
+        document_id = str(raw.get("document_id") or "").strip()
+        raw_requirement = raw.get("requirement")
+        requirement = (
+            " ".join(raw_requirement.split())
+            if isinstance(raw_requirement, str) else ""
+        )
+        fingerprint = " ".join(requirement.casefold().split())
+        if document_id not in eligible_document_ids:
+            errors.append(
+                f"promotion {row_number} document {document_id!r} is not an "
+                "eligible selected unit")
+            continue
+        if not requirement:
+            errors.append(f"promotion {row_number} has no requirement")
+            continue
+        if len(requirement) > 240 or len(requirement.split()) > 36:
+            errors.append(
+                f"promotion {row_number} requirement exceeds the 240-character "
+                "or 36-word atomic bound")
+            continue
+        if ";" in requirement or re.search(
+                r"[.!?]\s+\S", requirement):
+            errors.append(
+                f"promotion {row_number} requirement contains multiple clauses")
+            continue
+        if fingerprint in seen_requirements:
+            errors.append(
+                f"promotion {row_number} duplicates an existing requirement")
+            continue
+        kind = str(raw.get("kind") or "").strip().casefold()
+        if kind not in allowed_kinds:
+            errors.append(
+                f"promotion {row_number} kind {kind!r} is not supported")
+            continue
+        raw_mentions = raw.get("must_mention")
+        if not isinstance(raw_mentions, list) or len(raw_mentions) > 3:
+            errors.append(
+                f"promotion {row_number} must_mention must be an array of at "
+                "most three terms")
+            continue
+        mentions: list[str] = []
+        mention_error = False
+        for value in raw_mentions[:3]:
+            mention = (
+                " ".join(value.split()) if isinstance(value, str) else ""
+            )
+            if len(mention) > 80:
+                errors.append(
+                    f"promotion {row_number} must_mention term exceeds 80 "
+                    "characters")
+                mention_error = True
+            elif not mention or not _contains_exact_term(requirement, mention):
+                errors.append(
+                    f"promotion {row_number} must_mention term {mention!r} "
+                    "does not occur exactly in its requirement")
+                mention_error = True
+            elif mention not in mentions:
+                mentions.append(mention)
+        if mention_error:
+            continue
+        try:
+            minimum_count = int(raw.get("minimum_count", 1))
+        except (TypeError, ValueError):
+            minimum_count = 0
+        if not 1 <= minimum_count <= 4:
+            errors.append(
+                f"promotion {row_number} minimum_count must be 1 through 4")
+            continue
+        item_id = f"D{next_index + len(additions):02d}"
+        item = ContractItem(
+            id=item_id,
+            origin="retrieval",
+            kind=kind,
+            requirement=requirement,
+            must_mention=tuple(mentions),
+            must_research=True,
+            must_answer=True,
+            mode="assert",
+            minimum_count=minimum_count,
+        )
+        fake_arguments = {"documents": [{
+            "id": document_id,
+            "supports": [{
+                "requirement_id": item_id,
+                "claim": raw.get("claim"),
+                "value_scope": raw.get("value_scope", ""),
+                "must_include": raw.get("must_include"),
+            }],
+        }]}
+        normalized, anchor_errors = normalize_commit_supports(
+            fake_arguments, [item])
+        if anchor_errors:
+            errors.extend(
+                f"promotion {row_number}: {error}" for error in anchor_errors)
+            continue
+        additions.append(item)
+        supports.update(normalized)
+        seen_requirements.add(fingerprint)
+    if errors:
+        return [], {}, errors
+    return additions, supports, []
+
+
 def validate_support_routes(
     supports: dict[str, list[EvidenceAnchor]],
     staged_documents: list[dict[str, Any]],
 ) -> list[str]:
-    """Require commit support to follow the search purpose that found the unit."""
-    purposes: dict[str, set[str]] = {}
+    """Ground every mapped anchor in the exact selected staged source text.
+
+    ``for_requirements`` records why a query was issued, not the only facts a
+    returned page is allowed to support.  Enforcing that planning hint as an
+    evidence ACL discarded valid cross-row findings and made retrieval-time
+    requirement promotion impossible.
+    """
     source_text: dict[str, str] = {}
     for document in staged_documents:
         document_id = str(document.get("id") or "").strip()
-        metadata = document.get("metadata")
-        values = metadata.get("for_requirements", []) if isinstance(
-            metadata, dict) else []
-        purposes.setdefault(document_id, set()).update(
-            str(value).strip() for value in values if str(value).strip())
         source_text[document_id] = str(document.get("text") or "").casefold()
     errors: list[str] = []
     for requirement_id, anchors in supports.items():
         for anchor in anchors:
-            if requirement_id not in purposes.get(anchor.document_id, set()):
-                errors.append(
-                    f"document {anchor.document_id!r} was not retrieved for "
-                    f"coverage row {requirement_id}")
             missing_terms = [
                 term for term in anchor.must_include
                 if not _contains_exact_term(
@@ -779,6 +1159,10 @@ def validate_submission(
                 errors.append(
                     f"answer item {index} tags unknown coverage-contract id "
                     f"{item_id!r}")
+            elif by_id[item_id].mode == "avoid":
+                errors.append(
+                    f"answer item {index} tags avoidance row {item_id}; "
+                    "avoidance rows are global constraints")
             elif item_id not in satisfies:
                 satisfies.append(item_id)
                 satisfied.add(item_id)
@@ -833,10 +1217,30 @@ def validate_submission(
             + ", ".join(sorted(missing)))
     for item_id in unresolved:
         item = by_id[item_id]
-        if item.must_research and not ledger.attempted_queries.get(item_id):
+        if not item.must_research:
+            errors.append(
+                f"structural coverage row {item_id} cannot be unresolved; "
+                "satisfy it directly from the request")
+        elif ledger.anchors.get(item_id):
+            errors.append(
+                f"unresolved research row {item_id} already has committed "
+                "support; use its mapped anchor in the answer")
+        elif not ledger.attempted_queries.get(item_id):
             errors.append(
                 f"unresolved research row {item_id} has no tagged search attempt")
     for item in items:
+        if item.mode == "avoid":
+            answer_text = " ".join(
+                sentence["text"] for sentence in sentences)
+            present = [
+                term for term in item.must_avoid
+                if _contains_exact_term(answer_text, term)
+            ]
+            if present:
+                errors.append(
+                    f"avoidance row {item.id} forbids exact term(s) present "
+                    "in the answer: " + ", ".join(present))
+            continue
         if item.id in satisfied and item.must_mention:
             haystack = " ".join(tagged_text.get(item.id, [])).casefold()
             absent = [
@@ -847,6 +1251,12 @@ def validate_submission(
                 errors.append(
                     f"coverage row {item.id} is tagged but omits exact term(s): "
                     + ", ".join(absent))
+        if (item.id in satisfied
+                and len(tagged_text.get(item.id, [])) < item.minimum_count):
+            errors.append(
+                f"coverage row {item.id} requires at least "
+                f"{item.minimum_count} distinct tagged answer items; found "
+                f"{len(tagged_text.get(item.id, []))}")
         if (item.id in satisfied and item.kind == "python_code"
                 and "code" not in tagged_kinds.get(item.id, set())):
             errors.append(
@@ -886,6 +1296,8 @@ def validate_submission(
         "search_rows": len(ledger.attempted_queries),
         "supported_rows": len(ledger.anchors),
         "anchors": sum(len(values) for values in ledger.anchors.values()),
+        "avoidance_rows": sum(item.mode == "avoid" for item in items),
+        "counted_rows": sum(item.minimum_count > 1 for item in items),
     }
     if errors:
         return None, errors, stats
@@ -896,7 +1308,11 @@ def contract_trace(items: list[ContractItem], ledger: EvidenceLedger) -> dict[st
     """Serialize current contract state for durable diagnostics."""
     return {
         "items": [
-            {**asdict(item), "must_mention": list(item.must_mention)}
+            {
+                **asdict(item),
+                "must_mention": list(item.must_mention),
+                "must_avoid": list(item.must_avoid),
+            }
             for item in items
         ],
         "attempted_queries": {
@@ -918,6 +1334,16 @@ def render_contract_status(
     """Render a bounded recency handoff from selected anchors, not all facts."""
     lines = ["COVERAGE CLOSURE STATUS"]
     for item in items:
+        if item.mode == "avoid":
+            line = (
+                f"{item.id} AVOID: {item.requirement} | FORBID EXACT: "
+                + "; ".join(item.must_avoid)
+            )
+            if sum(len(value) + 1 for value in lines) + len(line) > max_chars:
+                lines.append("... status truncated at the harness bound")
+                break
+            lines.append(line)
+            continue
         anchors = ledger.anchors.get(item.id, [])
         if anchors:
             anchor_text = " ; ".join(
@@ -937,6 +1363,67 @@ def render_contract_status(
             lines.append("... status truncated at the harness bound")
             break
         lines.append(line)
+    return "\n".join(lines)
+
+
+def render_terminal_evidence_handoff(
+    items: list[ContractItem],
+    ledger: EvidenceLedger,
+    *,
+    max_anchors_per_row: int = 4,
+) -> str:
+    """Replay every closure row and bounded anchor choices before submission."""
+    lines = [
+        "TERMINAL EVIDENCE HANDOFF",
+        "Your first submit_answer call opened this mandatory final state; its "
+        "draft was not evaluated. On the next turn call submit_answer again. "
+        "For each atomic research row, use one complete mapped anchor choice "
+        "and repeat every USE EXACT term in the same cited prose item. A row "
+        "with MIN > 1 needs that many distinct tagged items. Preserve every "
+        "supported row; unresolved is only for a researched row with no "
+        "committed support after a tagged attempt.",
+    ]
+    for item in items:
+        if item.mode == "avoid":
+            lines.append(
+                f"{item.id} AVOID globally: {item.requirement} | FORBID EXACT: "
+                + "; ".join(item.must_avoid)
+            )
+            continue
+        if not item.must_answer:
+            continue
+        prefix = (
+            f"{item.id} ASSERT MIN={item.minimum_count}: {item.requirement}"
+            if item.mode == "assert" else
+            f"{item.id} FORM MIN={item.minimum_count}: {item.requirement}"
+        )
+        if item.must_mention:
+            prefix += " | MUST MENTION: " + "; ".join(item.must_mention)
+        lines.append(prefix)
+        anchors = ledger.anchors.get(item.id, [])
+        if anchors:
+            for anchor in anchors[:max_anchors_per_row]:
+                claim = _compact(anchor.claim, 260)
+                scope = _compact(anchor.value_scope, 160)
+                line = f"  CHOICE [{anchor.document_id}] {claim}"
+                if scope:
+                    line += " | SCOPE: " + scope
+                line += " | USE EXACT: " + "; ".join(anchor.must_include)
+                lines.append(line)
+            omitted = len(anchors) - max_anchors_per_row
+            if omitted > 0:
+                lines.append(
+                    f"  {omitted} additional corroborating/alternative "
+                    "anchor(s) remain in conversation history; four bounded "
+                    "choices are replayed here."
+                )
+        elif item.must_research:
+            attempts = ledger.attempted_queries.get(item.id, [])
+            lines.append(
+                f"  OPEN: no committed support; tagged searches={len(attempts)}"
+            )
+        else:
+            lines.append("  STRUCTURAL: answer directly from the request.")
     return "\n".join(lines)
 
 
