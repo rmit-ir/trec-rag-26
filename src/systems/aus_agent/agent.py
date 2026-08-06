@@ -550,6 +550,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               system_prompt: str | None = None,
               default_k_by_engine: dict[str, int] | None = None,
               commit_context_tool: dict[str, Any] | None = None,
+              search_tool_def: dict[str, Any] | None = None,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -570,7 +571,16 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     handles a ``release`` argument whenever the call carries one regardless of
     which tool definition advertised it, so a caller only needs to supply a
     schema that documents the field (e.g. one extending ``COMMIT_CONTEXT_TOOL``
-    with a ``release`` property) to expose it.
+    with a ``release`` property) to expose it. ``search_tool_def`` — when
+    given — is advertised instead of this module's own
+    ``build_search_tool_def(engines)``; unlike ``commit_context_tool`` the
+    search definition is ENGINE-DEPENDENT (its ``search_engine`` enum and
+    query guidance are derived from ``engines``, which this function also
+    uses separately in the error path when a call omits ``search_engine``),
+    so a caller must build its override from the same ``engines`` list this
+    call was given — never pass a module-level constant built for a
+    different engine set, or the advertised enum and the run's actual
+    enabled engines will desync.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -782,7 +792,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             system_prompt = load_system_prompt(max_committed_per_step,
                                                 prompt_variant)
         tool_definitions = [
-            build_search_tool_def(engines),
+            search_tool_def or build_search_tool_def(engines),
             GET_DOCUMENTS_TOOL,
             commit_context_tool or COMMIT_CONTEXT_TOOL,
         ]

@@ -20,6 +20,12 @@ systems configure differently:
   ``hybrid`` beyond the common default — mirroring facet_rag's
   ``HYBRID_K`` (PLAN.md §3.3): a HyDE-style hypothetical-passage query
   benefits from a wider net than a short keyword query.
+- ``search_tool_def``/``commit_context_tool`` are this package's own tool
+  definitions (``tools.py``), not aus_agent's: PLAN.md phase 2's
+  tool-carried requirement ledger (a required ``requirement`` field on
+  every search, a ``coverage``/``ready_to_report`` ledger on every commit)
+  rides on the same two calls the model already makes, so no new tool and
+  no extra turn -- see ``tools.py``'s own docstring for the full design.
 """
 from __future__ import annotations
 
@@ -32,7 +38,7 @@ from aus_agent.agent import (
 )
 
 from .prompts import SYSTEM_PROMPT
-from .tools import COMMIT_CONTEXT_TOOL
+from .tools import COMMIT_CONTEXT_TOOL, build_search_tool_def
 
 SYSTEM_NAME = "facets_agent"
 
@@ -62,21 +68,23 @@ ARCH_STAGES = [
      "code": ["systems/facets_agent/agent.py::run_agent",
               "systems/aus_agent/agent.py::run_agent"],
      "tools": [{"name": "search",
-                "ref": "systems/aus_agent/tools/search.py::SEARCH_TOOL_DEF"},
+                "ref": "systems/facets_agent/tools.py::SEARCH_TOOL_DEF"},
                {"name": "get_documents",
                 "ref": "systems/aus_agent/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
                {"name": "commit_context",
                 "ref": "systems/facets_agent/tools.py::COMMIT_CONTEXT_TOOL"}],
-     "tools_note": "native tool-calling, passed once to provider.start "
-                    "(the 3 NL engines enabled by default: "
-                    "build_search_tool_def(DEFAULT_ENGINES) + "
-                    "GET_DOCUMENTS_TOOL + this system's own "
-                    "COMMIT_CONTEXT_TOOL, which extends aus_agent's with a "
-                    "release property so a facet's evidence stays minimal; "
-                    "ssr/lucene_bool are no longer supported)"},
+     "tools_note": "native tool-calling, passed once to provider.start -- "
+                    "both search and commit_context are this system's OWN "
+                    "definitions (tools.py), not aus_agent's: search adds a "
+                    "required `requirement` field (PLAN.md phase 2's "
+                    "tool-carried plan review), commit_context adds "
+                    "`release` plus a `coverage`/`ready_to_report` "
+                    "requirement ledger (the pre-report coverage "
+                    "self-check). The 3 NL engines are enabled by default; "
+                    "ssr/lucene_bool are no longer supported."},
     {"id": "search", "label": "SEARCH", "kind": "retrieval",
-     "note": "facet-decomposed queries per engine; hybrid gets a HyDE-style "
-             "hypothetical-passage query and a wider k",
+     "note": "requirement-labeled queries per engine; hybrid gets a "
+             "HyDE-style hypothetical-passage query and a wider k",
      "prompt": ["systems/facets_agent/prompts.py::SYSTEM_PROMPT"],
      "code": ["systems/aus_agent/tools/search.py::execute_full_text_search",
               "systems/aus_agent/agent.py::_execute_tool_calls"],
@@ -86,7 +94,8 @@ ARCH_STAGES = [
      "code": ["systems/aus_agent/context.py::ContextLedger.stage"]},
     {"id": "commit", "label": "REASON/COMMIT", "kind": "llm",
      "note": "model turn curates: commit only each result's distinct "
-             "contribution, release a committed doc a better one supersedes",
+             "contribution, release a committed doc a better one "
+             "supersedes, restate the requirement coverage ledger",
      "prompt": ["systems/facets_agent/prompts.py::SYSTEM_PROMPT"],
      "code": ["systems/aus_agent/tools/commit_context.py::apply_commit",
               "systems/aus_agent/context.py::ContextLedger.commit",
@@ -131,4 +140,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
         run_desc=run_desc, system_name=SYSTEM_NAME,
         system_prompt=system_prompt, prompt_variant="facets_agent_minimal",
         default_k_by_engine={"hybrid": hybrid_k},
-        commit_context_tool=COMMIT_CONTEXT_TOOL, **kwargs)
+        commit_context_tool=COMMIT_CONTEXT_TOOL,
+        search_tool_def=build_search_tool_def(engines), **kwargs)

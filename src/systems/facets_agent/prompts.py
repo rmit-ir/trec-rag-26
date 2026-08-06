@@ -58,12 +58,23 @@ and getting nothing. Two changes, both explained in full in ``PLAN.md``
   said in the opening paragraph, step 2, and step 5) is what keeps an
   uncited sentence from happening in the first place.
 
+Phase 2 of ``PLAN.md`` (2026-08-05): the tool-carried requirement ledger.
+Step 2's named-candidate/category engine-assignment sentence ("`keyword` is
+the engine for a named candidate...") moved out of here into
+``tools.build_search_tool_def``'s own ``query`` description, since it is
+per-engine mechanics, not facet-level discipline -- the same schema-vs-prompt
+split step 3's release mechanics already used. Step 2 and the Tools section
+instead name the new required ``search`` field (``requirement``) and the new
+``commit_context`` fields (``coverage``, ``ready_to_report``); see
+``tools.py``'s own docstring for what those fields do and why they live on
+the two calls the model already makes rather than a new tool or turn.
+
 Soft design constraint: keep the ``SYSTEM_PROMPT`` body (excluding this
 docstring) at roughly 80-86 lines at this file's line-wrapping width. Past
 that, cut something or move the detail into a tool description in
-``tools.py`` (as step 3's release mechanics already do) rather than growing
-this file indefinitely -- the short prompt relative to aus_agent's ~270-line
-one is the point of this system.
+``tools.py`` (as step 3's release mechanics and step 2's migration above both
+do) rather than growing this file indefinitely -- the short prompt relative
+to aus_agent's ~270-line one is the point of this system.
 """
 from __future__ import annotations
 
@@ -97,14 +108,10 @@ and rare terms, `hybrid` for the safe general case. For `hybrid`, write the \
 query as a short hypothetical passage that would itself answer the facet \
 (the HyDE technique — a fuller passage embeds closer to real matches than a \
 bare phrase), and ask for more results than you would from a single-engine \
-call (k around 15-20). When a requirement asks for concrete specifics — named \
-partners, products, tools, techniques, works, people, events — write one \
-query naming your own best candidates and one query for the category around \
-them, so the corpus can both test the candidates you brought and offer ones \
-you did not think of. `keyword` is the engine for a named candidate; \
-`semantic` or `hybrid` for the category. A candidate you supplied is a \
-hypothesis to test, not a finding: the query is where it belongs, the report \
-is not.
+call (k around 15-20). Every `search` call also names the `requirement` it \
+serves, in the request's own words — see the tool description for named- \
+candidate query guidance and for what to write when a requirement already \
+has evidence.
 3. Keep each facet's committed evidence minimal. Commit only a result that \
 adds something the facet doesn't already have — a specific fact, date, name, \
 mechanism, example, counter-argument, or caveat — and say what it adds when \
@@ -130,20 +137,21 @@ anything you expected but never found or name it as something the corpus \
 doesn't cover. Drop or fix any citation that fails these checks.
 
 Tools:
-- `search(query, search_engine, k)` — engines as above; `search_engine` is \
-required on every call.
+- `search(query, search_engine, k, requirement)` — engines as above; \
+`search_engine` and `requirement` are required on every call.
 - `get_documents(ids)` — fetch specific chunk ids (construct adjacent \
 `_p<page>` ids of a document you want to read further); results are staged \
 exactly like a search batch.
-- `commit_context(documents, release)` — on the turn immediately after any \
-batch of results is staged, list the `id`s worth keeping in `documents` \
-(exactly as returned), each with the reason it earns its place. Everything \
-staged and not listed is dropped. Commit at most {max_committed} results \
-from one staged batch. If a document you're committing now makes an \
-already-committed one redundant, name that older id in `release` (from any \
-earlier turn, not just this batch) with the reason it no longer earns its \
-place — this is how a facet's evidence stays minimal instead of only ever \
-growing.
+- `commit_context(documents, release, coverage, ready_to_report)` — on the \
+turn immediately after any batch of results is staged, list the `id`s worth \
+keeping in `documents` (exactly as returned), each with the reason it earns \
+its place. Everything staged and not listed is dropped. Commit at most \
+{max_committed} results from one staged batch. If a document you're \
+committing now makes an already-committed one redundant, name that older id \
+in `release` (from any earlier turn, not just this batch) with the reason it \
+no longer earns its place — this is how a facet's evidence stays minimal \
+instead of only ever growing. `coverage` and `ready_to_report` are your \
+requirement ledger, restated in full every call; see the tool description.
 
 When every facet is resolved, emit no tool calls and write the report as \
 plain prose, one sentence per line: end each factual sentence with its \

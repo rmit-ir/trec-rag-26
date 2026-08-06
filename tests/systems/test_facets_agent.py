@@ -180,6 +180,128 @@ def test_release_drops_a_superseded_document_end_to_end(
     assert RELEASE_PREFIX in s1_result["content"]
 
 
+# --- Phase 2: tool-carried requirement ledger (PLAN.md §4 phase-2 tests) ---
+
+def test_search_def_requires_requirement_and_advertises_the_run_engines(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The advertised search tool must carry a required `requirement` field
+    on top of the run's actual engine enum -- the tool-carried plan-review
+    half of the coverage-gap fix rides on this schema reaching the model."""
+    result = drive(list(HAPPY_SCRIPT))
+    search_tool_def = next(
+        t for t in result["provider"].tools if t["name"] == "search")
+    schema = search_tool_def["input_schema"]
+    assert "requirement" in schema["properties"]
+    assert "requirement" in schema["required"]
+    assert schema["properties"]["search_engine"]["enum"] == DEFAULT_ENGINES
+
+
+def test_commit_def_carries_the_coverage_ledger_with_three_value_status(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The advertised commit_context tool must carry `coverage` (with a
+    covered/open/unavailable status enum) and `ready_to_report` -- this is
+    what the model's pre-report self-check is computed from."""
+    result = drive(list(HAPPY_SCRIPT))
+    commit_tool = next(
+        t for t in result["provider"].tools if t["name"] == "commit_context")
+    schema = commit_tool["input_schema"]
+    assert "coverage" in schema["properties"]
+    assert "ready_to_report" in schema["properties"]
+    assert "coverage" in schema["required"]
+    assert "ready_to_report" in schema["required"]
+    status_schema = (schema["properties"]["coverage"]["items"]["properties"]
+                      ["status"])
+    assert status_schema["enum"] == ["covered", "open", "unavailable"]
+
+
+# Same shape as HAPPY_SCRIPT, but the search call names a requirement and the
+# commit call restates a full coverage ledger -- proves the whole payload
+# round-trips through the harness (dispatch, ContextLedger, the saved trace)
+# without needing new dispatch branches, since the underlying handlers only
+# read the arguments they already understood and pass the rest through inert.
+COVERAGE_SCRIPT = [
+    model_turn(reasoning=["Search hybrid for the revenue-plan requirement."],
+               tool_calls=[tool_call(
+                   "search", {"query": "congestion pricing revenue plan",
+                              "search_engine": "hybrid",
+                              "requirement": "how congestion pricing revenue "
+                                             "is used"}, id="s1")]),
+    model_turn(text="One of those is worth keeping.",
+               tool_calls=[tool_call("commit_context", {
+                   "documents": [{"docid": D[0],
+                                  "reason": "revenue allocation"}],
+                   "coverage": [{"requirement": "how congestion pricing "
+                                                 "revenue is used",
+                                 "status": "covered", "note": D[0]}],
+                   "ready_to_report": True,
+               }, id="c1")]),
+    model_turn(text=f"Toll revenue funds the capital plan [{D[0]}]."),
+]
+
+
+def test_a_commit_call_carrying_coverage_completes_and_is_saved_in_the_trace(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """An end-to-end run where commit_context carries a coverage payload must
+    complete normally, and the payload must be legible in the saved trace --
+    that raw-argument record is what PLAN.md §5's Tier 1 metrics read."""
+    result = drive(list(COVERAGE_SCRIPT))
+    assert result["summary"]["status"] == "completed"
+    import json
+    output = json.loads(result["summary"]["paths"]["output"].read_text())
+    steps = output["trace"]["steps"]
+    commit_step = next(
+        s for s in steps
+        if s.get("type") == "tool_call" and s.get("tool_name") == "commit_context")
+    assert commit_step["arguments"]["ready_to_report"] is True
+    assert commit_step["arguments"]["coverage"][0]["status"] == "covered"
+    search_step = next(
+        s for s in steps
+        if s.get("type") == "tool_call" and s.get("tool_name") == "search")
+    assert search_step["arguments"]["requirement"] == \
+        "how congestion pricing revenue is used"
+
+
+def test_a_commit_call_omitting_coverage_still_completes(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The schema marks `coverage`/`ready_to_report` required as a
+    model-compliance forcing function, never a failure mode: the underlying
+    handler must still accept and complete a call that omits them, exactly
+    like HAPPY_SCRIPT (no coverage payload at all) already proves for the
+    plain case -- this test pins that a partially-compliant call (present
+    `release`, absent `coverage`) is equally tolerated."""
+    script = [
+        model_turn(reasoning=["Search hybrid."],
+                   tool_calls=[tool_call(
+                       "search", {"query": "congestion pricing revenue plan",
+                                  "search_engine": "hybrid"}, id="s1")]),
+        model_turn(text="Keep this.",
+                   tool_calls=[tool_call("commit_context", {"documents": [
+                       {"docid": D[0], "reason": "revenue allocation"}]},
+                       id="c1")]),
+        model_turn(text=f"Toll revenue funds the capital plan [{D[0]}]."),
+    ]
+    result = drive(script)
+    assert result["summary"]["status"] == "completed"
+    assert result["summary"]["n_references"] == 1
+
+
+def test_named_candidate_query_hint_only_appears_when_keyword_is_enabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The named-candidate/category engine-assignment sentence only makes
+    sense when `keyword` is actually offered -- it must not appear in the
+    `query` description for a run that disables `keyword`, mirroring how the
+    shared base builder already conditions its own multi-engine sentence."""
+    with_keyword = drive(list(HAPPY_SCRIPT), engines=["semantic", "keyword", "hybrid"])
+    without_keyword = drive(list(HAPPY_SCRIPT), query_id="mock_facets_002",
+                             engines=["semantic", "hybrid"])
+    with_desc = next(t for t in with_keyword["provider"].tools
+                      if t["name"] == "search")["input_schema"]["properties"]["query"]["description"]
+    without_desc = next(t for t in without_keyword["provider"].tools
+                         if t["name"] == "search")["input_schema"]["properties"]["query"]["description"]
+    assert "named candidate" in with_desc
+    assert "named candidate" not in without_desc
+
+
 @pytest.mark.live
 def test_run_agent_live() -> None:
     """Same path against the real ClimbMix + OpenAI endpoints (needs creds)."""
