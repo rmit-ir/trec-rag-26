@@ -47,8 +47,9 @@ from .coverage_plan import (
 )
 from .atomic_plan import (
     ATOMIC_PLAN_SYSTEM,
+    ATOMIC_PLAN_TOOL,
     atomic_plan_request,
-    normalize_atomic_plan,
+    normalize_atomic_plan_value,
 )
 from .coverage_verify import (
     COVERAGE_VERIFY_SYSTEM,
@@ -809,6 +810,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     answer_handoff_chars = 0
     coverage_contract_items = []
     atomic_plan_rows: list[dict[str, Any]] = []
+    atomic_plan_attempts = 0
+    atomic_plan_errors: list[str] = []
     coverage_evidence = EvidenceLedger()
     coverage_submission_attempts = 0
     coverage_submission_errors: list[str] = []
@@ -1025,6 +1028,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         trajectory.trace["summary"]["coverage_plan"] = {
             "enabled": coverage_plan,
             "requested": coverage_plan_requested,
+            "atomic": atomic_contract_plan,
+            "atomic_attempts": atomic_plan_attempts,
+            "atomic_errors": list(atomic_plan_errors),
             "chars": len(coverage_plan_text),
             "words": len(coverage_plan_text.split()),
         }
@@ -1604,35 +1610,156 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 ATOMIC_PLAN_SYSTEM
                 if atomic_contract_plan else COVERAGE_PLAN_SYSTEM
             )
-            provider.start(coverage_plan_system, [])
+            provider.start(
+                coverage_plan_system,
+                [ATOMIC_PLAN_TOOL] if atomic_contract_plan else [],
+            )
             planner_request = (
                 atomic_plan_request(query)
                 if atomic_contract_plan else coverage_plan_request(query)
             )
+            planner_trace_input: dict[str, Any] = {
+                "system_prompt": system_prompt,
+                "user_message": user_message,
+                "tools": tool_definitions,
+                "coverage_plan_system": coverage_plan_system,
+                "coverage_plan_request": planner_request,
+                "coverage_plan_tools": (
+                    [ATOMIC_PLAN_TOOL] if atomic_contract_plan else []),
+                "atomic_plan_attempts": 0,
+                "atomic_plan_errors": [],
+            }
+            tb.set_trace_input(planner_trace_input)
             provider.add_user_message(planner_request)
             save_partial(force=True)
-            plan_turn = timed_turn()
-            plan_t0, plan_t1, plan_ti, _, plan_stats = last_turn
-            _record_turn(
-                tb,
-                plan_turn,
-                narration_as_reasoning=False,
-                model_input={"kind": "coverage_plan_request",
-                             "text": planner_request},
-                t_start=plan_t0,
-                t_end=plan_t1,
-                turn_index=plan_ti,
-                stats=plan_stats,
-                context=_context_snapshot(ledger),
-            )
             coverage_plan_requested = True
-            if atomic_contract_plan:
-                atomic_plan_rows = normalize_atomic_plan(
-                    plan_turn.get("text"))
-                if not atomic_plan_rows:
+            next_plan_input: dict[str, Any] = {
+                "kind": "coverage_plan_request",
+                "text": planner_request,
+            }
+            max_plan_attempts = 3 if atomic_contract_plan else 1
+            plan_turn: dict[str, Any] = {}
+            for plan_attempt in range(1, max_plan_attempts + 1):
+                plan_turn = timed_turn()
+                plan_t0, plan_t1, plan_ti, _, plan_stats = last_turn
+                plan_generation_id = _record_turn(
+                    tb,
+                    plan_turn,
+                    narration_as_reasoning=False,
+                    model_input=next_plan_input,
+                    t_start=plan_t0,
+                    t_end=plan_t1,
+                    turn_index=plan_ti,
+                    stats=plan_stats,
+                    context=_context_snapshot(ledger),
+                )
+                if not atomic_contract_plan:
+                    break
+                atomic_plan_attempts += 1
+                plan_calls = list(plan_turn.get("tool_calls") or [])
+                correct_calls = [
+                    call for call in plan_calls
+                    if call.get("name") == ATOMIC_PLAN_TOOL["name"]
+                ]
+                protocol_errors: list[str] = []
+                candidate: Any
+                if len(plan_calls) == 1 and len(correct_calls) == 1:
+                    candidate = correct_calls[0].get("arguments")
+                else:
+                    candidate = None
+                    protocol_errors.append(
+                        "call submit_atomic_plan exactly once and no other tool")
+                if str(plan_turn.get("text") or "").strip():
+                    protocol_errors.append(
+                        "do not include prose outside submit_atomic_plan")
+                normalized, normalize_errors = normalize_atomic_plan_value(
+                    candidate)
+                attempt_errors = protocol_errors + normalize_errors
+                if normalized and not attempt_errors:
+                    atomic_plan_rows = normalized
+                    accepted, accepted_stats = action_feedback(json.dumps({
+                        "accepted": True,
+                        "rows": len(normalized),
+                        "instruction": "atomic planning stage complete",
+                    }), 0.0)
+                    call = correct_calls[0]
+                    provider.add_tool_results([{
+                        "id": call["id"],
+                        "content": accepted,
+                        "is_error": False,
+                    }])
+                    ts = now_iso()
+                    tb.add_tool_call(
+                        call["name"], call["arguments"], accepted,
+                        failed=False, t_start=ts, t_end=ts,
+                        turn=plan_ti, stats=accepted_stats,
+                        context=_context_snapshot(ledger), documents=[],
+                        parent_id=plan_generation_id,
+                        tool_call_id=call["id"],
+                    )
+                    planner_trace_input["atomic_plan_attempts"] = (
+                        atomic_plan_attempts)
+                    planner_trace_input["atomic_plan_errors"] = list(
+                        atomic_plan_errors)
+                    planner_trace_input["atomic_plan_rows"] = list(
+                        atomic_plan_rows)
+                    tb.set_trace_input(planner_trace_input)
+                    break
+                atomic_plan_errors.extend(
+                    f"attempt {plan_attempt}: {error}"
+                    for error in attempt_errors
+                )
+                planner_trace_input["atomic_plan_attempts"] = (
+                    atomic_plan_attempts)
+                planner_trace_input["atomic_plan_errors"] = list(
+                    atomic_plan_errors)
+                tb.set_trace_input(planner_trace_input)
+                feedback, feedback_stats = action_feedback(json.dumps({
+                    "error": "invalid atomic coverage plan",
+                    "problems": attempt_errors,
+                    "instruction": (
+                        "Correct every problem and call submit_atomic_plan "
+                        "exactly once. Return the complete inventory again; do "
+                        "not emit prose or a partial patch."
+                    ),
+                }, ensure_ascii=False), 0.0)
+                if plan_calls:
+                    results = [
+                        {
+                            "id": call["id"],
+                            "content": feedback,
+                            "is_error": True,
+                        }
+                        for call in plan_calls
+                    ]
+                    provider.add_tool_results(results)
+                    ts = now_iso()
+                    for call in plan_calls:
+                        tb.add_tool_call(
+                            str(call.get("name") or "unknown"),
+                            call.get("arguments"), feedback,
+                            failed=True, t_start=ts, t_end=ts,
+                            turn=plan_ti, stats=feedback_stats,
+                            context=_context_snapshot(ledger), documents=[],
+                            parent_id=plan_generation_id,
+                            tool_call_id=call["id"],
+                        )
+                    next_plan_input = {
+                        "kind": "tool_results",
+                        "tool_call_ids": [call["id"] for call in plan_calls],
+                    }
+                else:
+                    provider.add_user_message(feedback)
+                    next_plan_input = {
+                        "kind": "atomic_plan_correction",
+                        "text": feedback,
+                    }
+                if plan_attempt >= max_plan_attempts:
                     raise RuntimeError(
-                        "atomic coverage planner returned no valid complete "
-                        "10-24 row inventory")
+                        "atomic coverage planner failed after three attempts: "
+                        + "; ".join(atomic_plan_errors)
+                    )
+            if atomic_contract_plan:
                 rendered_rows: list[str] = []
                 for index, row in enumerate(atomic_plan_rows, 1):
                     label = (
@@ -1870,11 +1997,16 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         if coverage_plan:
             trace_input.update({
                 "coverage_plan_system": coverage_plan_system,
+                "coverage_plan_request": planner_request,
+                "coverage_plan_tools": (
+                    [ATOMIC_PLAN_TOOL] if atomic_contract_plan else []),
                 "coverage_plan_initial": coverage_plan_initial or None,
                 "coverage_plan": coverage_plan_text or None,
             })
             if atomic_contract_plan:
                 trace_input["atomic_plan_rows"] = list(atomic_plan_rows)
+                trace_input["atomic_plan_attempts"] = atomic_plan_attempts
+                trace_input["atomic_plan_errors"] = list(atomic_plan_errors)
         if plan_critic and coverage_plan:
             trace_input.update({
                 "plan_critic_system": PLAN_CRITIC_SYSTEM,

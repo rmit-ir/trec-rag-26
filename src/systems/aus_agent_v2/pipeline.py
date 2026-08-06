@@ -17,6 +17,10 @@ ARCH_STAGES = [
             "systems/aus_agent_v2/atomic_plan.py::ATOMIC_PLAN_SYSTEM",
         ],
         "code": ["systems/aus_agent_v2/agent.py::run_agent"],
+        "tools": [
+            {"name": "submit_atomic_plan", "ref":
+             "systems/aus_agent_v2/atomic_plan.py::ATOMIC_PLAN_TOOL"},
+        ],
     },
     {
         "id": "critic", "label": "ATOMIC OBLIGATION SCOUT", "kind": "llm",

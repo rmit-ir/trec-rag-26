@@ -62,6 +62,13 @@ of prose bundles. Retrieval may add at most two request-material rows per
 commit and six per topic, giving genuinely post-plan facts an executable route
 into the answer rather than leaving them as inert commit metadata.
 
+The planner inventory is transported through a dedicated
+`submit_atomic_plan` tool rather than parsed from free text. Runtime validation
+is all-or-nothing and returns row-specific diagnostics; the same isolated
+planner gets at most three attempts to replace the complete inventory. Raw JSON
+and partial patches are rejected, so provider formatting cannot silently erase
+an obligation before research begins.
+
 It also fixes the old blueprint's central validation defect: every
 must-answer plan row must be satisfied or explicitly unresolved, search and
 commit support are tied to the same stable row, exact scout terms are checked,

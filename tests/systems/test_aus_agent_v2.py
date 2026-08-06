@@ -447,6 +447,15 @@ def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
         "must_research": False,
         "must_answer": False,
     })
+    tool_rows = []
+    for row in rows:
+        tool_row = dict(row)
+        if row["mode"] == "assert":
+            tool_row["must_avoid"] = []
+        else:
+            tool_row["must_mention"] = []
+            tool_row["minimum_count"] = 1
+        tool_rows.append(tool_row)
     answer = {
         "answer_items": [
             {
@@ -470,7 +479,8 @@ def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
         "unresolved": [],
     }
     script = [
-        model_turn(text=json.dumps({"rows": rows})),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": tool_rows}, id="p1")]),
         model_turn(tool_calls=[tool_call(
             "search",
             {
@@ -536,10 +546,240 @@ def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
     assert contract_summary["dynamic_promotions"] == 1
     assert contract_summary["submission_attempts"] == 2
     assert any(item["id"] == "D01" for item in contract_summary["items"])
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    assert plan_summary["atomic_attempts"] == 1
+    assert plan_summary["atomic_errors"] == []
+    assert result["trace"]["input"]["atomic_plan_attempts"] == 1
+    planner_result = result["provider"].tool_results[0][0]
+    assert planner_result["id"] == "p1"
+    assert planner_result["is_error"] is False
+    assert json.loads(planner_result["content"].splitlines()[0]) == {
+        "accepted": True,
+        "rows": 10,
+        "instruction": "atomic planning stage complete",
+    }
+    assert result["trajectory"]["tool_call_counts"][
+        "submit_atomic_plan"] == 1
+    assert any(
+        message.get("role") == "tool"
+        and message.get("tool_call_id") == "p1"
+        for message in result["trajectory"]["raw_messages"]
+    )
     handoff = result["provider"].tool_results[-2][0]["content"]
     assert "TERMINAL EVIDENCE HANDOFF" in handoff
     assert "D01 ASSERT MIN=1" in handoff
     assert "pre-toll baseline" in handoff
+
+
+def test_atomic_planner_rejects_raw_json_then_corrects_typed_inventory(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """Only a corrected tool call may cross the isolated planning boundary."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    invalid_rows = [dict(row) for row in rows]
+    invalid_rows[0]["requirement"] = "Address component one; address component two"
+    answer = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first eight requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+            },
+            {
+                "kind": "prose",
+                "text": "The final two requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": ["P09", "P10"],
+            },
+        ],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=json.dumps({"rows": rows})),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": invalid_rows}, id="p-bad")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id="p-good")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    assert plan_summary["atomic_attempts"] == 3
+    assert plan_summary["atomic_errors"] == [
+        "attempt 1: call submit_atomic_plan exactly once and no other tool",
+        "attempt 1: do not include prose outside submit_atomic_plan",
+        "attempt 1: planner output must contain exactly one rows field",
+        "attempt 2: row 1 requirement is overlong or visibly compound",
+    ]
+    correction = result["provider"].tool_results[0][0]
+    assert correction["id"] == "p-bad"
+    assert correction["is_error"] is True
+    assert "row 1 requirement" in correction["content"]
+    assert result["trace"]["input"]["atomic_plan_attempts"] == 3
+    assert result["trajectory"]["tool_call_counts"][
+        "submit_atomic_plan"] == 1
+    assert result["trajectory"]["tool_call_counts_all"][
+        "submit_atomic_plan"] == 2
+
+
+def test_atomic_planner_rejects_encoded_arguments_and_companion_prose(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """Neither nested JSON nor text beside a tool call may cross the boundary."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    answer = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first eight requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+            },
+            {
+                "kind": "prose",
+                "text": "The final two requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": ["P09", "P10"],
+            },
+        ],
+        "unresolved": [],
+    }
+    encoded_call = {
+        "id": "p-encoded",
+        "name": "submit_atomic_plan",
+        "arguments": json.dumps({"rows": rows}),
+    }
+    script = [
+        model_turn(tool_calls=[encoded_call]),
+        model_turn(
+            text="Here is the plan.",
+            tool_calls=[tool_call(
+                "submit_atomic_plan", {"rows": rows}, id="p-prose")],
+        ),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id="p-valid")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    assert result["summary"]["status"] == "completed"
+    assert plan_summary["atomic_attempts"] == 3
+    assert plan_summary["atomic_errors"] == [
+        "attempt 1: tool arguments must be an object, not encoded JSON text",
+        "attempt 2: do not include prose outside submit_atomic_plan",
+    ]
+    assert result["trajectory"]["tool_call_counts"][
+        "submit_atomic_plan"] == 1
+    assert result["trajectory"]["tool_call_counts_all"][
+        "submit_atomic_plan"] == 3
+    assert [batch[0]["is_error"] for batch in
+            result["provider"].tool_results[:3]] == [True, True, False]
+
+
+def test_atomic_planner_third_failure_is_answered_and_fully_traced(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A failed topic must preserve every rejected call and its planner contract."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    rows[0]["requirement"] = "Address component one; address component two"
+    script = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id=f"p-bad-{attempt}")])
+        for attempt in range(1, 4)
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "failed"
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    expected_errors = [
+        f"attempt {attempt}: row 1 requirement is overlong or visibly compound"
+        for attempt in range(1, 4)
+    ]
+    assert plan_summary["atomic_attempts"] == 3
+    assert plan_summary["atomic_errors"] == expected_errors
+    trace_input = result["trace"]["input"]
+    assert trace_input["coverage_plan_system"]
+    assert trace_input["coverage_plan_request"] == (
+        "ORIGINAL RESEARCH REQUEST\n\n" + QUERY)
+    assert trace_input["coverage_plan_tools"][0]["name"] == (
+        "submit_atomic_plan")
+    assert trace_input["atomic_plan_errors"] == expected_errors
+    assert result["trajectory"]["tool_call_counts"] == {}
+    assert result["trajectory"]["tool_call_counts_all"][
+        "submit_atomic_plan"] == 3
+    assert len(result["provider"].tool_results) == 3
+    assert all(batch[0]["is_error"] is True
+               for batch in result["provider"].tool_results)
 
 
 def test_contract_commit_annotation_can_be_corrected_without_research_loss(

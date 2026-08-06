@@ -1,7 +1,7 @@
 """Atomic-plan boundaries prevent broad prose rows from masquerading as closure.
 
-The candidate is deliberately not wired into the live pipeline yet. These tests
-defend its isolated prompt and normal form so later integration cannot admit a
+The candidate uses a typed planning tool with a bounded correction loop. These
+tests defend its prompt, schema, and normal form so transport cannot admit a
 partial, silently truncated, or presentation-authorizing obligation inventory.
 """
 from __future__ import annotations
@@ -9,10 +9,12 @@ from __future__ import annotations
 import json
 
 from aus_agent_v2.atomic_plan import (
+    ATOMIC_PLAN_TOOL,
     ATOMIC_PLAN_SYSTEM,
     MAX_REQUIREMENT_CHARS,
     atomic_plan_request,
     normalize_atomic_plan,
+    normalize_atomic_plan_value,
 )
 
 
@@ -50,6 +52,20 @@ def packet(rows: list[dict[str, object]]) -> str:
     return json.dumps({"rows": rows})
 
 
+def tool_packet(rows: list[dict[str, object]]) -> dict[str, object]:
+    """Convert mode-specific fixtures into the common tool row shape."""
+    values: list[dict[str, object]] = []
+    for row in rows:
+        value = dict(row)
+        if value["mode"] == "assert":
+            value["must_avoid"] = []
+        else:
+            value["must_mention"] = []
+            value["minimum_count"] = 1
+        values.append(value)
+    return {"rows": values}
+
+
 def test_request_exposes_only_the_original_request() -> None:
     """Prior plans or hidden criteria would anchor the candidate on old bundles."""
     assert atomic_plan_request("  Compare A and B.  ") == (
@@ -67,8 +83,75 @@ def test_prompt_requires_atomic_typed_rows_without_authorizing_markdown() -> Non
     assert '"mode":"avoid"' in ATOMIC_PLAN_SYSTEM
     assert "Every assert row has `must_answer` true" in ATOMIC_PLAN_SYSTEM
     assert "Avoid rows are constraints" in ATOMIC_PLAN_SYSTEM
+    assert "Call `submit_atomic_plan` exactly once" in ATOMIC_PLAN_SYSTEM
     assert "do not authorize presentation syntax" in compact
     assert "do not invent Markdown, headings, tables, bullets" in compact
+
+
+def test_tool_schema_requires_the_complete_common_row_shape() -> None:
+    """Provider-side structure should prevent missing fields before correction."""
+    schema = ATOMIC_PLAN_TOOL["input_schema"]
+    row = schema["properties"]["rows"]["items"]
+
+    assert ATOMIC_PLAN_TOOL["name"] == "submit_atomic_plan"
+    assert schema["properties"]["rows"]["minItems"] == 10
+    assert schema["properties"]["rows"]["maxItems"] == 24
+    assert set(row["required"]) == set(row["properties"])
+    assert row["additionalProperties"] is False
+
+
+def test_common_tool_arguments_normalize_to_mode_specific_rows() -> None:
+    """Tool-only empty fields must not leak into the executable contract."""
+    rows = [assert_row(index) for index in range(9)] + [avoid_row(9)]
+
+    normalized, errors = normalize_atomic_plan_value(tool_packet(rows))
+
+    assert errors == []
+    assert len(normalized) == 10
+    assert "must_avoid" not in normalized[0]
+    assert "minimum_count" not in normalized[-1]
+    assert normalized[-1]["must_avoid"] == ["unsupported generalization 9"]
+
+
+def test_invalid_tool_arguments_return_actionable_correction_errors() -> None:
+    """A retry can repair a row only when the harness names its failed invariant."""
+    rows = [assert_row(index) for index in range(10)]
+    value = tool_packet(rows)
+    value["rows"][0]["requirement"] = "Report A; report B"
+    value["rows"][1]["must_avoid"] = ["not empty"]
+
+    normalized, errors = normalize_atomic_plan_value(value)
+
+    assert normalized == []
+    assert errors == [
+        "row 1 requirement is overlong or visibly compound",
+        "row 2 assert must_avoid must be empty",
+    ]
+
+
+def test_tool_arguments_reject_the_legacy_mode_specific_row_shape() -> None:
+    """A native-tool turn must not bypass fields required by its advertised schema."""
+    rows = [assert_row(index) for index in range(10)]
+
+    normalized, errors = normalize_atomic_plan_value({"rows": rows})
+
+    assert normalized == []
+    assert errors == [
+        f"row {index} fields differ from the tool schema"
+        for index in range(1, 11)
+    ]
+
+
+def test_tool_arguments_reject_json_encoded_inside_a_string() -> None:
+    """Double parsing would reopen a free-text transport inside a native call."""
+    rows = [assert_row(index) for index in range(10)]
+
+    normalized, errors = normalize_atomic_plan_value(
+        json.dumps(tool_packet(rows)))
+
+    assert normalized == []
+    assert errors == [
+        "tool arguments must be an object, not encoded JSON text"]
 
 
 def test_valid_inventory_returns_contract_compatible_row_dicts() -> None:
@@ -159,8 +242,8 @@ def test_initialisms_do_not_create_false_sentence_boundaries() -> None:
     )
 
 
-def test_duplicates_collapse_before_the_minimum_is_enforced() -> None:
-    """Repeated wording must not inflate a nine-obligation plan past the gate."""
+def test_duplicate_requirements_reject_the_whole_inventory() -> None:
+    """Same prose with different anchors or counts may encode distinct obligations."""
     rows = [assert_row(index) for index in range(10)]
     duplicate = assert_row(
         99,
@@ -170,9 +253,13 @@ def test_duplicates_collapse_before_the_minimum_is_enforced() -> None:
 
     normalized = normalize_atomic_plan(packet(rows + [duplicate]))
     too_small_after_dedup = normalize_atomic_plan(packet(rows[:9] + [duplicate]))
+    tool_rows = tool_packet(rows + [duplicate])
+    tool_normalized, errors = normalize_atomic_plan_value(tool_rows)
 
-    assert len(normalized) == 10
+    assert normalized == []
     assert too_small_after_dedup == []
+    assert tool_normalized == []
+    assert errors == ["row 11 duplicates the requirement in row 1"]
 
 
 def test_literal_terms_are_deduplicated_without_losing_first_spelling() -> None:
