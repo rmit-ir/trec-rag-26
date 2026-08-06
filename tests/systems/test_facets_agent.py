@@ -412,6 +412,84 @@ def test_coverage_gate_can_be_disabled_via_pre_final_hook_none(
 
 
 # ---------------------------------------------------------------------------
+# Phase 4e -- review.citation_audit_gate / two_tier_final_gate
+# ---------------------------------------------------------------------------
+from facets_agent.review import (  # noqa: E402
+    citation_audit_gate,
+    two_tier_final_gate,
+)
+
+
+def test_citation_audit_gate_is_a_noop_on_an_uncited_draft() -> None:
+    """An uncited draft carries no citation-support risk this gate exists
+    for -- it must not fire just because a report was produced."""
+    assert citation_audit_gate({"candidate_sentences": [
+        {"text": "Uncited transition sentence.", "citations": []},
+    ]}) is None
+
+
+def test_citation_audit_gate_is_a_noop_when_there_are_no_sentences_yet() -> None:
+    assert citation_audit_gate({"candidate_sentences": None}) is None
+    assert citation_audit_gate({}) is None
+
+
+def test_citation_audit_gate_lists_every_cited_id_once() -> None:
+    feedback = citation_audit_gate({"candidate_sentences": [
+        {"text": "Claim one.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        {"text": "Claim two.", "citations": [CLIMBMIX_DOCIDS[0], CLIMBMIX_DOCIDS[1]]},
+    ]})
+    assert feedback is not None
+    assert feedback.count(CLIMBMIX_DOCIDS[0]) == 1
+    assert CLIMBMIX_DOCIDS[1] in feedback
+    assert "get_documents" in feedback and "commit_context" in feedback
+
+
+def test_two_tier_final_gate_prefers_coverage_over_citation_audit() -> None:
+    """A missing requirement is a bigger defect than an imperfect citation
+    -- when both would fire, only coverage_gate's feedback goes out, since
+    ``pre_final_hook`` only gets one shot per run."""
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "open", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Claim.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        ],
+    }
+    feedback = two_tier_final_gate(context)
+    assert feedback is not None
+    assert feedback.startswith("Before this report is accepted: your own "
+                                "requirement ledger")
+
+
+def test_two_tier_final_gate_runs_citation_audit_when_coverage_is_clean() -> None:
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "covered", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Claim.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        ],
+    }
+    feedback = two_tier_final_gate(context)
+    assert feedback is not None
+    assert feedback.startswith("Before submitting the report")
+    assert CLIMBMIX_DOCIDS[0] in feedback
+
+
+def test_two_tier_final_gate_is_a_noop_when_both_checks_pass() -> None:
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "covered", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Uncited transition.", "citations": []},
+        ],
+    }
+    assert two_tier_final_gate(context) is None
+
+
+# ---------------------------------------------------------------------------
 # Phase 4d §7.5 -- piika-inspired two-tier retrieval (opt-in, not the default)
 # ---------------------------------------------------------------------------
 def test_two_tier_search_is_off_by_default(

@@ -210,6 +210,12 @@ def main() -> None:
         import functools
         from agent_harness.tools import generate_snippets
 
+    # facets_agent.agent.run_agent's own default (coverage_gate) applies
+    # unless two-tier mode is active, in which case the composed gate also
+    # runs the citation self-audit (PLAN.md Phase 4e).
+    from facets_agent.review import coverage_gate, two_tier_final_gate
+    pre_final_hook = two_tier_final_gate if args.two_tier_search else coverage_gate
+
     failures = 0
     for qid, query in jobs:
         print(f"=== {qid}: {query[:80]}...", flush=True)
