@@ -133,6 +133,25 @@ def test_commit_context_tool_advertises_release(
     assert "release" in commit_tool["input_schema"]["properties"]
 
 
+def test_judge_relevance_is_advertised_by_default(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """PLAN.md Phase 4b §7.4: facets_agent opts into the global
+    agent_harness judge tool by default -- the model must see it to ever
+    choose to call it."""
+    result = drive(list(HAPPY_SCRIPT))
+    names = {t["name"] for t in result["provider"].tools}
+    assert "judge_relevance" in names
+
+
+def test_judge_relevance_can_be_disabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """``judge_tool=None`` must actually remove it, proving the default is
+    overridable (e.g. for an A/B run with/without the tool)."""
+    result = drive(list(HAPPY_SCRIPT), judge_tool=None)
+    names = {t["name"] for t in result["provider"].tools}
+    assert "judge_relevance" not in names
+
+
 # A better document (D[1]) shows up on a second search and supersedes the
 # first-committed one (D[0]): commit D[0], search again, commit D[1] while
 # releasing D[0] in the same call, then cite only D[1].

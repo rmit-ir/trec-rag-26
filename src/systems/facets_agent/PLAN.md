@@ -426,12 +426,120 @@ tiers:
   facets_agent, facet_rag all route through it), needs its own test pass and
   measurement, not bundled here.
 
+### 7.4 [SHIPPED 2026-08-06] Query-drift-aware relevance feedback
+
+User-proposed 2026-08-06; the design below was refined then built the same
+day — `judge_relevance` (`agent_harness/tools/judge.py`) exists, is wired
+into `run_agent`'s dispatch (`judge_tool` param, opt-in, default `None`),
+and facets_agent advertises it by default
+(`facets_agent.agent.run_agent`'s own `judge_tool` param defaults to
+`JUDGE_RELEVANCE_TOOL`, one sentence added to `prompts.py` step 2). Judge
+prompt drafted by gpt-5.6-luna, asked to optimize specifically for
+`openai.gpt-oss-120b-1:0` — see `worklogs/assets/2026-08-06-draft-judge-prompt.py`.
+Not yet measured (no live run has exercised it — the `facets-agent-dev30-
+e2708ab` run predates this wiring, still Phase-4a-only). The design record
+below is kept as-is for provenance. The failure mode is different from
+anything §1–§7.3 addresses: those are about
+failure mode is different from anything §1–§7.3 addresses: those are about
+requirements never searched (recall) or answers under-specifying what was
+found (synthesis). This one is about a facet that WAS searched, on-topic
+queries, that keeps returning documents that are topically adjacent but not
+actually about the requirement — classic IR "query drift": a query for
+"Hidden Path Entertainment's role in CS:GO development" pulling back general
+CS:GO history or esports-scene documents that never name the company. The
+symptom in this repo's terms: high `search` result scores, high staged-doc
+count, but low commit yield on that specific facet and an eventual
+`unavailable` verdict that may really be "asked adjacent questions, not the
+right one."
+
+**Refined 2026-08-06 (superseding the first cut above): a single
+agent-initiated tool, LLM-backed throughout, global to every system —**
+not the automatic statistical pre-filter first sketched. The model decides
+when it's unsure a batch really serves its requirement and calls the tool
+itself; there is no harness-side automatic trigger to get wrong or to make
+every search costlier (search stays generous either way — the cost lands
+only on batches the model itself flags as doubtful).
+
+**`judge_relevance` — one new tool, global, not facets_agent's own schema.**
+Lives in `agent_harness/tools/judge.py` (new file, same directory as
+`search.py`/`commit_context.py`/`get_documents.py`) so it is importable by
+ANY system, unlike §7.1–§7.3 which are facets_agent-specific. Backed by a
+**separate, cheap model** — `make_provider("bedrock", <qwen-or-gpt-oss
+model id>)`, independent of the run's own primary model (`Provider` is
+already model-agnostic per §7.2) — one judge turn per call, not a
+conversation.
+
+```
+judge_relevance(requirement, document_ids)
+  requirement (string, required) — the requirement this batch is meant to
+    serve, same text as the `requirement` field on the search call that
+    staged these documents.
+  document_ids (array[string], required) — staged or committed ids to
+    check, exactly as returned by search/get_documents.
+
+  Description (the "very clear instructions" the tool needs, since this is
+  optional and the model must recognize when to reach for it): "Ask a fast,
+  separate model whether these documents actually support the requirement,
+  or are only topically similar to it — the case where a query returns
+  plausible-looking results that are adjacent to the topic but don't
+  actually name or state what the requirement needs (e.g. general
+  Counter-Strike history when the requirement needs Hidden Path
+  Entertainment specifically). Call this when a batch looks retrievable but
+  you are not confident it truly answers the requirement, BEFORE spending a
+  commit_context decision on it — not on every batch, only a doubtful one.
+  Costs one inexpensive model call."
+
+  Returns (tool result content, JSON):
+    per-document: {id, verdict: relevant | adjacent_not_relevant |
+      irrelevant, reason}
+    if none are `relevant`: a suggested_reformulation string — a narrower
+      phrase, a disambiguating term, or an engine switch (e.g. `keyword`
+      for a named entity a `semantic` query drifted past), the same kind of
+      concrete rewrite the earlier statistical design wanted, now written by
+      the judge model instead of derived from a similarity score.
+```
+
+**Harness wiring** (mirrors `commit_context_tool`/`search_tool_def`'s
+existing override pattern, not `GET_DOCUMENTS_TOOL`'s always-on one): a new
+optional `run_agent(..., judge_tool: dict[str, Any] | None = None)`
+parameter. `None` (the default) means neither the tool definition nor a
+4th dispatch bucket exists for that run — aus_agent and facet_rag stay
+byte-identical unless they explicitly pass `judge_tool=JUDGE_RELEVANCE_TOOL`,
+same opt-in discipline as `pre_final_hook`. The dispatch itself (`§0.2`'s
+three-bucket lookup in `_execute_tool_calls`/the main loop) needs a real
+code change to add a 4th name — unavoidable per §0.2, but additive and only
+active when a system opts in. The handler needs `ledger` (to resolve
+`document_ids` to their staged/committed text, the same lookup
+`ledger.call_history` already supports for §7.1's deferred rejected-doc
+rescue) — so its signature matches `apply_commit(ledger, arguments, ...)`'s
+shape, not `execute_full_text_search`'s stateless one.
+
+**Where facets_agent would use it:** advertise it in `facets_agent.agent`'s
+`tool_definitions` (opt in via the new parameter) and mention it once in
+`prompts.py`'s step 2 (search) — a single sentence naming when to reach for
+it, consistent with the file's per-phase budget discipline (§1.3's soft
+line cap). Not mandatory per-facet; the model's own judgment gates it, per
+the user's requirement.
+
+**Validation path, before any live wiring:** same measurement-before-code
+discipline as §4's Phase 0 — before building the harness dispatch change,
+prototype the judge PROMPT offline (one script, same shape as
+`worklogs/assets/2026-08-06-facets-agent-loss-diagnosis-probe.py`) against
+a handful of the loss-factor-analysis worklog's known drift-shaped topics
+(the software-scaling topic's generic "caching"/"monitoring" misses are a
+plausible example, though that one is `covered_but_shallow` rather than
+drift — worth checking whether it's actually the same failure or a
+genuinely different one before assuming this tool would have caught it).
+
 ### Sequencing
 
 Phase 4a (this session): §7.1's harness hook + facets_agent's coverage-open
 check, §7.3's prompt line. Tests: `tests/agent_harness_context/` for the
 generic hook firing-once/no-op-when-absent behavior, `tests/systems/test_facets_agent.py`
-for the coverage-check hook itself. Phase 4b (future): §7.2's judge tool,
-§7.1's judge-based rejected-doc rescue, §7.3's ranking tier — each is an
-independent, separately-measurable increment, same principle as Phases 1/2
-above.
+for the coverage-check hook itself. Phase 4b (future): §7.2/§7.4's judge
+tool (§7.4's refined design supersedes §7.2 as the concrete spec — one
+global `judge_relevance` tool, not two separate mechanisms; §7.1's deferred
+rejected-doc rescue and a `covered_but_shallow` version of the same tool are
+both natural follow-on uses of the same infrastructure once it exists),
+§7.3's ranking tier — each still an independent, separately-measurable
+increment once built, same principle as Phases 1/2 above.

@@ -53,6 +53,7 @@ from .tools import (
     build_search_tool_def,
     execute_full_text_search,
     execute_get_documents,
+    execute_judge_relevance,
     expire_staged,
 )
 
@@ -535,6 +536,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               search_tool_def: dict[str, Any] | None = None,
               pre_final_hook: (
                   Callable[[dict[str, Any]], str | None] | None) = None,
+              judge_tool: dict[str, Any] | None = None,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -587,6 +589,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     for that: ``raw_messages`` is each provider's OWN native format (see
     ``providers/base.py``), so a hook that parses it directly only works
     against one backend.
+    ``judge_tool`` — when given (pass ``tools.JUDGE_RELEVANCE_TOOL``) —
+    advertises a fourth tool, ``judge_relevance``, that spins up a SEPARATE,
+    single-turn model conversation (``tools.judge.execute_judge_relevance``,
+    a cheap model by default) to check whether staged/committed documents
+    actually support a requirement the model names, or are only topically
+    adjacent to it. The model decides for itself when to call it; there is
+    no automatic trigger. ``None`` (the default) means neither the tool
+    definition nor its dispatch branch does anything different from before
+    this parameter existed.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -816,6 +827,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             GET_DOCUMENTS_TOOL,
             commit_context_tool or COMMIT_CONTEXT_TOOL,
         ]
+        if judge_tool is not None:
+            tool_definitions.append(judge_tool)
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         tb.set_trace_input({
             "system_prompt": system_prompt,
@@ -1336,6 +1349,30 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             call["id"], call["name"], out, documents)
                     result_by_id[call["id"]] = {
                         "id": call["id"], "content": out, "is_error": failed}
+
+            # judge_relevance: a side-call to a SEPARATE model, opt-in via
+            # judge_tool. Never stages/commits anything of its own — it only
+            # reads what the ledger already holds (see
+            # tools.judge._documents_by_id) — so there is nothing here for
+            # the budget/safety gates the search and get_documents branches
+            # apply; it is a judgment on existing material, not new
+            # retrieval, and is exactly as useful while `finishing`.
+            judge_calls = [
+                call for call in calls if call["name"] == "judge_relevance"]
+            for call in judge_calls:
+                ct0 = now_iso()
+                started = perf_counter()
+                out = execute_judge_relevance(call["arguments"], ledger)
+                duration_ms = round((perf_counter() - started) * 1000, 3)
+                out, feedback_stats = action_feedback(out, duration_ms)
+                tb.add_tool_call(
+                    call["name"], call["arguments"], out, failed=False,
+                    t_start=ct0, t_end=now_iso(), turn=ti,
+                    stats=feedback_stats,
+                    context=_context_snapshot(ledger), documents=[],
+                    tool_call_id=call["id"])
+                result_by_id[call["id"]] = {
+                    "id": call["id"], "content": out, "is_error": False}
 
             provider.add_tool_results(
                 [result_by_id[call["id"]] for call in calls])

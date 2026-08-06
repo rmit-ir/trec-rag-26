@@ -84,6 +84,13 @@ citation cap keeps only the first three listed (positional, not ranked) --
 see ``PLAN.md`` §7.3 for why a real re-ranking pass is deferred rather than
 built here.
 
+Phase 4b of ``PLAN.md`` §7.4 (2026-08-06): step 2 gets one sentence naming
+``judge_relevance`` (a GLOBAL ``agent_harness`` tool, not this package's
+own -- ``agent.py`` advertises it by default) and roughly when to reach for
+it; the full mechanics live in the tool's own description
+(``agent_harness/tools/judge.py``), same schema-vs-prompt split already used
+for release/coverage mechanics elsewhere in this file.
+
 Soft design constraint: keep the ``SYSTEM_PROMPT`` body (excluding this
 docstring) at roughly 80-86 lines at this file's line-wrapping width. Past
 that, cut something or move the detail into a tool description in
@@ -130,7 +137,10 @@ bare phrase), and ask for more results than you would from a single-engine \
 call (k around 15-20). Every `search` call also names the `requirement` it \
 serves, in the request's own words — see the tool description for named- \
 candidate query guidance and for what to write when a requirement already \
-has evidence.
+has evidence. If a batch looks retrievable but you are not confident it \
+truly answers the requirement rather than just its general topic, call \
+`judge_relevance` on it before committing — not on every batch, only a \
+doubtful one.
 3. Keep each facet's committed evidence minimal. Commit only a result that \
 adds something the facet doesn't already have — a specific fact, date, name, \
 mechanism, example, counter-argument, or caveat — and say what it adds when \
