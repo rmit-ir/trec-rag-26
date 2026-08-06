@@ -225,7 +225,7 @@ bash scripts/test.sh 2>&1 | tee \
 ```
 
 Result: **1,693 passed, eight live tests deselected, zero failures/skips** in
-17.14 seconds. Raw log:
+16.65 seconds. Raw log:
 [`2026-08-06-aus-agent-v2-answer-form-full-tests.log`](assets/2026-08-06-aus-agent-v2-answer-form-full-tests.log).
 
 Architecture regeneration/open:
@@ -259,3 +259,54 @@ operator explicitly creates a fresh paid budget window, generation should use
 `run_contract_one`/`--coverage-contract` on all 30 topics, monitor cumulative
 spend continuously, stop before that newly authorized cap, and then grade all
 30 with the same frozen Sol judge and three repeats.
+
+## Full-30 parallel preflight
+
+After the implementation commit, the exact saved dev file was checked without
+loading credentials or calling a provider:
+
+```text
+topics=30
+unique_qids=30
+run_id=sol-aus-v2-coverage-contract-dev30
+existing_artifacts=0
+```
+
+The authoritative spend gate returned:
+
+```text
+agent  $961.77
+judge  $134.95
+total  $1096.72 / $300.00 cap (365.6%)
+best full-30 mean 0.7042
+BUDGET EXCEEDED
+```
+
+`tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh` now prepares the
+requested six-topic concurrency without confusing it with a six-topic score:
+it launches up to six independent topics at once, but completion still means
+all 30 unique qids. It resumes only genuinely completed artifacts for the same
+run id. Paid execution is fail-closed and requires three explicit operator
+settings: `RUN_PAID_EXPERIMENT=YES`, an absolute historical-spend ceiling in
+`AUTHORIZED_TOTAL_BUDGET_USD`, and a positive `IN_FLIGHT_RESERVE_USD`. The
+monitor polls partial artifacts against cap minus reserve and terminates the
+exact worker process groups before entering that reserved headroom.
+
+Offline validation inputs and full results:
+
+```bash
+bash -n tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh
+
+tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh
+# exit 3: refusing paid execution: set RUN_PAID_EXPERIMENT=YES explicitly
+
+RUN_PAID_EXPERIMENT=YES \
+AUTHORIZED_TOTAL_BUDGET_USD=300 \
+IN_FLIGHT_RESERVE_USD=10 \
+tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh
+# exit 4 after printing the full spend gate above; no worker launched
+```
+
+No provider, search, Bedrock, OpenAI, or judge call was made in either
+preflight. Under the standing $300 cap, the full-30 generation remains
+mechanically impossible to start.

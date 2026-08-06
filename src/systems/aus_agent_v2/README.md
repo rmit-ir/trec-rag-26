@@ -41,10 +41,10 @@ coverage contract:
 ```text
 plan + independent scouts -> stable Pxx/Sxx obligation ids
   -> search(for_requirements=[...])
-  -> commit_context(supports=[requirement + claim + value/scope])
+  -> commit_context(supports=[requirement + claim/scope + exact literals])
   -> bounded closure status after every commit
-  -> submit_answer(sentences + evidence ids + satisfied obligation ids)
-  -> deterministic completeness/citation validation -> map + save
+  -> submit_answer(typed answer items + evidence ids + satisfied ids)
+  -> deterministic form/syntax/exact-literal/citation validation -> map + save
 ```
 
 This is a claim-union architecture, not a completed-answer selector. Offline
@@ -60,10 +60,13 @@ explicitly mapped to it. The final answer is the terminal tool call itself, so
 there is no second writer and no 22–35 KB fact replay.
 
 Broad Markdown remains disabled because the author baselines almost never use
-it and factual table cells complicate citation locality. When the request asks
-for a series, the contract permits a safe plain label prefix on each part's
-opening sentence, such as `Blog post 1 — ...`; factual content and citations
-stay in that same answer item.
+it and factual table cells complicate citation locality. The untouched request
+can authorize only two narrow typed forms: a literal blog-post series receives
+distinct uncited labels such as `Blog post 1 — ...`, with cited factual prose
+in adjacent items; an explicit Python-code request receives raw multiline code
+that bypasses prose cleanup and must compile before acceptance. Every selected
+finish-the-claim literal is boundary-matched in the declared claim/scope, the
+staged source, and the final cited prose.
 
 The system reuses `aus_agent.context`, `aus_agent.providers`, and
 `aus_agent.tools`. Planning, evidence-card construction, patch validation,
@@ -100,6 +103,20 @@ uv run --group aus-agent-v2 python src/systems/aus_agent_v2/run.py \
 
 It is intentionally not the `run_one` default until a complete comparable
 30-topic generation and three-pass grade beats 0.7042.
+
+The full-30 candidate has a separate resumable parallel runner. It still
+evaluates all 30 topics; `CONCURRENCY=6` means six independent topics are in
+flight, not that a six-topic subset is scored. Paid execution is fail-closed:
+the runner requires explicit total-budget and in-flight-reserve authorization,
+and the standing $300 cap currently blocks it before any worker launches.
+
+```bash
+RUN_PAID_EXPERIMENT=YES \
+AUTHORIZED_TOTAL_BUDGET_USD=<explicit-new-total-cap> \
+IN_FLIGHT_RESERVE_USD=<explicit-reserve> \
+CONCURRENCY=6 \
+tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh
+```
 
 ## Tests
 
