@@ -15,6 +15,7 @@ from .judge import (
     DEFAULT_JUDGE_MODEL,
     JUDGE_RELEVANCE_TOOL,
     execute_judge_relevance,
+    judge_documents,
 )
 from .search import (
     DEFAULT_BUDGET_TOKENS_PER_RESULT,
@@ -43,5 +44,6 @@ __all__ = [
     "execute_get_documents",
     "execute_judge_relevance",
     "expire_staged",
+    "judge_documents",
     "truncate_result_text",
 ]

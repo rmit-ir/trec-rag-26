@@ -138,6 +138,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
               run_desc: str | None = None,
               pre_final_hook: Any = coverage_gate,
               judge_tool: dict[str, Any] | None = JUDGE_RELEVANCE_TOOL,
+              search_result_filter: Any = None,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end through the shared harness, facets_agent-configured.
 
@@ -145,6 +146,12 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
     §7.1): before accepting a final report, sends the model back once if its
     own requirement ledger still lists an entry `open`. Pass ``None`` to
     disable (e.g. in tests exercising the bare harness behavior).
+
+    ``search_result_filter`` defaults to ``None`` (no filtering — unlike
+    ``pre_final_hook``/``judge_tool``, this one is NOT on by default).
+    PLAN.md Phase 4c's ``filtering.minimize_filter``/``rank_filter`` are
+    the two experimental configurations under A/B test; pass one
+    explicitly (e.g. via ``run.py --search-result-filter``) to use it.
 
     ``judge_tool`` defaults to the global ``judge_relevance`` tool (PLAN.md
     Phase 4b, §7.4): the model may call it, at its own judgment, when a
@@ -165,4 +172,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
         default_k_by_engine={"hybrid": hybrid_k},
         commit_context_tool=COMMIT_CONTEXT_TOOL,
         search_tool_def=build_search_tool_def(engines),
-        pre_final_hook=pre_final_hook, judge_tool=judge_tool, **kwargs)
+        pre_final_hook=pre_final_hook, judge_tool=judge_tool,
+        search_result_filter=search_result_filter, **kwargs)

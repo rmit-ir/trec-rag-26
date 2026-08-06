@@ -159,32 +159,28 @@ def _documents_by_id(ledger: ContextLedger) -> dict[str, dict[str, Any]]:
     return out
 
 
-def execute_judge_relevance(
-        arguments: dict[str, Any], ledger: ContextLedger, *,
+def judge_documents(
+        requirement: str, documents: list[dict[str, Any]], *,
         backend: str = DEFAULT_JUDGE_BACKEND,
-        model: str = DEFAULT_JUDGE_MODEL) -> str:
-    """Run one judge turn on a fresh, separate model conversation.
+        model: str = DEFAULT_JUDGE_MODEL) -> dict[str, Any]:
+    """Run one judge turn on a fresh, separate model conversation against
+    ALREADY-RESOLVED document dicts (each needs at least ``id`` and
+    ``text``) -- the reusable core both ``execute_judge_relevance`` (which
+    resolves ids against a ``ContextLedger`` first) and facets_agent's
+    ``search_result_filter`` configurations (``filtering.py``, PLAN.md
+    Phase 4c) call, so the prompt and parsing logic exist exactly once.
 
-    Returns the tool-result content (a JSON string) -- never raises. A
-    judge failure (bad model id, network error, unparsable response)
-    degrades to an error envelope the calling model can read and move past,
-    the same "a tool call cannot fail the run" principle every other
-    handler here follows.
+    Returns the parsed judge response as a dict -- never raises. A judge
+    failure (bad model id, network error, unparsable response) degrades to
+    ``{"error": ...}``, the same "a tool call/pass cannot fail the run"
+    principle every other handler here follows; callers check for
+    ``"error"`` in the result rather than catching exceptions.
     """
-    requirement = str(arguments.get("requirement", "")).strip()
-    document_ids = [str(d) for d in (arguments.get("document_ids") or [])]
-    by_id = _documents_by_id(ledger)
-    found = [by_id[docid] for docid in document_ids if docid in by_id]
-    missing = [docid for docid in document_ids if docid not in by_id]
-    if not requirement or not found:
-        return json.dumps({
-            "error": "no requirement given, or none of document_ids match "
-                     "a document staged or committed earlier in this run",
-            "missing": missing,
-        })
-
+    requirement = requirement.strip()
+    if not requirement or not documents:
+        return {"error": "no requirement given, or no documents to judge"}
     documents_block = "\n\n".join(
-        f"[{doc['id']}]\n{doc.get('text', '')}" for doc in found)
+        f"[{doc['id']}]\n{doc.get('text', '')}" for doc in documents)
     user = _USER_TMPL.format(
         requirement=requirement, documents=documents_block)
     try:
@@ -201,9 +197,32 @@ def execute_judge_relevance(
             text = text.strip("`").removeprefix("json").strip()
         obj = json.loads(text)
     except Exception as exc:  # noqa: BLE001
-        return json.dumps({
-            "error": f"judge call failed: {type(exc).__name__}: {exc}"})
+        return {"error": f"judge call failed: {type(exc).__name__}: {exc}"}
     if not isinstance(obj, dict):
-        return json.dumps({"error": "judge returned non-object JSON"})
+        return {"error": "judge returned non-object JSON"}
+    return obj
+
+
+def execute_judge_relevance(
+        arguments: dict[str, Any], ledger: ContextLedger, *,
+        backend: str = DEFAULT_JUDGE_BACKEND,
+        model: str = DEFAULT_JUDGE_MODEL) -> str:
+    """Run one judge turn on documents resolved from the ledger.
+
+    Returns the tool-result content (a JSON string) -- never raises, same
+    "cannot fail the run" principle as ``judge_documents``.
+    """
+    requirement = str(arguments.get("requirement", "")).strip()
+    document_ids = [str(d) for d in (arguments.get("document_ids") or [])]
+    by_id = _documents_by_id(ledger)
+    found = [by_id[docid] for docid in document_ids if docid in by_id]
+    missing = [docid for docid in document_ids if docid not in by_id]
+    if not requirement or not found:
+        return json.dumps({
+            "error": "no requirement given, or none of document_ids match "
+                     "a document staged or committed earlier in this run",
+            "missing": missing,
+        })
+    obj = judge_documents(requirement, found, backend=backend, model=model)
     obj.setdefault("missing", missing)
     return json.dumps(obj, ensure_ascii=False)

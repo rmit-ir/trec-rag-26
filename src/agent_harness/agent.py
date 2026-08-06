@@ -31,6 +31,7 @@ import json
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
+from dataclasses import dataclass
 from datetime import datetime
 from time import perf_counter
 from typing import Any, Callable
@@ -114,6 +115,72 @@ def make_provider(backend: str, model: str | None,
         return OpenAIProvider(model)
     raise ValueError(
         f"unknown backend: {backend!r} (available: bedrock, openai)")
+
+
+@dataclass
+class SearchResultPass:
+    """One caller-supplied reduction/reordering of a search call's results,
+    returned by ``search_result_filter`` (PLAN.md Phase 4c, in
+    ``src/systems/facets_agent/PLAN.md``). ``documents`` should be a
+    (possibly reordered, possibly reduced) selection of the ORIGINAL
+    documents the filter was given, each optionally carrying a
+    ``judge_verdict`` annotation -- the harness only trusts an entry's
+    ``id`` and that one field; everything else (text, metadata) is always
+    re-read from the true original, so a filter cannot fabricate,
+    duplicate, or mutate content into a run (see
+    ``_apply_search_result_filter``)."""
+    documents: list[dict[str, Any]]
+    note: str | None = None
+
+
+def _apply_search_result_filter(
+        search_result_filter: (
+            Callable[[str, list[dict[str, Any]]], SearchResultPass] | None),
+        requirement: str, out: str, documents: list[dict[str, Any]],
+        ) -> tuple[str, list[dict[str, Any]]]:
+    """Run ``search_result_filter`` (if given) and rebuild BOTH the
+    tool-result text (``out``, what the model reads) and the staged
+    ``documents`` list (what the ledger tracks) so they never desync --
+    the one place both are rewritten together. Fails open (returns the
+    untouched originals) on any exception, so a broken filter can never
+    starve a facet of evidence."""
+    if search_result_filter is None or not documents:
+        return out, documents
+    try:
+        original_by_id = {str(d["id"]): d for d in documents}
+        pass_ = search_result_filter(requirement, documents)
+        validated: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for doc in pass_.documents:
+            uid = str(doc.get("id", ""))
+            if uid in original_by_id and uid not in seen:
+                seen.add(uid)
+                merged = dict(original_by_id[uid])
+                if "judge_verdict" in doc:
+                    merged["judge_verdict"] = doc["judge_verdict"]
+                validated.append(merged)
+        data = json.loads(out)
+        results_by_id = {
+            str(r.get("id", r.get("docid"))): r
+            for r in data.get("results", [])}
+        new_results = []
+        for doc in validated:
+            base = results_by_id.get(str(doc["id"]))
+            if base is None:
+                continue
+            result = dict(base)
+            if "judge_verdict" in doc:
+                result["judge_verdict"] = doc["judge_verdict"]
+            new_results.append(result)
+        data["results"] = new_results
+        dropped = len(documents) - len(validated)
+        if dropped:
+            data["filtered_count"] = dropped
+        if pass_.note:
+            data["filter_note"] = pass_.note
+        return json.dumps(data, ensure_ascii=False), validated
+    except Exception:
+        return out, documents
 
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
@@ -537,6 +604,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               pre_final_hook: (
                   Callable[[dict[str, Any]], str | None] | None) = None,
               judge_tool: dict[str, Any] | None = None,
+              search_result_filter: (
+                  Callable[[str, list[dict[str, Any]]], SearchResultPass]
+                  | None) = None,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -598,6 +668,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     no automatic trigger. ``None`` (the default) means neither the tool
     definition nor its dispatch branch does anything different from before
     this parameter existed.
+    ``search_result_filter`` — when given — is called after EVERY
+    successful ``search`` result, before it is staged, with the call's
+    ``requirement`` argument (``""`` if the caller's schema has none) and
+    the returned documents; see ``SearchResultPass``'s own docstring for
+    the return contract and the validation that keeps a filter from
+    injecting content it didn't actually receive. Unlike ``judge_tool``,
+    this is not something the model opts into per call — it runs on every
+    search a caller enables it for. ``None`` (the default) means no
+    filtering, byte-identical to before this parameter existed.
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -1262,6 +1341,16 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms
                 ) in zip(retrieval_calls, executed):
+                    if not failed:
+                        # Filter/reorder BEFORE the budget-status footer is
+                        # appended below -- that footer is plain text after
+                        # the JSON payload, so applying the filter after
+                        # would break `_apply_search_result_filter`'s own
+                        # `json.loads(out)`.
+                        out, documents = _apply_search_result_filter(
+                            search_result_filter,
+                            str(call["arguments"].get("requirement", "")),
+                            out, documents)
                     out, feedback_stats = action_feedback(out, duration_ms)
                     context = {
                         "staged": [

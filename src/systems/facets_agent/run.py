@@ -145,6 +145,13 @@ def main() -> None:
         help="skip topics this --run-id has already answered successfully, so "
              "an interrupted batch resumes instead of starting over (a failed "
              "run does not count as answered)")
+    ap.add_argument(
+        "--search-result-filter", choices=["none", "minimize", "rank"],
+        default=env("RUN_FACETS_AGENT_SEARCH_RESULT_FILTER", "none"),
+        help="PLAN.md Phase 4c A/B: 'minimize' keeps only judge-relevant "
+             "results, 'rank' reorders/annotates but drops nothing. "
+             "Default 'none' (no filtering, matches facets_agent's actual "
+             "default -- neither config has shipped as the default yet).")
     args = ap.parse_args()
     engines = [e.strip() for e in str(args.engines).split(",") if e.strip()]
 
@@ -169,6 +176,13 @@ def main() -> None:
             print("nothing to do", flush=True)
             return
 
+    search_result_filter = None
+    if args.search_result_filter != "none":
+        from facets_agent.filtering import minimize_filter, rank_filter
+        search_result_filter = {
+            "minimize": minimize_filter, "rank": rank_filter,
+        }[args.search_result_filter]
+
     failures = 0
     for qid, query in jobs:
         print(f"=== {qid}: {query[:80]}...", flush=True)
@@ -181,7 +195,8 @@ def main() -> None:
                                 max_committed_per_step=(
                                     args.max_committed_per_step),
                                 run_id=args.run_id,
-                                engines=engines)
+                                engines=engines,
+                                search_result_filter=search_result_filter)
         except Exception:  # keep --all going
             failures += 1
             logging.exception("run for %s failed", qid)
