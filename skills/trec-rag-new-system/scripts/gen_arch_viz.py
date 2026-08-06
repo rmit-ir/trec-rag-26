@@ -12,6 +12,12 @@ Two zoom levels in one page:
                 ali_deepresearch.answer_format, agent_harness.agent's
                 run_agent loop + make_provider) and the output artifacts.
                 Edges are colored + legended by type.
+                A system's edges are expanded one hop through any shared
+                layer's OWN imports of another shared layer (see
+                ``_shared_internal_edges``), so a system that only imports
+                ``agent_harness`` still draws a direct ``search_tool`` edge --
+                ``agent_harness.tools.search`` wraps it, and stopping at the
+                first hop would draw it as never touching retrieval at all.
   - DRILL-IN  — click a system card to see its per-stage pipeline.
 
 Stage flows come from a hand-authored ``STAGE_REGISTRY`` below, OVERRIDDEN per
@@ -504,9 +510,30 @@ def _normalize_stage(stg: dict[str, Any], prompts: dict[str, str]) -> dict[str, 
     return out
 
 
+def _shared_internal_edges() -> dict[str, list[dict[str, str]]]:
+    """Shared layers can themselves depend on other shared layers (e.g.
+    ``agent_harness.tools.search`` wraps ``tools.search_tool``). Computed the
+    same way as a system's own edges, scoped to shared-node targets only, so
+    a consumer's edge list can be expanded to the real transitive dependency
+    instead of stopping at the first shared hop (see ``build_model``).
+    """
+    shared_ids = {s["id"] for s in SHARED}
+    internal: dict[str, list[dict[str, str]]] = {}
+    for sid in shared_ids:
+        pkg_dir = SRC / sid
+        if not pkg_dir.is_dir():
+            continue
+        scan = [p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts]
+        edges = [e for e in _edges_for_system(sid, scan) if e["to"] in shared_ids]
+        if edges:
+            internal[sid] = edges
+    return internal
+
+
 def build_model() -> dict[str, Any]:
     systems: list[dict[str, Any]] = []
     prompts: dict[str, str] = {}
+    shared_internal = _shared_internal_edges()
     for pkg in sorted(p for p in SYSTEMS_DIR.iterdir() if p.is_dir()):
         name = pkg.name
         if name == "__pycache__":
@@ -519,13 +546,30 @@ def build_model() -> dict[str, Any]:
         # scan the whole package tree (subpackages like tools/, providers/ hold
         # the retrieval/provider imports), skipping caches.
         scan = [p for p in pkg.rglob("*.py") if "__pycache__" not in p.parts]
+        edges = _edges_for_system(name, scan)
+        # Expand one hop through shared-to-shared deps (e.g. a system that only
+        # reaches agent_harness also really reaches search_tool through it) --
+        # a fixpoint loop rather than one pass, so a future multi-hop shared
+        # chain still resolves fully instead of silently stopping short.
+        seen = {(e["to"], e["type"]) for e in edges}
+        frontier = list(edges)
+        while frontier:
+            next_frontier = []
+            for e in frontier:
+                for extra in shared_internal.get(e["to"], []):
+                    key = (extra["to"], extra["type"])
+                    if key not in seen:
+                        seen.add(key)
+                        edges.append(extra)
+                        next_frontier.append(extra)
+            frontier = next_frontier
         systems.append({
             "name": name,
             "kind": SYSTEM_KIND.get(name, "pipeline"),
             "modules": modules,
             "blurb": SYSTEM_BLURB.get(name, ""),
             "stages": stages,
-            "edges": _edges_for_system(name, scan),
+            "edges": edges,
         })
     return {
         "generated_from": "src/systems + shared layers (ragrun, tools, utils)",
