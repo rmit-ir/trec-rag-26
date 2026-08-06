@@ -237,6 +237,7 @@ def main() -> None:
                                     args.max_committed_per_step),
                                 run_id=args.run_id,
                                 engines=engines,
+                                pre_final_hook=pre_final_hook,
                                 search_result_filter=search_result_filter,
                                 search_preview_chars=(
                                     args.two_tier_preview_chars
