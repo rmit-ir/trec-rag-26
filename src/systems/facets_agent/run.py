@@ -165,6 +165,15 @@ def main() -> None:
              "(default: 500, matching piika's own pyserini_rest adapter "
              "default; unlike piika's, whitespace-collapsed and never cut "
              "mid-word -- see agent_harness.agent._truncate_snippet)")
+    ap.add_argument(
+        "--two-tier-preview-mode", choices=["truncate", "llm"],
+        default=env("RUN_FACETS_AGENT_TWO_TIER_PREVIEW_MODE", "truncate"),
+        help="'truncate' (default): positional, whitespace-collapsed, "
+             "word-boundary-aware slice of the document's own opening "
+             "text. 'llm': one cheap secondary-model call per search "
+             "batch (tools.generate_snippets) extracts the QUERY-relevant "
+             "span per document instead -- --two-tier-preview-chars is "
+             "still the hard length cap either way.")
     args = ap.parse_args()
     engines = [e.strip() for e in str(args.engines).split(",") if e.strip()]
 
@@ -196,6 +205,11 @@ def main() -> None:
             "minimize": minimize_filter, "rank": rank_filter,
         }[args.search_result_filter]
 
+    search_preview_generator = None
+    if args.two_tier_search and args.two_tier_preview_mode == "llm":
+        from agent_harness.tools import generate_snippets
+        search_preview_generator = generate_snippets
+
     failures = 0
     for qid, query in jobs:
         print(f"=== {qid}: {query[:80]}...", flush=True)
@@ -213,6 +227,8 @@ def main() -> None:
                                 search_preview_chars=(
                                     args.two_tier_preview_chars
                                     if args.two_tier_search else None),
+                                search_preview_generator=(
+                                    search_preview_generator),
                                 stage_search_results=(
                                     not args.two_tier_search))
         except Exception:  # keep --all going

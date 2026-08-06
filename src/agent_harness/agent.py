@@ -203,31 +203,66 @@ def _truncate_snippet(text: str, max_chars: int) -> tuple[str, bool]:
 
 def _apply_search_preview(
         out: str, documents: list[dict[str, Any]],
-        preview_chars: int | None) -> tuple[str, list[dict[str, Any]]]:
-    """Truncate every result's ``text`` to ``preview_chars`` (PLAN.md Phase
-    4d, piika-inspired two-tier retrieval, in
+        preview_chars: int | None, *, requirement: str = "",
+        preview_generator: (
+            Callable[[str, list[dict[str, Any]]], dict[str, str]]
+            | None) = None) -> tuple[str, list[dict[str, Any]]]:
+    """Shrink every result's ``text`` to a preview (PLAN.md Phase 4d,
+    piika-inspired two-tier retrieval, in
     ``src/systems/facets_agent/PLAN.md``): a short, cheap preview shown at
     search time, with ``get_documents`` (already unpaginated full-text,
     already staged) as the deliberate, explicit action for reading
-    something in full. ``None`` is a no-op (today's exact behavior). Fails
-    open (returns the untouched originals) on any exception, same
-    discipline as ``_apply_search_result_filter``."""
-    if preview_chars is None:
+    something in full. ``None`` for both ``preview_chars`` and
+    ``preview_generator`` is a no-op (today's exact behavior).
+
+    ``preview_generator`` (PLAN.md Phase 4d follow-on) — when given — is
+    called ONCE per search batch with ``(requirement, documents)`` and
+    should return ``{id: snippet}`` (e.g.
+    ``tools.generate_snippets``, an LLM-generated query-relevant span
+    instead of the document's own opening text). Any id it doesn't cover
+    (a partial/failed generation) falls back to positional truncation
+    (``_truncate_snippet``) so a preview is never simply missing. Every
+    generated snippet is ALSO hard-capped to ``preview_chars`` here — never
+    trusts the generator's own length discipline. Fails open (returns the
+    untouched originals) on any exception, same discipline as
+    ``_apply_search_result_filter``."""
+    if preview_chars is None and preview_generator is None:
         return out, documents
     try:
+        generated: dict[str, str] = {}
+        if preview_generator is not None:
+            try:
+                generated = preview_generator(requirement, documents) or {}
+            except Exception:  # noqa: BLE001
+                generated = {}
+
+        def preview_for(uid: str, text: str) -> tuple[str, bool]:
+            snippet = generated.get(uid)
+            if snippet:
+                if preview_chars is not None and len(snippet) > preview_chars:
+                    return _truncate_snippet(snippet, preview_chars)
+                return snippet, True
+            if preview_chars is None:
+                return text, False
+            return _truncate_snippet(text, preview_chars)
+
         data = json.loads(out)
         for result in data.get("results", []):
             text = result.get("text")
+            uid = str(result.get("id", ""))
             if isinstance(text, str):
-                snippet, truncated = _truncate_snippet(text, preview_chars)
+                snippet, truncated = preview_for(uid, text)
                 result["text"] = snippet
                 if truncated:
                     result["preview_truncated"] = True
+                    if uid in generated:
+                        result["preview_generated"] = True
         new_documents = []
         for d in documents:
             text = d.get("text")
+            uid = str(d.get("id", ""))
             if isinstance(text, str):
-                snippet, _truncated = _truncate_snippet(text, preview_chars)
+                snippet, _truncated = preview_for(uid, text)
                 d = {**d, "text": snippet}
             new_documents.append(d)
         return json.dumps(data, ensure_ascii=False), new_documents
@@ -660,6 +695,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                   Callable[[str, list[dict[str, Any]]], SearchResultPass]
                   | None) = None,
               search_preview_chars: int | None = None,
+              search_preview_generator: (
+                  Callable[[str, list[dict[str, Any]]], dict[str, str]]
+                  | None) = None,
               stage_search_results: bool = True,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
@@ -731,16 +769,22 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     this is not something the model opts into per call — it runs on every
     search a caller enables it for. ``None`` (the default) means no
     filtering, byte-identical to before this parameter existed.
-    ``search_preview_chars``/``stage_search_results`` (PLAN.md Phase 4d,
-    piika-inspired two-tier retrieval) — together, the "browse cheap, read
-    deliberately" split: when ``search_preview_chars`` is set, every
-    ``search`` result's text is truncated to that many characters
-    (regardless of the model's own ``budget_tokens_per_result``); when
-    ``stage_search_results`` is ``False``, search results never enter the
-    ledger at all (``get_documents`` is unaffected either way — it already
-    stages full, unpaginated text, and is the deliberate "read this in
-    full" action these two params are designed to work alongside). Both
-    default to today's exact behavior (no truncation, search results
+    ``search_preview_chars``/``search_preview_generator``/
+    ``stage_search_results`` (PLAN.md Phase 4d, piika-inspired two-tier
+    retrieval) — together, the "browse cheap, read deliberately" split:
+    when ``search_preview_chars`` is set, every ``search`` result's text
+    is truncated to that many characters (regardless of the model's own
+    ``budget_tokens_per_result``); when ``search_preview_generator`` is
+    ALSO given (a callable, e.g. ``tools.generate_snippets`` — a cheap
+    secondary-model call that extracts the QUERY-relevant span instead of
+    the document's own opening text), it runs once per search batch and
+    ``search_preview_chars`` becomes its hard safety cap rather than a
+    positional-truncation length; when ``stage_search_results`` is
+    ``False``, search results never enter the ledger at all
+    (``get_documents`` is unaffected either way — it already stages full,
+    unpaginated text, and is the deliberate "read this in full" action
+    these params are designed to work alongside). All three default to
+    today's exact behavior (no truncation, no generation, search results
     staged normally).
     """
     if context_token_budget <= 0:
@@ -1411,12 +1455,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         # footer is appended below -- that footer is plain
                         # text after the JSON payload, so applying either
                         # pass after would break their own `json.loads(out)`.
+                        requirement = str(
+                            call["arguments"].get("requirement", ""))
                         out, documents = _apply_search_result_filter(
-                            search_result_filter,
-                            str(call["arguments"].get("requirement", "")),
-                            out, documents)
+                            search_result_filter, requirement, out, documents)
                         out, documents = _apply_search_preview(
-                            out, documents, search_preview_chars)
+                            out, documents, search_preview_chars,
+                            requirement=requirement,
+                            preview_generator=search_preview_generator)
                     out, feedback_stats = action_feedback(out, duration_ms)
                     context = {
                         "staged": (

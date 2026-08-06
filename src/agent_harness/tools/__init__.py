@@ -26,6 +26,12 @@ from .search import (
     execute_full_text_search,
     truncate_result_text,
 )
+from .snippet import (
+    DEFAULT_SNIPPET_BACKEND,
+    DEFAULT_SNIPPET_MAX_CHARS,
+    DEFAULT_SNIPPET_MODEL,
+    generate_snippets,
+)
 
 __all__ = [
     "COMMIT_CONTEXT_TOOL",
@@ -33,6 +39,9 @@ __all__ = [
     "DEFAULT_BUDGET_TOKENS_PER_RESULT",
     "DEFAULT_JUDGE_BACKEND",
     "DEFAULT_JUDGE_MODEL",
+    "DEFAULT_SNIPPET_BACKEND",
+    "DEFAULT_SNIPPET_MAX_CHARS",
+    "DEFAULT_SNIPPET_MODEL",
     "GET_DOCUMENTS_TOOL",
     "JUDGE_RELEVANCE_TOOL",
     "SEARCH_TOOL_DEF",
@@ -44,6 +53,7 @@ __all__ = [
     "execute_get_documents",
     "execute_judge_relevance",
     "expire_staged",
+    "generate_snippets",
     "judge_documents",
     "truncate_result_text",
 ]
