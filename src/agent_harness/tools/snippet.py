@@ -23,21 +23,30 @@ DEFAULT_SNIPPET_MODEL = "openai.gpt-oss-120b-1:0"
 DEFAULT_SNIPPET_MAX_CHARS = 500
 
 _SYSTEM_PROMPT = (
-    "You extract short, query-relevant previews from documents. Given a "
-    "QUERY and a set of DOCUMENTS, write ONE snippet per document: the "
-    "span of that document's own text most relevant to the query -- "
-    "prefer the sentence(s) that actually bear on the query over the "
-    "document's opening lines, even if that means quoting from the "
-    "middle or end. Quote or closely paraphrase the document; never add "
+    "You extract short, query-relevant previews from documents. Given the "
+    "ORIGINAL REQUEST, the SPECIFIC REQUIREMENT the current search is "
+    "trying to satisfy, and a set of DOCUMENTS, write ONE snippet per "
+    "document: the span of that document's own text most relevant to the "
+    "request and requirement -- prefer the sentence(s) that actually bear "
+    "on what's being asked over the document's opening lines, even if "
+    "that means quoting from the middle or end. Weigh the SPECIFIC "
+    "REQUIREMENT most heavily (that is what this exact search was for),"
+    " but keep the ORIGINAL REQUEST's overall intent in view -- a "
+    "requirement is one facet of a larger request, and a snippet that "
+    "only makes sense narrowly can still mislead about the bigger "
+    "picture. Quote or closely paraphrase the document; never add "
     "information the document does not contain. If nothing in a document "
-    "is relevant to the query, the snippet may instead be a short, "
-    "truthful description of what the document IS about. Each snippet "
-    "must be under the given character limit. Return STRICT JSON only, "
-    "no other text: "
+    "is relevant, the snippet may instead be a short, truthful "
+    "description of what the document IS about. Each snippet must be "
+    "under the given character limit. Return STRICT JSON only, no other "
+    "text: "
     '{"snippets": [{"id": "<id>", "snippet": "<text>"}, ...]}'
 )
-_USER_TMPL = """QUERY:
+_USER_TMPL = """ORIGINAL REQUEST:
 {query}
+
+SPECIFIC REQUIREMENT THIS SEARCH IS FOR:
+{requirement}
 
 CHARACTER LIMIT PER SNIPPET: {max_chars}
 
@@ -47,17 +56,21 @@ DOCUMENTS:
 
 
 def generate_snippets(
-        query: str, documents: list[dict[str, Any]], *,
+        query: str, requirement: str, documents: list[dict[str, Any]], *,
         backend: str = DEFAULT_SNIPPET_BACKEND,
         model: str = DEFAULT_SNIPPET_MODEL,
         max_chars: int = DEFAULT_SNIPPET_MAX_CHARS) -> dict[str, str]:
-    """One LLM call for the whole batch. Returns ``{id: snippet}`` --
-    never raises, and never includes an id whose snippet the model didn't
-    return or that fails to parse, so a caller falls back to positional
-    truncation (``agent.py::_truncate_snippet``) per-document on any gap
-    rather than showing nothing. Every returned snippet is hard-capped to
-    ``max_chars`` server-side -- the prompt asks the model to respect the
-    limit, but this never trusts it to.
+    """One LLM call for the whole batch. ``query`` is the FULL original
+    research request (not just the current search's narrower
+    ``requirement``) -- passed explicitly per user request, so a snippet
+    stays relevant to the overall task even when a facet's own wording is
+    narrow. Returns ``{id: snippet}`` -- never raises, and never includes
+    an id whose snippet the model didn't return or that fails to parse, so
+    a caller falls back to positional truncation
+    (``agent.py::_truncate_snippet``) per-document on any gap rather than
+    showing nothing. Every returned snippet is hard-capped to ``max_chars``
+    server-side -- the prompt asks the model to respect the limit, but
+    this never trusts it to.
     """
     query = query.strip()
     if not query or not documents:
@@ -65,7 +78,8 @@ def generate_snippets(
     documents_block = "\n\n".join(
         f"[{doc['id']}]\n{doc.get('text', '')}" for doc in documents)
     user = _USER_TMPL.format(
-        query=query, max_chars=max_chars, documents=documents_block)
+        query=query, requirement=requirement.strip() or "(not specified)",
+        max_chars=max_chars, documents=documents_block)
     try:
         # Lazy import: `agent_harness.agent` imports THIS package at module
         # load time, so importing `make_provider` from there at this

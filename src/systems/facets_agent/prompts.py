@@ -225,5 +225,15 @@ the FULL text; that is what gets staged and is what `commit_context` then \
 keeps or drops. Never cite or commit from a preview alone — a preview may \
 cut off mid-sentence, and only the full text `get_documents` returns can \
 back a claim. Treat `search` as free, wide browsing and `get_documents` as \
-the deliberate, costed action of actually reading something.\
+the deliberate, costed action of actually reading something.
+
+Before writing each cited sentence in your final report, re-read the \
+committed `get_documents` text behind the id you are about to cite and \
+confirm it states the SPECIFIC fact, number, name, or mechanism that \
+sentence asserts — not merely that the document covers the right topic. \
+A preview convinced you a document was worth fetching; only the full text \
+may convince you it supports the exact claim. If the full text turns out \
+to support the general area but not the specific thing you wrote, narrow \
+the sentence to what it actually says, or drop the citation and find the \
+document that does.\
 """

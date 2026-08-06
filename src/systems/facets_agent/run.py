@@ -205,14 +205,22 @@ def main() -> None:
             "minimize": minimize_filter, "rank": rank_filter,
         }[args.search_result_filter]
 
-    search_preview_generator = None
-    if args.two_tier_search and args.two_tier_preview_mode == "llm":
+    use_llm_preview = args.two_tier_search and args.two_tier_preview_mode == "llm"
+    if use_llm_preview:
+        import functools
         from agent_harness.tools import generate_snippets
-        search_preview_generator = generate_snippets
 
     failures = 0
     for qid, query in jobs:
         print(f"=== {qid}: {query[:80]}...", flush=True)
+        # Bound to THIS topic's full original question every iteration --
+        # generate_snippets(query, requirement, documents) needs it ahead
+        # of `requirement`, which the harness itself supplies per search
+        # call; `functools.partial` pre-binds the query positionally so
+        # the harness's existing (requirement, documents) call still works.
+        search_preview_generator = (
+            functools.partial(generate_snippets, query)
+            if use_llm_preview else None)
         try:
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
