@@ -68,6 +68,13 @@ that bypasses prose cleanup and must compile before acceptance. Every selected
 finish-the-claim literal is boundary-matched in the declared claim/scope, the
 staged source, and the final cited prose.
 
+If only the contract support annotation is invalid, the full staged evidence
+is not destroyed immediately. The harness returns the exact validation errors
+and permits two correction turns using the same batch; a valid correction
+compacts it exactly once, while a third invalid attempt or insufficient
+submit-answer headroom expires it. Searches and submission are refused on a
+correction turn, and unexpected implementation/provider errors remain fatal.
+
 The system reuses `aus_agent.context`, `aus_agent.providers`, and
 `aus_agent.tools`. Planning, evidence-card construction, patch validation,
 orchestration, output namespace, and tests are owned here.

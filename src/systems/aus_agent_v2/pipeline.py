@@ -61,7 +61,7 @@ ARCH_STAGES = [
     },
     {
         "id": "commit", "label": "COMMIT EVIDENCE", "kind": "no-llm",
-        "note": "selected units persist with obligation-bound claim anchors",
+        "note": "claim anchors get bounded correction before evidence expiry",
         "code": [
             "systems/aus_agent/tools/commit_context.py::apply_commit",
             "systems/aus_agent_v2/coverage_contract.py::normalize_commit_supports",

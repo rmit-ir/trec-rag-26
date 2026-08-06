@@ -1,9 +1,11 @@
 """aus_agent_v2 — coverage-planned, evidence-patched RAG for TREC RAG 2026.
 
-Loop: model turns with full-text ``search`` retrieval. Tool outputs are staged
-for exactly one model step, after
-which the model must call ``commit_context``: selected documents stay verbatim
-in the conversation and rejected documents are compacted to decision markers.
+Loop: model turns with full-text ``search`` retrieval. Tool outputs are normally
+staged for one model step, after which the model must call ``commit_context``:
+selected documents stay verbatim in the conversation and rejected documents
+are compacted to decision markers. The executable-contract candidate may keep
+the same batch through two bounded correction turns when only its support
+annotation is invalid; no compaction occurs until correction or expiry.
 The current provider input-context size, rather than a normal tool/round limit,
 determines when research stops. A high round count remains only as a runaway-
 loop safety backstop.
@@ -138,6 +140,15 @@ DEFAULT_SAFETY_MAX_ROUNDS = 100
 FINISHING_ROUNDS_GRACE = 10
 DEFAULT_MAX_COMMITTED_PER_STEP = 10
 MAX_COVERAGE_REPAIR_SEARCH_BATCHES = 1
+# A stricter commit schema is useful only if a typo does not destroy the
+# evidence it is trying to annotate. Keep the full staged result through two
+# corrective commit turns; the third invalid attempt expires it so malformed
+# tool loops remain bounded.
+MAX_COVERAGE_COMMIT_CORRECTIONS = 2
+
+
+class _CoverageSupportValidationError(ValueError):
+    """A model-authored support annotation can be corrected in-place."""
 
 # A structural step, not a prompt rule: the ONE time the agent first tries to
 # write its report, the harness interrupts and requires a coverage audit.
@@ -781,6 +792,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     coverage_submission_attempts = 0
     coverage_submission_errors: list[str] = []
     coverage_submission_stats: dict[str, Any] = {}
+    coverage_commit_corrections = 0
+    coverage_commit_expirations = 0
+    coverage_commit_batch_failures = 0
+    coverage_commit_validation_errors: list[str] = []
     committed_documents: dict[str, dict[str, Any]] = {}
     archived_raw_messages: list[Any] = []
     auxiliary_raw_messages: list[Any] = []
@@ -968,6 +983,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         trajectory.trace["summary"]["coverage_contract"] = {
             "enabled": coverage_contract,
             "answer_form": answer_form_policy.trace(),
+            "commit_corrections": coverage_commit_corrections,
+            "commit_expirations": coverage_commit_expirations,
+            "commit_validation_errors": list(
+                coverage_commit_validation_errors),
             "submission_attempts": coverage_submission_attempts,
             "submission_errors": list(coverage_submission_errors),
             "submission": dict(coverage_submission_stats),
@@ -1209,6 +1228,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         (duplicate, over the per-step cap, simply unselected); here they never
         do.
         """
+        nonlocal coverage_commit_batch_failures
         ct0 = now_iso()
         started = perf_counter()
         decision = expire_staged(
@@ -1216,6 +1236,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             max_documents=max_committed_per_step,
             reason=docid_reason,
         )
+        coverage_commit_batch_failures = 0
         provider.compact_tool_results(decision.replacements)
         payload = json.dumps({
             "automatic": True,
@@ -1851,9 +1872,13 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                      last_turn[3] / 1000, f"{context_tokens:,}", len(calls))
             commit_calls = [
                 call for call in calls if call["name"] == "commit_context"]
+            correcting_contract_commit = (
+                coverage_contract and coverage_commit_batch_failures > 0)
 
-            # A staged batch exists for exactly this turn, and exactly one
-            # commit_context resolves it. Position does not matter: commit_calls
+            # A staged batch normally exists for exactly this turn, and exactly
+            # one commit_context resolves it. The contract-only correction state
+            # is the narrow exception: the same batch remains open after a
+            # support-annotation error. Position does not matter: commit_calls
             # are applied below before retrieval_calls regardless of the order
             # the model listed them in, so demanding "first" only rejected turns
             # the harness would have handled correctly anyway.
@@ -2244,6 +2269,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 pending_before = list(ledger.pending)
                 committed_before = set(ledger.committed_ids)
                 rejected_before = set(ledger.rejected_ids)
+                retry_preserved = False
                 try:
                     contract_supports = {}
                     if coverage_contract:
@@ -2260,7 +2286,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             ],
                         ))
                         if support_errors:
-                            raise ValueError("; ".join(support_errors))
+                            raise _CoverageSupportValidationError(
+                                "; ".join(support_errors))
                     handled = apply_commit(
                         ledger,
                         call["arguments"],
@@ -2269,35 +2296,74 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     )
                     decision = handled.decision
                 except Exception as e:
-                    # An invalid selection consumes its one decision turn. The
-                    # batch is compacted now rather than carried forward for a
-                    # retry.
                     ledger.pending = pending_before
                     ledger.committed_ids = committed_before
                     ledger.rejected_ids = rejected_before
-                    decision = expire_staged(
-                        ledger,
-                        max_documents=max_committed_per_step,
-                        reason=(
-                            "staged batch expired after invalid "
-                            f"commit_context: {type(e).__name__}: {e}"
-                        ),
-                    )
-                    provider.compact_tool_results(decision.replacements)
-                    commit_payload = {
-                        "error": f"{type(e).__name__}: {e}",
-                        "committed": [],
-                        "rejected": decision.rejected,
-                        "instruction": (
-                            "The staged batch was compacted and cannot be "
-                            "reselected; search again if the evidence is still "
-                            "needed."
-                        ),
-                    }
+                    if not isinstance(e, ValueError):
+                        # Provider/history failures and implementation defects
+                        # are not model-correctable. Continuing would hide the
+                        # defect, discard evidence, and leave the conversation
+                        # in an unproved state.
+                        raise
+                    recoverable = isinstance(
+                        e, _CoverageSupportValidationError)
+                    if recoverable:
+                        coverage_commit_batch_failures += 1
+                        coverage_commit_validation_errors.append(
+                            f"{type(e).__name__}: {e}")
+                    turns_remaining = hard_round_cap - rounds
+                    if (recoverable and coverage_commit_batch_failures
+                            <= MAX_COVERAGE_COMMIT_CORRECTIONS
+                            and turns_remaining >= 2):
+                        retry_preserved = True
+                        coverage_commit_corrections += 1
+                        remaining = min(
+                            MAX_COVERAGE_COMMIT_CORRECTIONS
+                            - coverage_commit_batch_failures,
+                            max(0, turns_remaining - 2),
+                        )
+                        commit_payload = {
+                            "error": f"{type(e).__name__}: {e}",
+                            "committed": [],
+                            "rejected": [],
+                            "staged": list(ledger.staged_ids),
+                            "instruction": (
+                                "The staged evidence remains available. On the "
+                                "next turn, issue exactly one corrected "
+                                "commit_context call and no other action. "
+                                f"{remaining} further correction attempt(s) "
+                                "remain after that turn."
+                            ),
+                        }
+                        context = _context_snapshot(ledger)
+                        documents = []
+                    else:
+                        if recoverable:
+                            coverage_commit_expirations += 1
+                        decision = expire_staged(
+                            ledger,
+                            max_documents=max_committed_per_step,
+                            reason=(
+                                "staged batch expired after invalid "
+                                f"commit_context: {type(e).__name__}: {e}"
+                            ),
+                        )
+                        coverage_commit_batch_failures = 0
+                        provider.compact_tool_results(decision.replacements)
+                        commit_payload = {
+                            "error": f"{type(e).__name__}: {e}",
+                            "committed": [],
+                            "rejected": decision.rejected,
+                            "instruction": (
+                                "The staged batch was compacted and cannot be "
+                                "reselected; search again if the evidence is "
+                                "still needed."
+                            ),
+                        }
+                        context = decision.context
+                        documents = []
                     out = json.dumps(commit_payload, ensure_ascii=False)
                     failed = True
-                    context = decision.context
-                    documents = []
                 else:
                     try:
                         provider.compact_tool_results(decision.replacements)
@@ -2309,6 +2375,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         ledger.committed_ids = committed_before
                         ledger.rejected_ids = rejected_before
                         raise
+                    coverage_commit_batch_failures = 0
                     out = json.dumps(handled.payload, ensure_ascii=False)
                     failed = False
                     context = decision.context
@@ -2359,23 +2426,37 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                 result_by_id[call["id"]] = {
                     "id": call["id"], "content": out, "is_error": failed}
                 if failed:
-                    log.warning("[%s] commit_context FAILED (batch expired)",
-                                query_id)
+                    log.warning(
+                        "[%s] commit_context FAILED (batch %s)",
+                        query_id,
+                        "preserved for correction"
+                        if retry_preserved else "expired",
+                    )
                 else:
                     log.info("[%s] commit_context: %d committed, %d rejected "
                              "(%d total)", query_id, len(documents),
                              len(decision.rejected),
                              len(ledger.committed_ids))
                 if failed:
-                    # The invalid batch has already expired; refuse remaining
-                    # same-turn actions so the next turn starts cleanly.
+                    # A correction owns the next turn while the full staged
+                    # result remains visible. Other same-turn actions would
+                    # either mix a second batch into it or try to answer before
+                    # the evidence decision is settled, so refuse them in both
+                    # the retry and expiry cases.
                     ts = now_iso()
                     for other in calls:
                         if other["id"] == call["id"]:
                             continue
                         blocked, blocked_stats = action_feedback(json.dumps({
-                            "error": "commit_context failed and the staged "
-                                     "batch expired; same-turn actions refused"
+                            "error": (
+                                "commit_context failed and the staged batch "
+                                + (
+                                    "remains open for a corrected commit; "
+                                    if retry_preserved else
+                                    "expired; "
+                                )
+                                + "same-turn actions refused"
+                            )
                         }), 0)
                         tb.add_tool_call(
                             other["name"], other["arguments"], blocked,
@@ -2393,6 +2474,40 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     next_model_input = {
                         "kind": "tool_results",
                         "tool_call_ids": [call["id"] for call in calls],
+                    }
+                    continue
+                if correcting_contract_commit and len(calls) > 1:
+                    # A successful corrected commit settles the retained batch,
+                    # but the correction turn has no second purpose. Refuse
+                    # parallel searches/submission so the model cannot smuggle
+                    # a new staged batch through a turn whose feedback required
+                    # exactly one corrected commit_context call.
+                    ts = now_iso()
+                    for other in calls:
+                        if other["id"] == call["id"]:
+                            continue
+                        blocked, blocked_stats = action_feedback(json.dumps({
+                            "error": (
+                                "action refused because a commit_context "
+                                "correction must be the only action in its turn"
+                            )
+                        }), 0)
+                        tb.add_tool_call(
+                            other["name"], other["arguments"], blocked,
+                            failed=True, t_start=ts, t_end=ts, turn=ti,
+                            stats=blocked_stats,
+                            context=_context_snapshot(ledger), documents=[],
+                            tool_call_id=other["id"],
+                        )
+                        result_by_id[other["id"]] = {
+                            "id": other["id"], "content": blocked,
+                            "is_error": True,
+                        }
+                    provider.add_tool_results(
+                        [result_by_id[item["id"]] for item in calls])
+                    next_model_input = {
+                        "kind": "tool_results",
+                        "tool_call_ids": [item["id"] for item in calls],
                     }
                     continue
 

@@ -377,6 +377,293 @@ def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
         result["provider"].tool_results[1][0]["content"])
 
 
+def test_contract_commit_annotation_can_be_corrected_without_research_loss(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """One malformed exact-term annotation must not discard useful full text."""
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    invalid_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "Traffic volumes fell by 12%.",
+                "must_include": ["12%"],
+            }],
+        }],
+    }
+    corrected_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "Traffic volumes fell from the pre-toll baseline.",
+                "must_include": ["traffic volumes", "pre-toll baseline"],
+            }],
+        }],
+    }
+    answer = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "The measured effect was that traffic volumes fell from the "
+                "pre-toll baseline."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": ["P01", "P02"],
+        }],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", invalid_commit, id="c1")]),
+        model_turn(tool_calls=[
+            tool_call("commit_context", corrected_commit, id="c2"),
+            tool_call(
+                "search",
+                {
+                    "query": "a correction turn must not start new research",
+                    "search_engine": "semantic",
+                    "k": 1,
+                    "for_requirements": ["P02"],
+                },
+                id="s2",
+            ),
+        ]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].turn_index == 5
+    assert D[0] in result["trace"]["summary"]["context"]["committed"]
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["commit_corrections"] == 1
+    assert contract_summary["commit_expirations"] == 0
+    assert len(contract_summary["commit_validation_errors"]) == 1
+    assert "does not contain exact must_include term(s): 12%" in (
+        contract_summary["commit_validation_errors"][0])
+    correction = result["provider"].tool_results[1][0]["content"]
+    assert "staged evidence remains available" in correction
+    assert D[0] in correction
+    assert result["calls"]["semantic"] == [{
+        "query": "congestion pricing measured traffic change", "k": 1}]
+    correction_results = {
+        item["id"]: item["content"]
+        for item in result["provider"].tool_results[2]
+    }
+    assert "correction must be the only action" in correction_results["s2"]
+    assert len(result["provider"].compactions) == 1
+    assert "s1" in result["provider"].compactions[0]
+
+
+def test_contract_commit_corrections_expire_after_the_bounded_retry_window(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A malformed tool loop gets two corrections, then releases its full text."""
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    invalid_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The study reported a change.",
+                "must_include": ["reported"],
+            }],
+        }],
+    }
+    fallback = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "The available evidence did not establish a usable result.",
+            "evidence_ids": [],
+            "satisfies": ["P01"],
+        }],
+        "unresolved": ["P02"],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        *[
+            model_turn(tool_calls=[tool_call(
+                "commit_context", invalid_commit, id=f"c{attempt}")])
+            for attempt in range(1, 4)
+        ],
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", fallback, id="a1")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["commit_corrections"] == 2
+    assert contract_summary["commit_expirations"] == 1
+    assert len(contract_summary["commit_validation_errors"]) == 3
+    assert D[0] in result["trace"]["summary"]["context"]["rejected"]
+    third_failure = result["provider"].tool_results[3][0]["content"]
+    assert "compacted and cannot be reselected" in third_failure
+
+
+def test_contract_commit_does_not_offer_retry_without_submit_headroom(
+        drive: Callable[..., dict[str, Any]],
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Near the hard cap, expiry leaves one honest terminal-submission turn."""
+    monkeypatch.setattr(agent_mod, "FINISHING_ROUNDS_GRACE", 1)
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    invalid_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The study reported a change.",
+                "must_include": ["reported"],
+            }],
+        }],
+    }
+    fallback = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "The available evidence did not establish a usable result.",
+            "evidence_ids": [],
+            "satisfies": ["P01"],
+        }],
+        "unresolved": ["P02"],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", invalid_commit, id="c1")]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", invalid_commit, id="c2")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", fallback, id="a1")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+        safety_max_rounds=3,
+    )
+
+    assert result["summary"]["status"] == "budget_exhausted"
+    assert result["provider"].turn_index == 5
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["commit_corrections"] == 1
+    assert contract_summary["commit_expirations"] == 1
+    assert contract_summary["submission_attempts"] == 1
+    assert result["output"]["answer"] == [{
+        "text": "The available evidence did not establish a usable result.",
+        "citations": [],
+    }]
+    first_failure = result["provider"].tool_results[1][0]["content"]
+    assert "0 further correction attempt(s)" in first_failure
+    second_failure = result["provider"].tool_results[2][0]["content"]
+    assert "compacted and cannot be reselected" in second_failure
+
+
+def test_unexpected_contract_commit_error_fails_without_compacting_evidence(
+        drive: Callable[..., dict[str, Any]],
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """An implementation defect must remain visible instead of becoming model blame."""
+    def broken_normalizer(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("normalizer defect")
+
+    monkeypatch.setattr(
+        agent_mod, "normalize_commit_supports", broken_normalizer)
+    script = [
+        model_turn(text=(
+            "1. DELIVERABLE: Explain the measured effect.\n"
+            "2. EVIDENCE: Find a measured traffic result."
+        )),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effect"}]},
+            id="c1",
+        )]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "failed"
+    assert "RuntimeError: normalizer defect" in result["output"]["answer"][0][
+        "text"]
+    search_history = next(
+        item for item in result["provider"].raw_messages
+        if item.get("role") == "tool" and item.get("tool_call_id") == "s1"
+    )
+    assert "traffic volumes below the pre-toll baseline" in search_history[
+        "content"]
+    assert result["provider"].compactions == []
+    assert D[0] not in result["trace"]["summary"]["context"]["rejected"]
+
+
 def test_terminal_contract_preserves_request_authorized_runnable_python(
         monkeypatch: pytest.MonkeyPatch) -> None:
     """Organizer projection must not corrupt indentation, operators, or indexing."""
