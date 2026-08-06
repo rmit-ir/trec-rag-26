@@ -98,11 +98,15 @@ def now_full(now: datetime | None = None) -> str:
     """The wall clock, spelled out unambiguously for the model.
 
     Weekday and month name so nothing hinges on reading a numeric date in the
-    right order, plus the UTC offset and the IANA zone so "today" and any
-    recency judgement the request needs are well defined.
+    right order, plus the UTC offset so "today" and any recency judgement the
+    request needs are well defined. Deliberately NOT the IANA zone name
+    (``TZ.key``, e.g. "Australia/Melbourne") -- that would tell the model
+    where the operator running this harness is physically located, which is
+    irrelevant to a research request unless the request itself is about a
+    place or timezone.
     """
     now = now or datetime.now(TZ)
-    return f"{now:%A, %d %B %Y, %H:%M:%S %z} ({TZ.key})"
+    return f"{now:%A, %d %B %Y, %H:%M:%S %z}"
 
 
 def make_provider(backend: str, model: str | None,
