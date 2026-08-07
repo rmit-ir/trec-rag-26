@@ -299,6 +299,17 @@ confirmed wired correctly; full 15-topic batches for all 5 launched on
 gpt-5.6-sol (`br-hillclimb-sol-{preview,nostage,jrel,commitrelease,
 widerengines}-exp15`).
 
+## 10. Hill-climb step 1 result: REJECT removing adjacent-fetch from sol
+
+`br-hillclimb-sol-adjoff-exp15` (sol, adjacent-fetch OFF, otherwise
+current best) scored **2.200**, vs the current-best sol cell's **2.267**
+(adjacent-fetch ON). Direction matches qwen's own result (1.267 vs 1.400,
+also worse without it) though smaller magnitude (-0.067 vs -0.133).
+**Hill-climb step 1: rejected.** Adjacent-page fetch is not model-specific
+-- keep it on. Current best remains
+`br-model-main-sol-exp15-b1` (2.267, adjacent-fetch ON, k=10, iteration-1
+structure, luna brief/reviewer).
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
