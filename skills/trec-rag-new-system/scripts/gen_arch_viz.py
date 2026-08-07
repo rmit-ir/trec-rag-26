@@ -267,6 +267,7 @@ SYSTEM_KIND = {
     "ali_deepresearch": "agent",
     "aus_agent": "agent",
     "facets_agent": "agent",
+    "brief_revise_agent": "agent",
     "o3_deep_research": "single-file",
     "claude-code-research": "manual",
 }
@@ -280,6 +281,10 @@ SYSTEM_BLURB = {
     "facets_agent": "gpt-5.6-luna on the shared agent_harness loop, minimal "
                     "prompt covering facet_rag's process (decompose, "
                     "multi-engine per facet, curate, self-check)",
+    "brief_revise_agent": "fork of aus_agent (same harness config, same "
+                          "prompt) plus a pre-flight requirements brief "
+                          "appended to the system prompt and one grounded "
+                          "review-and-revise pass on pre_final_hook",
     "o3_deep_research": "minimal single-file runner (hosted DR + MCP)",
     "claude-code-research": "workflow-driven research (no python pipeline package)",
 }
