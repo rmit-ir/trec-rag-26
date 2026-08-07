@@ -47,7 +47,7 @@ from agent_harness.agent import (  # noqa: F401  (re-exported for run.py + tests
     run_agent as _run_agent,
 )
 
-from . import brief, review
+from . import adjacent_pages, brief, review
 
 SYSTEM_NAME = "brief_revise_agent"
 
@@ -116,10 +116,13 @@ ARCH_STAGES = [
      "tools_note": "unmodified agent_harness tool schemas -- same as "
                     "aus_agent, engines=semantic,keyword"},
     {"id": "search", "label": "SEARCH", "kind": "retrieval",
-     "note": "full-text search over the enabled engines",
+     "note": "full-text search over the enabled engines, then "
+             "search_result_augment auto-fetches +/-1 adjacent pages for "
+             "the top 5 paginated hits (zero-LLM-call, default on)",
      "prompt": ["systems/brief_revise_agent/prompts/system/default.md"],
      "code": ["agent_harness/tools/search.py::execute_full_text_search",
-              "agent_harness/agent.py::_execute_tool_calls"]},
+              "agent_harness/agent.py::_execute_tool_calls",
+              "systems/brief_revise_agent/adjacent_pages.py::augment"]},
     {"id": "stage", "label": "STAGE", "kind": "no-llm",
      "note": "stage evidence; commit-before-expire protocol",
      "code": ["agent_harness/context.py::ContextLedger.stage"]},
@@ -172,6 +175,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               engines: list[str] | None = None,
               system_prompt: str,
               pre_final_hook: Any = _DEFAULT_HOOK,
+              search_result_augment: Any = adjacent_pages.augment,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end: aus_agent's own harness config, plus the
     requirements brief appended to ``system_prompt`` and the review pass
@@ -187,6 +191,14 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     ``None`` to disable it entirely (the brief step still runs -- these are
     independent additions, see module docstring), or any other callable to
     replace it outright (e.g. in tests exercising the bare harness).
+
+    ``search_result_augment`` (round B of the sol-vs-aus_agent_v2 loop, see
+    ``adjacent_pages.py``) defaults to the stateless adjacent-page fetcher --
+    no per-run state needed (unlike the review hook), so a plain module
+    function works as the default the way ``facets_agent.review.coverage_gate``
+    does. Pass ``None`` to disable it (isolating this round's test from the
+    review/brief axis, per the preregistered A/B/C/D design), or another
+    callable to replace it.
 
     ``**kwargs`` passes through to ``agent_harness.agent.run_agent`` unchanged.
     """
@@ -212,4 +224,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         max_committed_per_step=max_committed_per_step, run_id=run_id,
         run_desc=run_desc, prompt_variant=prompt_variant,
         system_name=SYSTEM_NAME, system_prompt=full_system_prompt,
-        pre_final_hook=active_hook, **kwargs)
+        pre_final_hook=active_hook, search_result_augment=search_result_augment,
+        **kwargs)
