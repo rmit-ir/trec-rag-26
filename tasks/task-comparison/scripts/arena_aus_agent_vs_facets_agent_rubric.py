@@ -188,10 +188,21 @@ def main() -> int:
     parser.add_argument("--aus-agent-run-id", default=RUN_IDS["aus_agent"])
     parser.add_argument("--facets-agent-run-id", default=RUN_IDS["facets_agent"])
     parser.add_argument(
+        "--baseline-system", default="aus_agent",
+        help="system on the 'A' side, by its data/outputs/<name> dir "
+             "(default aus_agent -- byte-identical behavior when left at "
+             "the default, using --aus-agent-run-id as before)")
+    parser.add_argument(
+        "--baseline-run-id", default=None,
+        help="run_id for --baseline-system (default: --aus-agent-run-id "
+             "when --baseline-system=aus_agent; REQUIRED for any other "
+             "--baseline-system, e.g. aus_agent_v2)")
+    parser.add_argument(
         "--challenger-system", default="facets_agent",
-        help="system to compare against aus_agent, by its data/outputs/<name> "
-             "dir (default facets_agent, this script's original opponent -- "
-             "byte-identical behavior when left at the default)")
+        help="system to compare against the baseline, by its "
+             "data/outputs/<name> dir (default facets_agent, this script's "
+             "original opponent -- byte-identical behavior when left at the "
+             "default)")
     parser.add_argument(
         "--challenger-run-id", default=None,
         help="run_id for --challenger-system (default: --facets-agent-run-id "
@@ -205,6 +216,13 @@ def main() -> int:
     args = parser.parse_args()
     out_dir = args.out_dir
     judge_dir = out_dir / "raw-events"
+    baseline = args.baseline_system
+    baseline_run_id = args.baseline_run_id
+    if baseline_run_id is None:
+        if baseline != "aus_agent":
+            raise SystemExit("--baseline-run-id is required when "
+                             "--baseline-system is not aus_agent")
+        baseline_run_id = args.aus_agent_run_id
     challenger = args.challenger_system
     challenger_run_id = args.challenger_run_id
     if challenger_run_id is None:
@@ -212,17 +230,17 @@ def main() -> int:
             raise SystemExit("--challenger-run-id is required when "
                              "--challenger-system is not facets_agent")
         challenger_run_id = args.facets_agent_run_id
-    labels = ["aus_agent", challenger]
+    labels = [baseline, challenger]
 
     runs = {
-        "aus_agent": load_answers_from_outputs(
-            ROOT / "data/outputs/aus_agent", args.aus_agent_run_id),
+        baseline: load_answers_from_outputs(
+            ROOT / "data/outputs" / baseline, baseline_run_id),
         challenger: load_answers_from_outputs(
             ROOT / "data/outputs" / challenger, challenger_run_id),
     }
     rubrics = load_research_rubrics(RESEARCH_RUBRICS)
 
-    qids = sorted(set(runs["aus_agent"]) & set(runs[challenger]))
+    qids = sorted(set(runs[baseline]) & set(runs[challenger]))
     missing_rubric = [q for q in qids if q not in rubrics]
     if missing_rubric:
         raise SystemExit(f"no rubric for {len(missing_rubric)} shared topics: "
@@ -236,10 +254,10 @@ def main() -> int:
 
     tasks = []
     for qid in qids:
-        query = runs["aus_agent"][qid]["query"]
-        pair_key = f"aus_agent|{challenger}"
+        query = runs[baseline][qid]["query"]
+        pair_key = f"{baseline}|{challenger}"
         for orientation, (a, b) in enumerate(
-                [("aus_agent", challenger), (challenger, "aus_agent")]):
+                [(baseline, challenger), (challenger, baseline)]):
             tasks.append({
                 "task_id": f"{qid}__{a}__{b}__o{orientation}",
                 "topic_id": qid, "pair_key": pair_key, "orientation": orientation,
