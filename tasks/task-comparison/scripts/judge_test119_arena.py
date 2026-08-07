@@ -42,6 +42,9 @@ from pathlib import Path
 ROOT = Path("/scratch/fast/kun/projects/trec-rag-26")
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "evaluation/ragdoll/src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import judge_client  # noqa: E402
 
 from ragdoll.arena.prompts import (  # noqa: E402
     TIE_VERDICTS, parse_verdict, render_arena_prompt)
@@ -79,11 +82,7 @@ def load_env() -> None:
 
 
 def client():
-    import os
-    from openai import OpenAI
-    return OpenAI(base_url=os.environ["OPENAI_BASE_URL"],
-                  api_key=os.environ["OPENAI_API_KEY"],
-                  timeout=300.0, max_retries=4)
+    return judge_client.client()
 
 
 def answer_text(row: dict) -> str:
@@ -103,9 +102,7 @@ def judge_one(api, model: str, task: dict, cache: Path) -> dict:
     prompt = render_arena_prompt(query=task["query"], answer_a=task["text_a"],
                                  answer_b=task["text_b"])
     try:
-        response = api.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": prompt}])
-        raw = (response.choices[0].message.content or "").strip()
+        raw = judge_client.complete(api, model, prompt).strip()
         verdict, parse_path = parse_pairwise_verdict(raw)
         if verdict is None:
             record = {**task_meta(task), "judge_verdict": None,
@@ -136,7 +133,7 @@ def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--every", type=int, default=1)
     parser.add_argument("--workers", type=int, default=16)
-    parser.add_argument("--model", default="gpt-5.6-luna")
+    parser.add_argument("--model", default=judge_client.default_model())
     args = parser.parse_args()
 
     runs = {}
@@ -161,7 +158,7 @@ def main() -> int:
                     "text_b": answer_text(runs[b][qid]),
                 })
 
-    cache = JUDGE_DIR / args.model
+    cache = JUDGE_DIR / judge_client.canonical(args.model)
     todo = [t for t in tasks if not (cache / f"{t['task_id']}.json").exists()]
     print(f"{len(qids)} narratives x {len(list(itertools.combinations(LABELS, 2)))} "
           f"pairs x 2 orders = {len(tasks)} battles, {len(todo)} not cached")

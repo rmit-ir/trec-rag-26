@@ -79,6 +79,15 @@ data/task-comparison/rubric-judge/out/retrieved_raw.json
 data/task-comparison/diversity/*.npy
 data/task-comparison/diversity/*.jsonl
 data/task-comparison/test119-eval/
+# Rubric-optimization loop (worklogs/2026-08-06-rubric-optimization-loop.md):
+# the same rule — small curated inputs and results ARE tracked (frozen topic
+# splits, the fixed rubric + its waiver audit, docs/auto-optimize/), the judge
+# caches are NOT. Those are ~3,400 files / 14 MB of per-(judge, run, topic,
+# repeat) verdicts. They are expensive to regenerate but they are DERIVED: the
+# answers they grade are in data/outputs/, and rubric_eval.py rebuilds them.
+data/task-comparison/rubric-eval/
+data/task-comparison/optimize-arena/
+data/task-comparison/optimize-support/
 tmp/
 
 # Git worktrees

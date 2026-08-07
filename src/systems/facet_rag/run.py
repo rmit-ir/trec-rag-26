@@ -123,6 +123,13 @@ def main() -> None:
                     help="max chars of passage text per result fed to the "
                          "analyzer/synthesis (default matches aus_agent's "
                          "4096-token/~20480-char stage depth, PLAN.md §3.1)")
+    ap.add_argument(
+        "--backend", default="bedrock", choices=["bedrock", "openai"],
+        help="provider backend for BOTH roles. `bedrock` (default) speaks "
+             "boto3 and needs AWS credentials; `openai` speaks the "
+             "OpenAI-compatible gateway via OPENAI_BASE_URL/OPENAI_API_KEY. "
+             "The two roles were hardcoded to bedrock, which made the system "
+             "unrunnable on a host that only has the gateway token.")
     ap.add_argument("--run-id", default="facet_rag.dev")
     ap.add_argument("--run-desc", default=DEFAULT_RUN_DESC)
     ap.add_argument("--no-format-llm", action="store_true",
@@ -133,11 +140,11 @@ def main() -> None:
     engines = list(dict.fromkeys(args.engines))  # unique, preserve order
 
     def make_orchestrator():
-        return make_provider("bedrock", args.orchestrator_model,
+        return make_provider(args.backend, args.orchestrator_model,
                              region=args.orchestrator_region)
 
     def make_analyzer():
-        return make_provider("bedrock", args.analyzer_model,
+        return make_provider(args.backend, args.analyzer_model,
                              region=args.analyzer_region)
 
     if args.query:

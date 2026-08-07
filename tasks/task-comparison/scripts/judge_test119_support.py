@@ -35,6 +35,9 @@ from pathlib import Path
 ROOT = Path("/scratch/fast/kun/projects/trec-rag-26")
 sys.path.insert(0, str(ROOT / "src"))
 sys.path.insert(0, str(ROOT / "evaluation/ragdoll/src"))
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+
+import judge_client  # noqa: E402
 
 from ragdoll.support.metrics import support_metric  # noqa: E402
 from ragdoll.support.prompts import (  # noqa: E402
@@ -57,11 +60,7 @@ def load_env() -> None:
 
 
 def client():
-    import os
-    from openai import OpenAI
-    return OpenAI(base_url=os.environ["OPENAI_BASE_URL"],
-                  api_key=os.environ["OPENAI_API_KEY"],
-                  timeout=180.0, max_retries=4)
+    return judge_client.client(timeout=180.0)
 
 
 def pairs_for(row: dict, *, first_only: bool, max_chars: int) -> list[dict]:
@@ -96,9 +95,7 @@ def judge_one(api, model: str, pair: dict, cache: Path) -> dict:
     prompt = render_support_prompt(statement=pair["statement"],
                                    citation=pair["citation"])
     try:
-        response = api.chat.completions.create(
-            model=model, messages=[{"role": "user", "content": prompt}])
-        raw = (response.choices[0].message.content or "").strip()
+        raw = judge_client.complete(api, model, prompt).strip()
         label = parse_support_label(raw)
         record = {**{k: pair[k] for k in
                      ("task_id", "run_id", "topic_id", "sentence_index",
@@ -151,7 +148,7 @@ def main() -> int:
     parser.add_argument("--max-chars", type=int, default=24000,
                         help="Truncate a cited document to this many characters.")
     parser.add_argument("--workers", type=int, default=16)
-    parser.add_argument("--model", default="gpt-5.6-luna")
+    parser.add_argument("--model", default=judge_client.default_model())
     parser.add_argument("--cache-dir", type=Path, default=JUDGE_DIR)
     args = parser.parse_args()
 
@@ -173,7 +170,7 @@ def main() -> int:
         for row in by_run[label]:
             all_pairs.extend(pairs_for(row, first_only=args.first_citation_only,
                                        max_chars=args.max_chars))
-    cache = args.cache_dir / args.model
+    cache = args.cache_dir / judge_client.canonical(args.model)
     todo = [p for p in all_pairs
             if not (cache / f"{p['task_id'].replace(':', '__')}.json").exists()]
     print(f"{len(all_pairs)} judge pairs, {len(todo)} not cached")
