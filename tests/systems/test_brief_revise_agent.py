@@ -70,7 +70,7 @@ def drive(monkeypatch: pytest.MonkeyPatch,
                query: str = QUERY, **kwargs: Any) -> dict[str, Any]:
         provider = ScriptedProvider(script)
         monkeypatch.setattr(agent_harness_mod, "make_provider",
-                            lambda backend, model: provider)
+                            lambda backend, model, region=None: provider)
         kwargs.setdefault("k", 2)
         kwargs.setdefault("safety_max_rounds", 20)
         kwargs.setdefault("system_prompt", load_system_prompt(
@@ -385,6 +385,42 @@ def test_pre_final_hook_none_disables_the_review_pass(
     # ever sent -- no reviewer call happened, proving the WHOLE pass (not
     # just its feedback) was skipped, not merely that it accepted silently.
     assert len(result["provider"].user_messages) == 2
+
+
+def test_brief_and_review_roles_can_be_decoupled_from_the_main_model(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Factorial-analysis round (sol's design): ``brief_model``/
+    ``review_model`` (and their own ``_backend``/``_region``) must reach
+    ``make_provider`` independently of the main run's ``backend``/``model``,
+    so the main research/writer model can vary while the analyst and
+    reviewer stay fixed -- captures ``make_provider`` calls directly rather
+    than driving a full scripted run."""
+    from brief_revise_agent import agent as brv_agent
+
+    calls: list[tuple[str, str | None, str | None]] = []
+
+    def fake_make_provider(backend: str, model: str | None,
+                           region: str | None = None) -> Any:
+        calls.append((backend, model, region))
+        return ScriptedProvider([BRIEF_TURN_EMPTY])
+
+    def fake_run_agent(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        return {"status": "completed", "paths": {}}
+
+    monkeypatch.setattr(agent_harness_mod, "make_provider", fake_make_provider)
+    monkeypatch.setattr(brv_agent, "_run_agent", fake_run_agent)
+
+    brv_agent.run_agent(
+        QID, QUERY, backend="bedrock", model="qwen.qwen3-next-80b-a3b",
+        brief_backend="openai", brief_model="gpt-5.6-luna",
+        review_backend="openai", review_model="gpt-5.6-luna",
+        system_prompt=load_system_prompt(DEFAULT_MAX_COMMITTED_PER_STEP))
+
+    # Both the brief and reviewer providers were built on openai/luna, NOT
+    # on the main run's bedrock/qwen -- the main loop's own provider
+    # construction is inside the (mocked) `_run_agent`, not captured here.
+    assert calls == [("openai", "gpt-5.6-luna", None),
+                     ("openai", "gpt-5.6-luna", None)]
 
 
 def test_review_pass_wired_end_to_end_sends_the_model_back_once(

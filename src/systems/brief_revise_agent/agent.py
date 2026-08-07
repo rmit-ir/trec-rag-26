@@ -165,7 +165,7 @@ __all__ = [
 
 
 def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
-              model: str | None = None, k: int = 10,
+              model: str | None = None, region: str | None = None, k: int = 10,
               context_token_budget: int = DEFAULT_CONTEXT_TOKEN_BUDGET,
               safety_max_rounds: int = DEFAULT_SAFETY_MAX_ROUNDS,
               max_committed_per_step: int = DEFAULT_MAX_COMMITTED_PER_STEP,
@@ -176,6 +176,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               system_prompt: str,
               pre_final_hook: Any = _DEFAULT_HOOK,
               search_result_augment: Any = adjacent_pages.augment,
+              brief_backend: str | None = None, brief_model: str | None = None,
+              brief_region: str | None = None,
+              review_backend: str | None = None, review_model: str | None = None,
+              review_region: str | None = None,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end: aus_agent's own harness config, plus the
     requirements brief appended to ``system_prompt`` and the review pass
@@ -200,16 +204,39 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     review/brief axis, per the preregistered A/B/C/D design), or another
     callable to replace it.
 
+    ``brief_backend``/``brief_model``/``brief_region`` and
+    ``review_backend``/``review_model``/``review_region`` (the factorial-
+    analysis round, sol's design: "does the main research/writer model
+    matter, holding the analyst/reviewer roles fixed") decouple the brief
+    analyst's and reviewer's providers from the main loop's ``backend``/
+    ``model``/``region`` -- each defaults to ``None``, meaning "inherit the
+    main run's own", so every call site that predates this parameter is
+    unaffected. Passing them explicitly lets the three roles run on
+    different models/backends independently (e.g. main on a Bedrock model,
+    analyst and reviewer staying on the usual OpenAI one).
+
+    ``region``/``brief_region``/``review_region`` only affect the brief and
+    reviewer providers, constructed directly here via ``make_provider``.
+    ``agent_harness.agent.run_agent`` builds the MAIN loop's own provider
+    internally with no per-call region parameter -- a Bedrock region for the
+    main model (e.g. Qwen needing ``us-east-1``/``us-west-2``) must be set
+    via the ``BEDROCK_REGION`` environment variable for that invocation,
+    per ``agent_harness.providers.bedrock``'s own documented convention.
+
     ``**kwargs`` passes through to ``agent_harness.agent.run_agent`` unchanged.
     """
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
 
-    brief_provider = agent_harness_mod.make_provider(backend, model)
+    brief_provider = agent_harness_mod.make_provider(
+        brief_backend or backend, brief_model or model,
+        region=brief_region or region)
     requirements = brief.get_requirements(brief_provider, query)
     full_system_prompt = system_prompt + brief.render_appendix(requirements)
 
     if pre_final_hook is _DEFAULT_HOOK:
-        reviewer_provider = agent_harness_mod.make_provider(backend, model)
+        reviewer_provider = agent_harness_mod.make_provider(
+            review_backend or backend, review_model or model,
+            region=review_region or region)
 
         def active_hook(context: dict[str, Any]) -> str | None:
             return review.hook(context, requirements=requirements,

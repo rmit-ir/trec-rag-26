@@ -122,6 +122,21 @@ def main() -> None:
                     default=env("RUN_BRIEF_REVISE_AGENT_MODEL", None),
                     help="model id (default: backend's own env/default, e.g. "
                          "BEDROCK_MODEL_ID or OPENAI_MODEL_ID)")
+    ap.add_argument(
+        "--brief-backend", default=env("RUN_BRIEF_REVISE_AGENT_BRIEF_BACKEND", None),
+        help="factorial-analysis round: backend for the requirements-brief "
+             "analyst ONLY, decoupled from --backend/--model (default: same "
+             "as --backend)")
+    ap.add_argument("--brief-model",
+                    default=env("RUN_BRIEF_REVISE_AGENT_BRIEF_MODEL", None),
+                    help="model id for the brief analyst only (default: same as --model)")
+    ap.add_argument(
+        "--review-backend", default=env("RUN_BRIEF_REVISE_AGENT_REVIEW_BACKEND", None),
+        help="factorial-analysis round: backend for the reviewer ONLY, "
+             "decoupled from --backend/--model (default: same as --backend)")
+    ap.add_argument("--review-model",
+                    default=env("RUN_BRIEF_REVISE_AGENT_REVIEW_MODEL", None),
+                    help="model id for the reviewer only (default: same as --model)")
     ap.add_argument("--k", type=int, default=env("RUN_BRIEF_REVISE_AGENT_K", 10),
                     help="search results per call")
     ap.add_argument(
@@ -205,6 +220,14 @@ def main() -> None:
             run_kwargs = {}
             if args.disable_adjacent_pages:
                 run_kwargs["search_result_augment"] = None
+            if args.brief_backend:
+                run_kwargs["brief_backend"] = args.brief_backend
+            if args.brief_model:
+                run_kwargs["brief_model"] = args.brief_model
+            if args.review_backend:
+                run_kwargs["review_backend"] = args.review_backend
+            if args.review_model:
+                run_kwargs["review_model"] = args.review_model
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
                                 context_token_budget=args.context_token_budget,
