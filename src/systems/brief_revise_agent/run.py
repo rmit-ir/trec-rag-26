@@ -164,6 +164,13 @@ def main() -> None:
         help="skip topics this --run-id has already answered successfully, so "
              "an interrupted batch resumes instead of starting over (a failed "
              "run does not count as answered)")
+    ap.add_argument(
+        "--disable-adjacent-pages", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_DISABLE_ADJACENT_PAGES", False),
+        help="pass search_result_augment=None, disabling round B's "
+             "adjacent-page auto-retrieval (agent.py's default is ON) -- "
+             "for an isolated A/B/C/D comparison of the sol-vs-aus_agent_v2 "
+             "improvement-loop rounds")
     args = ap.parse_args()
     search_backends = [e.strip() for e in str(args.search_backends).split(",")
                        if e.strip()]
@@ -195,6 +202,9 @@ def main() -> None:
         try:
             system_prompt = load_system_prompt(args.max_committed_per_step,
                                                args.prompt_variant)
+            run_kwargs = {}
+            if args.disable_adjacent_pages:
+                run_kwargs["search_result_augment"] = None
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
                                 context_token_budget=args.context_token_budget,
@@ -204,7 +214,7 @@ def main() -> None:
                                 run_id=args.run_id,
                                 prompt_variant=args.prompt_variant,
                                 system_prompt=system_prompt,
-                                engines=search_backends)
+                                engines=search_backends, **run_kwargs)
         except Exception:  # keep --all going
             failures += 1
             logging.exception("run for %s failed", qid)

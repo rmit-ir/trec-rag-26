@@ -63,6 +63,7 @@ class Requirement:
     origin: str  # "explicit" | "implicit"
     why: str
     specific_form: str
+    target_words: int = 0  # round C: 0 means "no budget assigned" (fail-open)
 
 
 def build_brief_prompt(narrative: str) -> str:
@@ -89,6 +90,11 @@ def _why_quotes_narrative(why: str, narrative: str) -> bool:
     return sum(1 for w in words if w in narrative_words) >= _MIN_OVERLAP
 
 
+MIN_TARGET_TOTAL = 500
+MAX_TARGET_TOTAL = 1000  # stays under the 1024 hard cap with revision room
+_SUM_TOLERANCE = 0.20  # per-requirement targets may total +/-20% of the stated total
+
+
 def parse_brief(raw: str, narrative: str) -> list[Requirement]:
     """Parse the analyst's JSON into validated requirements.
 
@@ -97,12 +103,23 @@ def parse_brief(raw: str, narrative: str) -> list[Requirement]:
     entry must pass ``_why_quotes_narrative``; every entry needs a non-empty
     ``specific_form`` (the anti-`covered_but_shallow` field). Anything
     malformed is dropped rather than raised.
+
+    Round C (sol's word-budget design): a top-level ``target_total_words``
+    plus a per-requirement ``target_words`` are parsed too, but validated as
+    a UNIT separate from the requirements themselves -- if the total is out
+    of range, or the per-requirement targets don't roughly sum to it, EVERY
+    ``target_words`` is zeroed (fails open to the no-budget behavior every
+    earlier round already has) rather than dropping the requirements or the
+    whole brief. A budget is advisory extra information, never a gate.
     """
     try:
         payload = json.loads(strip_fences(raw)) if raw else None
         rows = payload.get("requirements") if isinstance(payload, dict) else None
+        target_total = payload.get("target_total_words") if isinstance(
+            payload, dict) else None
     except (json.JSONDecodeError, AttributeError, TypeError):
         rows = None
+        target_total = None
     if not isinstance(rows, list):
         return []
 
@@ -127,9 +144,28 @@ def parse_brief(raw: str, narrative: str) -> list[Requirement]:
                 continue
             implicit_count += 1
         req_id = _clean_field(row.get("id"), max_len=20) or f"R{len(requirements) + 1}"
+        target_words = row.get("target_words")
+        target_words = target_words if (
+            isinstance(target_words, int) and not isinstance(target_words, bool)
+            and target_words >= 0) else 0
         requirements.append(Requirement(
             id=req_id, requirement=requirement, origin=origin, why=why,
-            specific_form=specific_form))
+            specific_form=specific_form, target_words=target_words))
+
+    valid_total = (isinstance(target_total, int)
+                  and not isinstance(target_total, bool)
+                  and MIN_TARGET_TOTAL <= target_total <= MAX_TARGET_TOTAL)
+    part_sum = sum(r.target_words for r in requirements)
+    sum_ok = (valid_total and part_sum > 0
+             and abs(part_sum - target_total) <= _SUM_TOLERANCE * target_total)
+    if not sum_ok:
+        if any(r.target_words for r in requirements):
+            log.info("brief.parse_brief: word-budget validation failed "
+                     "(target_total=%r, part_sum=%d); zeroing all "
+                     "target_words, requirements unaffected",
+                     target_total, part_sum)
+        for r in requirements:
+            r.target_words = 0
     return requirements
 
 
@@ -159,17 +195,26 @@ def get_requirements(provider: Any, narrative: str) -> list[Requirement]:
 def render_appendix(requirements: list[Requirement]) -> str:
     """Render PLAN.md §3.2's "Appendix A" -- empty string when the brief is
     empty, so the system prompt is then byte-identical to the loaded
-    template (plus the static Appendix B baked into default.md)."""
+    template (plus the static Appendix B baked into default.md). Round C:
+    a requirement with a validated ``target_words`` gets it appended to its
+    entry line; a budget-free brief (every ``target_words`` is 0, the
+    fail-open state) renders identically to before round C existed."""
     if not requirements:
         return ""
     entries = "\n".join(
-        ENTRY_TEMPLATE.format(id=r.id, origin=r.origin, requirement=r.requirement,
-                              specific_form=r.specific_form)
+        ENTRY_TEMPLATE.format(
+            id=r.id, origin=r.origin, requirement=r.requirement,
+            specific_form=r.specific_form,
+            budget=f" (~{r.target_words} words)" if r.target_words else "")
         for r in requirements)
-    return APPENDIX_TEMPLATE.format(entries=entries)
+    total = sum(r.target_words for r in requirements)
+    total_line = (f"\nTotal answer word budget: ~{total} words "
+                  f"(hard cap 1024).\n" if total else "")
+    return APPENDIX_TEMPLATE.format(entries=entries, total_line=total_line)
 
 
 __all__ = [
-    "MAX_ENTRIES", "MAX_IMPLICIT", "Requirement", "build_brief_prompt",
-    "get_requirements", "parse_brief", "render_appendix",
+    "MAX_ENTRIES", "MAX_IMPLICIT", "MAX_TARGET_TOTAL", "MIN_TARGET_TOTAL",
+    "Requirement", "build_brief_prompt", "get_requirements", "parse_brief",
+    "render_appendix",
 ]

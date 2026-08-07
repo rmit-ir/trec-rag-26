@@ -256,6 +256,69 @@ def test_parse_brief_drops_an_implicit_entry_whose_why_cannot_be_traced() -> Non
     assert brief.parse_brief(json.dumps({"requirements": hunch}), QUERY) == []
 
 
+def test_parse_brief_accepts_a_valid_word_budget() -> None:
+    """Round C: a ``target_total_words`` in range whose per-entry
+    ``target_words`` roughly sum to it is kept -- the load-bearing path,
+    not just the fail-open one."""
+    rows = [
+        {"id": "R1", "requirement": "a", "origin": "explicit", "why": "",
+         "specific_form": "x", "target_words": 300},
+        {"id": "R2", "requirement": "b", "origin": "explicit", "why": "",
+         "specific_form": "y", "target_words": 400},
+    ]
+    parsed = brief.parse_brief(
+        json.dumps({"target_total_words": 700, "requirements": rows}), QUERY)
+    assert [r.target_words for r in parsed] == [300, 400]
+
+
+def test_parse_brief_zeroes_budgets_when_the_total_is_out_of_range() -> None:
+    rows = [{"id": "R1", "requirement": "a", "origin": "explicit", "why": "",
+            "specific_form": "x", "target_words": 50}]
+    parsed = brief.parse_brief(
+        json.dumps({"target_total_words": 50, "requirements": rows}), QUERY)
+    assert len(parsed) == 1  # the requirement itself survives
+    assert parsed[0].target_words == 0  # only the budget is dropped
+
+
+def test_parse_brief_zeroes_budgets_when_parts_dont_sum_to_the_total() -> None:
+    rows = [
+        {"id": "R1", "requirement": "a", "origin": "explicit", "why": "",
+         "specific_form": "x", "target_words": 100},
+        {"id": "R2", "requirement": "b", "origin": "explicit", "why": "",
+         "specific_form": "y", "target_words": 100},
+    ]
+    # parts sum to 200, target_total claims 900 -- wildly inconsistent
+    parsed = brief.parse_brief(
+        json.dumps({"target_total_words": 900, "requirements": rows}), QUERY)
+    assert [r.target_words for r in parsed] == [0, 0]
+
+
+def test_parse_brief_zeroes_budgets_when_target_words_is_not_an_int() -> None:
+    rows = [{"id": "R1", "requirement": "a", "origin": "explicit", "why": "",
+            "specific_form": "x", "target_words": "a lot"}]
+    parsed = brief.parse_brief(
+        json.dumps({"target_total_words": 700, "requirements": rows}), QUERY)
+    assert parsed[0].target_words == 0
+
+
+def test_render_appendix_shows_the_budget_when_present() -> None:
+    req = brief.Requirement(id="R1", requirement="State X", origin="explicit",
+                            why="", specific_form="a number", target_words=250)
+    appendix = brief.render_appendix([req])
+    assert "~250 words" in appendix
+    assert "Total answer word budget: ~250 words" in appendix
+
+
+def test_render_appendix_omits_budget_text_when_zero() -> None:
+    """The fail-open state (target_words=0 on every entry) must render
+    IDENTICALLY to a pre-round-C brief -- no stray '(~0 words)' text."""
+    req = brief.Requirement(id="R1", requirement="State X", origin="explicit",
+                            why="", specific_form="a number")
+    appendix = brief.render_appendix([req])
+    assert "words)" not in appendix
+    assert "Total answer word budget" not in appendix
+
+
 # ---------------------------------------------------------------------------
 # End-to-end (PLAN.md §6 Phase 3, cases v-vi, plus the wiring proof)
 # ---------------------------------------------------------------------------

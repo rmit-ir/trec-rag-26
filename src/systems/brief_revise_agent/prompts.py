@@ -43,11 +43,21 @@ you add competes for the answer's fixed word budget, so do not pad -- fewer \
 well-justified entries beat a full list of filler. If the request is narrow and \
 already fully explicit, return fewer entries, or none.
 
+Also allocate a WORD BUDGET (round C): set `target_total_words` to a number \
+between 500 and 1000 (the hard track limit is 1024, leave room for revision), \
+and give each entry a `target_words` share of that total -- the per-entry \
+numbers must sum to approximately `target_total_words`. Give the most words to \
+requirements that need a concrete example, mechanism, or worked case to satisfy \
+their `specific_form`; give fewer to requirements that need only a brief \
+mention. This is the depth budget the writer should aim to actually spend on \
+each item, not a minimum -- do not inflate it just to fill space.
+
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
-{{"requirements": [{{"id": "R1", "requirement": "<what the answer must do>", \
-"origin": "explicit or implicit", "why": "<quote the wording that implies this; \
-empty string for an explicit entry>", "specific_form": "<what counts as \
-covering it>"}}, ...]}}
+{{"target_total_words": <int 500-1000>, "requirements": [{{"id": "R1", \
+"requirement": "<what the answer must do>", "origin": "explicit or implicit", \
+"why": "<quote the wording that implies this; empty string for an explicit \
+entry>", "specific_form": "<what counts as covering it>", \
+"target_words": <int, this entry's share of target_total_words>}}, ...]}}
 
 RESEARCH REQUEST:
 {narrative}
@@ -67,11 +77,12 @@ than force it -- but never silently drop one without saying so in the report. \
 Give every entry below at least one targeted search. An entry only counts as \
 covered when the report states it in the specific form named, not as a \
 category label.
-
+{total_line}
 {entries}
 """
 
-ENTRY_TEMPLATE = "- [{id}] ({origin}) {requirement} -- counts as covered when: {specific_form}"
+ENTRY_TEMPLATE = ("- [{id}] ({origin}) {requirement} -- counts as covered "
+                  "when: {specific_form}{budget}")
 
 REVIEW_PROMPT = """You are reviewing a draft research report before it is \
 submitted to its reader. You do not rewrite the report yourself -- you \

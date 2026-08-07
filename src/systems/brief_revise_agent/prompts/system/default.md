@@ -277,3 +277,13 @@ submitted. A draft that already supports every claim it makes survives review
 with the least rewriting, so write it that way the first time rather than
 planning to patch it afterward. Extra searches at revision time are optional,
 not required, and may be refused if the research budget is already spent.
+
+## Word budget (round C, when the brief below states one)
+
+If the requirements brief states a per-entry word budget, treat each one as
+an approximate depth target for that requirement, not a minimum to pad
+toward or a maximum to trim to exactly. Materially expand a required
+requirement's coverage before it is left well under its target -- add the
+concrete example, mechanism, or worked case its `specific_form` calls for.
+Compress only where needed to stay within the overall 1024-word cap, and
+compress optional or already-adequately-covered material first.
