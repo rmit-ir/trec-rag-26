@@ -1,5 +1,7 @@
-"""review.py -- brief_revise_agent's ``pre_final_hook`` (PLAN.md §3.3, v2 per
-``worklogs/2026-08-07-brief-revise-agent-sol-improvement-analysis.md`` Priority 1).
+"""review.py -- brief_revise_agent's ``pre_final_hook`` (PLAN.md §3.3, v3: v2
+was sol's Priority-1 coverage-gated patch review; v3 adds sol's iteration-2
+fixes -- exact atomic requirement-id closure and always-synthesized fixes --
+plus the atomic expert-completion brief from ``brief.py``).
 
 Fires at most once, per the harness contract (``agent_harness.agent.run_agent``'s
 ``pre_final_hook`` docstring): the first time the model produces a report that
@@ -110,8 +112,8 @@ def _render_brief(requirements: list[Requirement]) -> str:
     if not requirements:
         return "(none -- no requirements brief was produced for this topic)"
     return "\n".join(
-        f"- [{r.id}] ({r.origin}) {r.requirement} -- specific form: "
-        f"{r.specific_form}" for r in requirements)
+        f"- [{r.id}] ({r.kind}) {r.requirement} -- answer form: "
+        f"{r.answer_form}" for r in requirements)
 
 
 def _render_uncited(uncited: list[tuple[int, str]]) -> str:
@@ -138,20 +140,31 @@ def _clean_field(value: Any, max_len: int = 500) -> str:
     return value.strip()[:max_len]
 
 
+_FALLBACK_FIX = ("Add the missing specific named above, using committed "
+                 "evidence if available; cut the least relevant "
+                 "non-required sentence to make room.")
+
+
 def _parse_review(raw: str, valid_ids: set[str]
                   ) -> tuple[list[dict[str, str]], list[dict[str, str]], bool]:
     """Parse the reviewer's JSON into ``(requirement_grades, issues, parsed_ok)``.
 
-    ``parsed_ok`` is ``False`` only when the top-level shape itself didn't
-    parse (not valid JSON, or missing/malformed ``requirements``/``issues``
-    keys) -- that's what triggers ``hook``'s fail-closed retry. A
-    well-formed-but-empty response (``{"requirements": [], "issues": []}``)
-    is ``parsed_ok=True`` with nothing to report, which is a legitimate
-    "everything is FULL" answer on a short/narrow topic, not a failure.
+    ``parsed_ok`` is ``False`` when the top-level shape itself didn't parse
+    (not valid JSON, or missing/malformed ``requirements``/``issues`` keys),
+    OR (v3, sol iteration-2 finding: v2's "exact one grade per requirement"
+    contract was only stated in the prompt, never enforced in code -- a
+    response grading a subset, or duplicating/inventing an id, silently
+    passed) when the returned requirement ids do not EXACTLY match
+    ``valid_ids`` one-for-one. Both trigger ``hook``'s fail-closed retry.
+
+    Every non-FULL grade always carries a non-empty ``fix`` -- v2 dropped a
+    gap from the feedback entirely if the reviewer graded it PARTIAL/MISSING
+    but left `fix` blank (`gaps = [... and g["fix"]]`); v3 synthesizes
+    ``_FALLBACK_FIX`` instead, so a real gap can never silently vanish.
 
     Rows naming an id outside ``valid_ids`` (a hallucinated requirement id)
-    are dropped -- the feedback must only ever reference the brief's own
-    entries."""
+    are dropped from the id-coverage check as unknown before it runs --
+    the feedback must only ever reference the brief's own entries."""
     try:
         payload = json.loads(strip_fences(raw)) if raw else None
     except (json.JSONDecodeError, TypeError):
@@ -164,6 +177,7 @@ def _parse_review(raw: str, valid_ids: set[str]
         return [], [], False
 
     grades: list[dict[str, str]] = []
+    seen_ids: list[str] = []
     for row in req_rows:
         if not isinstance(row, dict):
             continue
@@ -171,11 +185,18 @@ def _parse_review(raw: str, valid_ids: set[str]
         status = _clean_field(row.get("status"), max_len=20).upper()
         if req_id not in valid_ids or status not in REQ_STATUSES:
             continue
+        seen_ids.append(req_id)
+        fix = _clean_field(row.get("fix")) or (
+            "" if status == "FULL" else _FALLBACK_FIX)
         grades.append({
             "id": req_id, "status": status,
             "missing_specific": _clean_field(row.get("missing_specific")),
-            "fix": _clean_field(row.get("fix")),
+            "fix": fix,
         })
+
+    if valid_ids and (len(seen_ids) != len(set(seen_ids))
+                     or set(seen_ids) != valid_ids):
+        return [], [], False
 
     issues: list[dict[str, str]] = []
     for row in issue_rows:
@@ -202,13 +223,15 @@ def _render_feedback(grades: list[dict[str, str]],
                      word_count: int,
                      requirements: list[Requirement]) -> str:
     by_id = {r.id: r for r in requirements}
-    gaps = [g for g in grades if g["status"] != "FULL" and g["fix"]]
+    gaps = [g for g in grades if g["status"] != "FULL"]
     lines = [
         f"Before this report is accepted: it is {word_count} words against a "
         f"{MAX_REPORT_WORDS}-word hard cap, so any addition below must come "
-        "with a cut. This is a PATCH pass: do not touch or shorten any "
-        "sentence that already supports a requirement graded FULL below -- "
-        "only the gaps listed need work."
+        "with a cut. This is a PATCH pass: a sentence that is the ONLY "
+        "support for a requirement already graded FULL must not be deleted "
+        "or have its supported fact weakened, but it MAY be compressed, "
+        "merged with a neighbor, or moved if the same fact and citation "
+        "survive -- prefer cutting from the gaps listed below first."
     ]
     if uncited:
         lines.append(
@@ -297,7 +320,7 @@ def hook(context: dict[str, Any], *,
                     return _render_feedback([], [], uncited, word_count, req_list)
                 return None
 
-        if not any(g["status"] != "FULL" and g["fix"] for g in grades) \
+        if not any(g["status"] != "FULL" for g in grades) \
                 and not issues and not uncited:
             return None
         return _render_feedback(grades, issues, uncited, word_count, req_list)

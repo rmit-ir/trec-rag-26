@@ -1,25 +1,38 @@
-"""brief.py -- the pre-flight requirements-brief analyst (PLAN.md §3.1).
+"""brief.py -- the pre-flight requirements-brief analyst (PLAN.md §3.1, v3
+per ``worklogs/2026-08-07-brief-revise-agent-sol-iteration2-vs-aus-agent-v2.md``:
+the "atomic expert-completion brief").
 
 One tool-less LLM call before ``run_agent`` starts (``facet_rag.llm.one_shot``,
-the same helper facet_rag's planner/curator use), producing a short checklist
-of what a complete answer must do -- explicit obligations the request states,
-and implicit ones a careful reader would infer. PLAN.md §1(b): this targets
-`aus_agent`'s largest measured deficit (Implicit Criteria, 71% graded <=1),
-not a `facets_agent`-style decomposition rewrite.
+the same helper facet_rag's planner/curator use), producing a checklist of
+small, independently-gradable answer checks -- both what the request states
+(``kind="REQUEST"``) and what a domain expert would expect even though the
+request never names it (``kind="EXPERT_COMPLETION"``).
+
+v3 change from v2, and why: sol's analysis of iteration 1's losses against
+``aus_agent_v2`` found the OLD lexical anti-hunch gate (an implicit entry's
+`why` had to word-overlap the narrative) was suppressing exactly the
+domain-completion material that distinguishes the stronger opponent's
+answers -- e.g. "specify a prospective external validation stage" for a
+clinical-AI topic, or "define an uncertainty/abstention rule", neither of
+which the request's own wording implies but both of which an expert reader
+expects. The gate is replaced with a cheaper, less restrictive check: an
+EXPERT_COMPLETION entry needs a stated concrete reason (``why_needed``), not
+narrative word-overlap. Ids are now HARNESS-assigned (``A01``, ``A02``, ...
+in accepted order) rather than model-supplied, closing a real gap sol found
+in the REVIEWER (not this module) that this module's id scheme enables
+fixing cleanly: a reviewer response can no longer omit, duplicate, or
+invent an id, because there is no model-chosen id space to omit from.
 
 Parsing mirrors ``facet_rag.planner``'s defensive style exactly: a response
-that strays from the schema, cites nothing, or fails to parse at all is
-repaired or dropped entry-by-entry, never raised -- ``get_requirements`` can
-never block a run. An empty/failed brief degrades the run to plain
-`aus_agent` behaviour (no appendix), which is the correct fallback, not a
-bug: PLAN.md §1's whole case for this step is additive evidence, and a
-run must never depend on it succeeding.
+that strays from the schema or fails to parse at all is repaired or dropped
+entry-by-entry, never raised -- ``get_requirements`` can never block a run.
+An empty/failed brief degrades the run to plain `aus_agent` behaviour (no
+appendix), which is the correct fallback, not a bug.
 """
 from __future__ import annotations
 
 import json
 import logging
-import re
 from dataclasses import dataclass
 from typing import Any
 
@@ -29,15 +42,11 @@ from .prompts import APPENDIX_TEMPLATE, BRIEF_PROMPT, ENTRY_TEMPLATE
 
 log = logging.getLogger(__name__)
 
-MAX_ENTRIES = 8
-MAX_IMPLICIT = 4
-_MIN_WORD_LEN = 4  # words shorter than this are too generic to count as overlap
-_MIN_OVERLAP = 2   # word-overlap fallback when `why` carries no quote marks
-_QUOTE_RE = re.compile(r'["‘’“”]([^"‘’“”]{3,})'
-                       r'["‘’“”]')
-_WORD_RE = re.compile(r"[a-z0-9]+")
+MAX_ENTRIES = 14
+MAX_EXPERT = 6
+KINDS = frozenset({"REQUEST", "EXPERT_COMPLETION"})
 # Per-field cap on what a brief entry may inject into the system prompt: a
-# degenerate/adversarial analyst response (a run-on `why`, a pasted-in
+# degenerate/adversarial analyst response (a run-on field, a pasted-in
 # passage) must not silently balloon every subsequent turn's context. Also
 # closes a real gap gpt-5.6-sol's code review flagged: `str(row.get(...))`
 # turns a JSON `null`/list/object into literal text ("None", "['x']") that
@@ -58,11 +67,11 @@ def _clean_field(value: Any, max_len: int = _MAX_FIELD_CHARS) -> str:
 
 @dataclass
 class Requirement:
-    id: str
+    id: str            # harness-assigned: "A01", "A02", ... in accepted order
+    kind: str           # "REQUEST" | "EXPERT_COMPLETION"
     requirement: str
-    origin: str  # "explicit" | "implicit"
-    why: str
-    specific_form: str
+    answer_form: str    # what counts as covering it -- a name/number/mechanism
+    why_needed: str      # EXPERT_COMPLETION only: the concrete reason it matters
 
 
 def build_brief_prompt(narrative: str) -> str:
@@ -70,33 +79,17 @@ def build_brief_prompt(narrative: str) -> str:
     return BRIEF_PROMPT.format(narrative=narrative)
 
 
-def _why_quotes_narrative(why: str, narrative: str) -> bool:
-    """The anti-hunch check (PLAN.md §3.1): an implicit entry's `why` must be
-    traceable to the request's own wording, not just a plausible-sounding
-    justification the model invented. A quoted snippet that actually appears
-    in the narrative is the strongest signal; failing that, require at least
-    two non-trivial words shared with the narrative so a model that named the
-    phrase without quote marks is not punished for formatting alone.
-    """
-    narrative_lower = narrative.lower()
-    quotes = _QUOTE_RE.findall(why)
-    if quotes:
-        return any(q.strip().lower() in narrative_lower for q in quotes)
-    words = [w for w in _WORD_RE.findall(why.lower()) if len(w) >= _MIN_WORD_LEN]
-    if not words:
-        return False
-    narrative_words = set(_WORD_RE.findall(narrative_lower))
-    return sum(1 for w in words if w in narrative_words) >= _MIN_OVERLAP
+def parse_brief(raw: str, narrative: str) -> list[Requirement]:  # noqa: ARG001
+    """Parse the analyst's JSON into validated, harness-numbered requirements.
 
-
-def parse_brief(raw: str, narrative: str) -> list[Requirement]:
-    """Parse the analyst's JSON into validated requirements.
-
-    Caps at ``MAX_ENTRIES`` total / ``MAX_IMPLICIT`` implicit (PLAN.md §3.1:
-    "an analyst that invents obligations is worse than none"); every implicit
-    entry must pass ``_why_quotes_narrative``; every entry needs a non-empty
-    ``specific_form`` (the anti-`covered_but_shallow` field). Anything
-    malformed is dropped rather than raised.
+    Caps at ``MAX_ENTRIES`` total / ``MAX_EXPERT`` expert-completion rows
+    (PLAN.md §3.1: "an analyst that invents obligations is worse than none");
+    every entry needs a non-empty ``requirement`` and ``answer_form``; every
+    ``EXPERT_COMPLETION`` entry needs a non-empty ``why_needed``. ``narrative``
+    is accepted but no longer used for a lexical check (v3 -- see module
+    docstring); kept as a parameter for call-site stability.  Anything
+    malformed is dropped rather than raised. Ids are assigned here, in
+    accepted order, never read from the model's own JSON.
     """
     try:
         payload = json.loads(strip_fences(raw)) if raw else None
@@ -107,29 +100,26 @@ def parse_brief(raw: str, narrative: str) -> list[Requirement]:
         return []
 
     requirements: list[Requirement] = []
-    implicit_count = 0
+    expert_count = 0
     for row in rows:
         if len(requirements) >= MAX_ENTRIES:
             break
         if not isinstance(row, dict):
             continue
         requirement = _clean_field(row.get("requirement"))
-        specific_form = _clean_field(row.get("specific_form"))
-        origin = _clean_field(row.get("origin"), max_len=20).lower()
-        why = _clean_field(row.get("why"))
-        if not requirement or not specific_form or origin not in (
-                "explicit", "implicit"):
+        answer_form = _clean_field(row.get("answer_form"))
+        kind = _clean_field(row.get("kind"), max_len=20).upper()
+        why_needed = _clean_field(row.get("why_needed"))
+        if not requirement or not answer_form or kind not in KINDS:
             continue
-        if origin == "implicit":
-            if implicit_count >= MAX_IMPLICIT:
+        if kind == "EXPERT_COMPLETION":
+            if expert_count >= MAX_EXPERT or not why_needed:
                 continue
-            if not why or not _why_quotes_narrative(why, narrative):
-                continue
-            implicit_count += 1
-        req_id = _clean_field(row.get("id"), max_len=20) or f"R{len(requirements) + 1}"
+            expert_count += 1
+        req_id = f"A{len(requirements) + 1:02d}"
         requirements.append(Requirement(
-            id=req_id, requirement=requirement, origin=origin, why=why,
-            specific_form=specific_form))
+            id=req_id, kind=kind, requirement=requirement,
+            answer_form=answer_form, why_needed=why_needed))
     return requirements
 
 
@@ -163,13 +153,13 @@ def render_appendix(requirements: list[Requirement]) -> str:
     if not requirements:
         return ""
     entries = "\n".join(
-        ENTRY_TEMPLATE.format(id=r.id, origin=r.origin, requirement=r.requirement,
-                              specific_form=r.specific_form)
+        ENTRY_TEMPLATE.format(id=r.id, kind=r.kind, requirement=r.requirement,
+                              answer_form=r.answer_form)
         for r in requirements)
     return APPENDIX_TEMPLATE.format(entries=entries)
 
 
 __all__ = [
-    "MAX_ENTRIES", "MAX_IMPLICIT", "Requirement", "build_brief_prompt",
+    "MAX_ENTRIES", "MAX_EXPERT", "Requirement", "build_brief_prompt",
     "get_requirements", "parse_brief", "render_appendix",
 ]
