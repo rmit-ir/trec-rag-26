@@ -181,6 +181,58 @@ def _apply_search_result_filter(
         return out, documents
 
 
+def _apply_search_result_augment(
+        search_result_augment: (
+            Callable[[list[dict[str, Any]]], list[dict[str, Any]]] | None),
+        out: str, documents: list[dict[str, Any]],
+        ) -> tuple[str, list[dict[str, Any]]]:
+    """Run ``search_result_augment`` (if given) and rebuild BOTH the
+    tool-result text (``out``) and the staged ``documents`` list with any
+    NEW documents it adds, appended after the originals in the order
+    returned (existing rank/order of the original hits is never disturbed).
+    The mirror image of ``_apply_search_result_filter`` -- that one can only
+    narrow the set search already returned; this one can only ADD to it (a
+    document not already present in ``documents``), never remove or reorder
+    an original hit, and never fabricate one the callable didn't actually
+    return (each new entry must carry its own real ``id``/``text``, e.g.
+    from ``tools.get_documents.execute_get_documents`` fetching a specific
+    constructed id -- this function does no fetching itself). Fails open
+    (returns the untouched originals) on any exception, same discipline as
+    ``_apply_search_result_filter``."""
+    if search_result_augment is None or not documents:
+        return out, documents
+    try:
+        original_ids = {str(d["id"]) for d in documents}
+        added = [d for d in search_result_augment(documents)
+                if isinstance(d, dict) and str(d.get("id", "")) not in original_ids
+                and str(d.get("id", ""))]
+        if not added:
+            return out, documents
+        seen_added: set[str] = set()
+        deduped: list[dict[str, Any]] = []
+        for doc in added:
+            uid = str(doc["id"])
+            if uid in seen_added:
+                continue
+            seen_added.add(uid)
+            deduped.append(doc)
+        data = json.loads(out)
+        results = list(data.get("results", []))
+        base_rank = len(results)
+        for offset, doc in enumerate(deduped, start=1):
+            results.append({
+                "rank": doc.get("rank", base_rank + offset),
+                "id": doc["id"], "docid": doc.get("docid", doc["id"]),
+                "kind": doc.get("kind"), "text": doc.get("text", ""),
+                "source": "search_result_augment",
+            })
+        data["results"] = results
+        data["augmented_count"] = len(deduped)
+        return json.dumps(data, ensure_ascii=False), documents + deduped
+    except Exception:
+        return out, documents
+
+
 def _truncate_snippet(text: str, max_chars: int) -> tuple[str, bool]:
     """piika-style preview (``pyserini_rest/adapter.ts::truncateSnippet``,
     verified against its source 2026-08-06): collapse ALL whitespace
@@ -692,6 +744,9 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               search_result_filter: (
                   Callable[[str, list[dict[str, Any]]], SearchResultPass]
                   | None) = None,
+              search_result_augment: (
+                  Callable[[list[dict[str, Any]]], list[dict[str, Any]]]
+                  | None) = None,
               search_preview_chars: int | None = None,
               search_preview_generator: (
                   Callable[[str, list[dict[str, Any]]], dict[str, str]]
@@ -767,6 +822,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     this is not something the model opts into per call — it runs on every
     search a caller enables it for. ``None`` (the default) means no
     filtering, byte-identical to before this parameter existed.
+    ``search_result_augment`` — the mirror image, run right BEFORE
+    ``search_result_filter`` on every successful search (so a filter, if
+    also given, judges the augmented set too) — receives the current
+    staged ``documents`` list and may return EXTRA documents (each a real
+    entry with its own ``id``/``text``, e.g. from
+    ``tools.get_documents.execute_get_documents`` fetching a specific
+    constructed id such as an adjacent paginated chunk) to merge in after
+    the originals; it cannot remove, reorder, or fabricate content for an
+    id it didn't actually fetch (see ``_apply_search_result_augment``'s own
+    docstring). ``None`` (the default) means no augmentation,
+    byte-identical to before this parameter existed.
     ``search_preview_chars``/``search_preview_generator``/
     ``stage_search_results`` (PLAN.md Phase 4d, piika-inspired two-tier
     retrieval) — together, the "browse cheap, read deliberately" split:
@@ -1455,6 +1521,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         # pass after would break their own `json.loads(out)`.
                         requirement = str(
                             call["arguments"].get("requirement", ""))
+                        out, documents = _apply_search_result_augment(
+                            search_result_augment, out, documents)
                         out, documents = _apply_search_result_filter(
                             search_result_filter, requirement, out, documents)
                         out, documents = _apply_search_preview(
