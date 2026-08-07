@@ -337,7 +337,7 @@ def _attach_cumulative_token_usage(
     """Attach running model-token throughput to every subsequent step."""
     keys = (
         "input", "input_uncached", "output", "cache_read", "cache_write",
-        "total", "processed_input", "processed",
+        "total", "processed_input", "processed", "reasoning",
     )
     cumulative = {key: 0 for key in keys}
     saw_usage = False

@@ -78,11 +78,28 @@ This is a prompt-only fix because the ledger's granularity is bounded by step
 1's own enumeration; more precise enumeration raises that floor without any
 schema or harness change.
 
+Phase 4d of ``PLAN.md`` §7.5 (2026-08-06), piika-inspired two-tier retrieval
+(https://github.com/nourj98/piika -- ``read_search_results``/``read_document``):
+NOT part of ``SYSTEM_PROMPT`` itself -- ``TWO_TIER_SEARCH_ADDENDUM`` below,
+appended only when ``agent.run_agent(..., search_preview_chars=...,
+stage_search_results=False)`` is active, so the base prompt (and every run
+that doesn't opt in) is untouched. Explains the changed search contract:
+results are short previews, not full text, and are never staged --
+``get_documents`` is the deliberate, explicit action for reading something
+in full and making it citable.
+
 Phase 4 of ``PLAN.md`` §7.3 (2026-08-06): the final-report paragraph now asks
 for a sentence's strongest-supporting ids first, since the shared harness's
 citation cap keeps only the first three listed (positional, not ranked) --
 see ``PLAN.md`` §7.3 for why a real re-ranking pass is deferred rather than
 built here.
+
+Phase 4b of ``PLAN.md`` §7.4 (2026-08-06): step 2 gets one sentence naming
+``judge_relevance`` (a GLOBAL ``agent_harness`` tool, not this package's
+own -- ``agent.py`` advertises it by default) and roughly when to reach for
+it; the full mechanics live in the tool's own description
+(``agent_harness/tools/judge.py``), same schema-vs-prompt split already used
+for release/coverage mechanics elsewhere in this file.
 
 Soft design constraint: keep the ``SYSTEM_PROMPT`` body (excluding this
 docstring) at roughly 80-86 lines at this file's line-wrapping width. Past
@@ -130,7 +147,10 @@ bare phrase), and ask for more results than you would from a single-engine \
 call (k around 15-20). Every `search` call also names the `requirement` it \
 serves, in the request's own words — see the tool description for named- \
 candidate query guidance and for what to write when a requirement already \
-has evidence.
+has evidence. If a batch looks retrievable but you are not confident it \
+truly answers the requirement rather than just its general topic, call \
+`judge_relevance` on it before committing — not on every batch, only a \
+doubtful one.
 3. Keep each facet's committed evidence minimal. Commit only a result that \
 adds something the facet doesn't already have — a specific fact, date, name, \
 mechanism, example, counter-argument, or caveat — and say what it adds when \
@@ -190,4 +210,30 @@ sentence must never introduce something new. No Markdown, no narration of \
 your own process; every line is a sentence of the answer itself. Match the \
 report's length to the request: a narrow question deserves a sentence or \
 two, not padding toward a limit.
+"""
+
+# PLAN.md Phase 4d, §7.5 -- appended to SYSTEM_PROMPT only when two-tier
+# retrieval is active (see this module's docstring). Kept separate rather
+# than folded into the base prompt so every other run stays byte-identical.
+TWO_TIER_SEARCH_ADDENDUM = """\
+
+Search results in this run are SHORT PREVIEWS, not full document text, and \
+are NOT staged or committable directly — reading a preview costs almost \
+nothing, so scan many before deciding anything. When a preview looks worth \
+committing evidence from, call `get_documents` with its exact id to fetch \
+the FULL text; that is what gets staged and is what `commit_context` then \
+keeps or drops. Never cite or commit from a preview alone — a preview may \
+cut off mid-sentence, and only the full text `get_documents` returns can \
+back a claim. Treat `search` as free, wide browsing and `get_documents` as \
+the deliberate, costed action of actually reading something.
+
+Before writing each cited sentence in your final report, re-read the \
+committed `get_documents` text behind the id you are about to cite and \
+confirm it states the SPECIFIC fact, number, name, or mechanism that \
+sentence asserts — not merely that the document covers the right topic. \
+A preview convinced you a document was worth fetching; only the full text \
+may convince you it supports the exact claim. If the full text turns out \
+to support the general area but not the specific thing you wrote, narrow \
+the sentence to what it actually says, or drop the citation and find the \
+document that does.\
 """

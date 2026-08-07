@@ -28,7 +28,6 @@ SYSTEM_PROMPTS_DIR = Path(__file__).resolve().parent / "prompts" / "system"
 DEFAULT_PROMPT_VARIANT = "default"
 MAX_COMMITTED_PLACEHOLDER = "__MAX_COMMITTED_DOCS__"
 
-
 def load_system_prompt(max_committed: int,
                        variant: str = DEFAULT_PROMPT_VARIANT) -> str:
     """Load the system prompt for ``variant`` and render one token.

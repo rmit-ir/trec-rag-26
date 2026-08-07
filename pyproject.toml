@@ -34,6 +34,16 @@ dev = [
 aus-agent = [
     "boto3>=1.40",
     "openai>=2.45",
+    # ragdoll.rubric.prompts imports ragdoll.nuggetizer, whose metrics module
+    # imports scipy for kendall_tau. We use none of that, but the import chain
+    # runs at package init, so grading through RAGDoll needs scipy present.
+    "scipy>=1.11",
+]
+# AUS v2 orchestration (src/systems/aus_agent_v2). It reuses aus_agent's
+# provider interfaces but owns its plan/research/evidence-patch pipeline.
+aus-agent-v2 = [
+    "boto3>=1.40",
+    "openai>=2.45",
 ]
 # Tongyi DeepResearch port (src/systems/ali_deepresearch)
 ali-deepresearch = [
@@ -63,12 +73,25 @@ brief-revise-agent = [
     "boto3>=1.40",
     "openai>=2.45",
 ]
+# Non-interactive Codex research agent. The CLI is installed separately; this
+# group supplies its private stdio ClimbMix MCP server.
+codex-cli-research = [
+    "mcp>=1.10",
+    "zstandard>=0.23",
+]
+# Non-interactive Claude Code research agent with the identical stdio MCP
+# contract. Claude Code itself is installed separately.
+claude-code-research = [
+    "mcp>=1.10",
+    "zstandard>=0.23",
+]
 # OpenAI o3-deep-research baseline (src/systems/o3_deep_research) — Responses
 # API runner + the ClimbMix MCP server (src/mcp) it grounds the agent on.
 o3-deep-research = [
     "openai>=2.45",
     "mcp>=1.10",
     "uvicorn>=0.30",
+    "zstandard>=0.23",
 ]
 notebook = [
     "pandas",

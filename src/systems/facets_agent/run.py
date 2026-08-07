@@ -145,6 +145,35 @@ def main() -> None:
         help="skip topics this --run-id has already answered successfully, so "
              "an interrupted batch resumes instead of starting over (a failed "
              "run does not count as answered)")
+    ap.add_argument(
+        "--search-result-filter", choices=["none", "minimize", "rank"],
+        default=env("RUN_FACETS_AGENT_SEARCH_RESULT_FILTER", "none"),
+        help="PLAN.md Phase 4c A/B: 'minimize' keeps only judge-relevant "
+             "results, 'rank' reorders/annotates but drops nothing. "
+             "Default 'none' (no filtering, matches facets_agent's actual "
+             "default -- neither config has shipped as the default yet).")
+    ap.add_argument(
+        "--two-tier-search", action="store_true",
+        default=env("RUN_FACETS_AGENT_TWO_TIER_SEARCH", False),
+        help="PLAN.md Phase 4d, piika-inspired: search returns short "
+             "previews (not staged); get_documents becomes the deliberate "
+             "full-text read (staged as usual). Not facets_agent's default.")
+    ap.add_argument(
+        "--two-tier-preview-chars", type=int,
+        default=env("RUN_FACETS_AGENT_TWO_TIER_PREVIEW_CHARS", 500),
+        help="preview length in characters when --two-tier-search is set "
+             "(default: 500, matching piika's own pyserini_rest adapter "
+             "default; unlike piika's, whitespace-collapsed and never cut "
+             "mid-word -- see agent_harness.agent._truncate_snippet)")
+    ap.add_argument(
+        "--two-tier-preview-mode", choices=["truncate", "llm"],
+        default=env("RUN_FACETS_AGENT_TWO_TIER_PREVIEW_MODE", "truncate"),
+        help="'truncate' (default): positional, whitespace-collapsed, "
+             "word-boundary-aware slice of the document's own opening "
+             "text. 'llm': one cheap secondary-model call per search "
+             "batch (tools.generate_snippets) extracts the QUERY-relevant "
+             "span per document instead -- --two-tier-preview-chars is "
+             "still the hard length cap either way.")
     args = ap.parse_args()
     engines = [e.strip() for e in str(args.engines).split(",") if e.strip()]
 
@@ -169,9 +198,35 @@ def main() -> None:
             print("nothing to do", flush=True)
             return
 
+    search_result_filter = None
+    if args.search_result_filter != "none":
+        from facets_agent.filtering import minimize_filter, rank_filter
+        search_result_filter = {
+            "minimize": minimize_filter, "rank": rank_filter,
+        }[args.search_result_filter]
+
+    use_llm_preview = args.two_tier_search and args.two_tier_preview_mode == "llm"
+    if use_llm_preview:
+        import functools
+        from agent_harness.tools import generate_snippets
+
+    # facets_agent.agent.run_agent's own default (coverage_gate) applies
+    # unless two-tier mode is active, in which case the composed gate also
+    # runs the citation self-audit (PLAN.md Phase 4e).
+    from facets_agent.review import coverage_gate, two_tier_final_gate
+    pre_final_hook = two_tier_final_gate if args.two_tier_search else coverage_gate
+
     failures = 0
     for qid, query in jobs:
         print(f"=== {qid}: {query[:80]}...", flush=True)
+        # Bound to THIS topic's full original question every iteration --
+        # generate_snippets(query, requirement, documents) needs it ahead
+        # of `requirement`, which the harness itself supplies per search
+        # call; `functools.partial` pre-binds the query positionally so
+        # the harness's existing (requirement, documents) call still works.
+        search_preview_generator = (
+            functools.partial(generate_snippets, query)
+            if use_llm_preview else None)
         try:
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
@@ -181,7 +236,16 @@ def main() -> None:
                                 max_committed_per_step=(
                                     args.max_committed_per_step),
                                 run_id=args.run_id,
-                                engines=engines)
+                                engines=engines,
+                                pre_final_hook=pre_final_hook,
+                                search_result_filter=search_result_filter,
+                                search_preview_chars=(
+                                    args.two_tier_preview_chars
+                                    if args.two_tier_search else None),
+                                search_preview_generator=(
+                                    search_preview_generator),
+                                stage_search_results=(
+                                    not args.two_tier_search))
         except Exception:  # keep --all going
             failures += 1
             logging.exception("run for %s failed", qid)

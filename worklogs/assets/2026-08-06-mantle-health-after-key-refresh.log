@@ -1,0 +1,29 @@
+Traceback (most recent call last):
+  File "<stdin>", line 7, in <module>
+  File "/scratch/fast/kun/projects/trec-rag-26/src/systems/aus_agent/providers/openai.py", line 146, in run_turn
+    resp = client.responses.create(
+        model=self.model_id,
+    ...<6 lines>...
+        reasoning={"summary": "auto"},
+    )
+  File "/scratch/fast/kun/projects/trec-rag-26/.venv/lib/python3.13/site-packages/openai/resources/responses/responses.py", line 1003, in create
+    return self._post(
+           ~~~~~~~~~~^
+        "/responses",
+        ^^^^^^^^^^^^^
+    ...<47 lines>...
+        stream_cls=Stream[ResponseStreamEvent],
+        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    )
+    ^
+  File "/scratch/fast/kun/projects/trec-rag-26/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 1332, in post
+    return cast(ResponseT, self.request(cast_to, opts, stream=stream, stream_cls=stream_cls))
+                           ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/scratch/fast/kun/projects/trec-rag-26/.venv/lib/python3.13/site-packages/openai/_base_client.py", line 1105, in request
+    raise self._make_status_error_from_response(err.response) from None
+openai.InternalServerError: <html>
+<head><title>503 Service Temporarily Unavailable</title></head>
+<body>
+<center><h1>503 Service Temporarily Unavailable</h1></center>
+</body>
+</html>

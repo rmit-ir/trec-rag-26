@@ -1,0 +1,258 @@
+"""``search_preview_chars``/``stage_search_results`` (PLAN.md Phase 4d, in
+``src/systems/facets_agent/PLAN.md``): piika-inspired two-tier retrieval —
+search shows short previews and never stages them; ``get_documents`` stays
+the deliberate, full-text, staged action. Both default to today's exact
+behavior (no truncation, normal staging).
+"""
+from __future__ import annotations
+
+import json
+from typing import Any
+
+from agent_harness_context.fakes import DOC_SETS, call, staged_text, turn
+
+from agent_harness.agent import _truncate_snippet
+
+
+# ---------------------------------------------------------------------------
+# _truncate_snippet -- piika-style, whitespace-collapsed, word-boundary aware
+# ---------------------------------------------------------------------------
+def test_truncate_snippet_collapses_all_whitespace_including_newlines() -> None:
+    text = "Page 1 of document:\nFirst line.\n\nSecond   line with  gaps."
+    snippet, truncated = _truncate_snippet(text, 1000)
+    assert "\n" not in snippet
+    assert "  " not in snippet
+    assert not truncated
+
+
+def test_truncate_snippet_never_cuts_mid_word() -> None:
+    text = "one two three four five six seven eight nine ten"
+    snippet, truncated = _truncate_snippet(text, 20)
+    assert truncated
+    assert snippet.endswith("...")
+    body = snippet[:-3].rstrip()
+    # every word in the snippet must be a COMPLETE word from the original
+    words = text.split()
+    assert all(w in words for w in body.split())
+    assert len(snippet) <= 23  # 20 + "..." plus rstrip slack
+
+
+def test_truncate_snippet_hard_cuts_a_single_long_token() -> None:
+    """No space anywhere before the limit -- must still produce something
+    bounded rather than looping or returning the whole (pathological) text."""
+    text = "a" * 50
+    snippet, truncated = _truncate_snippet(text, 10)
+    assert truncated
+    assert len(snippet) <= 13  # 10 + "..."
+
+
+def test_truncate_snippet_is_a_noop_under_the_limit() -> None:
+    snippet, truncated = _truncate_snippet("short text", 500)
+    assert snippet == "short text"
+    assert not truncated
+
+
+def _search_payload(provider: Any, call_id: str) -> dict[str, Any]:
+    for turn_results in provider.tool_results:
+        for r in turn_results:
+            if r["id"] == call_id:
+                return json.loads(r["content"].splitlines()[0])
+    raise AssertionError(f"no tool result recorded for {call_id!r}")
+
+
+def test_defaults_are_byte_identical(run_agent_capture) -> None:
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "b", "reason": "direct evidence"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    summary, captured = run_agent_capture(provider)
+    assert summary["status"] == "completed"
+    payload = _search_payload(provider, "s1")
+    full_len = len(payload["results"][0]["text"])
+    assert full_len > 20  # the fixture's full staged text, untruncated
+
+
+def test_search_preview_chars_truncates_every_result(run_agent_capture) -> None:
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "b", "reason": "direct evidence"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    run_agent_capture(provider, search_preview_chars=5)
+    payload = _search_payload(provider, "s1")
+    # word-boundary-aware truncation may back up before 5 chars and append
+    # "..." -- bounded, not an exact 5-char cap (see _truncate_snippet).
+    assert all(len(r["text"]) < len(staged_text(r["id"]))
+              for r in payload["results"])
+    assert all(r.get("preview_truncated") for r in payload["results"])
+
+
+def test_stage_search_results_false_means_committing_a_preview_id_is_a_noop(
+        monkeypatch, run_agent_capture) -> None:
+    """A preview id was never staged, so trying to commit it directly (no
+    get_documents in between) must be the harness's existing "nothing
+    staged, no-op" behavior, not an error -- proving search results really
+    never entered the ledger, not just that they display differently.
+    ``get_documents`` then promotes the SAME id to committable, completing
+    the run -- the fix for the no-op, not a separate path."""
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    monkeypatch.setattr(
+        "agent_harness.tools.get_documents._fetch_one",
+        lambda uid: (uid, staged_text(uid) if uid == "b" else None))
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Try to commit from the preview directly.",
+             calls=[call("c1", "commit_context", documents=[
+                 {"docid": "b", "reason": "trying to cite a preview"}])]),
+        turn(text="Read it in full instead.",
+             calls=[call("g1", "get_documents", ids=["b"])]),
+        turn(text="Now keep it.", calls=[call("c2", "commit_context", documents=[
+            {"docid": "b", "reason": "confirmed by full read"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    summary, captured = run_agent_capture(
+        provider, stage_search_results=False)
+    assert summary["status"] == "completed"
+    c1_result = next(
+        r for turn_results in provider.tool_results for r in turn_results
+        if r["id"] == "c1")
+    assert "no staged batch is open" in c1_result["content"]
+    assert c1_result["is_error"] is False  # a no-op, not a failure
+    payload = _search_payload(provider, "s1")
+    # the model still SAW the results (preview) -- just never staged them
+    assert len(payload["results"]) == len(DOC_SETS["alpha"])
+
+
+def test_get_documents_still_stages_normally_when_search_does_not(
+        monkeypatch, run_agent_capture) -> None:
+    """The whole point: get_documents remains the deliberate, staged,
+    citable action even when search results never enter the ledger.
+
+    ``get_documents`` fetches over real HTTP (``_fetch_one``), a separate
+    path from the ``fake_engine`` fixture's search dispatch -- patched
+    directly here rather than adding a new shared fixture for one test.
+    """
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    monkeypatch.setattr(
+        "agent_harness.tools.get_documents._fetch_one",
+        lambda uid: (uid, staged_text(uid) if uid == "a" else None))
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Read one in full.",
+             calls=[call("g1", "get_documents", ids=["a"])]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "a", "reason": "confirmed by full read"}])]),
+        turn(text="Finding. [a]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    summary, captured = run_agent_capture(
+        provider, stage_search_results=False, search_preview_chars=5)
+    assert summary["status"] == "completed"
+    assert captured["output"]["answer"][0]["text"] == "Finding."
+
+
+# ---------------------------------------------------------------------------
+# search_preview_generator (PLAN.md Phase 4d follow-on: LLM-generated
+# query-relevant previews instead of positional truncation)
+# ---------------------------------------------------------------------------
+def test_generator_snippets_replace_the_result_text(run_agent_capture) -> None:
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    def generator(requirement: str, documents: list[dict]) -> dict[str, str]:
+        return {d["id"]: f"GENERATED for {d['id']}" for d in documents}
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "b", "reason": "direct evidence"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    run_agent_capture(provider, search_preview_chars=100,
+                      search_preview_generator=generator)
+    payload = _search_payload(provider, "s1")
+    assert all(r["text"].startswith("GENERATED for ")
+              for r in payload["results"])
+    assert all(r.get("preview_generated") for r in payload["results"])
+
+
+def test_generator_snippets_are_still_hard_capped(run_agent_capture) -> None:
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    def generator(requirement: str, documents: list[dict]) -> dict[str, str]:
+        return {d["id"]: "x" * 1000 for d in documents}
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "b", "reason": "direct evidence"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    run_agent_capture(provider, search_preview_chars=20,
+                      search_preview_generator=generator)
+    payload = _search_payload(provider, "s1")
+    assert all(len(r["text"]) <= 23 for r in payload["results"])  # 20 + "..."
+
+
+def test_generator_partial_coverage_falls_back_to_truncation_per_id(
+        run_agent_capture) -> None:
+    """A generator that only covers SOME ids (a partial/failed LLM
+    response) must not lose the others -- they fall back to positional
+    truncation, never to nothing."""
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    def generator(requirement: str, documents: list[dict]) -> dict[str, str]:
+        return {"a": "GENERATED for a only"}  # "b", "c" not covered
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "b", "reason": "direct evidence"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    run_agent_capture(provider, search_preview_chars=100,
+                      search_preview_generator=generator)
+    payload = _search_payload(provider, "s1")
+    by_id = {r["id"]: r for r in payload["results"]}
+    assert by_id["a"]["text"] == "GENERATED for a only"
+    assert by_id["a"].get("preview_generated") is True
+    assert "GENERATED" not in by_id["b"]["text"]
+    assert by_id["b"].get("preview_generated") is not True
+
+
+def test_a_raising_generator_falls_back_to_truncation(run_agent_capture) -> None:
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    def boom(requirement: str, documents: list[dict]) -> dict[str, str]:
+        raise RuntimeError("generator backend unreachable")
+
+    script = [
+        turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+        turn(text="Keep it.", calls=[call("c1", "commit_context", documents=[
+            {"docid": "b", "reason": "direct evidence"}])]),
+        turn(text="Finding. [b]"),
+    ]
+    provider = StrictScriptedProvider(list(script))
+    run_agent_capture(provider, search_preview_chars=5,
+                      search_preview_generator=boom)
+    payload = _search_payload(provider, "s1")
+    # still truncated (fails open to positional truncation, not to full text
+    # or a crash)
+    assert all(len(r["text"]) < len(staged_text(r["id"]))
+              for r in payload["results"])

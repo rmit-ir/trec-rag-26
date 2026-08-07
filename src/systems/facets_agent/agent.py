@@ -37,7 +37,9 @@ from agent_harness.agent import (
     run_agent as _run_agent,
 )
 
-from .prompts import SYSTEM_PROMPT
+from agent_harness.tools import JUDGE_RELEVANCE_TOOL
+
+from .prompts import SYSTEM_PROMPT, TWO_TIER_SEARCH_ADDENDUM
 from .review import coverage_gate
 from .tools import COMMIT_CONTEXT_TOOL, build_search_tool_def
 
@@ -73,16 +75,23 @@ ARCH_STAGES = [
                {"name": "get_documents",
                 "ref": "agent_harness/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
                {"name": "commit_context",
-                "ref": "systems/facets_agent/tools.py::COMMIT_CONTEXT_TOOL"}],
+                "ref": "systems/facets_agent/tools.py::COMMIT_CONTEXT_TOOL"},
+               {"name": "judge_relevance",
+                "ref": "agent_harness/tools/judge.py::JUDGE_RELEVANCE_TOOL"}],
      "tools_note": "native tool-calling, passed once to provider.start -- "
-                    "both search and commit_context are this system's OWN "
+                    "search and commit_context are this system's OWN "
                     "definitions (tools.py), not agent_harness's: search "
                     "adds a required `requirement` field (PLAN.md phase 2's "
                     "tool-carried plan review), commit_context adds "
                     "`release` plus a `coverage`/`ready_to_report` "
                     "requirement ledger (the pre-report coverage "
                     "self-check). The 3 NL engines are enabled by default; "
-                    "ssr/lucene_bool are no longer supported."},
+                    "ssr/lucene_bool are no longer supported. "
+                    "judge_relevance (PLAN phase 4b) is a GLOBAL "
+                    "agent_harness tool, not facets_agent's own -- one "
+                    "cheap secondary-model call, at the model's own "
+                    "judgment, checking whether a doubtful batch actually "
+                    "supports its requirement."},
     {"id": "search", "label": "SEARCH", "kind": "retrieval",
      "note": "requirement-labeled queries per engine; hybrid gets a "
              "HyDE-style hypothetical-passage query and a wider k",
@@ -128,6 +137,11 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
               run_id: str = "facets-agent-dev",
               run_desc: str | None = None,
               pre_final_hook: Any = coverage_gate,
+              judge_tool: dict[str, Any] | None = JUDGE_RELEVANCE_TOOL,
+              search_result_filter: Any = None,
+              search_preview_chars: int | None = None,
+              search_preview_generator: Any = None,
+              stage_search_results: bool = True,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end through the shared harness, facets_agent-configured.
 
@@ -136,11 +150,40 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
     own requirement ledger still lists an entry `open`. Pass ``None`` to
     disable (e.g. in tests exercising the bare harness behavior).
 
+    ``search_result_filter`` defaults to ``None`` (no filtering — unlike
+    ``pre_final_hook``/``judge_tool``, this one is NOT on by default).
+    PLAN.md Phase 4c's ``filtering.minimize_filter``/``rank_filter`` are
+    the two experimental configurations under A/B test; pass one
+    explicitly (e.g. via ``run.py --search-result-filter``) to use it.
+
+    ``judge_tool`` defaults to the global ``judge_relevance`` tool (PLAN.md
+    Phase 4b, §7.4): the model may call it, at its own judgment, when a
+    staged/committed batch looks doubtful, spending one cheap secondary-model
+    call to check whether the documents actually support the requirement.
+    Pass ``None`` to disable (e.g. to compare with/without in an A/B run).
+
+    ``search_preview_chars``/``search_preview_generator``/
+    ``stage_search_results`` default to ``None``/``None``/``True`` (today's
+    exact behavior: full text, staged normally) — PLAN.md Phase 4d, §7.5's
+    piika-inspired two-tier retrieval is opt-in, not facets_agent's default
+    yet. ``search_preview_generator`` (Phase 4d follow-on, after the plain
+    positional-truncation prototype's citation-support regression didn't
+    fully resolve on a whitespace/word-boundary fix alone) is
+    ``tools.generate_snippets`` when set: an LLM-generated, query-relevant
+    span per document instead of its own opening text, hard-capped to
+    ``search_preview_chars``. Passing either preview mechanism (or
+    disabling staging) also appends ``prompts.TWO_TIER_SEARCH_ADDENDUM`` to
+    the system prompt, so the model is told about the changed search
+    contract only when it's actually active.
+
     ``**kwargs`` passes through to ``agent_harness.agent.run_agent`` unchanged
     (``context_token_budget``, ``safety_max_rounds``, ...).
     """
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
     system_prompt = SYSTEM_PROMPT.format(max_committed=max_committed_per_step)
+    if (search_preview_chars is not None or search_preview_generator
+            is not None or not stage_search_results):
+        system_prompt += TWO_TIER_SEARCH_ADDENDUM
     return _run_agent(
         query_id, query, backend=backend, model=model, k=k, engines=engines,
         max_committed_per_step=max_committed_per_step, run_id=run_id,
@@ -149,4 +192,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "openai",
         default_k_by_engine={"hybrid": hybrid_k},
         commit_context_tool=COMMIT_CONTEXT_TOOL,
         search_tool_def=build_search_tool_def(engines),
-        pre_final_hook=pre_final_hook, **kwargs)
+        pre_final_hook=pre_final_hook, judge_tool=judge_tool,
+        search_result_filter=search_result_filter,
+        search_preview_chars=search_preview_chars,
+        search_preview_generator=search_preview_generator,
+        stage_search_results=stage_search_results, **kwargs)

@@ -29,6 +29,7 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
+from types import SimpleNamespace
 from typing import Any, Callable
 
 import pytest
@@ -1018,6 +1019,110 @@ def test_a_log_written_by_corpus_py_is_readable_by_save_run_py(
     # format drift between the two scripts would cause.
     assert output["references"] == [CLIMBMIX_DOCIDS[0], CLIMBMIX_DOCIDS[2]]
     assert [s["citations"] for s in output["answer"]] == [[0], [1]]
+
+
+# ---------------------------------------------------------------------------
+# Reproducible Claude Code CLI runner
+# ---------------------------------------------------------------------------
+@pytest.fixture
+def cli_pipeline(load_module: Callable[[Path, str], Any]) -> Any:
+    """Load the new runner by path because the historical directory is hyphenated."""
+    return load_module(CCR_SCRIPTS.parent / "pipeline.py", "ccr_cli_pipeline")
+
+
+def _fake_claude_runner(cited: str = A):
+    """Simulate Claude's JSON envelope and its private stdio MCP call log."""
+    calls: list[tuple[list[str], dict[str, Any]]] = []
+
+    def run(command: list[str], **kwargs: Any) -> SimpleNamespace:
+        calls.append((command, kwargs))
+        log = Path(kwargs["env"]["CLIMBMIX_MCP_LOG"])
+        records = [
+            tool_record("search", {"query": "congestion revenue"},
+                        returned=[{"docid": A, "score": 1.0}]),
+            tool_record("fetch", {"id": A}, returned=[{"docid": A}]),
+        ]
+        log.write_text(
+            "".join(json.dumps(record) + "\n" for record in records),
+            encoding="utf-8")
+        stdout = json.dumps({
+            "type": "result",
+            "is_error": False,
+            "usage": {"input_tokens": 100, "output_tokens": 20},
+            "structured_output": {
+                "answer": [{"text": "Congestion revenue supports transit.",
+                            "citations": [cited]}]
+            },
+        })
+        return SimpleNamespace(returncode=0, stdout=stdout, stderr="")
+
+    return run, calls
+
+
+def test_cli_runner_writes_a_valid_fetched_citation(
+        cli_pipeline: Any, read_artifacts: Callable[[dict[str, Path]], Any]) -> None:
+    """The new automated path keeps the old evidence-chain guarantee intact."""
+    runner, _calls = _fake_claude_runner()
+
+    result = cli_pipeline.run_one(
+        qid=QID, narrative=QUERY, run_id="claude-code.mock",
+        run_desc="hermetic Claude Code runner", model_id="test-opus",
+        attempts=1, runner=runner)
+    artifacts = read_artifacts(result["paths"])
+
+    assert artifacts["violations"] == []
+    assert artifacts["output"]["references"] == [A]
+    assert artifacts["output"]["answer"][0]["citations"] == [0]
+    assert artifacts["trajectory"]["tool_call_counts"] == {"search": 1,
+                                                             "fetch": 1}
+
+
+def test_cli_runner_exposes_only_the_two_climbmix_tools(cli_pipeline: Any) -> None:
+    """Claude cannot silently fall back to Bash, browser, web, or delegation."""
+    runner, calls = _fake_claude_runner()
+
+    cli_pipeline.run_one(
+        qid=QID, narrative=QUERY, run_id="claude-code.tools",
+        run_desc="tool-boundary test", model_id="test-opus",
+        attempts=1, runner=runner)
+    command, _kwargs = calls[0]
+
+    allowed = command[command.index("--tools") + 1]
+    denied = command[command.index("--disallowedTools") + 1]
+    assert set(allowed.split(",")) == {
+        "mcp__climbmix__search", "mcp__climbmix__fetch"}
+    assert {"Bash", "WebSearch", "WebFetch", "Task"} <= set(denied.split(","))
+    assert "--strict-mcp-config" in command
+    assert "--json-schema" in command
+    assert _kwargs["cwd"] != cli_pipeline.PACKAGE_DIR
+    assert _kwargs["cwd"].name.startswith("trec-rag-claude-research-")
+
+
+def test_cli_runner_preserves_both_prompt_layers(cli_pipeline: Any) -> None:
+    """Claude's split system/user input remains verbatim evidence for audits."""
+    runner, calls = _fake_claude_runner()
+
+    result = cli_pipeline.run_one(
+        qid=QID, narrative=QUERY, run_id="claude-code.prompts",
+        run_desc="prompt capture test", model_id="test-opus",
+        attempts=1, runner=runner)
+    command, _kwargs = calls[0]
+
+    assert (result["work_dir"] / "system_prompt.txt").read_text(
+        encoding="utf-8") == command[command.index("--system-prompt") + 1]
+    assert (result["work_dir"] / "prompt.txt").read_text(
+        encoding="utf-8") == command[-1]
+
+
+def test_cli_runner_rejects_a_search_only_citation(cli_pipeline: Any) -> None:
+    """A docid seen in snippets but never fetched cannot enter the final output."""
+    runner, _calls = _fake_claude_runner(cited=B)
+
+    with pytest.raises(RuntimeError, match="was not fetched"):
+        cli_pipeline.run_one(
+            qid=QID, narrative=QUERY, run_id="claude-code.bad-citation",
+            run_desc="citation gate test", model_id="test-opus",
+            attempts=1, runner=runner)
 
 
 # ---------------------------------------------------------------------------

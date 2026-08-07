@@ -133,6 +133,25 @@ def test_commit_context_tool_advertises_release(
     assert "release" in commit_tool["input_schema"]["properties"]
 
 
+def test_judge_relevance_is_advertised_by_default(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """PLAN.md Phase 4b §7.4: facets_agent opts into the global
+    agent_harness judge tool by default -- the model must see it to ever
+    choose to call it."""
+    result = drive(list(HAPPY_SCRIPT))
+    names = {t["name"] for t in result["provider"].tools}
+    assert "judge_relevance" in names
+
+
+def test_judge_relevance_can_be_disabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """``judge_tool=None`` must actually remove it, proving the default is
+    overridable (e.g. for an A/B run with/without the tool)."""
+    result = drive(list(HAPPY_SCRIPT), judge_tool=None)
+    names = {t["name"] for t in result["provider"].tools}
+    assert "judge_relevance" not in names
+
+
 # A better document (D[1]) shows up on a second search and supersedes the
 # first-committed one (D[0]): commit D[0], search again, commit D[1] while
 # releasing D[0] in the same call, then cite only D[1].
@@ -390,6 +409,105 @@ def test_coverage_gate_can_be_disabled_via_pre_final_hook_none(
     assert result["summary"]["status"] == "completed"
     output = __import__("json").loads(result["summary"]["paths"]["output"].read_text())
     assert output["answer"][0]["text"] == "First finding."
+
+
+# ---------------------------------------------------------------------------
+# Phase 4e -- review.citation_audit_gate / two_tier_final_gate
+# ---------------------------------------------------------------------------
+from facets_agent.review import (  # noqa: E402
+    citation_audit_gate,
+    two_tier_final_gate,
+)
+
+
+def test_citation_audit_gate_is_a_noop_on_an_uncited_draft() -> None:
+    """An uncited draft carries no citation-support risk this gate exists
+    for -- it must not fire just because a report was produced."""
+    assert citation_audit_gate({"candidate_sentences": [
+        {"text": "Uncited transition sentence.", "citations": []},
+    ]}) is None
+
+
+def test_citation_audit_gate_is_a_noop_when_there_are_no_sentences_yet() -> None:
+    assert citation_audit_gate({"candidate_sentences": None}) is None
+    assert citation_audit_gate({}) is None
+
+
+def test_citation_audit_gate_lists_every_cited_id_once() -> None:
+    feedback = citation_audit_gate({"candidate_sentences": [
+        {"text": "Claim one.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        {"text": "Claim two.", "citations": [CLIMBMIX_DOCIDS[0], CLIMBMIX_DOCIDS[1]]},
+    ]})
+    assert feedback is not None
+    assert feedback.count(CLIMBMIX_DOCIDS[0]) == 1
+    assert CLIMBMIX_DOCIDS[1] in feedback
+    assert "get_documents" in feedback and "commit_context" in feedback
+
+
+def test_two_tier_final_gate_prefers_coverage_over_citation_audit() -> None:
+    """A missing requirement is a bigger defect than an imperfect citation
+    -- when both would fire, only coverage_gate's feedback goes out, since
+    ``pre_final_hook`` only gets one shot per run."""
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "open", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Claim.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        ],
+    }
+    feedback = two_tier_final_gate(context)
+    assert feedback is not None
+    assert feedback.startswith("Before this report is accepted: your own "
+                                "requirement ledger")
+
+
+def test_two_tier_final_gate_runs_citation_audit_when_coverage_is_clean() -> None:
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "covered", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Claim.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        ],
+    }
+    feedback = two_tier_final_gate(context)
+    assert feedback is not None
+    assert feedback.startswith("Before submitting the report")
+    assert CLIMBMIX_DOCIDS[0] in feedback
+
+
+def test_two_tier_final_gate_is_a_noop_when_both_checks_pass() -> None:
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "covered", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Uncited transition.", "citations": []},
+        ],
+    }
+    assert two_tier_final_gate(context) is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 4d §7.5 -- piika-inspired two-tier retrieval (opt-in, not the default)
+# ---------------------------------------------------------------------------
+def test_two_tier_search_is_off_by_default(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    from facets_agent.prompts import TWO_TIER_SEARCH_ADDENDUM
+
+    result = drive(list(HAPPY_SCRIPT))
+    assert TWO_TIER_SEARCH_ADDENDUM not in result["provider"].system_prompt
+
+
+def test_two_tier_search_appends_the_addendum_when_enabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    from facets_agent.prompts import TWO_TIER_SEARCH_ADDENDUM
+
+    result = drive(list(HAPPY_SCRIPT), search_preview_chars=300,
+                    stage_search_results=False, pre_final_hook=None,
+                    judge_tool=None)
+    assert TWO_TIER_SEARCH_ADDENDUM in result["provider"].system_prompt
 
 
 @pytest.mark.live

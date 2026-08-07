@@ -1,0 +1,28 @@
+   Building trec-rag-26 @ file:///scratch/fast/kun/projects/trec-rag-26
+      Built trec-rag-26 @ file:///scratch/fast/kun/projects/trec-rag-26
+Uninstalled 1 package in 0.97ms
+warning: Failed to hardlink files; falling back to full copy. This may lead to degraded performance.
+         If the cache and target directories are on different filesystems, hardlinking may not be supported.
+         If this is intentional, set `export UV_LINK_MODE=copy` or use `--link-mode=copy` to suppress this warning.
+Installed 1 package in 0.90ms
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /scratch/fast/kun/projects/trec-rag-26
+configfile: pyproject.toml
+plugins: anyio-4.14.1
+collected 98 items / 2 deselected / 96 selected
+
+tests/aus_agent_v2/test_coverage_plan.py ..                              [  2%]
+tests/aus_agent_v2/test_finish_review.py ...........                     [ 13%]
+tests/systems/test_aus_agent_v2.py ...                                   [ 16%]
+tests/systems/test_aus_agent.py ........................................ [ 58%]
+........................................                                 [100%]
+
+======================= 96 passed, 2 deselected in 1.12s =======================
+
+Selected tests passed. Before committing — and after ANY change under
+src/utils/, src/tools/, src/ragrun/ or src/systems/ — run the whole suite:
+
+    bash scripts/test.sh
+
+(~6s. Those layers are shared by all five systems, so a subset cannot clear them.)

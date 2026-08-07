@@ -31,7 +31,8 @@ import json
 import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
-from datetime import datetime
+from dataclasses import dataclass
+from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, Callable
 
@@ -42,8 +43,6 @@ from ragrun import (
     run_timestamp,
     save_run,
 )
-from ragrun.trajectory import TZ
-
 from .context import ContextLedger
 from .providers.base import Provider
 from .tools import (
@@ -53,6 +52,7 @@ from .tools import (
     build_search_tool_def,
     execute_full_text_search,
     execute_get_documents,
+    execute_judge_relevance,
     expire_staged,
 )
 
@@ -93,14 +93,14 @@ log = logging.getLogger(__name__)
 
 
 def now_full(now: datetime | None = None) -> str:
-    """The wall clock, spelled out unambiguously for the model.
+    """The wall clock, spelled out unambiguously for the model, in UTC.
 
     Weekday and month name so nothing hinges on reading a numeric date in the
-    right order, plus the UTC offset and the IANA zone so "today" and any
-    recency judgement the request needs are well defined.
+    right order. UTC makes "today" and recency judgments well defined without
+    leaking either the host's IANA zone or its local offset into every request.
     """
-    now = now or datetime.now(TZ)
-    return f"{now:%A, %d %B %Y, %H:%M:%S %z} ({TZ.key})"
+    now = now or datetime.now(timezone.utc)
+    return f"{now.astimezone(timezone.utc):%A, %d %B %Y, %H:%M:%S} UTC"
 
 
 def make_provider(backend: str, model: str | None,
@@ -113,6 +113,159 @@ def make_provider(backend: str, model: str | None,
         return OpenAIProvider(model)
     raise ValueError(
         f"unknown backend: {backend!r} (available: bedrock, openai)")
+
+
+@dataclass
+class SearchResultPass:
+    """One caller-supplied reduction/reordering of a search call's results,
+    returned by ``search_result_filter`` (PLAN.md Phase 4c, in
+    ``src/systems/facets_agent/PLAN.md``). ``documents`` should be a
+    (possibly reordered, possibly reduced) selection of the ORIGINAL
+    documents the filter was given, each optionally carrying a
+    ``judge_verdict`` annotation -- the harness only trusts an entry's
+    ``id`` and that one field; everything else (text, metadata) is always
+    re-read from the true original, so a filter cannot fabricate,
+    duplicate, or mutate content into a run (see
+    ``_apply_search_result_filter``)."""
+    documents: list[dict[str, Any]]
+    note: str | None = None
+
+
+def _apply_search_result_filter(
+        search_result_filter: (
+            Callable[[str, list[dict[str, Any]]], SearchResultPass] | None),
+        requirement: str, out: str, documents: list[dict[str, Any]],
+        ) -> tuple[str, list[dict[str, Any]]]:
+    """Run ``search_result_filter`` (if given) and rebuild BOTH the
+    tool-result text (``out``, what the model reads) and the staged
+    ``documents`` list (what the ledger tracks) so they never desync --
+    the one place both are rewritten together. Fails open (returns the
+    untouched originals) on any exception, so a broken filter can never
+    starve a facet of evidence."""
+    if search_result_filter is None or not documents:
+        return out, documents
+    try:
+        original_by_id = {str(d["id"]): d for d in documents}
+        pass_ = search_result_filter(requirement, documents)
+        validated: list[dict[str, Any]] = []
+        seen: set[str] = set()
+        for doc in pass_.documents:
+            uid = str(doc.get("id", ""))
+            if uid in original_by_id and uid not in seen:
+                seen.add(uid)
+                merged = dict(original_by_id[uid])
+                if "judge_verdict" in doc:
+                    merged["judge_verdict"] = doc["judge_verdict"]
+                validated.append(merged)
+        data = json.loads(out)
+        results_by_id = {
+            str(r.get("id", r.get("docid"))): r
+            for r in data.get("results", [])}
+        new_results = []
+        for doc in validated:
+            base = results_by_id.get(str(doc["id"]))
+            if base is None:
+                continue
+            result = dict(base)
+            if "judge_verdict" in doc:
+                result["judge_verdict"] = doc["judge_verdict"]
+            new_results.append(result)
+        data["results"] = new_results
+        dropped = len(documents) - len(validated)
+        if dropped:
+            data["filtered_count"] = dropped
+        if pass_.note:
+            data["filter_note"] = pass_.note
+        return json.dumps(data, ensure_ascii=False), validated
+    except Exception:
+        return out, documents
+
+
+def _truncate_snippet(text: str, max_chars: int) -> tuple[str, bool]:
+    """piika-style preview (``pyserini_rest/adapter.ts::truncateSnippet``,
+    verified against its source 2026-08-06): collapse ALL whitespace
+    (including newlines) to single spaces first, so a preview budget is
+    never wasted on line breaks the original chunk text happens to carry.
+    Improves on piika's own version in one way (per user request): never
+    cuts mid-word -- backs up to the last space before the limit, or hard-
+    cuts only if the very first ``max_chars`` characters contain no space
+    at all (a pathological single long token)."""
+    compact = " ".join(text.split())
+    if len(compact) <= max_chars:
+        return compact, False
+    cut = compact.rfind(" ", 0, max_chars)
+    if cut <= 0:
+        cut = max_chars
+    return compact[:cut].rstrip() + "...", True
+
+
+def _apply_search_preview(
+        out: str, documents: list[dict[str, Any]],
+        preview_chars: int | None, *, requirement: str = "",
+        preview_generator: (
+            Callable[[str, list[dict[str, Any]]], dict[str, str]]
+            | None) = None) -> tuple[str, list[dict[str, Any]]]:
+    """Shrink every result's ``text`` to a preview (PLAN.md Phase 4d,
+    piika-inspired two-tier retrieval, in
+    ``src/systems/facets_agent/PLAN.md``): a short, cheap preview shown at
+    search time, with ``get_documents`` (already unpaginated full-text,
+    already staged) as the deliberate, explicit action for reading
+    something in full. ``None`` for both ``preview_chars`` and
+    ``preview_generator`` is a no-op (today's exact behavior).
+
+    ``preview_generator`` (PLAN.md Phase 4d follow-on) — when given — is
+    called ONCE per search batch with ``(requirement, documents)`` and
+    should return ``{id: snippet}`` (e.g.
+    ``tools.generate_snippets``, an LLM-generated query-relevant span
+    instead of the document's own opening text). Any id it doesn't cover
+    (a partial/failed generation) falls back to positional truncation
+    (``_truncate_snippet``) so a preview is never simply missing. Every
+    generated snippet is ALSO hard-capped to ``preview_chars`` here — never
+    trusts the generator's own length discipline. Fails open (returns the
+    untouched originals) on any exception, same discipline as
+    ``_apply_search_result_filter``."""
+    if preview_chars is None and preview_generator is None:
+        return out, documents
+    try:
+        generated: dict[str, str] = {}
+        if preview_generator is not None:
+            try:
+                generated = preview_generator(requirement, documents) or {}
+            except Exception:  # noqa: BLE001
+                generated = {}
+
+        def preview_for(uid: str, text: str) -> tuple[str, bool]:
+            snippet = generated.get(uid)
+            if snippet:
+                if preview_chars is not None and len(snippet) > preview_chars:
+                    return _truncate_snippet(snippet, preview_chars)
+                return snippet, True
+            if preview_chars is None:
+                return text, False
+            return _truncate_snippet(text, preview_chars)
+
+        data = json.loads(out)
+        for result in data.get("results", []):
+            text = result.get("text")
+            uid = str(result.get("id", ""))
+            if isinstance(text, str):
+                snippet, truncated = preview_for(uid, text)
+                result["text"] = snippet
+                if truncated:
+                    result["preview_truncated"] = True
+                    if uid in generated:
+                        result["preview_generated"] = True
+        new_documents = []
+        for d in documents:
+            text = d.get("text")
+            uid = str(d.get("id", ""))
+            if isinstance(text, str):
+                snippet, _truncated = preview_for(uid, text)
+                d = {**d, "text": snippet}
+            new_documents.append(d)
+        return json.dumps(data, ensure_ascii=False), new_documents
+    except Exception:
+        return out, documents
 
 
 def _execute_tool_calls(calls: list[dict[str, Any]], *, k: int,
@@ -535,6 +688,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               search_tool_def: dict[str, Any] | None = None,
               pre_final_hook: (
                   Callable[[dict[str, Any]], str | None] | None) = None,
+              judge_tool: dict[str, Any] | None = None,
+              search_result_filter: (
+                  Callable[[str, list[dict[str, Any]]], SearchResultPass]
+                  | None) = None,
+              search_preview_chars: int | None = None,
+              search_preview_generator: (
+                  Callable[[str, list[dict[str, Any]]], dict[str, str]]
+                  | None) = None,
+              stage_search_results: bool = True,
               ) -> dict[str, Any]:
     """Run one topic end-to-end; saves trajectory + output, returns paths.
 
@@ -587,6 +749,41 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     for that: ``raw_messages`` is each provider's OWN native format (see
     ``providers/base.py``), so a hook that parses it directly only works
     against one backend.
+    ``judge_tool`` — when given (pass ``tools.JUDGE_RELEVANCE_TOOL``) —
+    advertises a fourth tool, ``judge_relevance``, that spins up a SEPARATE,
+    single-turn model conversation (``tools.judge.execute_judge_relevance``,
+    a cheap model by default) to check whether staged/committed documents
+    actually support a requirement the model names, or are only topically
+    adjacent to it. The model decides for itself when to call it; there is
+    no automatic trigger. ``None`` (the default) means neither the tool
+    definition nor its dispatch branch does anything different from before
+    this parameter existed.
+    ``search_result_filter`` — when given — is called after EVERY
+    successful ``search`` result, before it is staged, with the call's
+    ``requirement`` argument (``""`` if the caller's schema has none) and
+    the returned documents; see ``SearchResultPass``'s own docstring for
+    the return contract and the validation that keeps a filter from
+    injecting content it didn't actually receive. Unlike ``judge_tool``,
+    this is not something the model opts into per call — it runs on every
+    search a caller enables it for. ``None`` (the default) means no
+    filtering, byte-identical to before this parameter existed.
+    ``search_preview_chars``/``search_preview_generator``/
+    ``stage_search_results`` (PLAN.md Phase 4d, piika-inspired two-tier
+    retrieval) — together, the "browse cheap, read deliberately" split:
+    when ``search_preview_chars`` is set, every ``search`` result's text
+    is truncated to that many characters (regardless of the model's own
+    ``budget_tokens_per_result``); when ``search_preview_generator`` is
+    ALSO given (a callable, e.g. ``tools.generate_snippets`` — a cheap
+    secondary-model call that extracts the QUERY-relevant span instead of
+    the document's own opening text), it runs once per search batch and
+    ``search_preview_chars`` becomes its hard safety cap rather than a
+    positional-truncation length; when ``stage_search_results`` is
+    ``False``, search results never enter the ledger at all
+    (``get_documents`` is unaffected either way — it already stages full,
+    unpaginated text, and is the deliberate "read this in full" action
+    these params are designed to work alongside). All three default to
+    today's exact behavior (no truncation, no generation, search results
+    staged normally).
     """
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
@@ -816,6 +1013,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
             GET_DOCUMENTS_TOOL,
             commit_context_tool or COMMIT_CONTEXT_TOOL,
         ]
+        if judge_tool is not None:
+            tool_definitions.append(judge_tool)
         user_message = TASK_PROMPT.format(now=now_full(), query=query)
         tb.set_trace_input({
             "system_prompt": system_prompt,
@@ -1249,10 +1448,24 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                     out, trace_output, returned, failed, documents,
                     ct0, ct1, duration_ms
                 ) in zip(retrieval_calls, executed):
+                    if not failed:
+                        # Filter/reorder/truncate BEFORE the budget-status
+                        # footer is appended below -- that footer is plain
+                        # text after the JSON payload, so applying either
+                        # pass after would break their own `json.loads(out)`.
+                        requirement = str(
+                            call["arguments"].get("requirement", ""))
+                        out, documents = _apply_search_result_filter(
+                            search_result_filter, requirement, out, documents)
+                        out, documents = _apply_search_preview(
+                            out, documents, search_preview_chars,
+                            requirement=requirement,
+                            preview_generator=search_preview_generator)
                     out, feedback_stats = action_feedback(out, duration_ms)
                     context = {
-                        "staged": [
-                            str(document["id"]) for document in documents],
+                        "staged": (
+                            [str(document["id"]) for document in documents]
+                            if stage_search_results else []),
                         "committed": [],
                         "rejected": [],
                     }
@@ -1265,11 +1478,15 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                         trace_output=trace_output,
                         tool_call_id=call["id"],
                     )
-                    log.info("[%s] search %r: %s", query_id,
-                             call["arguments"].get("query", ""),
-                             "FAILED" if failed
-                             else f"{len(documents)} docs staged")
-                    if not failed:
+                    log.info(
+                        "[%s] search %r: %s", query_id,
+                        call["arguments"].get("query", ""),
+                        "FAILED" if failed
+                        else (f"{len(documents)} docs staged"
+                              if stage_search_results
+                              else f"{len(documents)} docs previewed "
+                                   "(not staged)"))
+                    if not failed and stage_search_results:
                         ledger.stage(
                             call["id"], call["name"], out, documents)
                     result_by_id[call["id"]] = {
@@ -1336,6 +1553,30 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
                             call["id"], call["name"], out, documents)
                     result_by_id[call["id"]] = {
                         "id": call["id"], "content": out, "is_error": failed}
+
+            # judge_relevance: a side-call to a SEPARATE model, opt-in via
+            # judge_tool. Never stages/commits anything of its own — it only
+            # reads what the ledger already holds (see
+            # tools.judge._documents_by_id) — so there is nothing here for
+            # the budget/safety gates the search and get_documents branches
+            # apply; it is a judgment on existing material, not new
+            # retrieval, and is exactly as useful while `finishing`.
+            judge_calls = [
+                call for call in calls if call["name"] == "judge_relevance"]
+            for call in judge_calls:
+                ct0 = now_iso()
+                started = perf_counter()
+                out = execute_judge_relevance(call["arguments"], ledger)
+                duration_ms = round((perf_counter() - started) * 1000, 3)
+                out, feedback_stats = action_feedback(out, duration_ms)
+                tb.add_tool_call(
+                    call["name"], call["arguments"], out, failed=False,
+                    t_start=ct0, t_end=now_iso(), turn=ti,
+                    stats=feedback_stats,
+                    context=_context_snapshot(ledger), documents=[],
+                    tool_call_id=call["id"])
+                result_by_id[call["id"]] = {
+                    "id": call["id"], "content": out, "is_error": False}
 
             provider.add_tool_results(
                 [result_by_id[call["id"]] for call in calls])

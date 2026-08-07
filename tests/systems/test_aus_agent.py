@@ -22,6 +22,7 @@ contract must stop, not hang. Those are the ones worth reading first.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 import pytest
@@ -37,6 +38,7 @@ from agent_harness.agent import (
     _parse_final_prose,
     _usage_token_stats,
     make_provider,
+    now_full,
     run_agent,
 )
 from aus_agent.agent import (
@@ -48,6 +50,13 @@ from aus_agent.agent import (
 QID = "mock_aus_001"
 QUERY = "How effective is congestion pricing at reducing traffic?"
 D = CLIMBMIX_DOCIDS
+
+
+def test_model_clock_is_utc_without_a_host_locale_signal() -> None:
+    """Every topic sees this line, so a local zone silently biases every run."""
+    instant = datetime(2026, 8, 6, 14, 5, 7, tzinfo=timezone.utc)
+
+    assert now_full(instant) == "Thursday, 06 August 2026, 14:05:07 UTC"
 
 
 @pytest.fixture
