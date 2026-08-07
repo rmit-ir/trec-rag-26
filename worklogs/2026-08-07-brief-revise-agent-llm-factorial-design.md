@@ -134,10 +134,76 @@ against the existing `brief-revise-iter1-exp15` artifacts: **overall mean
   the main run's `backend`/`model` (previously coupled to the same factory
   call). `run.py` gained matching CLI flags.
 
+## 5. AWS credential fix + named sub-systems ($0.12: gpt-5.6-sol)
+
+Credential fix: the `.env` AWS creds were NOT actually expired -- the real
+bug was `BEDROCK_REGION=ap-southeast-1` in `.env` (a region gpt-oss/Qwen
+don't run in; `bedrock.py`'s own docstring already documented the correct
+regions: `ap-southeast-2` for gpt-oss-120b, `us-east-1`/`us-west-2` for
+Qwen). Overriding `BEDROCK_REGION` per-invocation fixed both. Cost gate:
+gpt-oss ~596k processed tokens/topic (~$0.10-0.15), Qwen ~132k tokens/topic
+(~$0.02-0.04) -- both trivially under the $47 ceiling. All 4 Block 1 cells
+now generating/complete (Terra 15/15, Sol running, gpt-oss-120b running,
+Qwen running).
+
+User instruction: materialize factorial cells as named, stored sub-systems,
+and bias new combinations away from aus_agent_v2's own factor choices.
+Sol's design (`worklogs/assets/2026-08-07-sol-subsystems-answer.md`):
+lightweight named JSON manifests (NOT new `src/systems/*` packages) under
+`src/systems/brief_revise_agent/subsystems/<name>.json`, one per factor
+combination, naming scheme `brv__ba-<alias>__m-<alias>__rv-<alias>__base-
+i1__<noncanonical-factor-fragments>`; an append-only execution index at
+`evaluation-results/factorial/executions.jsonl` maps sub-system name ->
+run_id (a sub-system is a documented run_id, not a new eval mechanism --
+`score_one()` still keys off the run_id/output dir exactly as before).
+
+Materialized: the 4 existing Block 1 cells, plus a new **divergent-anchor**
+cell (`brv__ba-luna__m-qwen3-80b__rv-luna__base-i1__adj0__k10`, run_id
+`br-divergent-anchor-qwen-adj0-k10-exp15`) -- adjacent-page fetch OFF and
+k=10, both the opposite of aus_agent_v2's own settings (fetch ON, k=20).
+Launched on the full 15-topic set, zero new code needed (both are existing
+CLI flags).
+
+Sol's fuller divergent-screen batch proposes 7 more cells testing generic
+`agent_harness` factors aus_agent_v2 doesn't use: `search_result_filter`,
+`search_preview_policy`, `stage_search_results`, `judge_relevance_tool`,
+`commit_release`, a wider `retrieval_engine_set`, and a combined "novel
+harness stack" cell. Wired and verified against real code (all pass
+`bash scripts/test.sh` clean, only the pre-existing unrelated
+`test_codex_cli_research.py` failure present):
+
+- `--no-stage-search-results`, `--search-preview-chars N`,
+  `--judge-relevance-tool` (reuses `agent_harness.tools.JUDGE_RELEVANCE_TOOL`
+  directly), `--commit-release` (new `commit_release_tool.py`: an isolated
+  `commit_context` schema adding ONLY the `release` property -- NOT a
+  reimport of facets_agent's own `COMMIT_CONTEXT_TOOL`, which bundles
+  `release` together with a `coverage`/`ready_to_report` ledger that is a
+  *different* factor; conflating them would test two factors as one).
+  All four are plain `**kwargs` pass-throughs into the shared harness --
+  `agent.py` itself needed no changes.
+- `--engines`/`--search-backends` already existed (a wider
+  `retrieval_engine_set` cell needs no new code either).
+- **`search_result_filter` NOT wired this batch.** Both of facets_agent's
+  filters (`minimize_filter`/`rank_filter`) key off a per-call
+  `requirement` argument that facets_agent's OWN search tool schema
+  collects -- `brief_revise_agent`'s search tool has no such field, so
+  the harness always passes `requirement=""` to the filter
+  (`agent_harness/agent.py` line ~1523). Running this cell as-is would
+  silently degenerate (judge sees an empty requirement every call) rather
+  than test the intended factor. Needs either porting facets_agent's
+  `requirement`-carrying search tool schema first (a bigger, separate
+  change) or a documented no-op result -- flagging back to sol rather than
+  shipping a broken cell.
+
 ## Not done yet
 
-- GPT-OSS/Qwen generation (blocked on credentials).
-- Standalone scoring of the 4 new Block 1 cells (terra/sol batches not yet
-  complete) and the `aus_agent_v2` calibration run.
-- The actual mixed-effects model fit -- needs Block 1's data in hand first.
+- Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
+  their batches finish, plus the `aus_agent_v2` calibration run.
+- The remaining 6 of sol's 7 divergent-screen cells (srf skipped, see
+  above) -- code is wired, not yet launched; sol's own gate wants a
+  one-topic smoke test per cell first, verifying from the trace that the
+  flag actually changed model behavior before committing the full 15-topic
+  batch.
+- The actual mixed-effects model fit -- needs Block 1 + divergent-screen
+  data in hand first.
 - Arena confirmation of the eventual best cell(s).

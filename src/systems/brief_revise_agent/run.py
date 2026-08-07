@@ -59,12 +59,16 @@ try:
 except ImportError:  # pragma: no cover
     pass
 
+from agent_harness.tools import JUDGE_RELEVANCE_TOOL  # noqa: E402
 from ragrun.outputs import data_dir  # noqa: E402
 from systems.brief_revise_agent.agent import (  # noqa: E402
     DEFAULT_MAX_COMMITTED_PER_STEP,
     SYSTEM_NAME,
     load_system_prompt,
     run_agent,
+)
+from systems.brief_revise_agent.commit_release_tool import (  # noqa: E402
+    COMMIT_CONTEXT_TOOL_WITH_RELEASE,
 )
 from utils.env import env  # noqa: E402
 
@@ -186,6 +190,33 @@ def main() -> None:
              "adjacent-page auto-retrieval (agent.py's default is ON) -- "
              "for an isolated A/B/C/D comparison of the sol-vs-aus_agent_v2 "
              "improvement-loop rounds")
+    ap.add_argument(
+        "--no-stage-search-results", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_NO_STAGE_SEARCH_RESULTS", False),
+        help="factorial-analysis factor S10: pass stage_search_results=False "
+             "(search results are not staged into the ledger; get_documents "
+             "remains available for full-text reads). Default: staged (True).")
+    ap.add_argument(
+        "--search-preview-chars", type=int,
+        default=env("RUN_BRIEF_REVISE_AGENT_SEARCH_PREVIEW_CHARS", None),
+        help="factorial-analysis factor S9: cap each staged search result's "
+             "text to this many characters (positional preview, no "
+             "generator). Default: no cap (full staging).")
+    ap.add_argument(
+        "--judge-relevance-tool", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_JUDGE_RELEVANCE_TOOL", False),
+        help="factorial-analysis factor S11: advertise the shared "
+             "judge_relevance tool (agent_harness.tools.JUDGE_RELEVANCE_TOOL) "
+             "so the model may spend a side call checking whether a batch "
+             "supports a named requirement. Default: not advertised.")
+    ap.add_argument(
+        "--commit-release", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_COMMIT_RELEASE", False),
+        help="factorial-analysis factor S12: advertise `release` on "
+             "commit_context (commit_release_tool.py's isolated schema, "
+             "release only -- no coverage ledger), letting the model "
+             "retroactively drop a superseded committed document. "
+             "Default: off (release not advertised).")
     args = ap.parse_args()
     search_backends = [e.strip() for e in str(args.search_backends).split(",")
                        if e.strip()]
@@ -228,6 +259,14 @@ def main() -> None:
                 run_kwargs["review_backend"] = args.review_backend
             if args.review_model:
                 run_kwargs["review_model"] = args.review_model
+            if args.no_stage_search_results:
+                run_kwargs["stage_search_results"] = False
+            if args.search_preview_chars:
+                run_kwargs["search_preview_chars"] = args.search_preview_chars
+            if args.judge_relevance_tool:
+                run_kwargs["judge_tool"] = JUDGE_RELEVANCE_TOOL
+            if args.commit_release:
+                run_kwargs["commit_context_tool"] = COMMIT_CONTEXT_TOOL_WITH_RELEASE
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
                                 context_token_budget=args.context_token_budget,
