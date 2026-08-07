@@ -310,6 +310,32 @@ also worse without it) though smaller magnitude (-0.067 vs -0.133).
 `br-model-main-sol-exp15-b1` (2.267, adjacent-fetch ON, k=10, iteration-1
 structure, luna brief/reviewer).
 
+## 11. Hill-climb steps 2-6: all 5 generic-factor cells REJECTED
+
+| cell (sol base = 2.267) | overall | vs base |
+|---|---:|---:|
+| commit_release=True | 2.267 | tie |
+| stage_search_results=False | 2.200 | -0.067 |
+| judge_relevance_tool=True | 2.200 | -0.067 |
+| search_preview_chars=20480 | 2.133 | -0.134 |
+| wider retrieval_engine_set (+ssr+lucene_bool) | 2.133 | -0.134 |
+
+None improve on the current best. **Current best remains
+`br-model-main-sol-exp15-b1` (gpt-5.6-sol, iteration-1 structure,
+adjacent-fetch on, k=10, luna brief/reviewer) at 2.267** -- unchanged
+after 6 hill-climb steps (adjacent-fetch-off + 5 generic factors, all
+rejected). User raised the budget cap to $400 (was implicitly ~$50+$50)
+after a cost check; running total ~$171 (see below), well under.
+
+**Running cost** (`processed_tokens` proxy x placeholder $5/1M for OpenAI
+backend -- NOT a real metered rate, this repo has none for gpt-5.6-*;
+Bedrock gpt-oss/qwen use real rate-card files):
+- OpenAI generation (terra/sol/luna batches, ~27.2M tokens): ~$136 (estimate)
+- Bedrock (gpt-oss + qwen, real rates): ~$2.70
+- Sol design/thinking calls (exact, printed): ~$0.80
+- Judging (standalone + arena, ~210 calls): ~$31 (estimate)
+- **Total: ~$171 of the $400 cap**
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
