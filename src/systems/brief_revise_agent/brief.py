@@ -36,6 +36,24 @@ _MIN_OVERLAP = 2   # word-overlap fallback when `why` carries no quote marks
 _QUOTE_RE = re.compile(r'["‘’“”]([^"‘’“”]{3,})'
                        r'["‘’“”]')
 _WORD_RE = re.compile(r"[a-z0-9]+")
+# Per-field cap on what a brief entry may inject into the system prompt: a
+# degenerate/adversarial analyst response (a run-on `why`, a pasted-in
+# passage) must not silently balloon every subsequent turn's context. Also
+# closes a real gap gpt-5.6-sol's code review flagged: `str(row.get(...))`
+# turns a JSON `null`/list/object into literal text ("None", "['x']") that
+# then reads as a non-empty field -- `_clean_field` rejects anything that
+# was not actually a string before stripping/capping.
+_MAX_FIELD_CHARS = 300
+
+
+def _clean_field(value: Any, max_len: int = _MAX_FIELD_CHARS) -> str:
+    """``value`` as a stripped, length-capped string -- or ``""`` for
+    anything that was not actually a JSON string (``None``, a list, a dict),
+    so a malformed field degrades to "missing" rather than to placeholder
+    text like ``"None"``."""
+    if not isinstance(value, str):
+        return ""
+    return value.strip()[:max_len]
 
 
 @dataclass
@@ -95,10 +113,10 @@ def parse_brief(raw: str, narrative: str) -> list[Requirement]:
             break
         if not isinstance(row, dict):
             continue
-        requirement = str(row.get("requirement", "")).strip()
-        specific_form = str(row.get("specific_form", "")).strip()
-        origin = str(row.get("origin", "")).strip().lower()
-        why = str(row.get("why", "")).strip()
+        requirement = _clean_field(row.get("requirement"))
+        specific_form = _clean_field(row.get("specific_form"))
+        origin = _clean_field(row.get("origin"), max_len=20).lower()
+        why = _clean_field(row.get("why"))
         if not requirement or not specific_form or origin not in (
                 "explicit", "implicit"):
             continue
@@ -108,7 +126,7 @@ def parse_brief(raw: str, narrative: str) -> list[Requirement]:
             if not why or not _why_quotes_narrative(why, narrative):
                 continue
             implicit_count += 1
-        req_id = str(row.get("id", "")).strip() or f"R{len(requirements) + 1}"
+        req_id = _clean_field(row.get("id"), max_len=20) or f"R{len(requirements) + 1}"
         requirements.append(Requirement(
             id=req_id, requirement=requirement, origin=origin, why=why,
             specific_form=specific_form))
@@ -129,6 +147,12 @@ def get_requirements(provider: Any, narrative: str) -> list[Requirement]:
         log.exception("brief.get_requirements: one_shot call failed; "
                       "proceeding with an empty brief")
         return []
+    # This call's tokens are real spend the harness's own trajectory never
+    # sees (it only accounts the main run_agent provider) -- log it so a
+    # pilot run's cost isn't silently undercounted (gpt-5.6-sol code review
+    # finding). `_last_usage` is `one_shot`'s own documented side channel.
+    log.info("brief.get_requirements: usage=%s",
+             getattr(provider, "_last_usage", None))
     return parse_brief(raw, narrative)
 
 

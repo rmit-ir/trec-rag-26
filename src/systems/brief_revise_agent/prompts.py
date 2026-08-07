@@ -12,8 +12,7 @@ paragraph) needs no template here — it carries no per-topic content, so it is
 baked directly into ``prompts/system/default.md`` alongside the byte-copied
 aus_agent prompt it extends.
 
-``REVIEW_PROMPT`` is still a Phase 0 stub (``""``) -- Phase 2 (``review.py``)
-fills it in.
+``REVIEW_PROMPT`` is rendered per-call by ``review.hook`` (PLAN.md §3.3).
 """
 from __future__ import annotations
 

@@ -111,17 +111,44 @@ def _render_evidence(inventory: dict[str, str]) -> str:
     return "\n".join(f"- {uid}: {text}" for uid, text in inventory.items())
 
 
+def _clean_field(value: Any, max_len: int = 500) -> str:
+    """``value`` as a stripped, length-capped string -- or ``""`` for
+    anything that was not actually a JSON string (``None``, a list, a dict).
+    Mirrors ``brief._clean_field``: without this, ``str(row.get("fix"))`` on
+    a JSON ``null`` becomes the literal text ``"None"``, which is truthy and
+    would read as a real (nonsensical) fix instruction in the rendered
+    feedback (gpt-5.6-sol code review finding)."""
+    if not isinstance(value, str):
+        return ""
+    return value.strip()[:max_len]
+
+
 def _parse_issues(raw: str) -> list[dict[str, str]]:
     """Parse the reviewer's JSON into validated issues; malformed/garbage
     input -> ``[]`` rather than raising (the local half of the blanket
     guard -- ``hook``'s own try/except is the other half, for a provider
-    that raises outright rather than returning parseable-but-bad text)."""
+    that raises outright rather than returning parseable-but-bad text).
+
+    ``[]`` here is deliberately indistinguishable from "the reviewer looked
+    and found nothing" -- both mean the LLM-sourced issue list contributes
+    nothing to the feedback. That is NOT the same as accepting the draft:
+    the deterministic uncited-sentence scan in ``hook`` runs independently
+    of whether this parse succeeded, so a garbled reviewer response still
+    triggers one revision when uncited sentences exist. Only logged, not
+    surfaced as a distinct return value, since nothing downstream currently
+    needs to tell the two cases apart (gpt-5.6-sol code review raised this;
+    the parse-failure log line below is the fix -- a policy change was not,
+    see this function's own reasoning above)."""
     try:
         payload = json.loads(strip_fences(raw)) if raw else None
         rows = payload.get("issues") if isinstance(payload, dict) else None
     except (json.JSONDecodeError, AttributeError, TypeError):
         rows = None
     if not isinstance(rows, list):
+        if raw:
+            log.info("review.hook: reviewer response did not parse as the "
+                     "expected {issues: [...]} shape; treating as zero "
+                     "issues (raw[:200]=%r)", raw[:200])
         return []
     issues: list[dict[str, str]] = []
     for row in rows:
@@ -129,14 +156,14 @@ def _parse_issues(raw: str) -> list[dict[str, str]]:
             break
         if not isinstance(row, dict):
             continue
-        issue_type = str(row.get("type", "")).strip().upper()
-        fix = str(row.get("fix", "")).strip()
+        issue_type = _clean_field(row.get("type"), max_len=40).upper()
+        fix = _clean_field(row.get("fix"))
         if issue_type not in ISSUE_TYPES or not fix:
             continue
         issues.append({
             "type": issue_type,
-            "target": str(row.get("target", "")).strip(),
-            "problem": str(row.get("problem", "")).strip(),
+            "target": _clean_field(row.get("target"), max_len=80),
+            "problem": _clean_field(row.get("problem")),
             "fix": fix,
         })
     return issues
@@ -201,6 +228,10 @@ def hook(context: dict[str, Any], *,
             max_words=MAX_REPORT_WORDS,
         )
         raw = one_shot(provider, "", prompt)
+        # Same accounting gap as brief.get_requirements: this call's tokens
+        # never reach the harness's own trajectory (gpt-5.6-sol code review
+        # finding).
+        log.info("review.hook: usage=%s", getattr(provider, "_last_usage", None))
         issues = _parse_issues(raw)
 
         if not issues and not uncited:
