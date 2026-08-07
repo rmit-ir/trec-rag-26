@@ -20,7 +20,7 @@ import json
 import math
 from typing import Any, Callable
 
-from aus_agent.providers.base import Provider
+from agent_harness.providers.base import Provider
 from ragrun.outputs import validate_rag_output
 from ragrun.trajectory import now_iso
 

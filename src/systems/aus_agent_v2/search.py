@@ -11,8 +11,8 @@ import json
 import re
 from typing import Any
 
-from aus_agent.tools import get_documents as base_documents
-from aus_agent.tools import search as base_search
+from agent_harness.tools import get_documents as base_documents
+from agent_harness.tools import search as base_search
 
 
 DEFAULT_ADJACENT_HITS = 5

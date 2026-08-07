@@ -5,7 +5,7 @@ from typing import Any
 
 import pytest
 
-from aus_agent.providers.openai import OpenAIProvider
+from agent_harness.providers.openai import OpenAIProvider
 from systems.aus_agent_v2.provider import (
     OUTER_INITIAL_DELAY_S,
     ResilientOpenAIProvider,

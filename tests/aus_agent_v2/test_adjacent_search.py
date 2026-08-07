@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 
-from aus_agent.tools.search import SearchExecution
+from agent_harness.tools.search import SearchExecution
 from aus_agent_v2 import search as search_mod
 
 

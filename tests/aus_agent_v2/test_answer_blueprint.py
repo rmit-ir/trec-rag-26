@@ -15,7 +15,7 @@ from systems.aus_agent_v2.answer_blueprint import (
 
 def test_commit_fact_schema_is_v2_local_and_leaves_baseline_unchanged() -> None:
     """The experimental extraction contract must not leak into aus_agent."""
-    from aus_agent.tools import COMMIT_CONTEXT_TOOL
+    from agent_harness.tools import COMMIT_CONTEXT_TOOL
 
     enriched = commit_context_tool_with_facts()
     original_item = COMMIT_CONTEXT_TOOL["input_schema"]["properties"][

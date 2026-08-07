@@ -176,8 +176,8 @@ published as completed. The CLI treats either noncompleted semantic status as a
 failure and the full-30 runner recounts exactly 30 completed artifacts. This
 candidate is still ungraded and does not replace the verified `run_one`.
 
-The system reuses `aus_agent.context`, `aus_agent.providers`, and
-`aus_agent.tools`. Planning, evidence-card construction, patch validation,
+The system reuses `agent_harness.context`, `agent_harness.providers`, and
+`agent_harness.tools`. Planning, evidence-card construction, patch validation,
 orchestration, output namespace, and tests are owned here.
 
 ## Run

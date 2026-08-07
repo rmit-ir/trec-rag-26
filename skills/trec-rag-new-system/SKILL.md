@@ -276,6 +276,7 @@ Launch straight into one existing system's pipeline (`--system` implies
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system facet_rag
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system ali_deepresearch
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system aus_agent
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system aus_agent_v2
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system o3_deep_research
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system claude-code-research
 ```
@@ -368,6 +369,16 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
   `STAGE_REGISTRY` keyed by system name in the script (this covers the systems
   that predate the convention). **When you add a system, edit its `ARCH_STAGES`
   to match the real control flow, then regenerate.**
+- **Alternative entrypoints are explicit branches.** A system with multiple
+  mutually exclusive runnable configurations may declare `ARCH_VARIANTS =
+  [...]`. Each entry requires `id`, `label`, `status`, and an ordered `path` of
+  ids from `ARCH_STAGES`; it may add `entrypoint`, `input`, `note`, `tone`
+  (`verified|candidate|oracle`), `default`, and per-stage `stage_overrides`.
+  The drill-in renders every variant as its own labelled lane. This prevents a
+  flat superset diagram from implying that optional candidate gates run after
+  the verified pipeline. Structural stage keys (`id`, `kind`, `back_to`, and
+  `back_from`) cannot be overridden; define another catalog stage when control
+  flow genuinely differs.
 - **Per-stage detail (issue #20).** A stage can optionally declare `prompt`
   (list of `<path-relative-to-src>[::CONST]` refs to its prompt template(s)),
   `code` (same ref shape, to the function/class implementing it), `tools`

@@ -56,7 +56,7 @@ ARCH_STAGES = [
             {"name": "search", "ref":
              "systems/aus_agent_v2/search.py::SEARCH_TOOL_DEF"},
             {"name": "commit_context", "ref":
-             "systems/aus_agent/tools/commit_context.py::COMMIT_CONTEXT_TOOL"},
+             "agent_harness/tools/commit_context.py::COMMIT_CONTEXT_TOOL"},
             {"name": "submit_answer", "ref":
              "systems/aus_agent_v2/coverage_contract.py::SUBMIT_ANSWER_TOOL"},
         ],
@@ -75,7 +75,7 @@ ARCH_STAGES = [
         "id": "commit", "label": "COMMIT EVIDENCE", "kind": "no-llm",
         "note": "exact unsliced anchors get bounded correction before expiry",
         "code": [
-            "systems/aus_agent/tools/commit_context.py::apply_commit",
+            "agent_harness/tools/commit_context.py::apply_commit",
             "systems/aus_agent_v2/coverage_contract.py::normalize_commit_supports",
             "systems/aus_agent_v2/coverage_contract.py::normalize_commit_promotions",
         ],
@@ -139,6 +139,228 @@ ARCH_STAGES = [
         "id": "save", "label": "SAVE", "kind": "artifact",
         "note": "strict trajectory plus rich organizer output",
         "code": ["ragrun/outputs.py::save_run"],
+    },
+]
+
+# Kept literal: gen_arch_viz.py reads this module with ast, never imports it.
+# Each path is mutually exclusive at runtime. Keeping the shared stage catalog
+# above and declaring variant-specific labels/prompts/tools here prevents the
+# architecture page from drawing candidate-only gates as if the verified
+# submission control always executed them.
+ARCH_VARIANTS = [
+    {
+        "id": "verified",
+        "label": "Verified submission control",
+        "status": "VERIFIED · dev30 0.704159",
+        "tone": "verified",
+        "default": True,
+        "input": "original request",
+        "entrypoint": "systems/aus_agent_v2/pipeline.py::run_one",
+        "note": (
+            "Promoted research-first configuration: prose plan, blind atomic "
+            "scout, one evidence-owning research conversation, and no editor."
+        ),
+        "path": [
+            "plan", "critic", "form", "research", "search", "commit",
+            "draft", "map", "save",
+        ],
+        "stage_overrides": {
+            "plan": {
+                "label": "PROSE COVERAGE PLAN",
+                "note": "isolated request decomposition; no typed contract",
+                "prompt": [
+                    "systems/aus_agent_v2/coverage_plan.py::COVERAGE_PLAN_SYSTEM",
+                ],
+                "tools": [],
+            },
+            "critic": {
+                "label": "ATOMIC OBLIGATION SCOUT",
+                "note": "request-only blind scout; retain at most 8 additions",
+                "prompt": [
+                    "systems/aus_agent_v2/plan_critic.py::PLAN_CRITIC_SYSTEM",
+                ],
+                "code": [
+                    "systems/aus_agent_v2/plan_critic.py::merge_plan_critique",
+                    "systems/aus_agent_v2/agent.py::run_agent",
+                ],
+            },
+            "research": {
+                "label": "INTEGRATED RESEARCH LOOP",
+                "note": "same conversation searches, commits, and writes",
+                "prompt": [
+                    "systems/aus_agent_v2/prompts/system/default.md",
+                ],
+                "tools": [
+                    {"name": "search", "ref":
+                     "systems/aus_agent_v2/search.py::SEARCH_TOOL_DEF"},
+                    {"name": "commit_context", "ref":
+                     "agent_harness/tools/commit_context.py::COMMIT_CONTEXT_TOOL"},
+                ],
+                "tools_note": (
+                    "semantic + keyword retrieval; top five paginated hits "
+                    "also stage their immediate adjacent pages"
+                ),
+            },
+            "commit": {
+                "label": "COMMIT SELECTED EVIDENCE",
+                "note": "keep up to 10 useful pages from the staged batch",
+                "code": [
+                    "agent_harness/tools/commit_context.py::apply_commit",
+                ],
+            },
+            "draft": {
+                "label": "FINAL CITED PROSE",
+                "note": "direct answer from the research conversation; no editor",
+                "prompt": [
+                    "systems/aus_agent_v2/prompts/system/default.md",
+                ],
+                "code": [
+                    "systems/aus_agent_v2/agent.py::run_agent",
+                ],
+            },
+            "map": {
+                "label": "MAP CITATIONS",
+                "note": "document ids become organizer reference indices",
+                "code": [
+                    "systems/aus_agent_v2/agent.py::_map_citations",
+                ],
+            },
+        },
+    },
+    {
+        "id": "lean",
+        "label": "Lean atomic ledger",
+        "status": "IMPLEMENTED · UNGRADED",
+        "tone": "candidate",
+        "input": "original request",
+        "entrypoint": "systems/aus_agent_v2/pipeline.py::run_lean_contract_one",
+        "note": (
+            "Fresh-generation candidate with typed atomic obligations, dynamic "
+            "source-backed rows, and a mandatory evidence handoff."
+        ),
+        "path": [
+            "plan", "critic", "form", "research", "search", "commit",
+            "draft", "map", "save",
+        ],
+        "stage_overrides": {
+            "plan": {
+                "label": "ATOMIC CONTRACT PLAN",
+                "note": "typed 10–24 row executable obligation inventory",
+                "prompt": [
+                    "systems/aus_agent_v2/atomic_plan.py::ATOMIC_PLAN_SYSTEM",
+                ],
+            },
+            "critic": {
+                "label": "DUAL OBLIGATION SCOUTS",
+                "note": "blind expectation scout plus observable/count scout",
+                "prompt": [
+                    "systems/aus_agent_v2/plan_critic.py::PLAN_CRITIC_SYSTEM",
+                    "systems/aus_agent_v2/observable_scout.py::OBSERVABLE_SCOUT_SYSTEM",
+                ],
+                "code": [
+                    "systems/aus_agent_v2/plan_critic.py::merge_plan_critique",
+                    "systems/aus_agent_v2/observable_scout.py::combine_obligation_audits",
+                    "systems/aus_agent_v2/agent.py::run_agent",
+                ],
+            },
+            "research": {
+                "label": "CONTRACT RESEARCH LOOP",
+                "note": "search and commit against stable P/S/D obligation ids",
+                "prompt": [
+                    "systems/aus_agent_v2/prompts/system/contract-lean.md",
+                ],
+            },
+            "commit": {
+                "label": "COMMIT + PROMOTE ROWS",
+                "note": "source-local claim/scope anchors; up to six Dxx rows",
+            },
+            "draft": {
+                "label": "HANDOFF + TERMINAL SUBMIT",
+                "note": "complete evidence replay, then one typed final answer",
+                "prompt": [
+                    "systems/aus_agent_v2/prompts/system/contract-lean.md",
+                ],
+            },
+        },
+    },
+    {
+        "id": "semantic",
+        "label": "Semantic finish-the-claim",
+        "status": "IMPLEMENTED · UNGRADED",
+        "tone": "candidate",
+        "input": "original request",
+        "entrypoint": "systems/aus_agent_v2/pipeline.py::run_semantic_contract_one",
+        "note": (
+            "Lean atomic ledger followed by a fresh reject-only row audit and "
+            "one preservation-safe text correction."
+        ),
+        "path": [
+            "plan", "critic", "form", "research", "search", "commit",
+            "draft", "semantic", "map", "save",
+        ],
+        "stage_overrides": {
+            "plan": {
+                "label": "ATOMIC CONTRACT PLAN",
+                "note": "typed 10–24 row executable obligation inventory",
+                "prompt": [
+                    "systems/aus_agent_v2/atomic_plan.py::ATOMIC_PLAN_SYSTEM",
+                ],
+            },
+            "critic": {
+                "label": "DUAL OBLIGATION SCOUTS",
+                "note": "blind expectation scout plus observable/count scout",
+                "prompt": [
+                    "systems/aus_agent_v2/plan_critic.py::PLAN_CRITIC_SYSTEM",
+                    "systems/aus_agent_v2/observable_scout.py::OBSERVABLE_SCOUT_SYSTEM",
+                ],
+                "code": [
+                    "systems/aus_agent_v2/plan_critic.py::merge_plan_critique",
+                    "systems/aus_agent_v2/observable_scout.py::combine_obligation_audits",
+                    "systems/aus_agent_v2/agent.py::run_agent",
+                ],
+            },
+            "research": {
+                "label": "CONTRACT RESEARCH LOOP",
+                "note": "search and commit against stable P/S/D obligation ids",
+                "prompt": [
+                    "systems/aus_agent_v2/prompts/system/contract-lean.md",
+                ],
+            },
+            "commit": {
+                "label": "COMMIT + PROMOTE ROWS",
+                "note": "source-local claim/scope anchors; up to six Dxx rows",
+            },
+            "draft": {
+                "label": "HANDOFF + TERMINAL SUBMIT",
+                "note": "complete evidence replay, then one typed final answer",
+                "prompt": [
+                    "systems/aus_agent_v2/prompts/system/contract-lean.md",
+                ],
+            },
+            "semantic": {
+                "label": "REJECT-ONLY SEMANTIC GATE",
+                "note": "row-local support audit; at most one text-only repair",
+            },
+        },
+    },
+    {
+        "id": "union",
+        "label": "Extractive candidate union",
+        "status": "UNGRADED · dev criterion ceiling 0.8284 (not a score)",
+        "tone": "oracle",
+        "input": "eight completed cited answers",
+        "entrypoint": "systems/aus_agent_v2/pipeline.py::run_candidate_union_one",
+        "note": (
+            "Independent selector-only branch over already-paid answers; it "
+            "copies immutable cited items and never writes prose."
+        ),
+        "path": ["union", "save"],
+        "stage_overrides": {
+            "union": {
+                "label": "SELECT IMMUTABLE ITEMS",
+                "note": "anonymous source runs; exact prose and citations only",
+            },
+        },
     },
 ]
 

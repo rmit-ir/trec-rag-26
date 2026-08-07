@@ -5,9 +5,9 @@ import logging
 from time import sleep
 from typing import Callable
 
-from aus_agent.agent import make_provider as make_base_provider
-from aus_agent.providers.base import ModelTurn, Provider
-from aus_agent.providers.openai import OpenAIProvider
+from agent_harness.agent import make_provider as make_base_provider
+from agent_harness.providers.base import ModelTurn, Provider
+from agent_harness.providers.openai import OpenAIProvider
 from utils.env import env
 
 

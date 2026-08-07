@@ -40,7 +40,7 @@ from ragrun import (
 from ragrun.trajectory import TZ
 from ragrun.pricing import cost_for_provider
 
-from aus_agent.context import ContextLedger
+from agent_harness.context import ContextLedger
 from .coverage_plan import (
     COVERAGE_PLAN_SYSTEM,
     coverage_plan_request,
@@ -137,8 +137,8 @@ from .semantic_closure import (
     semantic_closure_request,
     semantic_revision_errors,
 )
-from aus_agent.providers.base import Provider
-from aus_agent.tools import (
+from agent_harness.providers.base import Provider
+from agent_harness.tools import (
     COMMIT_CONTEXT_TOOL,
     apply_commit,
     execute_get_documents,
