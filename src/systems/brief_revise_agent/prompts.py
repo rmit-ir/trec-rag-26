@@ -74,6 +74,50 @@ category label.
 
 ENTRY_TEMPLATE = "- [{id}] ({origin}) {requirement} -- counts as covered when: {specific_form}"
 
-REVIEW_PROMPT = ""  # Phase 2
+REVIEW_PROMPT = """You are reviewing a draft research report before it is \
+submitted to its reader. You do not rewrite the report yourself -- you list \
+concrete defects the writer must fix in one more pass, checking the draft \
+against the requirements brief and against its own citations.
+
+RESEARCH REQUEST:
+{narrative}
+
+REQUIREMENTS BRIEF:
+{brief}
+
+DRAFT (one sentence per line, numbered, citations shown in brackets):
+{draft}
+
+SENTENCES WITH NO CITATION (found automatically by a deterministic scan, listed \
+by number):
+{uncited}
+
+COMMITTED EVIDENCE ALREADY AVAILABLE (already retrieved and held by the writer -- \
+point the writer at one of these ids rather than asking for a new search when an \
+existing one would resolve the gap):
+{evidence}
+
+Current length: {word_count} words. Hard maximum: {max_words} words.
+
+List AT MOST 6 concrete issues, each ONE of:
+- MISSING_REQUIREMENT: a brief entry (name its id) the draft does not cover at all.
+- SHALLOW: a brief entry covered only as a category label, not its specific form.
+- UNCITED_CLAIM: a factual sentence (name its number) with no citation that the \
+evidence inventory above could support.
+- WEAK_SENTENCE: a sentence too vague or hedged to earn credit, that a specific \
+fact already in the evidence above would fix.
+
+Every issue's `fix` must be a SUBSTITUTION, not a bare addition: the draft is \
+already close to the {max_words}-word cap, so say what to cut to make room for \
+what to add. Do not list an issue you cannot name a concrete fix for, and do not \
+invent an issue just to fill the list -- an empty list is the right answer for a \
+draft with nothing left to fix.
+
+Return ONLY a JSON object of this exact shape (no prose, no code fences):
+{{"issues": [{{"type": "MISSING_REQUIREMENT, SHALLOW, UNCITED_CLAIM, or \
+WEAK_SENTENCE", "target": "<requirement id or sentence number>", "problem": \
+"<what is wrong, briefly>", "fix": "<the substitution: what to cut to make room \
+for what>"}}]}}
+"""
 
 __all__ = ["APPENDIX_TEMPLATE", "BRIEF_PROMPT", "ENTRY_TEMPLATE", "REVIEW_PROMPT"]
