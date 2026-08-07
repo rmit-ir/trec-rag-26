@@ -44,6 +44,21 @@ for _entry in (str(_SRC_ROOT), str(_SYSTEMS_ROOT)):
     sys.path[:] = [p for p in sys.path if p != _entry]
     sys.path.insert(0, _entry)
 
+# aus_agent/run.py (this file's source) never needed this: its default
+# backend is `bedrock`, which reads AWS creds straight from the environment
+# (a shell export or an AWS profile), not from `.env`. `--backend openai`
+# (needed here to match aus_agent's own gpt-5.6-luna baseline runs -- see
+# PLAN.md §6 Phase 4) needs OPENAI_API_KEY/OPENAI_BASE_URL, which live in
+# `.env` and are never loaded without this -- facets_agent's run.py already
+# has this same block since it defaults to openai. Found running the live
+# pilot: every --qid call failed on a credentials error before this fix.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover
+    pass
+
 from ragrun.outputs import data_dir  # noqa: E402
 from systems.brief_revise_agent.agent import (  # noqa: E402
     DEFAULT_MAX_COMMITTED_PER_STEP,
