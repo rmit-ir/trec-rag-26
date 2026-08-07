@@ -374,9 +374,12 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
   [...]`. Each entry requires `id`, `label`, `status`, and an ordered `path` of
   ids from `ARCH_STAGES`; it may add `entrypoint`, `input`, `note`, `tone`
   (`verified|candidate|oracle`), `default`, and per-stage `stage_overrides`.
-  The drill-in renders every variant as its own labelled lane. This prevents a
-  flat superset diagram from implying that optional candidate gates run after
-  the verified pipeline. Structural stage keys (`id`, `kind`, `back_to`, and
+  The drill-in opens on the variant marked `default`, grouped into an
+  explanatory focused view when the system provides the standard research
+  stages. A separate comparison control renders every variant as its own
+  labelled lane. This keeps the recommended runnable system primary while
+  preventing a flat superset diagram from implying that optional candidate
+  gates run after it. Structural stage keys (`id`, `kind`, `back_to`, and
   `back_from`) cannot be overridden; define another catalog stage when control
   flow genuinely differs.
 - **Per-stage detail (issue #20).** A stage can optionally declare `prompt`

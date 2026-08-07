@@ -850,6 +850,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
   #legend .lg { display: inline-flex; align-items: center; gap: 6px; }
   #legend .sw { width: 22px; height: 3px; border-radius: 2px; display: inline-block; }
+  #legend .variant-toggle { margin-left: auto; padding: 3px 9px; font-size: 11px; }
   #wrap { position: relative; overflow: auto; }
   svg { width: 100%; min-width: 100%; height: calc(100vh - 96px); display: block; }
   .card { cursor: pointer; }
@@ -892,6 +893,15 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .variant-card.candidate .variant-status { fill: var(--e-provider); }
   .variant-card.oracle .variant-status { fill: var(--e-answer-format); }
   .source-card rect { fill: var(--card); stroke: var(--cardstroke); stroke-width: 1.5; rx: 8; }
+  .phase-panel { fill: color-mix(in srgb, var(--card) 38%, transparent);
+                 stroke: var(--line); stroke-width: 1.5; rx: 14; }
+  .conversation-panel { fill: color-mix(in srgb, var(--e-provider) 7%, var(--panel));
+                        stroke: var(--e-provider); stroke-width: 2.5; rx: 14; }
+  .phase-title { fill: var(--muted); font-size: 11px; font-weight: 750;
+                 letter-spacing: .45px; }
+  .recommended-status { fill: var(--e-retrieval); font-size: 11px;
+                        font-weight: 750; letter-spacing: .35px; }
+  .stage-note { fill: var(--muted); font-size: 10px; }
   #detail { position: fixed; top: 0; right: 0; width: min(440px, 45vw); height: 100%;
             overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line);
             padding: 16px; box-shadow: -6px 0 18px rgba(0,0,0,.15); z-index: 5; }
@@ -937,6 +947,7 @@ const backBtn = document.getElementById('back');
 const detail = document.getElementById('detail');
 const detailBody = document.getElementById('detail-body');
 const ENGINE_BLURB = Object.fromEntries(MODEL.engines.map(e => [e.id, e.blurb]));
+let SHOW_VARIANT_COMPARISON = false;
 
 const EDGE_TYPES = [
   ['retrieval','Retrieval (search layers)'],
@@ -1011,9 +1022,14 @@ function addArrowMarker() {
 function buildLegend(view) {
   const box = document.getElementById('legend');
   clear(box);
-  if (view === 'system' || view === 'variant') {
-    ['LLM = calls a model', 'CODE = deterministic', 'LLM+CODE = both',
-     'dashed box = loop span', 'stacked box = runs concurrently'].forEach(t => {
+  if (view === 'system' || view === 'variant' || view === 'recommended') {
+    const entries = view === 'recommended'
+      ? ['LLM = calls a model', 'CODE = deterministic',
+         'blue panel = one continuous model conversation',
+         'curved return = search again for evidence gaps']
+      : ['LLM = calls a model', 'CODE = deterministic', 'LLM+CODE = both',
+         'dashed box = loop span', 'stacked box = runs concurrently'];
+    entries.forEach(t => {
       const s = document.createElement('span'); s.className = 'lg'; s.textContent = t;
       box.appendChild(s);
     });
@@ -1034,6 +1050,20 @@ function buildLegend(view) {
   const hint = document.createElement('span'); hint.className = 'lg';
   hint.textContent = 'Click a system to drill into its pipeline.';
   box.appendChild(hint);
+}
+
+function addVariantToggle(sys, comparing) {
+  const button = document.createElement('button');
+  button.id = 'variant-toggle';
+  button.className = 'variant-toggle';
+  button.textContent = comparing
+    ? 'Focus recommended system'
+    : 'Compare ' + Math.max(0, sys.variants.length - 1) + ' candidate variants';
+  button.addEventListener('click', () => {
+    SHOW_VARIANT_COMPARISON = !SHOW_VARIANT_COMPARISON;
+    drawVariantSystem(sys);
+  });
+  document.getElementById('legend').appendChild(button);
 }
 
 function showTip(evt, html) {
@@ -1251,12 +1281,157 @@ function drawOverview() {
 }
 
 // ---- DRILL-IN ------------------------------------------------------------
-function drawVariantSystem(sys) {
+function appendFocusedStage(parent, sys, variant, stage, x, y) {
+  const width = 220, height = 96;
+  const group = el('g', { class: 'stage focused-stage', tabindex: 0,
+    role: 'button', 'aria-label': 'Open ' + stage.label + ' detail',
+    'data-stage-id': stage.id, 'data-kind': stage.kind,
+    'data-variant-id': variant.id });
+  if (stage.run) group.setAttribute('data-run', stage.run);
+  group.appendChild(el('rect', { x, y, width, height, class: 'k-' + stage.kind }));
+  appendWrappedText(group, stage.label, x + width/2, y + 25, {
+    maxChars: 25, maxLines: 2, lineHeight: 14, weight: 700,
+  });
+  appendWrappedText(group, stage.note || '', x + width/2, y + 59, {
+    maxChars: 34, maxLines: 2, lineHeight: 12, className: 'stage-note',
+  });
+  group.appendChild(el('text', { x: x + 10, y: y + height - 9,
+    class: 'sub2' }, stage.kind));
+  if (stage.run) group.appendChild(el('text', { x: x + width - 10,
+    y: y + height - 9, 'text-anchor': 'end', class: 'runbadge',
+    'font-size': 9 }, stage.run.toUpperCase()));
+  group.addEventListener('mousemove', event => showTip(event,
+    '<b>' + stage.label + '</b><br>' + (stage.note || '')));
+  group.addEventListener('mouseleave', hideTip);
+  const laneSys = { ...sys, stages: variant.stages };
+  const open = () => showDetail(laneSys, stage, variant);
+  group.addEventListener('click', open);
+  group.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault(); open();
+    }
+  });
+  parent.appendChild(group);
+}
+
+function drawRecommendedVariant(sys, variant) {
+  crumb.textContent = 'overview  ›  ' + sys.name + '  ›  recommended';
+  backBtn.style.display = '';
+  closeDetail();
+  buildLegend('recommended');
+  addVariantToggle(sys, false);
+  clear(svg);
+  document.getElementById('wrap').scrollLeft = 0;
+  svg.setAttribute('data-view', 'recommended');
+
+  const canvasWidth = Math.max(1180, document.documentElement.clientWidth);
+  const canvasHeight = Math.max(750, window.innerHeight - 96);
+  const baseX = Math.max(30, (canvasWidth - 1120) / 2);
+  setCanvas(canvasWidth, canvasHeight);
+
+  const byId = Object.fromEntries(variant.stages.map(stage => [stage.id, stage]));
+  const required = ['plan', 'critic', 'form', 'research', 'search', 'commit',
+                    'draft', 'map', 'save'];
+  if (!required.every(id => byId[id])) {
+    drawVariantComparison(sys);
+    return;
+  }
+  const laneSys = { ...sys, stages: variant.stages };
+
+  svg.appendChild(el('text', { x: baseX, y: 38, class: 'lbl',
+    'font-size': 20, 'font-weight': 750 }, 'Recommended: ' + variant.label));
+  svg.appendChild(el('text', { x: baseX, y: 64,
+    class: 'recommended-status' }, variant.status + ' · default entrypoint: run_one'));
+  appendWrappedText(svg,
+    'Plan the request once. Then one model conversation owns the evidence: it searches, commits useful pages, repeats for gaps, and writes the final cited prose. No editor rewrites it.',
+    baseX, 88, { anchor: 'start', maxChars: 145, maxLines: 2,
+      lineHeight: 15, className: 'sub2' });
+  svg.appendChild(el('text', { x: baseX, y: 124, class: 'hint' },
+    variant.entrypoint + ' · click any stage for its exact prompt, tools, and code'));
+
+  const backgrounds = el('g'); svg.appendChild(backgrounds);
+  const edges = el('g'); svg.appendChild(edges);
+  const nodes = el('g'); svg.appendChild(nodes);
+  const arrow = (d, extra = {}) => edges.appendChild(el('path', {
+    class: 'edge', stroke: 'var(--muted)', 'marker-end': 'url(#arw)', d, ...extra,
+  }));
+
+  backgrounds.appendChild(el('rect', { x: baseX, y: 145, width: 1120,
+    height: 150, class: 'phase-panel' }));
+  backgrounds.appendChild(el('text', { x: baseX + 18, y: 169,
+    class: 'phase-title' }, '1 · UNDERSTAND THE REQUEST — THREE SMALL SETUP STEPS, RUN ONCE'));
+
+  const conversation = el('g', { class: 'stage conversation-info', tabindex: 0,
+    role: 'button', 'aria-label': 'Open integrated research-loop detail' });
+  conversation.appendChild(el('rect', { x: baseX, y: 315, width: 1120,
+    height: 220, class: 'conversation-panel' }));
+  conversation.appendChild(el('text', { x: baseX + 18, y: 340,
+    class: 'phase-title' }, '2 · ONE EVIDENCE-OWNING MODEL CONVERSATION'));
+  conversation.appendChild(el('text', { x: baseX + 18, y: 360,
+    class: 'hint' }, 'Search → commit selected pages → repeat for evidence gaps → write final cited prose; no editor or second writer'));
+  const openResearch = () => showDetail(laneSys, byId.research, variant);
+  conversation.addEventListener('click', openResearch);
+  conversation.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault(); openResearch();
+    }
+  });
+  backgrounds.appendChild(conversation);
+
+  backgrounds.appendChild(el('rect', { x: baseX, y: 555, width: 1120,
+    height: 155, class: 'phase-panel' }));
+  backgrounds.appendChild(el('text', { x: baseX + 18, y: 580,
+    class: 'phase-title' }, '3 · PACKAGE THE ANSWER — DETERMINISTIC CITATION MAPPING AND SAVE'));
+
+  const inputX = baseX + 25, setupY = 183;
+  const planX = baseX + 210, criticX = baseX + 470, formX = baseX + 730;
+  const source = el('g', { class: 'source-card' });
+  source.appendChild(el('rect', { x: inputX, y: setupY + 16,
+    width: 150, height: 64 }));
+  appendWrappedText(source, variant.input, inputX + 75, setupY + 43, {
+    maxChars: 18, maxLines: 2, lineHeight: 14, weight: 700,
+  });
+  nodes.appendChild(source);
+  appendFocusedStage(nodes, sys, variant, byId.plan, planX, setupY);
+  appendFocusedStage(nodes, sys, variant, byId.critic, criticX, setupY);
+  appendFocusedStage(nodes, sys, variant, byId.form, formX, setupY);
+  arrow(`M ${inputX + 150} ${setupY + 48} L ${planX} ${setupY + 48}`);
+  arrow(`M ${planX + 220} ${setupY + 48} L ${criticX} ${setupY + 48}`);
+  arrow(`M ${criticX + 220} ${setupY + 48} L ${formX} ${setupY + 48}`);
+
+  const researchY = 385;
+  const searchX = baseX + 210, commitX = baseX + 470, draftX = baseX + 730;
+  appendFocusedStage(nodes, sys, variant, byId.search, searchX, researchY);
+  appendFocusedStage(nodes, sys, variant, byId.commit, commitX, researchY);
+  appendFocusedStage(nodes, sys, variant, byId.draft, draftX, researchY);
+  arrow(`M ${baseX + 1090} 295 L ${baseX + 1090} 315`);
+  arrow(`M ${searchX + 220} ${researchY + 48} L ${commitX} ${researchY + 48}`);
+  arrow(`M ${commitX + 220} ${researchY + 48} L ${draftX} ${researchY + 48}`);
+  arrow(`M ${commitX + 110} ${researchY + 96} C ${commitX + 110} 515, ` +
+        `${searchX + 110} 515, ${searchX + 110} ${researchY + 96}`, {
+    stroke: 'var(--accent)', 'stroke-dasharray': '5 4',
+  });
+  edges.appendChild(el('text', { x: (searchX + commitX + 220) / 2,
+    y: 527, 'text-anchor': 'middle', class: 'hint' },
+    byId.research.back_label || 'repeat for evidence gaps'));
+
+  const packageY = 595, mapX = baseX + 340, saveX = baseX + 600;
+  appendFocusedStage(nodes, sys, variant, byId.map, mapX, packageY);
+  appendFocusedStage(nodes, sys, variant, byId.save, saveX, packageY);
+  arrow(`M ${baseX + 1090} 535 L ${baseX + 1090} 555`);
+  arrow(`M ${mapX + 220} ${packageY + 48} L ${saveX} ${packageY + 48}`);
+  addArrowMarker();
+}
+
+function drawVariantComparison(sys) {
   crumb.textContent = 'overview  ›  ' + sys.name + '  ›  runnable branches';
   backBtn.style.display = '';
   closeDetail();
   buildLegend('variant');
+  addVariantToggle(sys, true);
   clear(svg);
+  document.getElementById('wrap').scrollLeft = 0;
+  svg.setAttribute('data-view', 'variant-comparison');
 
   const variants = sys.variants;
   const bw = 168, bh = 76, gap = 32, stageX = 505;
@@ -1390,6 +1565,12 @@ function drawVariantSystem(sys) {
     svg.appendChild(lane);
   });
   addArrowMarker();
+}
+
+function drawVariantSystem(sys) {
+  const recommended = sys.variants.find(variant => variant.default) || sys.variants[0];
+  if (!SHOW_VARIANT_COMPARISON && recommended) drawRecommendedVariant(sys, recommended);
+  else drawVariantComparison(sys);
 }
 
 function drawSystem(sys) {
@@ -1535,11 +1716,13 @@ function route() {
   else drawOverview();
 }
 backBtn.addEventListener('click', () => {
+  SHOW_VARIANT_COMPARISON = false;
   if (location.hash) location.hash = ''; else drawOverview();
 });
 document.addEventListener('keydown', ev => {
   if (ev.key !== 'Escape') return;
   if (!detail.hidden) { closeDetail(); return; }
+  SHOW_VARIANT_COMPARISON = false;
   if (location.hash) location.hash = ''; else drawOverview();
 });
 window.addEventListener('hashchange', route);

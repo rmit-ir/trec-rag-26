@@ -158,6 +158,7 @@ def test_aus_agent_v2_variants_are_mutually_exclusive_runnable_paths() -> None:
     lean = _variant(system, "lean")
     semantic = _variant(system, "semantic")
     union = _variant(system, "union")
+    assert verified["label"] == "Verified research-first control"
     assert verified["entrypoint"].endswith("::run_one")
     assert lean["entrypoint"].endswith("::run_lean_contract_one")
     assert semantic["entrypoint"].endswith("::run_semantic_contract_one")
@@ -184,6 +185,24 @@ def test_variant_renderer_wraps_labels_and_uses_scrollable_branch_lanes() -> Non
     for marker in (
         "drawVariantSystem", "variant-lane", "appendWrappedText",
         "overflow: auto", "each lane = a mutually exclusive runnable branch",
+    ):
+        assert marker in html
+
+
+def test_recommended_variant_is_the_default_focused_explanation() -> None:
+    """The submission path must be understandable before candidates appear.
+
+    The default drill-in groups the verified path by responsibility and keeps
+    the three experimental alternatives behind an explicit comparison control.
+    """
+    html = gav.render_html(gav.build_model())
+    for marker in (
+        "SHOW_VARIANT_COMPARISON = false",
+        "drawRecommendedVariant",
+        "Recommended: ",
+        "ONE EVIDENCE-OWNING MODEL CONVERSATION",
+        "Compare ' + Math.max(0, sys.variants.length - 1) + ' candidate variants",
+        "data-view', 'recommended",
     ):
         assert marker in html
 

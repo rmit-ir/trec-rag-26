@@ -150,7 +150,7 @@ ARCH_STAGES = [
 ARCH_VARIANTS = [
     {
         "id": "verified",
-        "label": "Verified submission control",
+        "label": "Verified research-first control",
         "status": "VERIFIED · dev30 0.704159",
         "tone": "verified",
         "default": True,

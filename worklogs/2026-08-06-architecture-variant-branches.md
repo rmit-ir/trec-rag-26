@@ -17,7 +17,7 @@ mutually exclusive entrypoints:
 
 | Variant | Status shown | Entrypoint | Input |
 | --- | --- | --- | --- |
-| Verified submission control | `VERIFIED · dev30 0.704159` | `run_one` | original request |
+| Verified research-first control | `VERIFIED · dev30 0.704159` | `run_one` | original request |
 | Lean atomic ledger | `IMPLEMENTED · UNGRADED` | `run_lean_contract_one` | original request |
 | Semantic finish-the-claim | `IMPLEMENTED · UNGRADED` | `run_semantic_contract_one` | original request |
 | Extractive candidate union | `UNGRADED · dev criterion ceiling 0.8284 (not a score)` | `run_candidate_union_one` | eight completed cited answers |
@@ -37,13 +37,14 @@ overrides cannot alter structural flow keys; entrypoint/code/prompt/tool refs
 are resolved against source; and visual tones are restricted to verified,
 candidate, or oracle.
 
-Systems with variants render one lane per entrypoint. Each lane has its own
-input, status, stage sequence, and loop boundary. Long pipelines keep a fixed
-font and box size and use horizontal scrolling instead of an SVG `viewBox`
-that shrinks text. A shared SVG word-wrapper caps labels at two lines with an
-ellipsis, run badges moved to the bottom metadata row, and long variant status
-text wraps within its card. The overview uses wider, wrapped system cards and
-now leaves explicit clearance between column headers and the first row.
+The default variant opens as a focused explanation; an explicit comparison
+control renders one lane per entrypoint. Each comparison lane has its own input,
+status, stage sequence, and loop boundary. Long pipelines keep a fixed font and
+box size and use horizontal scrolling instead of an SVG `viewBox` that shrinks
+text. A shared SVG word-wrapper caps labels at two lines with an ellipsis, run
+badges moved to the bottom metadata row, and long variant status text wraps
+within its card. The overview uses wider, wrapped system cards and now leaves
+explicit clearance between column headers and the first row.
 
 The architecture skill documents the new literal and the reason to use it:
 alternative entrypoints should be branches, not a misleading flat superset.
