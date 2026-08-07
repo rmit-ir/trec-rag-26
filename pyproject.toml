@@ -64,12 +64,25 @@ facets-agent = [
     "boto3>=1.40",
     "openai>=2.45",
 ]
+# Non-interactive Codex research agent. The CLI is installed separately; this
+# group supplies its private stdio ClimbMix MCP server.
+codex-cli-research = [
+    "mcp>=1.10",
+    "zstandard>=0.23",
+]
+# Non-interactive Claude Code research agent with the identical stdio MCP
+# contract. Claude Code itself is installed separately.
+claude-code-research = [
+    "mcp>=1.10",
+    "zstandard>=0.23",
+]
 # OpenAI o3-deep-research baseline (src/systems/o3_deep_research) — Responses
 # API runner + the ClimbMix MCP server (src/mcp) it grounds the agent on.
 o3-deep-research = [
     "openai>=2.45",
     "mcp>=1.10",
     "uvicorn>=0.30",
+    "zstandard>=0.23",
 ]
 notebook = [
     "pandas",

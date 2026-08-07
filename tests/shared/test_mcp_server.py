@@ -271,6 +271,63 @@ def test_fetch_of_an_empty_document_still_titles_with_the_id(
     assert doc["text"] == "" and doc["title"] == DOCID
 
 
+def test_optional_fetch_pacing_waits_between_completed_requests(
+        server: ModuleType, monkeypatch: pytest.MonkeyPatch,
+        tmp_path: Path) -> None:
+    """A host-wide lock prevents fast CLI workers from sustaining 429 storms."""
+    lock = tmp_path / "fetch.lock"
+    calls: list[str] = []
+    sleeps: list[float] = []
+    clock = iter([10.0, 10.0, 10.2, 10.5])
+    monkeypatch.setattr(server, "FETCH_LOCK_PATH", str(lock))
+    monkeypatch.setattr(server, "FETCH_MIN_INTERVAL", 0.5)
+    monkeypatch.setattr(server, "fetch_doc", lambda docid: (
+        calls.append(docid) or {"docid": docid, "text": "body"}))
+    monkeypatch.setattr(server, "_wall_time", lambda: next(clock))
+    monkeypatch.setattr(server, "_sleep", sleeps.append)
+
+    server._fetch_with_shared_pacing("first")
+    server._fetch_with_shared_pacing("second")
+
+    assert calls == ["first", "second"]
+    assert sleeps == [pytest.approx(0.3)]
+
+
+def test_local_full_docstore_bypasses_the_remote_fetch(
+        server: ModuleType, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CLI runs stay on our own corpus copy and cannot be degraded by remote 429s."""
+    class Store:
+        def get_text(self, docid: str) -> str:
+            return f"local full text for {docid}"
+
+    monkeypatch.setattr(server, "LOCAL_DOCSTORE_PATH", "/local/full")
+    monkeypatch.setattr(server, "_LOCAL_STORE", Store())
+    monkeypatch.setattr(server, "fetch_doc", lambda _docid: pytest.fail(
+        "remote fetch must not run when the local full store is configured"))
+
+    doc = _call(server, "fetch", {"id": DOCID})
+
+    assert doc["id"] == DOCID
+    assert doc["text"] == f"local full text for {DOCID}"
+
+
+def test_stdio_clients_can_receive_a_private_auditable_tool_log(
+        server: ModuleType, stub_retrieval: dict[str, list[Any]],
+        tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    """CLI agents need per-topic provenance even though MCP owns the tool calls."""
+    log = tmp_path / "tool_log.jsonl"
+    monkeypatch.setattr(server, "TOOL_LOG", str(log))
+
+    _call(server, "search", {"query": "congestion pricing"})
+    _call(server, "fetch", {"id": DOCID})
+
+    rows = [json.loads(line) for line in log.read_text().splitlines()]
+    assert [row["tool_name"] for row in rows] == ["search", "fetch"]
+    assert rows[0]["returned"][0]["docid"]
+    assert rows[1]["returned"] == [{"docid": DOCID}]
+    assert all(row["t_start"].endswith("+00:00") for row in rows)
+
+
 # ---------------------------------------------------------------------------
 # _title
 # ---------------------------------------------------------------------------
