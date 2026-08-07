@@ -425,6 +425,43 @@ that the analyst sweep just showed role-model swaps yield nothing here):
    rounds in the earlier BCD thread (round C). Low expected value for the
    remaining budget.
 
+## 15. 2x2 completion + arena-reuse decision: hill-climb exhausted at $314/$400
+
+`br-hillclimb-sol-jrelcommit-exp15` (judge_relevance=True AND
+commit_release=True together) scored **2.267** -- ties base, no
+interaction effect (judge_relevance's -0.067 alone doesn't compound or
+get rescued by commit_release). Completes the 2x2 cleanly: neither factor
+nor their combination beats the base cell.
+
+**Fresh-topic arena (sol's priority 7) is not affordable**: `aus_agent_v2`
+has zero coverage on the 15 new/replication topics, and it's an expensive
+system to generate fresh (~$36.5/topic per its own README's tracked build
+cost). Since nothing in this entire sweep beat the base cell (2.267,
+unchanged since section 6), the existing arena confirmation (section 8:
+18-12 loss, 4W-7L-4A clean) already IS the current answer -- no new arena
+run needed unless a new winning cell appears.
+
+**Running cost: ~$314 of $400, ~$86 headroom left.**
+
+**State after 11 hill-climb steps + replication + analyst sweep + one 2x2
+completion, ALL against the sol base cell (2.267)**: adjacent-fetch OFF
+(-0.067), search-preview (-0.134), no-stage (-0.067), judge-relevance
+(-0.067), commit-release (tie), wider-engines (-0.134), jrel+commit
+together (tie), 3 analyst alternatives (all -0.067, identical). **Zero
+moves improved on the base cell. It is a robust local optimum** across
+every retrieval/tool-exposure factor and the brief-analyst role tested.
+Still loses to `aus_agent_v2` in arena (40% win rate).
+
+**Remaining lever, not yet tried**: sol's priority 3, a late post-draft
+closure critic (independent obligation/unsupported-claim/contradiction
+check + one bounded revision -- explicitly NOT porting aus_agent_v2's
+scout/plan/verify pipeline). This needs new code (a `pre_final_hook`
+variant), not just a CLI flag, so it's a real implementation cost on top
+of the ~$86 remaining generation/judging budget. Given every other lever
+this session has been null, this is the one idea with a distinct
+mechanism rather than another toggle -- but also the last realistic shot
+within budget. Decision on whether to build it: pending.
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
