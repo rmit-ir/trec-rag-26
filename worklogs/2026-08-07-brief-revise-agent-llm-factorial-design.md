@@ -372,6 +372,25 @@ Sol's projected final total: **$318-396** (within the $400 cap, no headroom
 buffer beyond that). Executing in this priority order, checking cost after
 each phase.
 
+## 13. Replication result: sol > luna direction confirmed on fresh topics
+
+| cell | overall |
+|---|---:|
+| sol, new 15 topics | 2.133 |
+| luna, new 15 topics | 1.933 |
+| sol, rerun on original 15 topics | 2.200 (vs original 2.267, -0.067) |
+
+Sol beats luna on a completely fresh topic set too (+0.2), same direction
+as the original comparison (+0.4 on old topics) -- **the win direction
+replicates**, though the effect-size estimate itself is noisy across
+topic samples (0.4 vs 0.2 vs the rerun's own 0.067 self-variance). Treat
+"sol beats luna by roughly 0.2-0.4" as the honest range, not a fixed
+number.
+
+**Running cost: ~$234 of $400** (openai gen ~$192 est./38.4M tokens,
+bedrock ~$2.70 real, sol design ~$0.91 real, judging ~$38 est./255 calls).
+Close to sol's own $212-231 projection for this phase.
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
