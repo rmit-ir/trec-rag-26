@@ -336,6 +336,42 @@ Bedrock gpt-oss/qwen use real rate-card files):
 - Judging (standalone + arena, ~210 calls): ~$31 (estimate)
 - **Total: ~$171 of the $400 cap**
 
+## 12. Sol's post-plateau plan ($0.10) -- budget cap $400, ~$229 headroom
+
+All 6 single-factor moves rejected/flat (section 11) -- local optimum on
+the tested axes. Asked sol what's next given real headroom is $400, not
+the original ~$100. Full plan:
+`worklogs/assets/2026-08-07-sol-hillclimb-next-answer.md`. Priorities:
+
+1. **Replicate the current best** (0.067-point differences on 15 topics
+   are noise-level, not safe to keep fine-tuning on) -- sol wanted 30 new
+   + luna-on-same-30 + a same-topic sol rerun (75 cells). **Constraint
+   found: the full research-rubrics dev topic set is only 30 topics
+   total** (`research-rubrics-topics-dev.tsv`), 15 already used --
+   only 15 new topics exist, not 30. Scaled down to 15 new + 15 new-luna +
+   15 rerun = 45 cells. New topics file:
+   `data/task-comparison/topics-brief-revise-remaining15.tsv`.
+   Launched: `br-replicate-sol-new15`, `br-replicate-luna-new15`,
+   `br-replicate-sol-rerun-exp15`.
+2. Brief-analyst model sweep (3 alternatives x 15, promote only on
+   +0.133 or a clear paired/subscore pattern).
+3. One distinct structural probe: a late post-draft closure critic
+   (independent pass flags missing obligations/unsupported claims/
+   contradictions, one bounded revision) -- explicitly NOT porting
+   aus_agent_v2's scout/plan/verify pipeline, a genuinely different
+   mechanism per the user's "diverge from aus_agent_v2" instruction.
+4. Reviewer model sweep (2 alternatives, after the analyst winner is picked).
+5. One justified 2x2 completion: judge_relevance x commit_release (both
+   individually flat/tie -- tests a real interaction hypothesis, not a
+   blind combo).
+6. Narrow word-budget x model interaction (2 cells, after analyst sweep).
+7. Final 30-topic fresh arena confirmation of whatever wins, since
+   standalone gains still haven't closed the arena gap.
+
+Sol's projected final total: **$318-396** (within the $400 cap, no headroom
+buffer beyond that). Executing in this priority order, checking cost after
+each phase.
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
