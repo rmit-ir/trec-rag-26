@@ -195,6 +195,43 @@ harness stack" cell. Wired and verified against real code (all pass
   change) or a documented no-op result -- flagging back to sol rather than
   shipping a broken cell.
 
+## 6. Block 1 results (standalone rubric, gpt-5.6-terra judge, 15/15 each)
+
+| cell (main generator) | overall (0-3) |
+|---|---|
+| gpt-5.6-sol | **2.267** |
+| gpt-5.6-luna (iter1 canonical, reference) | 2.067 |
+| gpt-5.6-terra | 1.867 |
+| qwen.qwen3-next-80b-a3b | 1.400 |
+| openai.gpt-oss-120b-1:0 | 1.200 |
+
+Confirms the user's hunch: generator-model choice is a large factor, bigger
+than any structural round tried so far (rounds B/C spread was 3W/9L/3A vs
+3W/10L/2A -- much smaller than a 1.07-point standalone-score spread here).
+**gpt-5.6-sol beats the luna baseline as a plain drop-in model swap, no
+structural changes.** Full per-cell data:
+`evaluation-results/factorial/br-model-main-{terra,sol,oss120b,qwen}-exp15-b1/`.
+
+## 7. Divergent-anchor result: diverging from aus_agent_v2 backfired here
+
+`brv__ba-luna__m-qwen3-80b__rv-luna__base-i1__adj0__k10` (adjacent-page
+fetch OFF, opposite aus_agent_v2) scored **1.267**, WORSE than the Block 1
+Qwen cell (`adj1__k10`, i.e. same everything except adjacent-fetch ON):
+**1.400**. The only factor changed was adjacent-page augmentation.
+
+Reading: round B (adjacent-page fetch, already ported from aus_agent_v2) is
+independently a real improvement, not just "good because aus_agent_v2 does
+it" -- this replicates round B's own earlier structural finding (3W/9L/3A
+vs 3W/10L/2A without it) on a different generator model. **User's "diverge
+from aus_agent_v2" instruction should NOT be read as "the opposite of
+aus_agent_v2 is better" -- it's about not wasting budget RE-PROVING
+aus_agent_v2's architecture one piece at a time, not about avoiding factors
+that happen to already work.** The remaining divergent-screen cells (srf,
+preview, stage, jrel, commit, engine-set) all keep adjacent-fetch ON --
+this result doesn't change that plan, it only closes out the one factor
+(adjacent-fetch) that overlapped with aus_agent_v2 and was tested divergent
+on purpose.
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
