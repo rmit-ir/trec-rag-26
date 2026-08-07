@@ -29,10 +29,20 @@ from pathlib import Path
 # noqa: E402 on the imports below -- an import sorter hoisting them above this
 # block breaks script execution (see aus_agent/run.py, the source of this
 # convention).
+#
+# Both `src` AND `src/systems` go on the path (not just `src`, unlike
+# aus_agent/run.py, which never cross-imports a sibling system package):
+# brief.py/review.py import `facet_rag.llm` bare (facets_agent's own
+# convention for a same-level sibling import), which only resolves with
+# `src/systems` itself on sys.path. Mirrors pytest's own
+# `pythonpath = ["src", "src/systems", "tests"]` (pyproject.toml) exactly --
+# discovered because the offline test suite passed (pytest sets up both) but
+# `run.py` alone did not, before this fix.
 _SRC_ROOT = Path(__file__).resolve().parents[2]
-_src_root = str(_SRC_ROOT)
-sys.path[:] = [entry for entry in sys.path if entry != _src_root]
-sys.path.insert(0, _src_root)
+_SYSTEMS_ROOT = _SRC_ROOT / "systems"
+for _entry in (str(_SRC_ROOT), str(_SYSTEMS_ROOT)):
+    sys.path[:] = [p for p in sys.path if p != _entry]
+    sys.path.insert(0, _entry)
 
 from ragrun.outputs import data_dir  # noqa: E402
 from systems.brief_revise_agent.agent import (  # noqa: E402
