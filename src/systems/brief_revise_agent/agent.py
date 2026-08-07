@@ -97,7 +97,8 @@ ARCH_STAGES = [
              "or a provider error -> empty brief, run proceeds unchanged",
      "prompt": ["systems/brief_revise_agent/prompts.py::BRIEF_PROMPT"],
      "code": ["systems/brief_revise_agent/brief.py::get_requirements",
-              "systems/brief_revise_agent/brief.py::render_appendix"]},
+              "systems/brief_revise_agent/brief.py::parse_brief",
+              "systems/facet_rag/llm.py::one_shot"]},
     {"id": "loop", "label": "TURN LOOP", "kind": "loop",
      "note": "staged-context state machine (shared agent_harness package, "
              "unmodified) -- system prompt is aus_agent's own default.md "
