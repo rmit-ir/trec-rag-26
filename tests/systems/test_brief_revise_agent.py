@@ -88,14 +88,25 @@ def drive(monkeypatch: pytest.MonkeyPatch,
 # review.py -- direct unit coverage (PLAN.md §6 Phase 3, cases i-iii)
 # ---------------------------------------------------------------------------
 
+EMPTY_REVIEW_TURN = model_turn(text=json.dumps({"requirements": [], "issues": []}))
+SAMPLE_REQ = brief.Requirement(
+    id="R1", requirement="State a quantified effect on traffic volume",
+    origin="implicit", why="how effective", specific_form="a percentage")
+
+
 def test_review_hook_is_a_noop_on_a_clean_draft() -> None:
-    """A fully cited draft with no reviewer-found issues must return ``None``
-    -- the harness treats that identically to no hook at all (PLAN.md §3.3
-    step 3), so this is the one case that must never generate feedback."""
+    """A fully cited draft with no PARTIAL/MISSING requirements and no
+    reviewer-found issues must return ``None`` -- the harness treats that
+    identically to no hook at all (PLAN.md §3.3 step 3), so this is the one
+    case that must never generate feedback."""
     context = {"query": QUERY, "ledger": None, "candidate_sentences": [
         {"text": "A fully supported claim.", "citations": [D[0]]}]}
-    provider = ScriptedProvider([model_turn(text=json.dumps({"issues": []}))])
-    assert review.hook(context, requirements=[], provider=provider) is None
+    provider = ScriptedProvider([model_turn(text=json.dumps(
+        {"requirements": [{"id": "R1", "status": "FULL",
+                           "missing_specific": "", "fix": ""}],
+         "issues": []}))])
+    assert review.hook(context, requirements=[SAMPLE_REQ],
+                       provider=provider) is None
 
 
 def test_review_hook_names_uncited_sentence_indices_in_feedback() -> None:
@@ -108,11 +119,31 @@ def test_review_hook_names_uncited_sentence_indices_in_feedback() -> None:
         {"text": "A supported claim.", "citations": [D[0]]},
         {"text": "An unsupported claim.", "citations": []},
     ]}
-    provider = ScriptedProvider([model_turn(text=json.dumps({"issues": []}))])
+    provider = ScriptedProvider([EMPTY_REVIEW_TURN])
     feedback = review.hook(context, requirements=[], provider=provider)
     assert feedback is not None
     assert "#2" in feedback
     assert "1 sentence" in feedback
+
+
+def test_review_hook_names_a_partial_requirement_and_forbids_touching_full_ones() -> None:
+    """v2's requirement-grading schema (PLAN §3.3 v2, sol improvement-analysis
+    Priority 1): a requirement graded PARTIAL must be named in the feedback
+    by id and requirement text, with its missing specific and fix -- and the
+    feedback must explicitly forbid touching FULL-graded content, the
+    PATCH-not-rewrite framing that targets the dominant loss pattern
+    (compressing/dropping content that was already correct)."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "Traffic fell.", "citations": [D[0]]}]}
+    provider = ScriptedProvider([model_turn(text=json.dumps({
+        "requirements": [{"id": "R1", "status": "PARTIAL",
+                          "missing_specific": "a percentage figure",
+                          "fix": "add the specific percentage from the evidence"}],
+        "issues": []}))])
+    feedback = review.hook(context, requirements=[SAMPLE_REQ], provider=provider)
+    assert feedback is not None
+    assert "R1" in feedback and "a percentage figure" in feedback
+    assert "PATCH" in feedback and "FULL" in feedback
 
 
 def test_review_hook_accepts_the_draft_when_the_reviewer_call_raises() -> None:
@@ -128,14 +159,51 @@ def test_review_hook_accepts_the_draft_when_the_reviewer_call_raises() -> None:
     assert review.hook(context, requirements=[], provider=provider) is None
 
 
-def test_review_hook_accepts_the_draft_when_the_reviewer_returns_garbage() -> None:
-    """A reviewer response that fails to parse as JSON must not crash the
-    hook or block the run -- ``_parse_issues`` degrades to zero issues, same
-    as an empty issues list, so a clean draft is still accepted."""
+def test_review_hook_retries_once_on_garbage_then_uses_the_repaired_response() -> None:
+    """v2's fail-CLOSED retry (the sol-improvement-analysis correction to v1,
+    which silently treated any unparseable reviewer response as 'zero
+    issues'): a first garbled response must trigger exactly one retry, and if
+    the retry parses, its content is used -- not discarded."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "Traffic fell.", "citations": [D[0]]}]}
+    provider = ScriptedProvider([
+        model_turn(text="not json at all, sorry"),
+        model_turn(text=json.dumps({
+            "requirements": [{"id": "R1", "status": "MISSING",
+                              "missing_specific": "a percentage figure",
+                              "fix": "add it"}],
+            "issues": []})),
+    ])
+    feedback = review.hook(context, requirements=[SAMPLE_REQ], provider=provider)
+    assert feedback is not None and "MISSING" in feedback and "R1" in feedback
+
+
+def test_review_hook_accepts_the_draft_when_both_reviewer_attempts_return_garbage() -> None:
+    """When BOTH the first call and the repair retry fail to parse, a fully
+    cited draft with nothing else to flag must still be accepted (never
+    block a run on an unusable reviewer) -- this is the fail-closed path's
+    terminal case, distinct from v1's silent 'treat as zero issues'."""
     context = {"query": QUERY, "ledger": None, "candidate_sentences": [
         {"text": "A fully supported claim.", "citations": [D[0]]}]}
-    provider = ScriptedProvider([model_turn(text="not json at all, sorry")])
+    provider = ScriptedProvider([
+        model_turn(text="not json at all, sorry"),
+        model_turn(text="still not json"),
+    ])
     assert review.hook(context, requirements=[], provider=provider) is None
+
+
+def test_review_hook_still_flags_uncited_sentences_when_both_reviewer_attempts_fail() -> None:
+    """The deterministic uncited-sentence scan does not depend on the LLM
+    reviewer parsing at all -- even when both reviewer attempts return
+    garbage, an uncited sentence must still be sent back for revision."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "An unsupported claim.", "citations": []}]}
+    provider = ScriptedProvider([
+        model_turn(text="not json at all, sorry"),
+        model_turn(text="still not json"),
+    ])
+    feedback = review.hook(context, requirements=[], provider=provider)
+    assert feedback is not None and "#1" in feedback
 
 
 # ---------------------------------------------------------------------------
@@ -278,7 +346,7 @@ def test_review_pass_wired_end_to_end_sends_the_model_back_once(
             "commit_context", {"documents": [
                 {"docid": D[0], "reason": "core evidence"}]}, id="c1")]),
         model_turn(text=draft),
-        model_turn(text=json.dumps({"issues": []})),  # reviewer turn
+        model_turn(text=json.dumps({"requirements": [], "issues": []})),  # reviewer turn
         model_turn(text=revised),  # revision turn
     ]
     result = drive(list(script))

@@ -74,9 +74,10 @@ category label.
 ENTRY_TEMPLATE = "- [{id}] ({origin}) {requirement} -- counts as covered when: {specific_form}"
 
 REVIEW_PROMPT = """You are reviewing a draft research report before it is \
-submitted to its reader. You do not rewrite the report yourself -- you list \
-concrete defects the writer must fix in one more pass, checking the draft \
-against the requirements brief and against its own citations.
+submitted to its reader. You do not rewrite the report yourself -- you \
+grade the draft against EVERY requirement in the brief, one by one, and \
+flag citation problems, so the writer can PATCH the draft in one more pass \
+rather than rewrite it.
 
 RESEARCH REQUEST:
 {narrative}
@@ -98,25 +99,40 @@ existing one would resolve the gap):
 
 Current length: {word_count} words. Hard maximum: {max_words} words.
 
-List AT MOST 6 concrete issues, each ONE of:
-- MISSING_REQUIREMENT: a brief entry (name its id) the draft does not cover at all.
-- SHALLOW: a brief entry covered only as a category label, not its specific form.
-- UNCITED_CLAIM: a factual sentence (name its number) with no citation that the \
-evidence inventory above could support.
-- WEAK_SENTENCE: a sentence too vague or hedged to earn credit, that a specific \
-fact already in the evidence above would fix.
+First, grade EVERY requirement in the brief -- do not skip any, even ones \
+that look fine:
+- FULL: the draft states it in the specific form the brief names (a named \
+mechanism, number, or entity), not a category label, and it is cited.
+- PARTIAL: the draft mentions the topic but stays at a category label, or \
+covers only part of what the requirement asks.
+- MISSING: the draft does not address it at all.
+For PARTIAL or MISSING, name the missing specific in one phrase (a term, a \
+number, a name -- something the writer can go add) and check the evidence \
+inventory above first: if it already contains something that would resolve \
+the gap, say so by id instead of asking for a new search.
 
-Every issue's `fix` must be a SUBSTITUTION, not a bare addition: the draft is \
-already close to the {max_words}-word cap, so say what to cut to make room for \
-what to add. Do not list an issue you cannot name a concrete fix for, and do not \
-invent an issue just to fill the list -- an empty list is the right answer for a \
-draft with nothing left to fix.
+Second, list AT MOST 4 additional issues not already covered by a \
+requirement grade, each ONE of:
+- UNCITED_CLAIM: a factual sentence (name its number) with no citation that \
+the evidence inventory above could support.
+- WEAK_SENTENCE: a sentence too vague or hedged to earn credit, that a \
+specific fact already in the evidence above would fix.
+
+This is a PATCH, not a rewrite: the fix for each PARTIAL/MISSING requirement \
+or issue must be a SUBSTITUTION naming what to cut to make room, since the \
+draft is already close to the {max_words}-word cap. Never suggest cutting or \
+touching a sentence that supports a requirement already graded FULL -- that \
+content stays exactly as written. Do not invent a requirement grade or issue \
+you cannot name a concrete fix for.
 
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
-{{"issues": [{{"type": "MISSING_REQUIREMENT, SHALLOW, UNCITED_CLAIM, or \
-WEAK_SENTENCE", "target": "<requirement id or sentence number>", "problem": \
-"<what is wrong, briefly>", "fix": "<the substitution: what to cut to make room \
-for what>"}}]}}
+{{"requirements": [{{"id": "<id from the brief>", "status": "FULL, PARTIAL, \
+or MISSING", "missing_specific": "<the specific term/number/name still \
+needed, or empty string if FULL>", "fix": "<the substitution: what to cut \
+to make room for what, or empty string if FULL>"}}, ...one entry per brief \
+requirement...], "issues": [{{"type": "UNCITED_CLAIM or WEAK_SENTENCE", \
+"target": "<sentence number>", "problem": "<what is wrong, briefly>", \
+"fix": "<the substitution>"}}]}}
 """
 
 __all__ = ["APPENDIX_TEMPLATE", "BRIEF_PROMPT", "ENTRY_TEMPLATE", "REVIEW_PROMPT"]
