@@ -232,6 +232,48 @@ this result doesn't change that plan, it only closes out the one factor
 (adjacent-fetch) that overlapped with aus_agent_v2 and was tested divergent
 on purpose.
 
+## 8. Hill-climb from current best (gpt-5.6-sol) + arena reality check
+
+User instruction: expand via hill-climbing from the current best system,
+one factor change at a time, keeping every result for eventual full
+analysis. Sol (asked again, `worklogs/assets/2026-08-07-sol-expand-answer.md`)
+re-anchored the generic-factor screen from qwen3-80b to gpt-5.6-sol (the
+new leader) and flagged that "diverge from aus_agent_v2" means "explore
+outside its choices," not "assume the opposite is better" -- confirms the
+orchestrator's earlier reading.
+
+**Orchestrator caught a methodology gap in sol's own priority-1 cell**: sol
+proposed "sol + round-B winner" as a still-missing cell, but the existing
+`br-model-main-sol-exp15-b1` cell (2.267) ALREADY has round B's
+adjacent-page fetch on (agent.py's current default) -- it's not missing.
+What IS missing for a fair comparison: the 2.067 luna reference
+(`brief-revise-iter1-exp15`) predates round B's commit (6ecfd50, generated
+~06:03 UTC vs the commit at ~09:44 UTC same day) and does NOT have
+adjacent-fetch -- so the 2.267-vs-2.067 gap conflates a model swap AND a
+structural change. Launched `br-luna-current-code-exp15` (luna, current
+code, round B included) to get a true apples-to-apples baseline.
+
+**Arena reality check (30 battles, gpt-5.6-terra judge, sol-cell vs
+`aus_agent_v2` on the same 15 topics)**: `aus_agent_v2` still wins,
+**18-12 (60%/40%), order_consistency 0.733**. Clean per-topic breakdown
+(both battle orders agree): **4W-7L-4A** for the sol cell -- real
+improvement over round B's own arena result (3W-9L-3A) but still behind,
+not a win. This is exactly the standalone-vs-arena divergence sol flagged
+as a risk when standalone was made primary: the sol cell's higher
+standalone rubric score does NOT yet translate into beating `aus_agent_v2`
+head-to-head. `evaluation-results/factorial/arena-sol-vs-aus-agent-v2-exp15/`.
+
+**Launched (hill-climb steps from the sol cell, one factor at a time)**:
+- `br-luna-current-code-exp15` -- true luna-current-code baseline (fixes
+  the comparison gap above).
+- `br-hillclimb-sol-adjoff-exp15` -- sol cell with adjacent-fetch REMOVED
+  (tests whether round B's benefit is model-specific; qwen already showed
+  removing it hurts, 1.267 vs 1.400).
+- 5-cell generic-factor smoke test (`smoke-preview`/`smoke-nostage`/
+  `smoke-jrel`/`smoke-commitrelease`/`smoke-widerengines`, 1 topic each,
+  all on gpt-5.6-sol) -- verifying each flag is actually exercised before
+  spending a full 15-topic batch, per sol's gate.
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
