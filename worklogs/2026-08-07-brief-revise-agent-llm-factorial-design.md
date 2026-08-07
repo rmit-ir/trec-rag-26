@@ -391,6 +391,40 @@ number.
 bedrock ~$2.70 real, sol design ~$0.91 real, judging ~$38 est./255 calls).
 Close to sol's own $212-231 projection for this phase.
 
+## 14. Analyst sweep result: no gain, cost trimming forced
+
+All 3 brief-analyst alternatives (terra/gpt-oss-120b/qwen, main=sol,
+reviewer=luna fixed) scored **identically 2.200** -- each -0.067 vs the
+luna-analyst control (2.267), same noise-level magnitude as every other
+rejected move. None clears sol's +0.133 promotion bar. **Reject all 3,
+keep luna as brief analyst.**
+
+**Running cost: ~$294 of $400** (gen ~$246 est./49.2M tokens, bedrock
+~$2.76 real, sol design ~$0.91 real, judging ~$44 est./300 calls).
+Measured per-cell rate from the last two phases (replication + analyst
+sweep, 90 cells): **~$1.2-1.25/cell generation-only, ~$1.35-1.45/cell
+all-in**. At that rate, sol's remaining plan (priorities 3-7: closure
+critic 15-30 cells, reviewer sweep 30, jrel x commit_release 15,
+word-budget 30, arena 30 matchups) projects to **~$125-150 more, landing
+at $419-443 -- over the $400 cap**.
+
+**Trimmed remaining plan** (orchestrator decision, given the hard cap and
+that the analyst sweep just showed role-model swaps yield nothing here):
+1. Priority 5 (jrel x commit_release, cheap 2x2 completion, 15 cells,
+   ~$20) -- keep, real mechanistic-interaction question.
+2. Priority 7 (final arena confirmation of the eventual best cell, cheap,
+   judging-only since it reuses existing generations, ~$5-9) -- keep,
+   this is the actual "beat aus_agent_v2" answer the user originally
+   wanted.
+3. Priority 3 (closure-critic probe) -- attempt only if budget allows
+   after 1-2, since it needs new code (a post-draft critic hook) on top
+   of generation cost.
+4. Priority 4 (reviewer sweep) and priority 6 (word-budget) -- **skipped**.
+   Reviewer sweep is the same kind of role-model swap the analyst sweep
+   just showed gives zero gain; word-budget already scored worst of all
+   rounds in the earlier BCD thread (round C). Low expected value for the
+   remaining budget.
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
