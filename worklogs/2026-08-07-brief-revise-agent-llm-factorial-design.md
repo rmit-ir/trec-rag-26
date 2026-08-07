@@ -274,6 +274,31 @@ head-to-head. `evaluation-results/factorial/arena-sol-vs-aus-agent-v2-exp15/`.
   all on gpt-5.6-sol) -- verifying each flag is actually exercised before
   spending a full 15-topic batch, per sol's gate.
 
+## 9. Luna-current-code result: round B disagrees between arena and standalone
+
+`br-luna-current-code-exp15` (luna, current code including round B's
+adjacent-fetch) scored **1.867** -- WORSE than the old iteration-1 luna
+reference (2.067, no round B), and WORSE than luna's own round-B arena
+result implied (round B beat no-round-B 3W/9L/3A vs 3W/10L/2A in arena
+terms). **Round B helps in arena but hurts in standalone rubric, for
+luna specifically.** For qwen, round B helped in BOTH (divergent-anchor
+section 7: 1.267 without vs 1.400 with). Genuinely unresolved tension
+between the two eval methods on this one factor -- not resolved this
+session, flagged rather than papered over.
+
+This does NOT change sol's standing: the fair comparison is now
+**sol 2.267 vs luna-current-code 1.867 = 0.4-point gap** (wider than the
+0.2 originally reported against the outdated no-round-B luna reference).
+
+Smoke tests for the 5 re-anchored generic-factor cells (search-preview,
+no-stage, judge-relevance, commit-release, wider-engines) verified via
+direct code-level dry run (monkeypatched `run_agent`, asserts each CLI
+flag reaches the right kwarg -- deterministic proof, doesn't depend on
+whether the model chose to invoke an optional tool in one topic). All 5
+confirmed wired correctly; full 15-topic batches for all 5 launched on
+gpt-5.6-sol (`br-hillclimb-sol-{preview,nostage,jrel,commitrelease,
+widerengines}-exp15`).
+
 ## Not done yet
 
 - Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
