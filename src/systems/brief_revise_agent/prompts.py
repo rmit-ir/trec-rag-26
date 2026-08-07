@@ -18,47 +18,36 @@ from __future__ import annotations
 
 BRIEF_PROMPT = """You are the requirements analyst for a corpus-grounded research \
 agent, working BEFORE any searching begins. Read the research request below and \
-produce a checklist of small, independently-gradable checks a complete, \
-expert-quality answer must satisfy.
+produce a short checklist of what a complete, high-scoring answer must do -- the \
+concrete obligations a careful reader would infer from the request in about ten \
+seconds, whether the request states them outright or only implies them.
 
 Two kinds of entry:
-- "REQUEST": something the request states or clearly structurally implies \
-(a named comparison, a requested format, a named entity or period to cover).
-- "EXPERT_COMPLETION": something the request does not say at all, but that a \
-domain expert would expect in a genuinely complete answer to this kind of \
-question -- e.g. a clinical-evaluation request implies a prospective \
-validation stage even if the word "prospective" never appears; a systems- \
-design request implies failure-mode and rollback handling even if the word \
-"failure" never appears. This is NOT limited to the request's own wording --  \
-name the check that would be missing even from an otherwise-compliant answer. \
-Every EXPERT_COMPLETION entry needs `why_needed`: one concrete sentence on why \
-an expert reader would consider the answer incomplete without it. An entry you \
-cannot give a concrete reason for is decoration, not a requirement -- leave it \
-out.
+- "explicit": something the request states directly (a named comparison, a \
+requested format, a named entity or period to cover).
+- "implicit": something the request does not state but clearly implies -- e.g. a \
+request that names several financial instruments for a beginner audience implies \
+each should be briefly defined at first use. Every implicit entry's `why` must \
+quote or closely paraphrase the specific wording in the request that implies it. \
+An implicit entry you cannot trace to actual wording in the request is a hunch, \
+not a requirement -- leave it out.
 
-Keep every entry ATOMIC: one independently-gradable check per entry, never a \
-bundle. "Address subgroup testing, false negatives, and human review" is THREE \
-entries, not one -- a grader must be able to mark each TRUE or FALSE without \
-the others. If you notice yourself joining two checks with "and" or a comma \
-list of topics, split them.
-
-For every entry, also write `answer_form`: what actually COUNTS as satisfying \
+For every entry, also write `specific_form`: what actually COUNTS as satisfying \
 it, in the concrete shape a grader would look for (a named entity, a number, a \
 mechanism, a comparison) -- never a topic label. "Covers the major stock \
-indexes" is not an answer_form; "names the S&P 500, Dow Jones, Nasdaq, and \
+indexes" is not a specific_form; "names the S&P 500, Dow Jones, Nasdaq, and \
 Russell 2000" is.
 
-Hard caps: at most 14 entries total, at most 6 of them "EXPERT_COMPLETION". \
-Every entry you add competes for the answer's fixed word budget, so do not pad \
--- fewer well-justified entries beat a full list of filler. If the request is \
-narrow and already fully explicit, return fewer entries.
+Hard caps: at most 8 entries total, at most 4 of them "implicit". Every entry \
+you add competes for the answer's fixed word budget, so do not pad -- fewer \
+well-justified entries beat a full list of filler. If the request is narrow and \
+already fully explicit, return fewer entries, or none.
 
-Return ONLY a JSON object of this exact shape (no prose, no code fences, no \
-"id" field -- ids are assigned by the harness):
-{{"requirements": [{{"kind": "REQUEST or EXPERT_COMPLETION", "requirement": \
-"<the check, one atomic proposition>", "answer_form": "<what counts as \
-covering it>", "why_needed": "<for EXPERT_COMPLETION: the concrete reason; \
-empty string for REQUEST>"}}, ...]}}
+Return ONLY a JSON object of this exact shape (no prose, no code fences):
+{{"requirements": [{{"id": "R1", "requirement": "<what the answer must do>", \
+"origin": "explicit or implicit", "why": "<quote the wording that implies this; \
+empty string for an explicit entry>", "specific_form": "<what counts as \
+covering it>"}}, ...]}}
 
 RESEARCH REQUEST:
 {narrative}
@@ -69,21 +58,20 @@ APPENDIX_TEMPLATE = """
 ## Requirements brief (advisory)
 
 Before this run began, a requirements analyst read the request above and drew \
-up the checklist below: atomic checks a complete answer must satisfy, some \
-stated by the request (REQUEST), some added because an expert reader would \
-expect them even though the request never says so (EXPERT_COMPLETION). It is \
-a checklist to search against and to check the finished report against -- not \
-an outline the report must follow, and not a substitute for the request \
-itself: the request remains the authority, and an EXPERT_COMPLETION entry may \
-be marked unavailable if the corpus does not support it -- but never silently \
-dropped without saying so. Give every entry below at least one targeted \
-search. An entry only counts as covered when the report states it in the \
-answer form named, not as a category label.
+up the checklist below: obligations a careful reader would infer from the \
+request, some stated outright, some implied. It is a checklist to search \
+against and to check the finished report against -- not an outline the report \
+must follow, and not a substitute for the request itself: the request remains \
+the authority, and if the corpus contradicts an entry, amend the entry rather \
+than force it -- but never silently drop one without saying so in the report. \
+Give every entry below at least one targeted search. An entry only counts as \
+covered when the report states it in the specific form named, not as a \
+category label.
 
 {entries}
 """
 
-ENTRY_TEMPLATE = "- [{id}] ({kind}) {requirement} -- counts as covered when: {answer_form}"
+ENTRY_TEMPLATE = "- [{id}] ({origin}) {requirement} -- counts as covered when: {specific_form}"
 
 REVIEW_PROMPT = """You are reviewing a draft research report before it is \
 submitted to its reader. You do not rewrite the report yourself -- you \
@@ -111,19 +99,17 @@ existing one would resolve the gap):
 
 Current length: {word_count} words. Hard maximum: {max_words} words.
 
-First, grade EVERY SINGLE requirement in the brief, in order, one grade \
-each -- your `requirements` array must have EXACTLY one entry per id listed \
-above, same ids, no id skipped, none repeated, none invented:
-- FULL: the draft states it in the answer form the brief names (a named \
+First, grade EVERY requirement in the brief -- do not skip any, even ones \
+that look fine:
+- FULL: the draft states it in the specific form the brief names (a named \
 mechanism, number, or entity), not a category label, and it is cited.
 - PARTIAL: the draft mentions the topic but stays at a category label, or \
 covers only part of what the requirement asks.
 - MISSING: the draft does not address it at all.
 For PARTIAL or MISSING, name the missing specific in one phrase (a term, a \
-number, a name -- something the writer can go add) and always give a `fix`, \
-even a short one -- never leave it empty. Check the evidence inventory above \
-first: if it already contains something that would resolve the gap, say so \
-by id instead of asking for a new search.
+number, a name -- something the writer can go add) and check the evidence \
+inventory above first: if it already contains something that would resolve \
+the gap, say so by id instead of asking for a new search.
 
 Second, list AT MOST 4 additional issues not already covered by a \
 requirement grade, each ONE of:
@@ -133,22 +119,20 @@ the evidence inventory above could support.
 specific fact already in the evidence above would fix.
 
 This is a PATCH, not a rewrite: the fix for each PARTIAL/MISSING requirement \
-or issue must say what to cut to make room, since the draft is already close \
-to the {max_words}-word cap. A sentence that is the ONLY support for a \
-requirement already graded FULL must not be deleted or have its supported \
-fact weakened -- but it MAY be compressed, merged with a neighboring \
-sentence, or moved, as long as the same fact and citation survive; prefer \
-cutting from PARTIAL/MISSING/low-value material first. Do not invent a \
-requirement grade or issue you cannot name a concrete fix for.
+or issue must be a SUBSTITUTION naming what to cut to make room, since the \
+draft is already close to the {max_words}-word cap. Never suggest cutting or \
+touching a sentence that supports a requirement already graded FULL -- that \
+content stays exactly as written. Do not invent a requirement grade or issue \
+you cannot name a concrete fix for.
 
 Return ONLY a JSON object of this exact shape (no prose, no code fences):
-{{"requirements": [{{"id": "<id from the brief, one entry per id, none \
-skipped>", "status": "FULL, PARTIAL, or MISSING", "missing_specific": "<the \
-specific term/number/name still needed, or empty string if FULL>", "fix": \
-"<what to cut to make room for what -- REQUIRED and non-empty whenever \
-status is not FULL>"}}, ...], "issues": [{{"type": "UNCITED_CLAIM or \
-WEAK_SENTENCE", "target": "<sentence number>", "problem": "<what is wrong, \
-briefly>", "fix": "<the substitution>"}}]}}
+{{"requirements": [{{"id": "<id from the brief>", "status": "FULL, PARTIAL, \
+or MISSING", "missing_specific": "<the specific term/number/name still \
+needed, or empty string if FULL>", "fix": "<the substitution: what to cut \
+to make room for what, or empty string if FULL>"}}, ...one entry per brief \
+requirement...], "issues": [{{"type": "UNCITED_CLAIM or WEAK_SENTENCE", \
+"target": "<sentence number>", "problem": "<what is wrong, briefly>", \
+"fix": "<the substitution>"}}]}}
 """
 
 __all__ = ["APPENDIX_TEMPLATE", "BRIEF_PROMPT", "ENTRY_TEMPLATE", "REVIEW_PROMPT"]

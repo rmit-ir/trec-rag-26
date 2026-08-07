@@ -90,9 +90,8 @@ def drive(monkeypatch: pytest.MonkeyPatch,
 
 EMPTY_REVIEW_TURN = model_turn(text=json.dumps({"requirements": [], "issues": []}))
 SAMPLE_REQ = brief.Requirement(
-    id="A01", requirement="State a quantified effect on traffic volume",
-    kind="EXPERT_COMPLETION", why_needed="how effective",
-    answer_form="a percentage")
+    id="R1", requirement="State a quantified effect on traffic volume",
+    origin="implicit", why="how effective", specific_form="a percentage")
 
 
 def test_review_hook_is_a_noop_on_a_clean_draft() -> None:
@@ -103,7 +102,7 @@ def test_review_hook_is_a_noop_on_a_clean_draft() -> None:
     context = {"query": QUERY, "ledger": None, "candidate_sentences": [
         {"text": "A fully supported claim.", "citations": [D[0]]}]}
     provider = ScriptedProvider([model_turn(text=json.dumps(
-        {"requirements": [{"id": "A01", "status": "FULL",
+        {"requirements": [{"id": "R1", "status": "FULL",
                            "missing_specific": "", "fix": ""}],
          "issues": []}))])
     assert review.hook(context, requirements=[SAMPLE_REQ],
@@ -137,45 +136,14 @@ def test_review_hook_names_a_partial_requirement_and_forbids_touching_full_ones(
     context = {"query": QUERY, "ledger": None, "candidate_sentences": [
         {"text": "Traffic fell.", "citations": [D[0]]}]}
     provider = ScriptedProvider([model_turn(text=json.dumps({
-        "requirements": [{"id": "A01", "status": "PARTIAL",
+        "requirements": [{"id": "R1", "status": "PARTIAL",
                           "missing_specific": "a percentage figure",
                           "fix": "add the specific percentage from the evidence"}],
         "issues": []}))])
     feedback = review.hook(context, requirements=[SAMPLE_REQ], provider=provider)
     assert feedback is not None
-    assert "A01" in feedback and "a percentage figure" in feedback
+    assert "R1" in feedback and "a percentage figure" in feedback
     assert "PATCH" in feedback and "FULL" in feedback
-
-
-def test_review_hook_retries_when_the_reviewer_skips_a_requirement() -> None:
-    """v3 (sol iteration-2 finding): a reviewer response that OMITS a
-    requirement id from ``requirements`` is well-formed JSON but violates
-    the "exactly one grade per id" contract v2 only stated in the prompt,
-    never enforced in code. This must now trigger the SAME fail-closed retry
-    as unparseable JSON, not be silently accepted as "the omitted ids must
-    be fine." A two-requirement brief graded on only one id triggers the
-    retry; the retry supplies both and its content is used."""
-    two_reqs = [
-        SAMPLE_REQ,
-        brief.Requirement(id="A02", requirement="Name a comparison city",
-                          kind="REQUEST", why_needed="", answer_form="a city name"),
-    ]
-    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
-        {"text": "Traffic fell.", "citations": [D[0]]}]}
-    provider = ScriptedProvider([
-        model_turn(text=json.dumps({  # only grades A01, skips A02
-            "requirements": [{"id": "A01", "status": "FULL",
-                              "missing_specific": "", "fix": ""}],
-            "issues": []})),
-        model_turn(text=json.dumps({  # retry: both graded
-            "requirements": [
-                {"id": "A01", "status": "FULL", "missing_specific": "", "fix": ""},
-                {"id": "A02", "status": "MISSING", "missing_specific": "a city",
-                 "fix": "add a comparison city"}],
-            "issues": []})),
-    ])
-    feedback = review.hook(context, requirements=two_reqs, provider=provider)
-    assert feedback is not None and "A02" in feedback and "A01" not in feedback
 
 
 def test_review_hook_accepts_the_draft_when_the_reviewer_call_raises() -> None:
@@ -201,13 +169,13 @@ def test_review_hook_retries_once_on_garbage_then_uses_the_repaired_response() -
     provider = ScriptedProvider([
         model_turn(text="not json at all, sorry"),
         model_turn(text=json.dumps({
-            "requirements": [{"id": "A01", "status": "MISSING",
+            "requirements": [{"id": "R1", "status": "MISSING",
                               "missing_specific": "a percentage figure",
                               "fix": "add it"}],
             "issues": []})),
     ])
     feedback = review.hook(context, requirements=[SAMPLE_REQ], provider=provider)
-    assert feedback is not None and "MISSING" in feedback and "A01" in feedback
+    assert feedback is not None and "MISSING" in feedback and "R1" in feedback
 
 
 def test_review_hook_accepts_the_draft_when_both_reviewer_attempts_return_garbage() -> None:
@@ -254,58 +222,38 @@ def test_parse_brief_survives_bad_json_and_yields_an_empty_brief() -> None:
 
 def test_parse_brief_enforces_the_entry_caps() -> None:
     """An analyst that invents obligations is worse than none (PLAN.md
-    §3.1): every entry competes for a binding 1024-word budget, so the 14
-    total / 6 expert-completion caps must hold even when the model's JSON
-    obeys the schema but ignores the count instructions."""
-    request_rows = [
-        {"requirement": f"requirement {i}", "kind": "REQUEST",
-         "why_needed": "", "answer_form": f"form {i}"}
-        for i in range(20)
-    ]
-    parsed = brief.parse_brief(json.dumps({"requirements": request_rows}), QUERY)
-    assert len(parsed) == brief.MAX_ENTRIES
-
-    expert_rows = [
-        {"requirement": f"expert requirement {i}",
-         "kind": "EXPERT_COMPLETION", "why_needed": "an expert reader expects it",
-         "answer_form": f"form {i}"}
+    §3.1): every entry competes for a binding 1024-word budget, so the 8
+    total / 4 implicit caps must hold even when the model's JSON obeys the
+    schema but ignores the count instructions."""
+    explicit_rows = [
+        {"id": f"R{i}", "requirement": f"requirement {i}", "origin": "explicit",
+         "why": "", "specific_form": f"form {i}"}
         for i in range(10)
     ]
-    parsed_expert = brief.parse_brief(
-        json.dumps({"requirements": expert_rows}), QUERY)
-    assert len(parsed_expert) == brief.MAX_EXPERT
+    parsed = brief.parse_brief(json.dumps({"requirements": explicit_rows}), QUERY)
+    assert len(parsed) == brief.MAX_ENTRIES
+
+    implicit_rows = [
+        {"id": f"I{i}", "requirement": f"implicit requirement {i}",
+         "origin": "implicit", "why": "congestion pricing",
+         "specific_form": f"form {i}"}
+        for i in range(6)
+    ]
+    parsed_implicit = brief.parse_brief(
+        json.dumps({"requirements": implicit_rows}), QUERY)
+    assert len(parsed_implicit) == brief.MAX_IMPLICIT
 
 
-def test_parse_brief_assigns_harness_owned_sequential_ids() -> None:
-    """v3 (sol iteration-2): ids are assigned by the harness in accepted
-    order (``A01``, ``A02``, ...), never read from the model's own JSON --
-    closes the id-hallucination/duplication class of reviewer failure at
-    the source, since there is no model-chosen id space to collide in."""
-    rows = [{"requirement": f"r{i}", "kind": "REQUEST", "why_needed": "",
-            "answer_form": f"f{i}"} for i in range(3)]
-    parsed = brief.parse_brief(json.dumps({"requirements": rows}), QUERY)
-    assert [r.id for r in parsed] == ["A01", "A02", "A03"]
-
-
-def test_parse_brief_drops_an_expert_completion_entry_with_no_reason() -> None:
-    """An EXPERT_COMPLETION entry with an empty ``why_needed`` is decoration,
-    not a requirement (PLAN.md §3.1's "an entry you cannot give a concrete
-    reason for... leave it out", v3 wording) -- dropped at parse time. Note
-    v3 deliberately DROPPED the old lexical narrative-overlap check (sol
-    iteration-2 found it suppressed real domain-completion material); only
-    presence of a reason is required now, not that it echoes the narrative."""
-    no_reason = [{"requirement": "an invented obligation",
-                 "kind": "EXPERT_COMPLETION", "why_needed": "",
-                 "answer_form": "x"}]
-    assert brief.parse_brief(json.dumps({"requirements": no_reason}), QUERY) == []
-
-    with_reason = [{"requirement": "an invented obligation",
-                   "kind": "EXPERT_COMPLETION",
-                   "why_needed": "an expert reader would expect this even "
-                                 "though the request never mentions it",
-                   "answer_form": "x"}]
-    assert len(brief.parse_brief(
-        json.dumps({"requirements": with_reason}), QUERY)) == 1
+def test_parse_brief_drops_an_implicit_entry_whose_why_cannot_be_traced() -> None:
+    """The anti-hunch rule (PLAN.md §3.1): an implicit entry's ``why`` must
+    quote or closely paraphrase actual wording in the request. A ``why`` that
+    shares nothing with the narrative is a hunch, not a requirement, and must
+    be dropped at parse time -- exactly the ``facet_rag`` planner failure
+    mode (inventing obligations) this rule exists to keep out."""
+    hunch = [{"id": "H1", "requirement": "an invented obligation",
+             "origin": "implicit", "why": "totally unrelated made-up reasoning",
+             "specific_form": "x"}]
+    assert brief.parse_brief(json.dumps({"requirements": hunch}), QUERY) == []
 
 
 # ---------------------------------------------------------------------------
@@ -313,11 +261,10 @@ def test_parse_brief_drops_an_expert_completion_entry_with_no_reason() -> None:
 # ---------------------------------------------------------------------------
 
 GOOD_BRIEF_TURN = model_turn(text=json.dumps({"requirements": [
-    {"requirement": "State a quantified effect on traffic volume",
-     "kind": "EXPERT_COMPLETION",
-     "why_needed": "a percentage or volume change is what a transport "
-                   "economist would look for, not just 'it helped'",
-     "answer_form": "a percentage or volume change, not just 'it helped'"},
+    {"id": "R1", "requirement": "State a quantified effect on traffic volume",
+     "origin": "implicit",
+     "why": 'the request asks "how effective is congestion pricing"',
+     "specific_form": "a percentage or volume change, not just 'it helped'"},
 ]}))
 
 
@@ -375,6 +322,63 @@ def test_pre_final_hook_none_disables_the_review_pass(
     # ever sent -- no reviewer call happened, proving the WHOLE pass (not
     # just its feedback) was skipped, not merely that it accepted silently.
     assert len(result["provider"].user_messages) == 2
+
+
+def test_search_tool_def_and_result_filter_default_wiring(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Iteration 3 (PLAN.md §3, retrieval-filter axis): by default
+    ``run_agent`` must hand the shared harness (a) a search tool def whose
+    schema requires ``requirement``, engine-matched to the run's own
+    ``engines``, and (b) a non-``None`` ``search_result_filter`` callable.
+    Captures ``_run_agent``'s kwargs directly rather than driving a full
+    scripted run -- the filter's own behavior is covered by
+    ``tests/systems/test_retrieval_filter.py``; this test only proves the
+    wiring reaches the harness call."""
+    from brief_revise_agent import agent as brv_agent
+
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        captured.update(kwargs)
+        return {"status": "completed", "paths": {}}
+
+    monkeypatch.setattr(brv_agent, "_run_agent", fake_run_agent)
+    monkeypatch.setattr(agent_harness_mod, "make_provider",
+                        lambda backend, model: ScriptedProvider([BRIEF_TURN_EMPTY]))
+
+    brv_agent.run_agent(
+        QID, QUERY, engines=["semantic", "keyword"],
+        system_prompt=load_system_prompt(DEFAULT_MAX_COMMITTED_PER_STEP))
+
+    tool_def = captured["search_tool_def"]
+    assert "requirement" in tool_def["input_schema"]["required"]
+    assert set(tool_def["input_schema"]["properties"]["search_engine"]["enum"]) \
+        == {"semantic", "keyword"}
+    assert callable(captured["search_result_filter"])
+
+
+def test_search_result_filter_none_disables_it(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """``search_result_filter=None`` must reach the harness as ``None``
+    (disabling filtering), not be silently overridden by the default --
+    same override discipline as ``pre_final_hook``."""
+    from brief_revise_agent import agent as brv_agent
+
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(*args: Any, **kwargs: Any) -> dict[str, Any]:
+        captured.update(kwargs)
+        return {"status": "completed", "paths": {}}
+
+    monkeypatch.setattr(brv_agent, "_run_agent", fake_run_agent)
+    monkeypatch.setattr(agent_harness_mod, "make_provider",
+                        lambda backend, model: ScriptedProvider([BRIEF_TURN_EMPTY]))
+
+    brv_agent.run_agent(
+        QID, QUERY, search_result_filter=None,
+        system_prompt=load_system_prompt(DEFAULT_MAX_COMMITTED_PER_STEP))
+
+    assert captured["search_result_filter"] is None
 
 
 def test_review_pass_wired_end_to_end_sends_the_model_back_once(

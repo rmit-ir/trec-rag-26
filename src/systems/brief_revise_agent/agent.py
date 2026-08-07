@@ -46,10 +46,40 @@ from agent_harness.agent import (  # noqa: F401  (re-exported for run.py + tests
     make_provider,
     run_agent as _run_agent,
 )
+from facets_agent.tools import build_search_tool_def as _build_intent_search_tool_def
 
-from . import brief, review
+from . import brief, retrieval_filter, review
 
 SYSTEM_NAME = "brief_revise_agent"
+
+# Iteration 3: mandatory search-intent protocol, appended to the loaded
+# system prompt (never edits the base 267 lines, same append-only discipline
+# iterations 1-2 already used for the brief/review appendices). Reuses
+# facets_agent's own `requirement`-tagged search tool def verbatim rather
+# than rebuilding an equivalent schema -- it already adds exactly the
+# required `requirement` string property the shared harness's
+# `search_result_filter` hook reads (`agent_harness/agent.py`'s own
+# `requirement = call["arguments"].get("requirement", "")`).
+_SEARCH_INTENT_APPENDIX = """
+
+## Search-intent protocol
+
+Every search call must state its immediate evidence need in the `requirement`
+field: the unresolved fact, entity, event, comparison, or source gap that the
+query is meant to resolve and how a useful result will contribute to the
+report. Keep it specific and under 100 words. Do not use generic rationales
+such as "research the topic."
+
+Search one coherent evidence gap at a time. For a long chronology, itinerary,
+or many-actor account, divide retrieval by period, location, episode, faction,
+or actor cluster rather than asking one search to retrieve the whole story.
+Search results are automatically screened against this stated intent before
+they enter staged context, so the intent must preserve relevant names,
+time periods, and distinctions.
+"""
+
+_DEFAULT_SEARCH_TOOL_DEF = object()
+_DEFAULT_SEARCH_RESULT_FILTER = object()
 
 # Own prompts/system/ dir -- a separate copy of aus_agent's loader, not a
 # reused import, because SYSTEM_PROMPTS_DIR is resolved relative to __file__
@@ -172,15 +202,19 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               engines: list[str] | None = None,
               system_prompt: str,
               pre_final_hook: Any = _DEFAULT_HOOK,
+              search_tool_def: Any = _DEFAULT_SEARCH_TOOL_DEF,
+              search_result_filter: Any = _DEFAULT_SEARCH_RESULT_FILTER,
               **kwargs: Any) -> dict[str, Any]:
     """Run one topic end-to-end: aus_agent's own harness config, plus the
-    requirements brief appended to ``system_prompt`` and the review pass
-    wired as ``pre_final_hook`` (PLAN.md §3).
+    requirements brief appended to ``system_prompt``, the review pass wired
+    as ``pre_final_hook`` (PLAN.md §3), and (iteration 3) a mandatory
+    search-intent field plus a conservative retrieval filter.
 
     ``system_prompt`` is the LOADED base template (e.g. from this module's
     own ``load_system_prompt``) -- exactly aus_agent/run.py's own calling
-    convention. The brief appendix is appended to it here, not baked into the
-    file, because it is per-topic.
+    convention. The brief appendix and the search-intent protocol are
+    appended to it here, not baked into the file, because the brief is
+    per-topic (the intent protocol is static, but stays with its wiring).
 
     ``pre_final_hook`` defaults to the review pass (brief-aware, built fresh
     per run since it closes over the parsed brief and its own provider); pass
@@ -188,13 +222,24 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     independent additions, see module docstring), or any other callable to
     replace it outright (e.g. in tests exercising the bare harness).
 
+    ``search_tool_def`` defaults to the engine-aware, `requirement`-required
+    search schema (reused verbatim from ``facets_agent.tools``); pass an
+    explicit value (including ``None``, which restores the shared harness's
+    own plain search tool) to override.
+
+    ``search_result_filter`` defaults to a fresh
+    ``retrieval_filter.make_filter`` closure over its own dedicated
+    provider; pass ``None`` to disable filtering entirely, or another
+    callable to replace it outright (e.g. in tests).
+
     ``**kwargs`` passes through to ``agent_harness.agent.run_agent`` unchanged.
     """
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
 
     brief_provider = agent_harness_mod.make_provider(backend, model)
     requirements = brief.get_requirements(brief_provider, query)
-    full_system_prompt = system_prompt + brief.render_appendix(requirements)
+    full_system_prompt = (system_prompt + brief.render_appendix(requirements)
+                          + _SEARCH_INTENT_APPENDIX)
 
     if pre_final_hook is _DEFAULT_HOOK:
         reviewer_provider = agent_harness_mod.make_provider(backend, model)
@@ -205,6 +250,17 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     else:
         active_hook = pre_final_hook
 
+    if search_tool_def is _DEFAULT_SEARCH_TOOL_DEF:
+        active_search_tool_def = _build_intent_search_tool_def(engines)
+    else:
+        active_search_tool_def = search_tool_def
+
+    if search_result_filter is _DEFAULT_SEARCH_RESULT_FILTER:
+        filter_provider = agent_harness_mod.make_provider(backend, model)
+        active_search_result_filter = retrieval_filter.make_filter(filter_provider)
+    else:
+        active_search_result_filter = search_result_filter
+
     return _run_agent(
         query_id, query, backend=backend, model=model, k=k, engines=engines,
         context_token_budget=context_token_budget,
@@ -212,4 +268,5 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
         max_committed_per_step=max_committed_per_step, run_id=run_id,
         run_desc=run_desc, prompt_variant=prompt_variant,
         system_name=SYSTEM_NAME, system_prompt=full_system_prompt,
-        pre_final_hook=active_hook, **kwargs)
+        pre_final_hook=active_hook, search_tool_def=active_search_tool_def,
+        search_result_filter=active_search_result_filter, **kwargs)
