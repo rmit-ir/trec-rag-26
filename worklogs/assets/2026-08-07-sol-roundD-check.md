@@ -1,0 +1,1 @@
+No-go on round D. Round C’s severe regression makes a B+C combination unjustified absent a specific reason to expect a strong positive interaction; testing it would add risk with little supporting evidence. Round B should remain the final recommended configuration.
