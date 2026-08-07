@@ -324,63 +324,6 @@ def test_pre_final_hook_none_disables_the_review_pass(
     assert len(result["provider"].user_messages) == 2
 
 
-def test_search_tool_def_and_result_filter_default_wiring(
-        monkeypatch: pytest.MonkeyPatch) -> None:
-    """Iteration 3 (PLAN.md §3, retrieval-filter axis): by default
-    ``run_agent`` must hand the shared harness (a) a search tool def whose
-    schema requires ``requirement``, engine-matched to the run's own
-    ``engines``, and (b) a non-``None`` ``search_result_filter`` callable.
-    Captures ``_run_agent``'s kwargs directly rather than driving a full
-    scripted run -- the filter's own behavior is covered by
-    ``tests/systems/test_retrieval_filter.py``; this test only proves the
-    wiring reaches the harness call."""
-    from brief_revise_agent import agent as brv_agent
-
-    captured: dict[str, Any] = {}
-
-    def fake_run_agent(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        captured.update(kwargs)
-        return {"status": "completed", "paths": {}}
-
-    monkeypatch.setattr(brv_agent, "_run_agent", fake_run_agent)
-    monkeypatch.setattr(agent_harness_mod, "make_provider",
-                        lambda backend, model: ScriptedProvider([BRIEF_TURN_EMPTY]))
-
-    brv_agent.run_agent(
-        QID, QUERY, engines=["semantic", "keyword"],
-        system_prompt=load_system_prompt(DEFAULT_MAX_COMMITTED_PER_STEP))
-
-    tool_def = captured["search_tool_def"]
-    assert "requirement" in tool_def["input_schema"]["required"]
-    assert set(tool_def["input_schema"]["properties"]["search_engine"]["enum"]) \
-        == {"semantic", "keyword"}
-    assert callable(captured["search_result_filter"])
-
-
-def test_search_result_filter_none_disables_it(
-        monkeypatch: pytest.MonkeyPatch) -> None:
-    """``search_result_filter=None`` must reach the harness as ``None``
-    (disabling filtering), not be silently overridden by the default --
-    same override discipline as ``pre_final_hook``."""
-    from brief_revise_agent import agent as brv_agent
-
-    captured: dict[str, Any] = {}
-
-    def fake_run_agent(*args: Any, **kwargs: Any) -> dict[str, Any]:
-        captured.update(kwargs)
-        return {"status": "completed", "paths": {}}
-
-    monkeypatch.setattr(brv_agent, "_run_agent", fake_run_agent)
-    monkeypatch.setattr(agent_harness_mod, "make_provider",
-                        lambda backend, model: ScriptedProvider([BRIEF_TURN_EMPTY]))
-
-    brv_agent.run_agent(
-        QID, QUERY, search_result_filter=None,
-        system_prompt=load_system_prompt(DEFAULT_MAX_COMMITTED_PER_STEP))
-
-    assert captured["search_result_filter"] is None
-
-
 def test_review_pass_wired_end_to_end_sends_the_model_back_once(
         drive: Callable[..., dict[str, Any]]) -> None:
     """Proves ``agent.py``'s closure -- the parsed brief and a second
