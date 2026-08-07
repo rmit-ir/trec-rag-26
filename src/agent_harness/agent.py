@@ -32,7 +32,7 @@ import logging
 import re
 from concurrent.futures import ThreadPoolExecutor
 from dataclasses import dataclass
-from datetime import datetime
+from datetime import datetime, timezone
 from time import perf_counter
 from typing import Any, Callable
 
@@ -43,8 +43,6 @@ from ragrun import (
     run_timestamp,
     save_run,
 )
-from ragrun.trajectory import TZ
-
 from .context import ContextLedger
 from .providers.base import Provider
 from .tools import (
@@ -95,18 +93,14 @@ log = logging.getLogger(__name__)
 
 
 def now_full(now: datetime | None = None) -> str:
-    """The wall clock, spelled out unambiguously for the model.
+    """The wall clock, spelled out unambiguously for the model, in UTC.
 
     Weekday and month name so nothing hinges on reading a numeric date in the
-    right order, plus the UTC offset so "today" and any recency judgement the
-    request needs are well defined. Deliberately NOT the IANA zone name
-    (``TZ.key``, e.g. "Australia/Melbourne") -- that would tell the model
-    where the operator running this harness is physically located, which is
-    irrelevant to a research request unless the request itself is about a
-    place or timezone.
+    right order. UTC makes "today" and recency judgments well defined without
+    leaking either the host's IANA zone or its local offset into every request.
     """
-    now = now or datetime.now(TZ)
-    return f"{now:%A, %d %B %Y, %H:%M:%S %z}"
+    now = now or datetime.now(timezone.utc)
+    return f"{now.astimezone(timezone.utc):%A, %d %B %Y, %H:%M:%S} UTC"
 
 
 def make_provider(backend: str, model: str | None,
