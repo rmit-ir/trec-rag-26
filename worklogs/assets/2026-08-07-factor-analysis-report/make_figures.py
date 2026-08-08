@@ -106,8 +106,7 @@ ax.grid(axis="y", visible=False)
 ax.set_title("All 21 scored cells — standalone rubric overall score",
             fontsize=12.5, color=TEXT, loc="left", pad=12)
 fig.tight_layout()
-fig.savefig(OUT / "fig1_all_cells.svg")
-fig.savefig(OUT / "fig1_all_cells.png", dpi=200)
+fig.savefig(OUT / "fig1_all_cells.pdf")
 plt.close(fig)
 
 # ---------------------------------------------------------------------------
@@ -169,8 +168,7 @@ ax.set_title("Factor effects — dominant driver is generator-model choice",
 ax.grid(axis="y", visible=False)
 ax.legend(loc="lower left", frameon=False, fontsize=9)
 fig.tight_layout()
-fig.savefig(OUT / "fig2_factor_effects.svg")
-fig.savefig(OUT / "fig2_factor_effects.png", dpi=200)
+fig.savefig(OUT / "fig2_factor_effects.pdf")
 plt.close(fig)
 
 # ---------------------------------------------------------------------------
@@ -216,8 +214,7 @@ cbar.set_label("axis mean (0–2)", fontsize=9, color=TEXT2)
 ax.set_title("Rubric axis scores by cell — References & Citation Quality is "
             "weak everywhere", fontsize=12, color=TEXT, loc="left", pad=12)
 fig.tight_layout()
-fig.savefig(OUT / "fig3_axis_heatmap.svg")
-fig.savefig(OUT / "fig3_axis_heatmap.png", dpi=200)
+fig.savefig(OUT / "fig3_axis_heatmap.pdf")
 plt.close(fig)
 
 # ---------------------------------------------------------------------------
@@ -255,10 +252,9 @@ ax.legend(handles, ["brief_revise_agent wins (4)", "ambiguous (4)",
          loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, frameon=False,
          fontsize=9)
 fig.tight_layout()
-fig.savefig(OUT / "fig4_arena.svg")
-fig.savefig(OUT / "fig4_arena.png", dpi=200)
+fig.savefig(OUT / "fig4_arena.pdf")
 plt.close(fig)
 
 print("wrote figures to", OUT)
-for p in sorted(OUT.glob("*.png")):
+for p in sorted(OUT.glob("*.pdf")):
     print(" -", p.name)
