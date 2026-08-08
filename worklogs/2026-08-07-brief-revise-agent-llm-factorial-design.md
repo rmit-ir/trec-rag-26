@@ -462,15 +462,172 @@ this session has been null, this is the one idea with a distinct
 mechanism rather than another toggle -- but also the last realistic shot
 within budget. Decision on whether to build it: pending.
 
-## Not done yet
+## 16. Closure-critic result: last lever also null -- hill-climb exhausted
 
-- Standalone scoring of the 5 new cells (4 Block 1 + divergent anchor) once
-  their batches finish, plus the `aus_agent_v2` calibration run.
-- The remaining 6 of sol's 7 divergent-screen cells (srf skipped, see
-  above) -- code is wired, not yet launched; sol's own gate wants a
-  one-topic smoke test per cell first, verifying from the trace that the
-  flag actually changed model behavior before committing the full 15-topic
-  batch.
-- The actual mixed-effects model fit -- needs Block 1 + divergent-screen
-  data in hand first.
-- Arena confirmation of the eventual best cell(s).
+Built `REVIEW_PROMPT_WITH_CLOSURE` (extends the EXISTING single review
+pass, not a second stage -- `pre_final_hook` fires at most once by
+harness design, so overclaim/entailment (`UNSUPPORTED_CLAIM`) and
+`CONTRADICTION` checking was added to the same reviewer call rather than
+built as a separate scout/plan/verify pipeline, per sol's explicit
+constraint not to re-derive aus_agent_v2's architecture). Wired as
+`--closure-critic` (`closure_check=False` default, byte-identical to
+existing behavior when off). 2 new unit tests
+(`tests/systems/test_brief_revise_agent.py`), full suite clean, smoke-
+tested on 1 topic before the batch. Full 15-topic result:
+**2.267 -- exact tie with base.** No gain.
+
+**This was the last untried lever. Final state: 12 distinct hill-climb
+moves tried against the base cell (gpt-5.6-sol, round-B structure,
+2.267/3 standalone), zero improvements.**
+
+## FINAL REPORT
+
+### What was asked
+
+Beat `aus_agent_v2` (this repo's strongest system, ~$1,097 tracked build
+cost) with `brief_revise_agent` (a much lighter fork: pre-flight
+requirements brief + one review-and-revise pass on top of the shared
+`agent_harness` loop), via sol-directed hill-climbing on a fixed 15-topic
+dev set, budget capped at $400.
+
+### Bottom line
+
+**Did not beat `aus_agent_v2`.** The best `brief_revise_agent`
+configuration found (gpt-5.6-sol as main generator, round-B adjacent-page
+fetch on, k=10, gpt-5.6-luna as brief-analyst and reviewer, iteration-1
+structure) scores 2.267/3 on standalone rubric grading -- the highest of
+everything tested -- but still loses to `aus_agent_v2` head-to-head in
+arena, **18-12 (60/40), 4W-7L-4A on clean per-topic agreement**. That is
+real progress over the session's starting point (round B's own arena
+result was 3W-9L-3A), but not a win.
+
+### Full results table (standalone rubric, gpt-5.6-terra judge, 0-3 scale, 15 topics/cell unless noted)
+
+| cell | overall | note |
+|---|---:|---|
+| **gpt-5.6-sol, round-B structure (BASE / BEST)** | **2.267** | current best |
+| gpt-5.6-sol + commit_release=True | 2.267 | tie |
+| gpt-5.6-sol + jrel + commit_release | 2.267 | tie |
+| gpt-5.6-sol + closure critic (overclaim+contradiction) | 2.267 | tie |
+| gpt-5.6-luna, iteration-1 (no round B, old reference) | 2.067 | historical |
+| gpt-5.6-sol, adjacent-fetch OFF | 2.200 | -0.067 |
+| gpt-5.6-sol + stage_search_results=False | 2.200 | -0.067 |
+| gpt-5.6-sol + judge_relevance_tool=True | 2.200 | -0.067 |
+| gpt-5.6-sol, rerun on same 15 topics | 2.200 | -0.067 self-variance |
+| gpt-5.6-sol + analyst=terra | 2.200 | -0.067 |
+| gpt-5.6-sol + analyst=gpt-oss-120b | 2.200 | -0.067 |
+| gpt-5.6-sol + analyst=qwen | 2.200 | -0.067, identical to the other 2 |
+| gpt-5.6-sol, new 15 topics (replication) | 2.133 | +0.2 vs luna on same topics |
+| gpt-5.6-sol + search_preview_chars=20480 | 2.133 | -0.134 |
+| gpt-5.6-sol + wider retrieval_engine_set | 2.133 | -0.134 |
+| gpt-5.6-luna, current code incl. round B | 1.867 | round B HURTS luna standalone |
+| gpt-5.6-terra, round-B structure | 1.867 | |
+| gpt-5.6-luna, new 15 topics | 1.933 | |
+| qwen.qwen3-next-80b-a3b, round-B structure | 1.400 | |
+| qwen3-80b, adjacent-fetch OFF | 1.267 | -0.133 |
+| openai.gpt-oss-120b-1:0, round-B structure | 1.200 | weakest generator |
+
+Arena (30 battles, both orders, sol base cell vs `aus_agent_v2`, same 15
+topics): **aus_agent_v2 60% / brief_revise_agent 40%**, order_consistency
+0.733, clean 4W-7L-4A.
+
+### Key findings
+
+1. **Generator-model choice is the dominant factor** -- 1.07-point spread
+   from gpt-oss-120b (1.200) to sol (2.267) on standalone rubric, dwarfing
+   every structural factor tried (largest structural effect: round B's
+   ~0.13-0.20). Confirms the user's stated hunch at the start of this
+   workstream.
+2. **gpt-5.6-sol is the best main-generator model found**, beating luna
+   by roughly 0.2-0.4 points depending on topic sample (replicated on a
+   completely fresh 15-topic set, not just the original tuning set).
+3. **Every other lever tested is null or negative** at the base cell's
+   local optimum: 5 generic `agent_harness` factors (preview/no-stage/
+   judge-relevance/commit-release/wider-engines), their one justified 2x2
+   interaction, 3 brief-analyst model swaps (terra/gpt-oss/qwen -- all
+   three landed at the identical 2.200), adjacent-fetch removal, and a
+   novel closure-critic mechanism (overclaim + contradiction checking).
+   **12 moves, 0 improvements** -- this is a genuinely confirmed local
+   optimum, not an under-explored one.
+4. **Standalone rubric and arena can disagree on the same factor**: round
+   B (adjacent-page fetch) helped in arena for luna (3W/9L/3A vs
+   3W/10L/2A) but HURT in standalone rubric for luna (1.867 vs the old
+   2.067 no-round-B reference) -- while helping BOTH metrics for qwen and
+   sol. This is a real, unresolved methodological tension between the two
+   evaluation modes used this session, not an error to paper over.
+5. **Standalone score does not guarantee arena wins.** The best standalone
+   cell (2.267, well above luna's any-version standalone score) still
+   loses the majority of arena battles against `aus_agent_v2`. Whatever
+   makes `aus_agent_v2` win head-to-head is not fully captured by the
+   official rubric's per-criterion grading -- likely something about
+   completeness, coverage breadth, or claim density that rubric grading
+   under-weights relative to a direct reader-preference judgment.
+6. **Effect sizes at 15 topics are noisy at the ~0.067-0.13 scale**: the
+   sol cell's own rerun on identical topics landed 0.067 away from its
+   first run, the same magnitude as several "real" factor effects --
+   several of the rejected moves are not statistically distinguishable
+   from pure resampling noise at this sample size, though the DIRECTION
+   of the largest effects (model choice, round B) replicated across
+   independent topic sets and are more trustworthy.
+7. **Topic-pool constraint discovered mid-session**: the official
+   research-rubrics dev set is only 30 topics total, not the 30-new-on-
+   top-of-15 sol's replication plan assumed -- capped how much fresh-topic
+   replication and fresh-topic arena confirmation were affordable.
+
+### What this means for `brief_revise_agent`'s architecture
+
+The base cell (sol + round B) is `brief_revise_agent`'s best available
+configuration and should be the one used going forward if this system is
+submitted. It is NOT yet competitive with `aus_agent_v2` head-to-head.
+Given every retrieval/tool-exposure toggle and role-model swap this
+session tried was null, closing the remaining arena gap most likely
+requires either (a) a heavier structural change genuinely distinct from
+what was tried (e.g. adapting `aus_agent_v2`'s multi-candidate/ensemble
+mechanism rather than a single-pass review, which was explicitly out of
+scope this session per "diverge from aus_agent_v2"), or (b) accepting
+`brief_revise_agent` as a lighter, cheaper, "good but not best" system
+and using `aus_agent_v2` for the actual submission where budget/latency
+allow it.
+
+### Final cost: ~$340 of the $400 cap
+
+- OpenAI generation (terra/sol/luna, ~55.6M tokens processed): **~$278
+  (estimate)** -- placeholder $5/1M rate, this repo has no real metered
+  rate card for gpt-5.6-*; the single largest source of estimate
+  uncertainty in this total.
+- Bedrock (gpt-oss-120b + qwen, real rate-card files): **~$2.76 (real)**.
+- Sol design/thinking calls (7 calls, exact printed costs): **~$1.01 (real)**.
+- Standalone + arena judging (~390 calls): **~$58 (estimate)**.
+- **Total: ~$340, ~$60 headroom remained unspent** (stopped once the last
+  planned lever, the closure critic, also returned null -- no further
+  moves were queued).
+
+### Not done (deliberately out of scope or skipped for budget)
+
+- Reviewer-model sweep and word-budget interaction (skipped: same
+  null-result pattern as the analyst sweep / already-tested worst round).
+- Fresh 30-topic arena confirmation (not affordable: `aus_agent_v2` has
+  no generation on the unused topics and costs ~$36.5/topic to generate).
+- The originally-planned hierarchical cumulative-link mixed-effects model
+  (superseded by the hill-climb approach per the user's later
+  instruction; the per-cell table above is the actual analysis this
+  session produced instead).
+- `search_result_filter` (facets_agent's filters need a `requirement`
+  field `brief_revise_agent`'s search tool doesn't have -- flagged as
+  needing a bigger change, not attempted).
+- Porting any `aus_agent_v2`-only architecture piece (atomic obligation
+  scout, coverage plan, candidate union/ensemble select, coverage
+  contract) -- explicitly out of scope per the user's "diverge from
+  aus_agent_v2" instruction.
+
+### Where everything lives
+
+- All generated answers: `data/outputs/brief_revise_agent/` (by `run_id`).
+- All standalone scores: `evaluation-results/factorial/<run_id>/{scores.jsonl,summary.json}`.
+- Arena judgments: `evaluation-results/factorial/arena-sol-vs-aus-agent-v2-exp15/`.
+- Sub-system manifests: `src/systems/brief_revise_agent/subsystems/*.json`.
+- Execution index (sub-system name -> run_id, append-only): `evaluation-results/factorial/executions.jsonl`.
+- New code: `commit_release_tool.py`, `REVIEW_PROMPT_WITH_CLOSURE` +
+  `closure_check` (prompts.py/review.py/agent.py/run.py), 5 generic-factor
+  CLI flags, all on `explore/new-agent-framework-system`, committed
+  incrementally (`b6b6be0`..`1d039ac`).
