@@ -19,7 +19,7 @@ Fixture layers, cheapest first:
 - ``stub_search_tool`` — monkeypatches ``tools.search_tool``'s engine dispatch
   and ``utils.search``'s dense/sparse clients, so single-engine and hybrid
   pipelines exercise REAL retrieval plumbing against fake transport.
-- ``ScriptedProvider`` — the ``aus_agent.providers.base.Provider`` contract,
+- ``ScriptedProvider`` — the ``agent_harness.providers.base.Provider`` contract,
   driven by a queued list of turns; the single mock every system's LLM stage
   is exercised through.
 """
@@ -202,7 +202,7 @@ def stub_search_tool(monkeypatch: pytest.MonkeyPatch,
     Every query returns the same ``CLIMBMIX_DOCIDS``, which most tests want
     (stable ids to assert against). A test that needs *different* docids per
     query — cross-query de-duplication, disjoint staged batches — wants
-    ``tests/aus_agent_context/conftest.py::fake_engine`` instead, which maps
+    ``tests/agent_harness_context/conftest.py::fake_engine`` instead, which maps
     queries to three disjoint doc sets.
     """
     from tools import search_tool
@@ -225,7 +225,7 @@ def stub_search_tool(monkeypatch: pytest.MonkeyPatch,
 
 
 # ---------------------------------------------------------------------------
-# Scripted Provider (the aus_agent Provider contract)
+# Scripted Provider (the agent_harness Provider contract)
 # ---------------------------------------------------------------------------
 def model_turn(*, text: str | None = None,
                reasoning: list[str] | None = None,
@@ -278,7 +278,7 @@ def tool_call(name: str, arguments: dict[str, Any], *,
 class ScriptedProvider:
     """A ``Provider`` that replays queued turns — the shared LLM mock.
 
-    Implements the full contract from ``aus_agent.providers.base.Provider`` so
+    Implements the full contract from ``agent_harness.providers.base.Provider`` so
     it is substitutable anywhere a real backend is: turns are consumed in
     order, and the conversation (system prompt, tool defs, user messages, tool
     results) is recorded for assertions.

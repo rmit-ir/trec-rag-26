@@ -5,8 +5,8 @@ this mandatory, not optional: the API is shared infrastructure, so a client must
 back off on ``429`` rather than retry harder, and must never tight-loop on a
 failing request. Its other rules — at most one in-flight request per worker, a
 fixed modest worker pool — we already satisfy by construction (every client here
-is a synchronous ``urlopen``; the pools in ``utils.search`` and ``aus_agent`` cap
-at 2 and 8 against an allowance of about a dozen).
+is a synchronous ``urlopen``; the pools in ``utils.search`` and ``agent_harness``
+cap at 2 and 8 against an allowance of about a dozen).
 
 Every hosted call in ``src/`` routes through this, so the policy lives in one
 place instead of five slightly-different retry loops:
@@ -15,7 +15,7 @@ place instead of five slightly-different retry loops:
 - ``utils.search_pyserini._get_json``
 - ``utils.fetch_doc.fetch_doc``
 - ``tools.search_boolean_tool._post``
-- ``systems.aus_agent.tools.get_documents._fetch_one``
+- ``agent_harness.tools.get_documents._fetch_one``
 
 What is retried, and what deliberately is not:
 

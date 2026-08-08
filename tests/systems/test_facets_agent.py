@@ -1,11 +1,11 @@
 """End-to-end coverage for ``src/systems/facets_agent`` — a thin configuration
-of the shared ``aus_agent.agent.run_agent`` staged-context harness.
+of the shared ``agent_harness.agent.run_agent`` staged-context harness.
 
 ``facets_agent.agent.run_agent`` reimplements nothing: it renders this
 package's own minimal prompt and calls straight into
-``aus_agent.agent.run_agent`` with ``system_name="facets_agent"``, the three
-natural-language retrieval engines enabled (``ssr``/``lucene_bool`` are no
-longer supported), and a wider default ``k`` for the ``hybrid`` engine. The
+``agent_harness.agent.run_agent`` with ``system_name="facets_agent"``, the
+three natural-language retrieval engines enabled (``ssr``/``lucene_bool`` are
+no longer supported), and a wider default ``k`` for the ``hybrid`` engine. The
 loop mechanics themselves (staged/committed evidence, the final-report
 contract, citation parsing) are already covered by
 ``tests/systems/test_aus_agent.py`` against the same shared code — this file
@@ -16,7 +16,7 @@ the wider default rather than the plain one.
 
 Provider substitution follows the same pattern as ``test_aus_agent.py``:
 ``ScriptedProvider`` stands in for the model, patched onto
-``aus_agent.agent.make_provider`` (where the shared harness actually
+``agent_harness.agent.make_provider`` (where the shared harness actually
 constructs it) rather than on ``facets_agent.agent`` — the wrapper module
 never calls ``make_provider`` itself.
 """
@@ -27,7 +27,7 @@ from typing import Any, Callable
 import pytest
 from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn, tool_call
 
-from aus_agent import agent as aus_agent_mod
+from agent_harness import agent as agent_harness_mod
 
 from facets_agent.agent import DEFAULT_ENGINES, DEFAULT_HYBRID_K, SYSTEM_NAME
 from facets_agent.agent import run_agent as facets_run_agent
@@ -45,7 +45,7 @@ def drive(monkeypatch: pytest.MonkeyPatch,
     def _drive(script: list[dict[str, Any]], *, query_id: str = QID,
                query: str = QUERY, **kwargs: Any) -> dict[str, Any]:
         provider = ScriptedProvider(script)
-        monkeypatch.setattr(aus_agent_mod, "make_provider",
+        monkeypatch.setattr(agent_harness_mod, "make_provider",
                             lambda backend, model: provider)
         kwargs.setdefault("safety_max_rounds", 20)
         summary = facets_run_agent(query_id, query, **kwargs)
@@ -133,6 +133,25 @@ def test_commit_context_tool_advertises_release(
     assert "release" in commit_tool["input_schema"]["properties"]
 
 
+def test_judge_relevance_is_advertised_by_default(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """PLAN.md Phase 4b §7.4: facets_agent opts into the global
+    agent_harness judge tool by default -- the model must see it to ever
+    choose to call it."""
+    result = drive(list(HAPPY_SCRIPT))
+    names = {t["name"] for t in result["provider"].tools}
+    assert "judge_relevance" in names
+
+
+def test_judge_relevance_can_be_disabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """``judge_tool=None`` must actually remove it, proving the default is
+    overridable (e.g. for an A/B run with/without the tool)."""
+    result = drive(list(HAPPY_SCRIPT), judge_tool=None)
+    names = {t["name"] for t in result["provider"].tools}
+    assert "judge_relevance" not in names
+
+
 # A better document (D[1]) shows up on a second search and supersedes the
 # first-committed one (D[0]): commit D[0], search again, commit D[1] while
 # releasing D[0] in the same call, then cite only D[1].
@@ -172,7 +191,7 @@ def test_release_drops_a_superseded_document_end_to_end(
     assert result["summary"]["status"] == "completed"
     assert result["summary"]["n_references"] == 1
 
-    from aus_agent.context import RELEASE_PREFIX
+    from agent_harness.context import RELEASE_PREFIX
 
     s1_result = next(
         m for m in result["provider"].raw_messages
@@ -300,6 +319,195 @@ def test_named_candidate_query_hint_only_appears_when_keyword_is_enabled(
                          if t["name"] == "search")["input_schema"]["properties"]["query"]["description"]
     assert "named candidate" in with_desc
     assert "named candidate" not in without_desc
+
+
+# ---------------------------------------------------------------------------
+# Phase 4 §7.1 — review.coverage_gate, the default pre_final_hook
+# ---------------------------------------------------------------------------
+from facets_agent.review import coverage_gate  # noqa: E402
+
+
+def test_coverage_gate_is_a_noop_when_nothing_was_ever_committed() -> None:
+    """No commit_context call yet (e.g. an uncited-report edge case) must not
+    crash — ``last_commit_arguments`` is ``None``, not a missing key."""
+    assert coverage_gate({"last_commit_arguments": None}) is None
+
+
+def test_coverage_gate_is_a_noop_when_commit_call_carried_no_coverage() -> None:
+    """A commit call that omits ``coverage`` entirely (e.g. a scripted test,
+    or a model turn that malformed the field) is accepted, not crashed —
+    the schema is a forcing function, never a failure mode, same principle
+    as ``tools.py``'s own docstring states for every field it adds."""
+    assert coverage_gate({"last_commit_arguments": {"documents": []}}) is None
+
+
+def test_coverage_gate_is_a_noop_when_every_entry_is_covered_or_unavailable() -> None:
+    assert coverage_gate({"last_commit_arguments": {"coverage": [
+        {"requirement": "A", "status": "covered", "note": "id_1"},
+        {"requirement": "B", "status": "unavailable", "note": "searched, nothing"},
+    ]}}) is None
+
+
+def test_coverage_gate_names_every_open_requirement() -> None:
+    feedback = coverage_gate({"last_commit_arguments": {"coverage": [
+        {"requirement": "A", "status": "covered", "note": "id_1"},
+        {"requirement": "B", "status": "open", "note": "next query: X"},
+        {"requirement": "C", "status": "open", "note": ""},
+    ]}})
+    assert feedback is not None
+    assert "B" in feedback and "next query: X" in feedback
+    assert "C" in feedback
+    assert "2 entries" in feedback  # only the two `open` ones, not `A`
+
+
+COVERAGE_GATE_SCRIPT = [
+    model_turn(reasoning=["Search hybrid first."],
+               tool_calls=[tool_call(
+                   "search", {"query": "congestion pricing revenue plan",
+                              "search_engine": "hybrid"}, id="s1")]),
+    # ready_to_report=True but one requirement is still `open` — the gate
+    # must catch this inconsistency even though the model itself claimed
+    # it was done.
+    model_turn(text="Ready to report.",
+               tool_calls=[tool_call("commit_context", {
+                   "documents": [{"docid": CLIMBMIX_DOCIDS[0],
+                                  "reason": "covers requirement A"}],
+                   "coverage": [
+                       {"requirement": "A", "status": "covered",
+                        "note": CLIMBMIX_DOCIDS[0]},
+                       {"requirement": "B", "status": "open",
+                        "note": "not yet searched"},
+                   ],
+                   "ready_to_report": True,
+               }, id="c1")]),
+    model_turn(text=f"First finding. [{CLIMBMIX_DOCIDS[0]}]"),
+    model_turn(text=f"Revised, complete finding. [{CLIMBMIX_DOCIDS[0]}]"),
+]
+
+
+def test_coverage_gate_is_wired_in_by_default_and_blocks_a_premature_report(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """End-to-end: ``facets_run_agent`` needs no extra argument for this —
+    ``pre_final_hook`` defaults to ``coverage_gate`` — and the harness's own
+    ``pre_final_hook`` mechanism (tested generically in
+    ``tests/agent_harness_context/test_pre_final_hook.py``) is what actually
+    sends the model back. Proves the wiring, not the mechanism twice."""
+    result = drive(list(COVERAGE_GATE_SCRIPT))
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].user_messages[-1].startswith(
+        "Before this report is accepted")
+    assert "B" in result["provider"].user_messages[-1]
+    output = __import__("json").loads(result["summary"]["paths"]["output"].read_text())
+    assert output["answer"][0]["text"] == "Revised, complete finding."
+
+
+def test_coverage_gate_can_be_disabled_via_pre_final_hook_none(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """``pre_final_hook=None`` must accept the SAME script's first report
+    attempt as-is, proving the default is genuinely overridable."""
+    result = drive(list(COVERAGE_GATE_SCRIPT[:3]), pre_final_hook=None)
+    assert result["summary"]["status"] == "completed"
+    output = __import__("json").loads(result["summary"]["paths"]["output"].read_text())
+    assert output["answer"][0]["text"] == "First finding."
+
+
+# ---------------------------------------------------------------------------
+# Phase 4e -- review.citation_audit_gate / two_tier_final_gate
+# ---------------------------------------------------------------------------
+from facets_agent.review import (  # noqa: E402
+    citation_audit_gate,
+    two_tier_final_gate,
+)
+
+
+def test_citation_audit_gate_is_a_noop_on_an_uncited_draft() -> None:
+    """An uncited draft carries no citation-support risk this gate exists
+    for -- it must not fire just because a report was produced."""
+    assert citation_audit_gate({"candidate_sentences": [
+        {"text": "Uncited transition sentence.", "citations": []},
+    ]}) is None
+
+
+def test_citation_audit_gate_is_a_noop_when_there_are_no_sentences_yet() -> None:
+    assert citation_audit_gate({"candidate_sentences": None}) is None
+    assert citation_audit_gate({}) is None
+
+
+def test_citation_audit_gate_lists_every_cited_id_once() -> None:
+    feedback = citation_audit_gate({"candidate_sentences": [
+        {"text": "Claim one.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        {"text": "Claim two.", "citations": [CLIMBMIX_DOCIDS[0], CLIMBMIX_DOCIDS[1]]},
+    ]})
+    assert feedback is not None
+    assert feedback.count(CLIMBMIX_DOCIDS[0]) == 1
+    assert CLIMBMIX_DOCIDS[1] in feedback
+    assert "get_documents" in feedback and "commit_context" in feedback
+
+
+def test_two_tier_final_gate_prefers_coverage_over_citation_audit() -> None:
+    """A missing requirement is a bigger defect than an imperfect citation
+    -- when both would fire, only coverage_gate's feedback goes out, since
+    ``pre_final_hook`` only gets one shot per run."""
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "open", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Claim.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        ],
+    }
+    feedback = two_tier_final_gate(context)
+    assert feedback is not None
+    assert feedback.startswith("Before this report is accepted: your own "
+                                "requirement ledger")
+
+
+def test_two_tier_final_gate_runs_citation_audit_when_coverage_is_clean() -> None:
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "covered", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Claim.", "citations": [CLIMBMIX_DOCIDS[0]]},
+        ],
+    }
+    feedback = two_tier_final_gate(context)
+    assert feedback is not None
+    assert feedback.startswith("Before submitting the report")
+    assert CLIMBMIX_DOCIDS[0] in feedback
+
+
+def test_two_tier_final_gate_is_a_noop_when_both_checks_pass() -> None:
+    context = {
+        "last_commit_arguments": {"coverage": [
+            {"requirement": "A", "status": "covered", "note": ""},
+        ]},
+        "candidate_sentences": [
+            {"text": "Uncited transition.", "citations": []},
+        ],
+    }
+    assert two_tier_final_gate(context) is None
+
+
+# ---------------------------------------------------------------------------
+# Phase 4d §7.5 -- piika-inspired two-tier retrieval (opt-in, not the default)
+# ---------------------------------------------------------------------------
+def test_two_tier_search_is_off_by_default(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    from facets_agent.prompts import TWO_TIER_SEARCH_ADDENDUM
+
+    result = drive(list(HAPPY_SCRIPT))
+    assert TWO_TIER_SEARCH_ADDENDUM not in result["provider"].system_prompt
+
+
+def test_two_tier_search_appends_the_addendum_when_enabled(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    from facets_agent.prompts import TWO_TIER_SEARCH_ADDENDUM
+
+    result = drive(list(HAPPY_SCRIPT), search_preview_chars=300,
+                    stage_search_results=False, pre_final_hook=None,
+                    judge_tool=None)
+    assert TWO_TIER_SEARCH_ADDENDUM in result["provider"].system_prompt
 
 
 @pytest.mark.live

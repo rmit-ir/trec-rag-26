@@ -1,0 +1,84 @@
+→ full suite (hermetic: no creds, no network)
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /scratch/fast/kun/projects/trec-rag-26
+configfile: pyproject.toml
+testpaths: tests
+plugins: anyio-4.14.1
+collected 1628 items / 7 deselected / 1621 selected
+
+tests/arch_viz/test_gen_arch_viz.py ...........                          [  0%]
+tests/aus_agent_context/test_agent_context_integration.py .............. [  1%]
+.......                                                                  [  1%]
+tests/aus_agent_context/test_budget_and_prompt.py ...................... [  3%]
+............................................                             [  6%]
+tests/aus_agent_context/test_commit_tool.py .....................        [  7%]
+tests/aus_agent_context/test_coverage_plan.py ..                         [  7%]
+tests/aus_agent_context/test_finish_review.py .........                  [  8%]
+tests/aus_agent_context/test_incremental_save.py ........                [  8%]
+tests/aus_agent_context/test_ledger_core.py ............................ [ 10%]
+...                                                                      [ 10%]
+tests/aus_agent_context/test_ledger_dedup.py ...........                 [ 11%]
+tests/aus_agent_context/test_ledger_rejection.py .....................   [ 12%]
+tests/aus_agent_context/test_provider_compaction.py ...........          [ 13%]
+tests/bm25_tune/test_calibration.py ..............................       [ 14%]
+tests/bm25_tune/test_cli.py ................                             [ 15%]
+tests/bm25_tune/test_cli_calibrate.py ............                       [ 16%]
+tests/bm25_tune/test_cli_wp1.py ...............................          [ 18%]
+tests/bm25_tune/test_consensus.py ............                           [ 19%]
+tests/bm25_tune/test_extract.py ........................................ [ 21%]
+....                                                                     [ 22%]
+tests/bm25_tune/test_judge.py .......................................... [ 24%]
+......................................                                   [ 26%]
+tests/bm25_tune/test_logging_setup.py .................                  [ 28%]
+tests/bm25_tune/test_metrics.py ........................................ [ 30%]
+..........................                                               [ 32%]
+tests/bm25_tune/test_pool.py ...............................             [ 33%]
+tests/bm25_tune/test_pricing.py ........................................ [ 36%]
+.............                                                            [ 37%]
+tests/bm25_tune/test_prompts.py .........................                [ 38%]
+tests/bm25_tune/test_searcher.py ....................................... [ 41%]
+...............                                                          [ 42%]
+tests/bm25_tune/test_stats.py .......................................... [ 44%]
+.............                                                            [ 45%]
+tests/bm25_tune/test_store.py .......................................... [ 48%]
+                                                                         [ 48%]
+tests/contract/test_input_documents.py ................................. [ 50%]
+..                                                                       [ 50%]
+tests/contract/test_input_topics.py ..........................           [ 51%]
+tests/contract/test_output_rag_json.py ................................. [ 53%]
+................................................                         [ 56%]
+tests/contract/test_output_runfile.py .................................. [ 58%]
+...............                                                          [ 59%]
+tests/contract/test_output_trajectory.py ............................... [ 61%]
+..................                                                       [ 62%]
+tests/dummy_api/test_dummy_api.py ................                       [ 63%]
+tests/dummy_api/test_rate_limit.py ..........                            [ 64%]
+tests/shared/test_env.py ............................................... [ 67%]
+.........................                                                [ 68%]
+tests/shared/test_fusion.py ............................                 [ 70%]
+tests/shared/test_http_retry.py ..............................           [ 72%]
+tests/shared/test_mcp_server.py .......................................  [ 74%]
+tests/shared/test_pricing.py .......                                     [ 75%]
+tests/shared/test_search_clients.py .................................... [ 77%]
+.........................                                                [ 79%]
+tests/shared/test_search_tool.py ....................................... [ 81%]
+........                                                                 [ 82%]
+tests/systems/test_ali_deepresearch.py ................................. [ 84%]
+......................                                                   [ 85%]
+tests/systems/test_aus_agent.py ........................................ [ 87%]
+...........................................                              [ 90%]
+tests/systems/test_claude_code_research.py ............................. [ 92%]
+.............                                                            [ 93%]
+tests/systems/test_facet_rag.py ........................................ [ 95%]
+.............                                                            [ 96%]
+tests/systems/test_o3_deep_research.py ................................. [ 98%]
+.........................                                                [100%]
+
+=============================== warnings summary ===============================
+tests/shared/test_mcp_server.py::test_bearer_guard_rejects_a_missing_token
+  /scratch/fast/kun/projects/trec-rag-26/tests/shared/test_mcp_server.py:392: StarletteDeprecationWarning: Using `httpx` with `starlette.testclient` is deprecated; install `httpx2` instead.
+    from starlette.testclient import TestClient
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+================ 1621 passed, 7 deselected, 1 warning in 13.84s ================

@@ -15,7 +15,7 @@ relevance and diversity (MMR-style, redundant items sink) every iteration.
 The curator's top-N ranked items are what actually reach synthesis, and its
 ``covered`` verdict is what stops a facet's loop, not just the analyzer's
 per-round judgment. Both roles go through the shared
-``aus_agent.providers.bedrock.BedrockProvider``. Retrieval goes through
+``agent_harness.providers.bedrock.BedrockProvider``. Retrieval goes through
 ``tools.search_tool`` (five engines: semantic, keyword, hybrid, ssr,
 lucene_bool); the answer is shaped by
 ``ali_deepresearch.answer_format.format_answer`` and written via

@@ -1,0 +1,23 @@
+run=sol-aus-v2-ensemble-selected-probe4-20260806 system=aus_agent_v2 variant=sol-aus-v2-ensemble-selected-probe4-20260806 judge=openai.gpt-5.6-sol
+  4/30 topics have a COMPLETED answer
+  NOTE: scoring a partial run; the mean is over 4 topics and is NOT comparable to a full-30 score.
+  judge noise: mean spread across 3 gradings 0.0321, max 0.0658 — effects smaller than this are not measurable
+
+  === goal conditions ===
+  1. mean rubric score      0.4634   (median 0.5077, min 0.2387, max 0.5997)
+  2. topics below 0.65      4  ['683a58c9a7e7fe4e76958498', '6847465956a0f6376a60547e', '6847465956a0f6376a605492', '6847465956a0f6376a6054a7']
+  3. satisfied |w|>=4 penalties  0
+  4. second judge           not run here (pass --judge-model again)
+  5. over 1024 words          0
+
+  === per-axis (reward criteria only) ===
+    Synthesis of Information         0.9167   n=2
+    Explicit Criteria                0.6273   n=4
+    Implicit Criteria                0.4262   n=4
+    Miscellaneous                    0.3333   n=1
+    Instruction Following            0.2500   n=2
+    Communication Quality            0.0833   n=4
+
+  appended to docs/auto-optimize/rubric-results.jsonl
+  tokens: 12 calls, in 34,758 (cached 34,734), out 11,651, reasoning 10,085
+  cost: $0.3846 USD (openai.gpt-5.6-sol @ us-east-1)

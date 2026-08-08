@@ -1,0 +1,31 @@
+============================= test session starts ==============================
+platform linux -- Python 3.13.13, pytest-9.1.1, pluggy-1.6.0
+rootdir: /scratch/fast/kun/projects/trec-rag-26
+configfile: pyproject.toml
+plugins: anyio-4.14.1
+collected 86 items / 1 deselected / 85 selected
+
+tests/aus_agent_v2/test_adaptive_research.py ..                          [  2%]
+tests/aus_agent_v2/test_adjacent_search.py ..                            [  4%]
+tests/aus_agent_v2/test_answer_blueprint.py ...                          [  8%]
+tests/aus_agent_v2/test_audience_verify.py ......                        [ 15%]
+tests/aus_agent_v2/test_blueprint_route.py ..                            [ 17%]
+tests/aus_agent_v2/test_claim_finish.py .......                          [ 25%]
+tests/aus_agent_v2/test_coverage_plan.py ....                            [ 30%]
+tests/aus_agent_v2/test_coverage_verify.py .....                         [ 36%]
+tests/aus_agent_v2/test_ensemble_select.py .......                       [ 44%]
+tests/aus_agent_v2/test_facet_research.py .....                          [ 50%]
+tests/aus_agent_v2/test_finish_review.py ...........                     [ 63%]
+tests/aus_agent_v2/test_observable_scout.py ....                         [ 68%]
+tests/aus_agent_v2/test_plan_critic.py .......                           [ 76%]
+tests/aus_agent_v2/test_plan_reconcile.py .......                        [ 84%]
+tests/systems/test_aus_agent_v2.py .............                         [100%]
+
+======================= 85 passed, 1 deselected in 0.22s =======================
+
+Selected tests passed. Before committing — and after ANY change under
+src/utils/, src/tools/, src/ragrun/ or src/systems/ — run the whole suite:
+
+    bash scripts/test.sh
+
+(~6s. Those layers are shared by all five systems, so a subset cannot clear them.)

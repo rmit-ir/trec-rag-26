@@ -132,7 +132,7 @@ def test_get_documents_reads_dense_search_url_at_call_time(monkeypatch):
     the request went to the hosted endpoint anyway. Nothing failed loudly; the
     chunk just came back in ``missing``.
     """
-    from aus_agent.tools.get_documents import execute_get_documents
+    from agent_harness.tools.get_documents import execute_get_documents
 
     with DummyClimbMixAPI("dense") as api:
         monkeypatch.setenv("DENSE_SEARCH_URL", api.base_url)

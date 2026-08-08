@@ -32,8 +32,8 @@ them:
   docids, llm=...)` turns free prose into the strict
   `references[]` + per-sentence `citations` shape (LLM stage + deterministic
   offline fallback). Do not hand-roll sentence/citation logic.
-- **Pluggable LLM backends** (optional) → `aus_agent.providers` +
-  `aus_agent.agent.make_provider(backend, model)` (`bedrock` / `openai`).
+- **Pluggable LLM backends** (optional) → `agent_harness.providers` +
+  `agent_harness.agent.make_provider(backend, model)` (`bedrock` / `openai`).
 
 ## Scaffold a New System
 
@@ -57,56 +57,56 @@ It refuses to overwrite existing files without `--force`.
 **This scaffold fits ONE shape: retrieve → generate → format, once.** It does
 not fit a continuous tool-calling agent loop (native `search` /
 `get_documents` / `commit_context` tool-calling, staged-then-committed
-evidence, a budget-driven stop condition) — that shape is `aus_agent`'s, and
-copy-pasting its ~1,300-line `agent.py` for a second agent-loop system would
-duplicate logic that has already been debugged through several rounds (prompt
-repairs, commit-protocol edge cases, budget/backstop interactions — see
-`worklogs/2026-07-18-commit-cap-bump.md` and later aus_agent worklogs). If the
-new system needs that shape, don't scaffold — reuse the harness directly, next
-section.
+evidence, a budget-driven stop condition) — that shape lives in the shared
+`agent_harness` package (a sibling of `ragrun`/`tools`/`utils`, not owned by
+any one system — `aus_agent` and `facets_agent` both configure it
+differently), and copy-pasting its ~1,300-line `agent.py` for a second
+agent-loop system would duplicate logic that has already been debugged
+through several rounds (prompt repairs, commit-protocol edge cases,
+budget/backstop interactions — see `worklogs/2026-07-18-commit-cap-bump.md`
+and later aus_agent worklogs, from when this lived inside `aus_agent/`). If
+the new system needs that shape, don't scaffold — reuse the harness directly,
+next section.
 
-### Or: reuse the aus_agent agent-loop harness directly
+### Or: reuse the agent_harness agent-loop harness directly
 
-`aus_agent.agent.run_agent` takes four parameters that let a second system
-configure the exact same loop instead of forking it:
+`agent_harness.agent.run_agent` takes several parameters that let a second
+system configure the exact same loop instead of forking it:
 
 - `system_name: str = "aus_agent"` — artifacts land under
   `data/outputs/<system_name>/` instead of `aus_agent`'s own tree.
-- `system_prompt: str | None = None` — used verbatim instead of loading one of
-  `aus_agent`'s own `prompts/system/*.md` variants, so the new system's prompt
-  lives in its own package.
+- `system_prompt: str` — REQUIRED. Used verbatim; `agent_harness` has no
+  prompt file layout of its own, so every caller (including `aus_agent`,
+  via `aus_agent.agent.load_system_prompt`) resolves its own prompt before
+  calling in — the new system's prompt lives in its own package.
 - `default_k_by_engine: dict[str, int] | None = None` — overrides the default
   `k` for a named engine when the model's call omits it (e.g. widening
   `hybrid` for a HyDE-style query without relying on the model to ask).
 - `commit_context_tool: dict[str, Any] | None = None` — the tool definition
-  advertised to the model instead of `aus_agent`'s own `COMMIT_CONTEXT_TOOL`;
-  `apply_commit` already handles any extra argument (e.g. `release`) whenever
-  a call carries one, regardless of which schema advertised it, so a caller
-  only needs to supply a schema that documents the field.
+  advertised to the model instead of `agent_harness`'s own
+  `COMMIT_CONTEXT_TOOL`; `apply_commit` already handles any extra argument
+  (e.g. `release`) whenever a call carries one, regardless of which schema
+  advertised it, so a caller only needs to supply a schema that documents the
+  field.
 
 Everything else — the staged/committed evidence protocol, budget tracking,
 citation parsing, `get_documents`/`commit_context` wiring, pluggable Bedrock/
 OpenAI providers — comes along unchanged. The new system's own `agent.py`
 becomes a thin configuration layer (prompt + engine set + any
 `default_k_by_engine`/`commit_context_tool` override) calling straight into
-`aus_agent.agent.run_agent`; see `src/systems/facets_agent/agent.py` for a
+`agent_harness.agent.run_agent`; see `src/systems/facets_agent/agent.py` for a
 ~50-line worked example, and its README for the design rationale.
 
-One import-surgery trap this pattern exposes: `aus_agent/run.py` and
-`facet_rag/run.py` use two DIFFERENT (each internally self-consistent)
-sys.path conventions — `aus_agent/run.py` puts `src/` on the path and imports
-via `systems.aus_agent.agent` (dotted); `facet_rag/run.py` puts
-`src/systems/` on the path and imports `aus_agent.agent` bare. A system that
-does `from aus_agent.agent import ...` (bare — required to match how the test
-suite's `pythonpath` resolves it, and hence how `monkeypatch`-based test
-substitution actually reaches the code) must copy `facet_rag/run.py`'s
-header, not `aus_agent/run.py`'s: mixing the two conventions in one process
-loads `aus_agent.agent` twice under different names, and a test that patches
-one copy silently misses the other.
+`agent_harness` (like `ragrun`/`tools`/`utils`) is installed editable (see
+pyproject's `[tool.hatch.build.targets.wheel]`), so `from agent_harness.agent
+import ...` resolves the same way regardless of a script's own
+sys.path/import-surgery convention — unlike a second `src/systems/<name>/`
+package, it needs no path entry and cannot be loaded twice under different
+names.
 
 Still do the same non-automated steps as scaffolding (dep group, README,
 worklog, `ARCH_STAGES`, tests) — see below. `ARCH_STAGES` code refs can and
-should point partly at `aus_agent`'s own files where the mechanics are
+should point partly at `agent_harness`'s own files where the mechanics are
 inherited unchanged, and at the new package's files where it supplies its own
 configuration (`facets_agent/agent.py`'s `ARCH_STAGES` does this).
 
@@ -276,6 +276,7 @@ Launch straight into one existing system's pipeline (`--system` implies
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system facet_rag
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system ali_deepresearch
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system aus_agent
+python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system aus_agent_v2
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system o3_deep_research
 python skills/trec-rag-new-system/scripts/gen_arch_viz.py --system claude-code-research
 ```
@@ -368,6 +369,19 @@ python skills/trec-rag-new-system/scripts/gen_arch_viz.py --check   # exit 1 if 
   `STAGE_REGISTRY` keyed by system name in the script (this covers the systems
   that predate the convention). **When you add a system, edit its `ARCH_STAGES`
   to match the real control flow, then regenerate.**
+- **Alternative entrypoints are explicit branches.** A system with multiple
+  mutually exclusive runnable configurations may declare `ARCH_VARIANTS =
+  [...]`. Each entry requires `id`, `label`, `status`, and an ordered `path` of
+  ids from `ARCH_STAGES`; it may add `entrypoint`, `input`, `note`, `tone`
+  (`verified|candidate|oracle`), `default`, and per-stage `stage_overrides`.
+  The drill-in opens on the variant marked `default`, grouped into an
+  explanatory focused view when the system provides the standard research
+  stages. A separate comparison control renders every variant as its own
+  labelled lane. This keeps the recommended runnable system primary while
+  preventing a flat superset diagram from implying that optional candidate
+  gates run after it. Structural stage keys (`id`, `kind`, `back_to`, and
+  `back_from`) cannot be overridden; define another catalog stage when control
+  flow genuinely differs.
 - **Per-stage detail (issue #20).** A stage can optionally declare `prompt`
   (list of `<path-relative-to-src>[::CONST]` refs to its prompt template(s)),
   `code` (same ref shape, to the function/class implementing it), `tools`
@@ -410,10 +424,12 @@ real runs.
 - `src/systems/facet_rag` — plan-then-execute, pluggable backends, all four
   engines. The cleanest end-to-end example of these conventions.
 - `src/systems/ali_deepresearch` — ReAct agent port; `answer_format` lives here.
-- `src/systems/aus_agent` — staged-context agent; the pluggable `providers/`.
-- `src/systems/facets_agent` — minimal-prompt agent reusing aus_agent's loop
-  via `system_name`/`system_prompt`/`default_k_by_engine`; see "Or: reuse the
-  aus_agent agent-loop harness directly" above.
+- `src/systems/aus_agent` — staged-context agent; its own `prompts/system/*.md`
+  variants configuring the shared `agent_harness` loop (the loop itself, and
+  the pluggable `providers/`, live in `agent_harness`, not here).
+- `src/systems/facets_agent` — minimal-prompt agent reusing the same
+  `agent_harness` loop via `system_name`/`system_prompt`/`default_k_by_engine`;
+  see "Or: reuse the agent_harness agent-loop harness directly" above.
 - `src/systems/o3_deep_research` — minimal single-file runner (hosted DR + MCP).
 
 For track/submission format details use the `trec-rag-2026-track-guidelines`

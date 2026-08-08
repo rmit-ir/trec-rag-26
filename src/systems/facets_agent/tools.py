@@ -18,8 +18,8 @@ separate review tool or turn, why the enum stays at three values, why
 Both are marked ``required`` in the JSON schema (a model-compliance forcing
 function -- OpenAI tools are not sent in strict mode, so this carries no
 validation risk) but the underlying handlers
-(``aus_agent.tools.commit_context.apply_commit`` /
-``aus_agent.tools.search.execute_full_text_search``) read only the
+(``agent_harness.tools.commit_context.apply_commit`` /
+``agent_harness.tools.search.execute_full_text_search``) read only the
 arguments they already understood before this change and silently ignore
 everything else -- exactly like ``release`` already does. A call that omits
 or malforms either field cannot fail the run; the schema is a forcing
@@ -31,8 +31,8 @@ from __future__ import annotations
 
 from typing import Any
 
-from aus_agent.tools.commit_context import COMMIT_CONTEXT_TOOL as _BASE_COMMIT_TOOL
-from aus_agent.tools.search import build_search_tool_def as _base_build_search_tool_def
+from agent_harness.tools.commit_context import COMMIT_CONTEXT_TOOL as _BASE_COMMIT_TOOL
+from agent_harness.tools.search import build_search_tool_def as _base_build_search_tool_def
 
 _RELEASE_PROPERTY: dict[str, Any] = {
     "release": {
@@ -196,14 +196,14 @@ _NAMED_CANDIDATE_QUERY_HINT = (
 
 def build_search_tool_def(engines: list[str] | tuple[str, ...] | None = None
                           ) -> dict[str, Any]:
-    """facets_agent's own search tool: aus_agent's shared definition plus a
-    required ``requirement`` field, and -- when `keyword` is among the
+    """facets_agent's own search tool: agent_harness's shared definition plus
+    a required ``requirement`` field, and -- when `keyword` is among the
     enabled engines -- a named-candidate query hint appended to the
     `query` property's own description.
 
     ENGINE-DEPENDENT, exactly like the base builder it wraps: always call
     this with the run's actual enabled engines, never cache a definition
-    built for a different set (see ``aus_agent.agent.run_agent``'s
+    built for a different set (see ``agent_harness.agent.run_agent``'s
     ``search_tool_def`` parameter docstring for why).
     """
     base = _base_build_search_tool_def(engines)
@@ -232,7 +232,7 @@ def build_search_tool_def(engines: list[str] | tuple[str, ...] | None = None
 
 # A module-level constant purely for gen_arch_viz.py, which introspects tool
 # refs via AST and can only literal_eval a module-level assignment, never call
-# a function -- mirrors aus_agent.tools.search's own SEARCH_TOOL_DEF constant.
+# a function -- mirrors agent_harness.tools.search's own SEARCH_TOOL_DEF constant.
 # The real harness always calls build_search_tool_def(engines) with the run's
 # actual engine list (see agent.py); this fixed-default rendering is for the
 # diagram only and must not be imported by runtime code.

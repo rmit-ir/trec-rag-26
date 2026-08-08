@@ -9,13 +9,31 @@ Two zoom levels in one page:
   - OVERVIEW  — every ``src/systems/<name>`` wired to the shared layers
                 (ragrun, tools.search_tool + its 4 selectable engines,
                 utils.search dense+sparse RRF, utils.fetch_doc,
-                ali_deepresearch.answer_format, aus_agent.make_provider) and
-                the output artifacts. Edges are colored + legended by type.
+                ali_deepresearch.answer_format, agent_harness's run_agent
+                loop, agent_harness.agent.make_provider -- kept as its own
+                node/edge, distinct from the loop, since facet_rag imports
+                ONLY this and never touches the loop, and the MCP server
+                o3_deep_research calls over HTTP) and the output artifacts.
+                Edges are colored + legended by type.
+                A system's edges are expanded one hop through any shared
+                layer's OWN imports of another shared layer (see
+                ``_shared_internal_edges``), so a system that only imports
+                ``agent_harness`` still draws a direct ``search_tool`` edge --
+                ``agent_harness.tools.search`` wraps it, and stopping at the
+                first hop would draw it as never touching retrieval at all.
+                Every shared-rooted import a system (or a shared layer itself)
+                makes must resolve to a real edge or an explicit entry in
+                ``UNMODELED_SHARED_IMPORTS`` --
+                ``tests/arch_viz/test_gen_arch_viz.py`` enforces this, so a
+                newly added tool/component fails CI instead of silently
+                missing from the diagram.
   - DRILL-IN  — click a system card to see its per-stage pipeline.
 
 Stage flows come from a hand-authored ``STAGE_REGISTRY`` below, OVERRIDDEN per
 system by a module-level ``ARCH_STAGES = [...]`` literal if the package declares
-one (the scaffolder emits this, so new systems self-describe).
+one (the scaffolder emits this, so new systems self-describe). A package may
+also declare ``ARCH_VARIANTS = [...]`` to render mutually exclusive runnable
+paths as separate, labelled branch lanes instead of one misleading superset.
 
 Regenerate (and launch) it whenever a system is added, changed, or run.
 
@@ -51,8 +69,19 @@ SEARCH_TOOL = SRC / "tools" / "search_tool.py"
 # from ENGINE_INFO in tools/search_tool.py so it never drifts.
 # ---------------------------------------------------------------------------
 SHARED = [
+    {"id": "agent_harness", "label": "agent_harness.run_agent",
+     "role": "harness", "detail": "shared staged-context tool-calling loop: "
+             "ContextLedger + commit_context/get_documents/search tool "
+             "builders"},
     {"id": "make_provider", "label": "make_provider",
-     "role": "provider", "detail": "aus_agent.agent — pluggable Bedrock/OpenAI backends"},
+     "role": "provider", "detail": "agent_harness.agent.make_provider — "
+             "pluggable Bedrock/OpenAI backends, usable standalone (facet_rag) "
+             "or as what run_agent calls internally"},
+    {"id": "mcp_server", "label": "mcp/climbmix_server",
+     "role": "mcp", "detail": "src/mcp/climbmix_server.py — MCP server "
+             "exposing search + fetch_doc as MCP tools over HTTP. Reached by "
+             "URL (--mcp-url/O3DR_MCP_URL), not a Python import, so this edge "
+             "is hand-attributed (see MANUAL_EDGES) rather than AST-derived"},
     {"id": "answer_format", "label": "format_answer",
      "role": "answer-format", "detail": "ali_deepresearch.answer_format — prose -> references[] + per-sentence citations"},
     {"id": "search_tool", "label": "tools.search_tool",
@@ -69,7 +98,20 @@ SHARED = [
 
 # Which owner package each reusable shared symbol lives in — a same-owner import
 # is internal (no cross-system edge), a foreign import is a reuse edge.
-OWNERS = {"answer_format": "ali_deepresearch", "make_provider": "aus_agent"}
+# ``agent_harness`` needs no entry here: unlike ``answer_format`` (still hosted
+# inside a system, ali_deepresearch), it lives in a real top-level package, so
+# every importer — aus_agent included — draws a genuine cross-layer edge, with
+# no self-import case to suppress.
+OWNERS = {"answer_format": "ali_deepresearch"}
+
+# Edges that exist but can never be AST-derived, because the dependency isn't
+# a Python import: o3_deep_research reaches the MCP server by URL
+# (--mcp-url/O3DR_MCP_URL) over HTTP, not `import`. Hand-maintained like
+# STAGE_REGISTRY/SYSTEM_BLURB below -- update this when a system starts (or
+# stops) calling an external service the same way.
+MANUAL_EDGES: dict[str, list[dict[str, str]]] = {
+    "o3_deep_research": [{"to": "mcp_server", "type": "mcp"}],
+}
 
 # ---------------------------------------------------------------------------
 # Hand-authored stage flows for the current systems (see each README/pipeline).
@@ -169,26 +211,26 @@ STAGE_REGISTRY: dict[str, list[dict[str, Any]]] = {
          # runs commit -> search. FINAL PROSE / MAP CITES / SAVE are post-loop.
          "back_to": "search", "back_from": "commit",
          "back_label": "repeat until report",
-         "code": ["systems/aus_agent/agent.py::run_agent"],
-         "tools": [{"name": "search", "ref": "systems/aus_agent/tools/search.py::SEARCH_TOOL_DEF"},
-                   {"name": "get_documents", "ref": "systems/aus_agent/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
-                   {"name": "commit_context", "ref": "systems/aus_agent/tools/commit_context.py::COMMIT_CONTEXT_TOOL"}],
+         "code": ["agent_harness/agent.py::run_agent"],
+         "tools": [{"name": "search", "ref": "agent_harness/tools/search.py::SEARCH_TOOL_DEF"},
+                   {"name": "get_documents", "ref": "agent_harness/tools/get_documents.py::GET_DOCUMENTS_TOOL"},
+                   {"name": "commit_context", "ref": "agent_harness/tools/commit_context.py::COMMIT_CONTEXT_TOOL"}],
          "tools_note": "native Bedrock Converse toolConfig, passed once to "
                         "provider.start (agent.run_agent: "
                         "build_search_tool_def(engines) + GET_DOCUMENTS_TOOL "
                         "+ COMMIT_CONTEXT_TOOL)"},
         {"id": "search", "label": "SEARCH", "kind": "retrieval",
          "note": "full-text search; results staged",
-         "code": ["systems/aus_agent/tools/search.py::execute_full_text_search"]},
+         "code": ["agent_harness/tools/search.py::execute_full_text_search"]},
         {"id": "stage", "label": "STAGE", "kind": "no-llm",
          "note": "stage evidence; commit-before-expire protocol",
-         "code": ["systems/aus_agent/context.py::ContextLedger.stage"]},
+         "code": ["agent_harness/context.py::ContextLedger.stage"]},
         {"id": "commit", "label": "REASON/COMMIT", "kind": "llm",
          "note": "model turn commits selected evidence",
          "prompt": ["systems/aus_agent/prompts/system/default.md",
-                    "systems/aus_agent/agent.py::TASK_PROMPT"],
-         "code": ["systems/aus_agent/tools/commit_context.py::apply_commit",
-                  "systems/aus_agent/context.py::ContextLedger.commit"]},
+                    "agent_harness/agent.py::TASK_PROMPT"],
+         "code": ["agent_harness/tools/commit_context.py::apply_commit",
+                  "agent_harness/context.py::ContextLedger.commit"]},
         {"id": "final", "label": "FINAL PROSE", "kind": "llm",
          "note": "grounded prose with inline citations",
          "prompt": ["systems/aus_agent/prompts/system/default.md"],
@@ -196,7 +238,7 @@ STAGE_REGISTRY: dict[str, list[dict[str, Any]]] = {
                         "not a new call"},
         {"id": "map", "label": "MAP CITES", "kind": "format",
          "note": "docid -> reference-index mapping",
-         "code": ["systems/aus_agent/agent.py::_map_citations"]},
+         "code": ["agent_harness/agent.py::_map_citations"]},
         {"id": "save", "label": "SAVE", "kind": "artifact",
          "note": "ragrun.save_run",
          "code": ["ragrun/outputs.py::save_run"]},
@@ -227,6 +269,7 @@ SYSTEM_KIND = {
     "ali_deepresearch": "agent",
     "aus_agent": "agent",
     "facets_agent": "agent",
+    "aus_agent_v2": "agent variants",
     "o3_deep_research": "single-file",
     "claude-code-research": "manual",
 }
@@ -235,10 +278,12 @@ SYSTEM_BLURB = {
     "facet_rag": "orchestrator (gpt-oss) plans + searches, analyzer (Qwen) "
                  "judges + fact-checks, per-facet loops run concurrently",
     "ali_deepresearch": "Alibaba Tongyi DeepResearch ReAct port; owns answer_format",
-    "aus_agent": "staged-context research agent; owns the pluggable providers",
-    "facets_agent": "gpt-5.6-luna on the shared aus_agent harness, minimal "
+    "aus_agent": "staged-context research agent; its own prompt/*.md variants "
+                 "configuring the shared agent_harness loop",
+    "facets_agent": "gpt-5.6-luna on the shared agent_harness loop, minimal "
                     "prompt covering facet_rag's process (decompose, "
                     "multi-engine per facet, curate, self-check)",
+    "aus_agent_v2": "verified submission control plus isolated, runnable architecture candidates",
     "o3_deep_research": "minimal single-file runner (hosted DR + MCP)",
     "claude-code-research": "workflow-driven research (no python pipeline package)",
 }
@@ -247,24 +292,35 @@ SYSTEM_BLURB = {
 # ---------------------------------------------------------------------------
 # AST extraction (no imports).
 # ---------------------------------------------------------------------------
-def _imported_modules(py: Path) -> set[str]:
-    """Return the set of dotted module names imported by ``py`` (from ... import ...)."""
-    mods: set[str] = set()
+def _imported_names(py: Path) -> dict[str, set[str]]:
+    """Map each absolute ``from X import a, b`` module to the names pulled from
+    it (empty set for a bare ``import X``). Module-level granularity alone
+    can't tell ``from agent_harness.agent import make_provider`` apart from
+    ``... import run_agent`` -- two very different relationships that happen
+    to share a module string -- so ``_edges_for_system`` needs the names too.
+    """
+    out: dict[str, set[str]] = {}
     try:
         tree = ast.parse(py.read_text(), filename=str(py))
     except (SyntaxError, UnicodeDecodeError):
-        return mods
+        return out
     for node in ast.walk(tree):
         if isinstance(node, ast.ImportFrom) and node.module and node.level == 0:
-            mods.add(node.module)
+            out.setdefault(node.module, set()).update(
+                alias.name for alias in node.names)
         elif isinstance(node, ast.Import):
             for alias in node.names:
-                mods.add(alias.name)
-    return mods
+                out.setdefault(alias.name, set())
+    return out
 
 
-def _arch_stages_override(pkg: Path) -> list[dict[str, Any]] | None:
-    """Find a module-level ``ARCH_STAGES = [ {..}, .. ]`` literal in any package .py."""
+def _arch_literal_override(
+    pkg: Path,
+    constant: str,
+    *,
+    expected: type,
+) -> Any | None:
+    """Read one JSON-serializable module-level architecture literal."""
     for py in sorted(pkg.glob("*.py")):
         try:
             tree = ast.parse(py.read_text(), filename=str(py))
@@ -273,20 +329,95 @@ def _arch_stages_override(pkg: Path) -> list[dict[str, Any]] | None:
         for node in ast.walk(tree):
             if isinstance(node, ast.Assign):
                 for tgt in node.targets:
-                    if isinstance(tgt, ast.Name) and tgt.id == "ARCH_STAGES":
+                    if isinstance(tgt, ast.Name) and tgt.id == constant:
                         try:
                             val = ast.literal_eval(node.value)
                         except (ValueError, SyntaxError):
                             return None
-                        if isinstance(val, list) and all(isinstance(x, dict) for x in val):
+                        if isinstance(val, expected):
                             try:
                                 json.dumps(val)
                             except TypeError:
-                                print(f"gen_arch_viz: {py} ARCH_STAGES has a "
+                                print(f"gen_arch_viz: {py} {constant} has a "
                                       f"non-JSON-serializable value, ignoring override")
                                 return None
                             return val
     return None
+
+
+def _arch_stages_override(pkg: Path) -> list[dict[str, Any]] | None:
+    """Find a module-level ``ARCH_STAGES = [{...}]`` literal."""
+    val = _arch_literal_override(pkg, "ARCH_STAGES", expected=list)
+    if isinstance(val, list) and all(isinstance(x, dict) for x in val):
+        return val
+    return None
+
+
+def _arch_variants_override(pkg: Path) -> list[dict[str, Any]] | None:
+    """Find a module-level ``ARCH_VARIANTS = [{...}]`` literal."""
+    val = _arch_literal_override(pkg, "ARCH_VARIANTS", expected=list)
+    if isinstance(val, list) and all(isinstance(x, dict) for x in val):
+        return val
+    return None
+
+
+def _classify_import(name: str, mod: str, imported: set[str]
+                     ) -> list[tuple[str, str]]:
+    """One import (module + the names pulled from it) -> zero or more
+    ``(shared_node_id, edge_type)`` pairs. Split out of ``_edges_for_system``
+    so the completeness check in ``tests/arch_viz`` can call it per-import
+    too (an import this returns nothing for, and that isn't in
+    ``UNMODELED_SHARED_IMPORTS``, is a real gap: a shared-layer import the
+    diagram doesn't know how to draw).
+    """
+    if mod == "ragrun" or mod.startswith("ragrun."):
+        return [("ragrun", "artifacts")]
+    if mod == "tools.search_tool":
+        return [("search_tool", "retrieval")]
+    if mod == "utils.search":
+        return [("hybrid_search", "retrieval")]
+    if mod == "utils.fetch_doc":
+        return [("fetch_doc", "fetch-doc")]
+    if mod.startswith("ali_deepresearch.answer_format") or \
+            mod.startswith("systems.ali_deepresearch.answer_format"):
+        return [] if OWNERS["answer_format"] == name else \
+            [("answer_format", "answer-format")]
+    if mod == "agent_harness.agent":
+        # Same module, two very different relationships: make_provider is a
+        # standalone factory (facet_rag uses ONLY this, never the loop), the
+        # rest (run_agent, DEFAULT_*, ...) is the staged-context harness
+        # itself. Route each name actually imported to its own edge rather
+        # than bucketing both under one node.
+        out: list[tuple[str, str]] = []
+        if "make_provider" in imported:
+            out.append(("make_provider", "provider"))
+        if not imported or imported - {"make_provider"}:
+            out.append(("agent_harness", "harness"))
+        return out
+    if mod == "agent_harness" or mod.startswith("agent_harness."):
+        return [("agent_harness", "harness")]
+    return []
+
+
+# Shared-rooted imports that are real but deliberately NOT their own overview
+# node -- low-level plumbing (env var reader, HTTP retry, hit-shape helper) or
+# an engine module only ever reached through tools.search_tool/utils.search,
+# never imported by a system directly (see ``_shared_internal_edges``'s
+# docstring for why that specific chain isn't propagated either). Add here,
+# with a one-line reason, rather than silencing the completeness check
+# blindly -- see ``tests/arch_viz/test_gen_arch_viz.py::test_...`` for what
+# happens when neither this nor ``_classify_import`` recognizes an import.
+UNMODELED_SHARED_IMPORTS = {
+    "utils.env": "env-var reader, not an architectural component",
+    "utils.http_retry": "internal retry/backoff plumbing behind every hosted call",
+    "utils.search_types": "SearchHit dataclass + id-shape helpers, not a node",
+    "utils.search_dense": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.search_sparse": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.search_lucene_bool": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.search_ssr": "engine impl, reached only via tools.search_tool/utils.search",
+    "utils.ssr_hydrate": "SSR-only helper, not imported outside utils.search_ssr",
+    "agent_harness.providers.base": "the Provider ABC -- providers are reached via make_provider, never subclassed directly by a system",
+}
 
 
 def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
@@ -304,25 +435,10 @@ def _edges_for_system(name: str, py_files: list[Path]) -> list[dict[str, str]]:
     # byte-deterministic — a set's iteration order varies run to run (string hash
     # randomization), which would break --check and produce noisy diffs.
     for py in sorted(py_files):
-        for mod in sorted(_imported_modules(py)):
-            if mod == "ragrun" or mod.startswith("ragrun."):
-                add("ragrun", "artifacts")
-            elif mod == "tools.search_tool":
-                add("search_tool", "retrieval")
-            elif mod == "utils.search":
-                add("hybrid_search", "retrieval")
-            elif mod == "utils.fetch_doc":
-                add("fetch_doc", "fetch-doc")
-            elif mod.startswith("ali_deepresearch.answer_format") or \
-                    mod.startswith("systems.ali_deepresearch.answer_format"):
-                if OWNERS["answer_format"] != name:
-                    add("answer_format", "answer-format")
-            elif mod in ("aus_agent.agent", "aus_agent.providers") or \
-                    mod.startswith("aus_agent.providers") or \
-                    mod.startswith("systems.aus_agent.agent") or \
-                    mod.startswith("systems.aus_agent.providers"):
-                if OWNERS["make_provider"] != name:
-                    add("make_provider", "provider")
+        imports = _imported_names(py)
+        for mod in sorted(imports):
+            for to, typ in _classify_import(name, mod, imports[mod]):
+                add(to, typ)
     return edges
 
 
@@ -500,9 +616,137 @@ def _normalize_stage(stg: dict[str, Any], prompts: dict[str, str]) -> dict[str, 
     return out
 
 
+def _shared_internal_edges() -> dict[str, list[dict[str, str]]]:
+    """Shared layers can themselves depend on other shared layers (e.g.
+    ``agent_harness.tools.search`` wraps ``tools.search_tool``). Computed the
+    same way as a system's own edges, scoped to shared-node targets only, so
+    a consumer's edge list can be expanded to the real transitive dependency
+    instead of stopping at the first shared hop (see ``build_model``).
+    """
+    shared_ids = {s["id"] for s in SHARED}
+    internal: dict[str, list[dict[str, str]]] = {}
+    for sid in shared_ids:
+        pkg_dir = SRC / sid
+        if not pkg_dir.is_dir():
+            continue
+        scan = [p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts]
+        edges = [e for e in _edges_for_system(sid, scan) if e["to"] in shared_ids]
+        if edges:
+            internal[sid] = edges
+    return internal
+
+
+def _normalize_variants(
+    variants_raw: list[dict[str, Any]] | None,
+    stages: list[dict[str, Any]],
+    prompts: dict[str, str],
+    *,
+    system_name: str,
+) -> list[dict[str, Any]]:
+    """Resolve runnable variant lanes against the system's stage catalog.
+
+    Source literals name a ``path`` of stage ids and may override stage detail
+    for that path. The generated model stores complete normalized stage objects
+    per lane, which keeps the browser renderer simple and prevents a variant
+    from accidentally inheriting a candidate-only prompt or tool.
+    """
+    if not variants_raw:
+        return []
+    stage_by_id = {str(stage.get("id")): stage for stage in stages}
+    if len(stage_by_id) != len(stages):
+        raise SystemExit(
+            f"gen_arch_viz: {system_name} ARCH_STAGES contains duplicate ids")
+
+    normalized: list[dict[str, Any]] = []
+    seen_ids: set[str] = set()
+    defaults = 0
+    for raw in variants_raw:
+        variant_id = str(raw.get("id") or "").strip()
+        label = str(raw.get("label") or "").strip()
+        status = str(raw.get("status") or "").strip()
+        path = raw.get("path")
+        if not variant_id or not label or not status:
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} ARCH_VARIANTS entries require "
+                "non-empty id, label, and status")
+        if variant_id in seen_ids:
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} ARCH_VARIANTS duplicates "
+                f"id {variant_id!r}")
+        seen_ids.add(variant_id)
+        if not isinstance(path, list) or not path:
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} variant {variant_id!r} needs "
+                "a non-empty path")
+        path_ids = [str(value) for value in path]
+        unknown = [stage_id for stage_id in path_ids
+                   if stage_id not in stage_by_id]
+        if unknown:
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} variant {variant_id!r} names "
+                f"unknown stages: {', '.join(unknown)}")
+        if len(set(path_ids)) != len(path_ids):
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} variant {variant_id!r} repeats "
+                "a stage id")
+
+        overrides = raw.get("stage_overrides") or {}
+        if not isinstance(overrides, dict):
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} variant {variant_id!r} "
+                "stage_overrides must be an object")
+        inactive_overrides = [key for key in overrides if key not in path_ids]
+        if inactive_overrides:
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} variant {variant_id!r} overrides "
+                f"inactive stages: {', '.join(inactive_overrides)}")
+
+        variant_stages: list[dict[str, Any]] = []
+        for stage_id in path_ids:
+            override = overrides.get(stage_id) or {}
+            if not isinstance(override, dict):
+                raise SystemExit(
+                    f"gen_arch_viz: {system_name} variant {variant_id!r} "
+                    f"override for {stage_id!r} must be an object")
+            if any(key in override for key in ("id", "kind", "back_to",
+                                                "back_from")):
+                raise SystemExit(
+                    f"gen_arch_viz: {system_name} variant {variant_id!r} "
+                    f"cannot change structural keys for {stage_id!r}")
+            merged = {**stage_by_id[stage_id], **override}
+            variant_stages.append(_normalize_stage(merged, prompts))
+
+        entrypoint = str(raw.get("entrypoint") or "").strip()
+        if entrypoint:
+            _code_ref(entrypoint)
+        is_default = bool(raw.get("default", False))
+        tone = str(raw.get("tone") or "candidate")
+        if tone not in {"verified", "candidate", "oracle"}:
+            raise SystemExit(
+                f"gen_arch_viz: {system_name} variant {variant_id!r} has "
+                f"unsupported tone {tone!r}")
+        defaults += int(is_default)
+        normalized.append({
+            "id": variant_id,
+            "label": label,
+            "status": status,
+            "tone": tone,
+            "note": str(raw.get("note") or ""),
+            "input": str(raw.get("input") or "original request"),
+            "default": is_default,
+            "entrypoint": entrypoint,
+            "stages": variant_stages,
+        })
+    if defaults > 1:
+        raise SystemExit(
+            f"gen_arch_viz: {system_name} ARCH_VARIANTS has more than one default")
+    return normalized
+
+
 def build_model() -> dict[str, Any]:
     systems: list[dict[str, Any]] = []
     prompts: dict[str, str] = {}
+    shared_internal = _shared_internal_edges()
     for pkg in sorted(p for p in SYSTEMS_DIR.iterdir() if p.is_dir()):
         name = pkg.name
         if name == "__pycache__":
@@ -512,17 +756,44 @@ def build_model() -> dict[str, Any]:
         stages_raw = _arch_stages_override(pkg) or STAGE_REGISTRY.get(name) \
             or [{"id": "run", "label": "RUN", "kind": "no-llm", "note": ""}]
         stages = [_normalize_stage(s, prompts) for s in stages_raw]
+        variants = _normalize_variants(
+            _arch_variants_override(pkg), stages, prompts, system_name=name)
         # scan the whole package tree (subpackages like tools/, providers/ hold
         # the retrieval/provider imports), skipping caches.
         scan = [p for p in pkg.rglob("*.py") if "__pycache__" not in p.parts]
-        systems.append({
+        edges = _edges_for_system(name, scan)
+        # Expand one hop through shared-to-shared deps (e.g. a system that only
+        # reaches agent_harness also really reaches search_tool through it) --
+        # a fixpoint loop rather than one pass, so a future multi-hop shared
+        # chain still resolves fully instead of silently stopping short.
+        seen = {(e["to"], e["type"]) for e in edges}
+        frontier = list(edges)
+        while frontier:
+            next_frontier = []
+            for e in frontier:
+                for extra in shared_internal.get(e["to"], []):
+                    key = (extra["to"], extra["type"])
+                    if key not in seen:
+                        seen.add(key)
+                        edges.append(extra)
+                        next_frontier.append(extra)
+            frontier = next_frontier
+        for extra in MANUAL_EDGES.get(name, []):
+            key = (extra["to"], extra["type"])
+            if key not in seen:
+                seen.add(key)
+                edges.append(extra)
+        system = {
             "name": name,
             "kind": SYSTEM_KIND.get(name, "pipeline"),
             "modules": modules,
             "blurb": SYSTEM_BLURB.get(name, ""),
             "stages": stages,
-            "edges": _edges_for_system(name, scan),
-        })
+            "edges": edges,
+        }
+        if variants:
+            system["variants"] = variants
+        systems.append(system)
     return {
         "generated_from": "src/systems + shared layers (ragrun, tools, utils)",
         "systems": systems,
@@ -550,7 +821,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --accent: #3d5afe;
     /* edge type palette (brand-neutral, >=3:1 vs bg, distinguishable) */
     --e-retrieval: #1a7f6b; --e-artifacts: #b45309; --e-answer-format: #7c3aed;
-    --e-provider: #2563eb; --e-fetch-doc: #0891b2;
+    --e-provider: #2563eb; --e-fetch-doc: #0891b2; --e-harness: #be185d;
+    --e-mcp: #65a30d;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -558,7 +830,8 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --line: #2a323c; --card: #1e242c; --cardstroke: #3a4552;
       --accent: #7c8cff;
       --e-retrieval: #2dd4bf; --e-artifacts: #f59e0b; --e-answer-format: #a78bfa;
-      --e-provider: #60a5fa; --e-fetch-doc: #22d3ee;
+      --e-provider: #60a5fa; --e-fetch-doc: #22d3ee; --e-harness: #f472b6;
+      --e-mcp: #a3e635;
     }
   }
   * { box-sizing: border-box; }
@@ -577,8 +850,9 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
             border-bottom: 1px solid var(--line); font-size: 12px; color: var(--muted); }
   #legend .lg { display: inline-flex; align-items: center; gap: 6px; }
   #legend .sw { width: 22px; height: 3px; border-radius: 2px; display: inline-block; }
-  #wrap { position: relative; }
-  svg { width: 100%; height: calc(100vh - 96px); display: block; }
+  #legend .variant-toggle { margin-left: auto; padding: 3px 9px; font-size: 11px; }
+  #wrap { position: relative; overflow: auto; }
+  svg { width: 100%; min-width: 100%; height: calc(100vh - 96px); display: block; }
   .card { cursor: pointer; }
   .card rect { fill: var(--card); stroke: var(--cardstroke); stroke-width: 1.5; rx: 10; }
   .card:hover rect, .card:focus rect { stroke: var(--accent); stroke-width: 2.5; }
@@ -608,6 +882,26 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .loop-rect.ghost1 { opacity: .35; }
   .loop-rect.ghost2 { opacity: .2; }
   .loop-label { fill: var(--muted); font-size: 11px; font-weight: 600; }
+  .lane-bg { fill: color-mix(in srgb, var(--card) 42%, transparent);
+             stroke: var(--line); stroke-width: 1; rx: 12; }
+  .variant-card rect { fill: var(--panel); stroke-width: 2; rx: 10; }
+  .variant-card.verified rect { stroke: var(--e-retrieval); }
+  .variant-card.candidate rect { stroke: var(--e-provider); }
+  .variant-card.oracle rect { stroke: var(--e-answer-format); stroke-dasharray: 5 4; }
+  .variant-status { font-size: 10px; font-weight: 700; letter-spacing: .35px; }
+  .variant-card.verified .variant-status { fill: var(--e-retrieval); }
+  .variant-card.candidate .variant-status { fill: var(--e-provider); }
+  .variant-card.oracle .variant-status { fill: var(--e-answer-format); }
+  .source-card rect { fill: var(--card); stroke: var(--cardstroke); stroke-width: 1.5; rx: 8; }
+  .phase-panel { fill: color-mix(in srgb, var(--card) 38%, transparent);
+                 stroke: var(--line); stroke-width: 1.5; rx: 14; }
+  .conversation-panel { fill: color-mix(in srgb, var(--e-provider) 7%, var(--panel));
+                        stroke: var(--e-provider); stroke-width: 2.5; rx: 14; }
+  .phase-title { fill: var(--muted); font-size: 11px; font-weight: 750;
+                 letter-spacing: .45px; }
+  .recommended-status { fill: var(--e-retrieval); font-size: 11px;
+                        font-weight: 750; letter-spacing: .35px; }
+  .stage-note { fill: var(--muted); font-size: 10px; }
   #detail { position: fixed; top: 0; right: 0; width: min(440px, 45vw); height: 100%;
             overflow-y: auto; background: var(--panel); border-left: 1px solid var(--line);
             padding: 16px; box-shadow: -6px 0 18px rgba(0,0,0,.15); z-index: 5; }
@@ -653,12 +947,15 @@ const backBtn = document.getElementById('back');
 const detail = document.getElementById('detail');
 const detailBody = document.getElementById('detail-body');
 const ENGINE_BLURB = Object.fromEntries(MODEL.engines.map(e => [e.id, e.blurb]));
+let SHOW_VARIANT_COMPARISON = false;
 
 const EDGE_TYPES = [
   ['retrieval','Retrieval (search layers)'],
   ['fetch-doc','fetch_doc'],
   ['answer-format','answer_format (reuse)'],
+  ['harness','agent_harness (reuse)'],
   ['provider','make_provider (reuse)'],
+  ['mcp','MCP server (HTTP, hand-attributed)'],
   ['artifacts','Artifacts (ragrun)'],
 ];
 const edgeColor = t => getComputedStyle(document.documentElement)
@@ -672,17 +969,75 @@ function el(name, attrs = {}, text) {
 }
 function clear(n){ while(n.firstChild) n.removeChild(n.firstChild); }
 
+function setCanvas(width, height) {
+  svg.removeAttribute('viewBox');
+  svg.style.width = Math.max(width, document.documentElement.clientWidth) + 'px';
+  svg.style.height = height + 'px';
+  svg.setAttribute('width', Math.max(width, document.documentElement.clientWidth));
+  svg.setAttribute('height', height);
+}
+
+// SVG text has no native wrapping. Split at words and cap the final line so
+// long system/stage names stay inside their cards instead of colliding with
+// adjacent nodes. Tooltips and the detail drawer retain the unabridged text.
+function appendWrappedText(parent, text, x, y, options = {}) {
+  const maxChars = options.maxChars || 20;
+  const maxLines = options.maxLines || 2;
+  const lineHeight = options.lineHeight || 14;
+  const words = String(text || '').split(/\s+/).filter(Boolean);
+  const lines = [];
+  for (const word of words) {
+    const current = lines[lines.length - 1];
+    if (!current || (current + ' ' + word).length > maxChars) lines.push(word);
+    else lines[lines.length - 1] = current + ' ' + word;
+  }
+  if (!lines.length) lines.push('');
+  if (lines.length > maxLines) {
+    const rest = lines.slice(maxLines - 1).join(' ');
+    lines.length = maxLines;
+    lines[maxLines - 1] = rest.length > maxChars
+      ? rest.slice(0, Math.max(1, maxChars - 1)).trimEnd() + '…' : rest;
+  }
+  const attrs = { x, y, class: options.className || 'lbl',
+                  'text-anchor': options.anchor || 'middle' };
+  if (options.weight) attrs['font-weight'] = options.weight;
+  const node = el('text', attrs);
+  lines.forEach((line, index) => node.appendChild(el('tspan', {
+    x, dy: index === 0 ? 0 : lineHeight,
+  }, line)));
+  parent.appendChild(node);
+  return node;
+}
+
+function addArrowMarker() {
+  const defs = el('defs');
+  const marker = el('marker', { id: 'arw', viewBox: '0 0 10 10', refX: 9, refY: 5,
+    markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
+  marker.appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--muted)' }));
+  defs.appendChild(marker); svg.appendChild(defs);
+}
+
 // view is 'overview' or 'system' -- the drill-in legend swaps edge-type swatches
 // for the run-class / loop-grouping key, since neither applies to the other view.
 function buildLegend(view) {
   const box = document.getElementById('legend');
   clear(box);
-  if (view === 'system') {
-    ['LLM = calls a model', 'CODE = deterministic', 'LLM+CODE = both',
-     'dashed box = loop span', 'stacked box = runs concurrently'].forEach(t => {
+  if (view === 'system' || view === 'variant' || view === 'recommended') {
+    const entries = view === 'recommended'
+      ? ['LLM = calls a model', 'CODE = deterministic',
+         'blue panel = one continuous model conversation',
+         'curved return = search again for evidence gaps']
+      : ['LLM = calls a model', 'CODE = deterministic', 'LLM+CODE = both',
+         'dashed box = loop span', 'stacked box = runs concurrently'];
+    entries.forEach(t => {
       const s = document.createElement('span'); s.className = 'lg'; s.textContent = t;
       box.appendChild(s);
     });
+    if (view === 'variant') {
+      const s = document.createElement('span'); s.className = 'lg';
+      s.textContent = 'each lane = a mutually exclusive runnable branch';
+      box.appendChild(s);
+    }
     return;
   }
   for (const [t, label] of EDGE_TYPES) {
@@ -695,6 +1050,20 @@ function buildLegend(view) {
   const hint = document.createElement('span'); hint.className = 'lg';
   hint.textContent = 'Click a system to drill into its pipeline.';
   box.appendChild(hint);
+}
+
+function addVariantToggle(sys, comparing) {
+  const button = document.createElement('button');
+  button.id = 'variant-toggle';
+  button.className = 'variant-toggle';
+  button.textContent = comparing
+    ? 'Focus recommended system'
+    : 'Compare ' + Math.max(0, sys.variants.length - 1) + ' candidate variants';
+  button.addEventListener('click', () => {
+    SHOW_VARIANT_COMPARISON = !SHOW_VARIANT_COMPARISON;
+    drawVariantSystem(sys);
+  });
+  document.getElementById('legend').appendChild(button);
 }
 
 function showTip(evt, html) {
@@ -742,12 +1111,18 @@ function renderToolList(container, tools) {
 }
 function el2(tag){ return document.createElement(tag); }
 
-function showDetail(sys, stg) {
+function showDetail(sys, stg, variant = null) {
   clear(detailBody);
   detailBody.appendChild(Object.assign(el2('h2'), { textContent: stg.label }));
   const meta = el2('div'); meta.className = 'sub2';
   meta.textContent = stg.kind + (stg.run ? ' · ' + stg.run.toUpperCase() : '');
   detailBody.appendChild(meta);
+  if (variant) {
+    const branch = el2('p'); branch.className = 'hint';
+    branch.textContent = variant.label + ' · ' + variant.status +
+      (variant.entrypoint ? ' · ' + variant.entrypoint : '');
+    detailBody.appendChild(branch);
+  }
   if (stg.note) detailBody.appendChild(Object.assign(el2('p'), { textContent: stg.note }));
 
   if (stg.prompt && stg.prompt.length) {
@@ -794,16 +1169,19 @@ function drawOverview() {
   closeDetail();
   buildLegend('overview');
   clear(svg);
-  svg.removeAttribute('viewBox'); // clear() drops children only; a drill-in's viewBox would linger
+  svg.style.width = '100%';
+  svg.style.height = 'calc(100vh - 96px)';
+  svg.removeAttribute('width');
+  svg.removeAttribute('viewBox');
   const W = svg.clientWidth || 1200, colGap = W / 5;
-  const rowH = 64, pad = 30;
+  const rowH = 70, pad = 30, sysW = 205;
   const sysCol = colGap * 1.15, sharedCol = colGap * 2.6, engCol = colGap * 3.85;
 
   // shared-layer node positions (right column), ordered top->bottom
   const shared = MODEL.shared;
   const sHeight = Math.max(shared.length, MODEL.systems.length) * rowH + pad * 2;
   svg.setAttribute('height', Math.max(sHeight, svg.clientHeight));
-  const sy0 = pad + 20;
+  const sy0 = pad + 60;
   const sharedPos = {};
   shared.forEach((s, i) => { sharedPos[s.id] = { x: sharedCol, y: sy0 + i * rowH }; });
 
@@ -846,7 +1224,7 @@ function drawOverview() {
       const path = el('path', {
         class: 'edge', stroke: edgeColor(e.type),
         'data-sys': sys.name, 'data-type': e.type,
-        d: `M ${a.x+170} ${a.y} C ${(a.x+b.x)/2} ${a.y}, ${(a.x+b.x)/2} ${b.y}, ${b.x} ${b.y}`
+        d: `M ${a.x+sysW} ${a.y} C ${(a.x+b.x)/2} ${a.y}, ${(a.x+b.x)/2} ${b.y}, ${b.x} ${b.y}`
       });
       edgesLayer.appendChild(path);
       allEdges.push(path);
@@ -876,9 +1254,13 @@ function drawOverview() {
     const p = sysPos[sys.name];
     const g = el('g', { class: 'card', tabindex: 0, role: 'button',
                         'aria-label': 'Open ' + sys.name + ' pipeline' });
-    g.appendChild(el('rect', { x: p.x, y: p.y - 22, width: 170, height: 44 }));
-    g.appendChild(el('text', { x: p.x + 10, y: p.y - 4, class: 'title lbl' }, sys.name));
-    g.appendChild(el('text', { x: p.x + 10, y: p.y + 12, class: 'sub2' }, sys.kind));
+    g.appendChild(el('rect', { x: p.x, y: p.y - 27, width: sysW, height: 54 }));
+    appendWrappedText(g, sys.name, p.x + 10, p.y - 8, {
+      anchor: 'start', maxChars: 25, maxLines: 2, lineHeight: 13,
+      className: 'title lbl', weight: 600,
+    });
+    g.appendChild(el('text', { x: p.x + sysW - 10, y: p.y + 19,
+      class: 'sub2', 'text-anchor': 'end' }, sys.kind));
     const focus = () => allEdges.forEach(pt =>
       pt.classList.toggle('dim', pt.getAttribute('data-sys') !== sys.name));
     const blur = () => allEdges.forEach(pt => pt.classList.remove('dim'));
@@ -899,33 +1281,326 @@ function drawOverview() {
 }
 
 // ---- DRILL-IN ------------------------------------------------------------
+function appendFocusedStage(parent, sys, variant, stage, x, y) {
+  const width = 220, height = 96;
+  const group = el('g', { class: 'stage focused-stage', tabindex: 0,
+    role: 'button', 'aria-label': 'Open ' + stage.label + ' detail',
+    'data-stage-id': stage.id, 'data-kind': stage.kind,
+    'data-variant-id': variant.id });
+  if (stage.run) group.setAttribute('data-run', stage.run);
+  group.appendChild(el('rect', { x, y, width, height, class: 'k-' + stage.kind }));
+  appendWrappedText(group, stage.label, x + width/2, y + 25, {
+    maxChars: 25, maxLines: 2, lineHeight: 14, weight: 700,
+  });
+  appendWrappedText(group, stage.note || '', x + width/2, y + 59, {
+    maxChars: 34, maxLines: 2, lineHeight: 12, className: 'stage-note',
+  });
+  group.appendChild(el('text', { x: x + 10, y: y + height - 9,
+    class: 'sub2' }, stage.kind));
+  if (stage.run) group.appendChild(el('text', { x: x + width - 10,
+    y: y + height - 9, 'text-anchor': 'end', class: 'runbadge',
+    'font-size': 9 }, stage.run.toUpperCase()));
+  group.addEventListener('mousemove', event => showTip(event,
+    '<b>' + stage.label + '</b><br>' + (stage.note || '')));
+  group.addEventListener('mouseleave', hideTip);
+  const laneSys = { ...sys, stages: variant.stages };
+  const open = () => showDetail(laneSys, stage, variant);
+  group.addEventListener('click', open);
+  group.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault(); open();
+    }
+  });
+  parent.appendChild(group);
+}
+
+function drawRecommendedVariant(sys, variant) {
+  crumb.textContent = 'overview  ›  ' + sys.name + '  ›  recommended';
+  backBtn.style.display = '';
+  closeDetail();
+  buildLegend('recommended');
+  addVariantToggle(sys, false);
+  clear(svg);
+  document.getElementById('wrap').scrollLeft = 0;
+  svg.setAttribute('data-view', 'recommended');
+
+  const canvasWidth = Math.max(1180, document.documentElement.clientWidth);
+  const canvasHeight = Math.max(750, window.innerHeight - 96);
+  const baseX = Math.max(30, (canvasWidth - 1120) / 2);
+  setCanvas(canvasWidth, canvasHeight);
+
+  const byId = Object.fromEntries(variant.stages.map(stage => [stage.id, stage]));
+  const required = ['plan', 'critic', 'form', 'research', 'search', 'commit',
+                    'draft', 'map', 'save'];
+  if (!required.every(id => byId[id])) {
+    drawVariantComparison(sys);
+    return;
+  }
+  const laneSys = { ...sys, stages: variant.stages };
+
+  svg.appendChild(el('text', { x: baseX, y: 38, class: 'lbl',
+    'font-size': 20, 'font-weight': 750 }, 'Recommended: ' + variant.label));
+  svg.appendChild(el('text', { x: baseX, y: 64,
+    class: 'recommended-status' }, variant.status + ' · default entrypoint: run_one'));
+  appendWrappedText(svg,
+    'Plan the request once. Then one model conversation owns the evidence: it searches, commits useful pages, repeats for gaps, and writes the final cited prose. No editor rewrites it.',
+    baseX, 88, { anchor: 'start', maxChars: 145, maxLines: 2,
+      lineHeight: 15, className: 'sub2' });
+  svg.appendChild(el('text', { x: baseX, y: 124, class: 'hint' },
+    variant.entrypoint + ' · click any stage for its exact prompt, tools, and code'));
+
+  const backgrounds = el('g'); svg.appendChild(backgrounds);
+  const edges = el('g'); svg.appendChild(edges);
+  const nodes = el('g'); svg.appendChild(nodes);
+  const arrow = (d, extra = {}) => edges.appendChild(el('path', {
+    class: 'edge', stroke: 'var(--muted)', 'marker-end': 'url(#arw)', d, ...extra,
+  }));
+
+  backgrounds.appendChild(el('rect', { x: baseX, y: 145, width: 1120,
+    height: 150, class: 'phase-panel' }));
+  backgrounds.appendChild(el('text', { x: baseX + 18, y: 169,
+    class: 'phase-title' }, '1 · UNDERSTAND THE REQUEST — THREE SMALL SETUP STEPS, RUN ONCE'));
+
+  const conversation = el('g', { class: 'stage conversation-info', tabindex: 0,
+    role: 'button', 'aria-label': 'Open integrated research-loop detail' });
+  conversation.appendChild(el('rect', { x: baseX, y: 315, width: 1120,
+    height: 220, class: 'conversation-panel' }));
+  conversation.appendChild(el('text', { x: baseX + 18, y: 340,
+    class: 'phase-title' }, '2 · ONE EVIDENCE-OWNING MODEL CONVERSATION'));
+  conversation.appendChild(el('text', { x: baseX + 18, y: 360,
+    class: 'hint' }, 'Search → commit selected pages → repeat for evidence gaps → write final cited prose; no editor or second writer'));
+  const openResearch = () => showDetail(laneSys, byId.research, variant);
+  conversation.addEventListener('click', openResearch);
+  conversation.addEventListener('keydown', event => {
+    if (event.key === 'Enter' || event.key === ' ') {
+      event.preventDefault(); openResearch();
+    }
+  });
+  backgrounds.appendChild(conversation);
+
+  backgrounds.appendChild(el('rect', { x: baseX, y: 555, width: 1120,
+    height: 155, class: 'phase-panel' }));
+  backgrounds.appendChild(el('text', { x: baseX + 18, y: 580,
+    class: 'phase-title' }, '3 · PACKAGE THE ANSWER — DETERMINISTIC CITATION MAPPING AND SAVE'));
+
+  const inputX = baseX + 25, setupY = 183;
+  const planX = baseX + 210, criticX = baseX + 470, formX = baseX + 730;
+  const source = el('g', { class: 'source-card' });
+  source.appendChild(el('rect', { x: inputX, y: setupY + 16,
+    width: 150, height: 64 }));
+  appendWrappedText(source, variant.input, inputX + 75, setupY + 43, {
+    maxChars: 18, maxLines: 2, lineHeight: 14, weight: 700,
+  });
+  nodes.appendChild(source);
+  appendFocusedStage(nodes, sys, variant, byId.plan, planX, setupY);
+  appendFocusedStage(nodes, sys, variant, byId.critic, criticX, setupY);
+  appendFocusedStage(nodes, sys, variant, byId.form, formX, setupY);
+  arrow(`M ${inputX + 150} ${setupY + 48} L ${planX} ${setupY + 48}`);
+  arrow(`M ${planX + 220} ${setupY + 48} L ${criticX} ${setupY + 48}`);
+  arrow(`M ${criticX + 220} ${setupY + 48} L ${formX} ${setupY + 48}`);
+
+  const researchY = 385;
+  const searchX = baseX + 210, commitX = baseX + 470, draftX = baseX + 730;
+  appendFocusedStage(nodes, sys, variant, byId.search, searchX, researchY);
+  appendFocusedStage(nodes, sys, variant, byId.commit, commitX, researchY);
+  appendFocusedStage(nodes, sys, variant, byId.draft, draftX, researchY);
+  arrow(`M ${baseX + 1090} 295 L ${baseX + 1090} 315`);
+  arrow(`M ${searchX + 220} ${researchY + 48} L ${commitX} ${researchY + 48}`);
+  arrow(`M ${commitX + 220} ${researchY + 48} L ${draftX} ${researchY + 48}`);
+  arrow(`M ${commitX + 110} ${researchY + 96} C ${commitX + 110} 515, ` +
+        `${searchX + 110} 515, ${searchX + 110} ${researchY + 96}`, {
+    stroke: 'var(--accent)', 'stroke-dasharray': '5 4',
+  });
+  edges.appendChild(el('text', { x: (searchX + commitX + 220) / 2,
+    y: 527, 'text-anchor': 'middle', class: 'hint' },
+    byId.research.back_label || 'repeat for evidence gaps'));
+
+  const packageY = 595, mapX = baseX + 340, saveX = baseX + 600;
+  appendFocusedStage(nodes, sys, variant, byId.map, mapX, packageY);
+  appendFocusedStage(nodes, sys, variant, byId.save, saveX, packageY);
+  arrow(`M ${baseX + 1090} 535 L ${baseX + 1090} 555`);
+  arrow(`M ${mapX + 220} ${packageY + 48} L ${saveX} ${packageY + 48}`);
+  addArrowMarker();
+}
+
+function drawVariantComparison(sys) {
+  crumb.textContent = 'overview  ›  ' + sys.name + '  ›  runnable branches';
+  backBtn.style.display = '';
+  closeDetail();
+  buildLegend('variant');
+  addVariantToggle(sys, true);
+  clear(svg);
+  document.getElementById('wrap').scrollLeft = 0;
+  svg.setAttribute('data-view', 'variant-comparison');
+
+  const variants = sys.variants;
+  const bw = 168, bh = 76, gap = 32, stageX = 505;
+  const laneH = 165, laneTop = 145;
+  const maxStages = Math.max(...variants.map(v =>
+    v.stages.filter(stage => stage.kind !== 'loop').length));
+  const needW = stageX + maxStages * (bw + gap) + 70;
+  const needH = laneTop + variants.length * laneH + 45;
+  const W = Math.max(needW, document.documentElement.clientWidth);
+  const H = Math.max(needH, window.innerHeight - 96);
+  setCanvas(W, H);
+
+  svg.appendChild(el('text', { x: 30, y: 42, class: 'lbl', 'font-size': 18,
+    'font-weight': 700 }, sys.name));
+  appendWrappedText(svg, sys.blurb, 30, 66, {
+    anchor: 'start', maxChars: 120, maxLines: 2, lineHeight: 16,
+    className: 'sub2',
+  });
+  svg.appendChild(el('text', { x: 30, y: 103, class: 'hint' },
+    'Choose one lane per request · branches do not run in sequence · click a stage for exact prompts, tools, and code'));
+  svg.appendChild(el('text', { x: 32, y: 130, class: 'hint', 'font-weight': 700 }, 'INPUT'));
+  svg.appendChild(el('text', { x: 205, y: 130, class: 'hint', 'font-weight': 700 }, 'RUNNABLE BRANCH'));
+  svg.appendChild(el('text', { x: stageX, y: 130, class: 'hint', 'font-weight': 700 }, 'EXECUTION PATH'));
+
+  const backgrounds = el('g'); svg.appendChild(backgrounds);
+  const groups = el('g'); svg.appendChild(groups);
+  const edges = el('g'); svg.appendChild(edges);
+  variants.forEach((variant, laneIndex) => {
+    const top = laneTop + laneIndex * laneH;
+    const y = top + 31;
+    const drawn = variant.stages.filter(stage => stage.kind !== 'loop');
+    const laneSys = { ...sys, stages: variant.stages };
+    const lane = el('g', { class: 'variant-lane',
+      'data-variant-id': variant.id, 'data-status': variant.status });
+    backgrounds.appendChild(el('rect', { x: 18, y: top - 12, width: W - 36,
+      height: 142, class: 'lane-bg' }));
+
+    const source = el('g', { class: 'source-card' });
+    source.appendChild(el('rect', { x: 30, y: y + 6, width: 145, height: 58 }));
+    appendWrappedText(source, variant.input, 102.5, y + 28, {
+      maxChars: 18, maxLines: 2, lineHeight: 14, weight: 600,
+    });
+    lane.appendChild(source);
+
+    const branch = el('g', { class: 'variant-card ' + variant.tone });
+    branch.appendChild(el('rect', { x: 205, y, width: 250, height: 76 }));
+    appendWrappedText(branch, variant.label, 220, y + 22, {
+      anchor: 'start', maxChars: 28, maxLines: 2, lineHeight: 14, weight: 700,
+    });
+    appendWrappedText(branch, variant.status, 220, y + 55, {
+      anchor: 'start', maxChars: 36, maxLines: 2, lineHeight: 11,
+      className: 'variant-status', weight: 700,
+    });
+    if (variant.default) branch.appendChild(el('text', { x: 443, y: y + 15,
+      class: 'variant-status', 'text-anchor': 'end' }, 'DEFAULT'));
+    branch.addEventListener('mousemove', event => showTip(event,
+      '<b>' + variant.label + '</b><br>' + variant.note + '<br><code>' +
+      variant.entrypoint + '</code>'));
+    branch.addEventListener('mouseleave', hideTip);
+    lane.appendChild(branch);
+
+    edges.appendChild(el('path', { class: 'edge', stroke: 'var(--muted)',
+      'marker-end': 'url(#arw)', d: `M 175 ${y + bh/2} L 205 ${y + bh/2}` }));
+    edges.appendChild(el('path', { class: 'edge', stroke: 'var(--muted)',
+      'marker-end': 'url(#arw)', d: `M 455 ${y + bh/2} L ${stageX} ${y + bh/2}` }));
+
+    drawn.forEach((stage, stageIndex) => {
+      const x = stageX + stageIndex * (bw + gap);
+      if (stageIndex > 0) {
+        const previousRight = x - gap;
+        edges.appendChild(el('path', { class: 'edge', stroke: 'var(--muted)',
+          'marker-end': 'url(#arw)',
+          d: `M ${previousRight} ${y + bh/2} L ${x} ${y + bh/2}` }));
+      }
+      const stageGroup = el('g', { class: 'stage', tabindex: 0, role: 'button',
+        'aria-label': 'Open ' + stage.label + ' detail',
+        'data-stage-id': stage.id, 'data-kind': stage.kind,
+        'data-variant-id': variant.id });
+      if (stage.run) stageGroup.setAttribute('data-run', stage.run);
+      stageGroup.appendChild(el('rect', { x, y, width: bw, height: bh,
+        class: 'k-' + stage.kind }));
+      appendWrappedText(stageGroup, stage.label, x + bw/2, y + 25, {
+        maxChars: 20, maxLines: 2, lineHeight: 14, weight: 600,
+      });
+      stageGroup.appendChild(el('text', { x: x + 10, y: y + bh - 10,
+        class: 'sub2' }, stage.kind));
+      if (stage.run) stageGroup.appendChild(el('text', { x: x + bw - 8,
+        y: y + bh - 10, 'text-anchor': 'end', class: 'runbadge', 'font-size': 9 },
+        stage.run.toUpperCase()));
+      if (stage.note) {
+        stageGroup.addEventListener('mousemove', event => showTip(event,
+          '<b>' + stage.label + '</b><br>' + stage.note));
+        stageGroup.addEventListener('mouseleave', hideTip);
+      }
+      const open = () => showDetail(laneSys, stage, variant);
+      stageGroup.addEventListener('click', open);
+      stageGroup.addEventListener('keydown', event => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault(); open();
+        }
+      });
+      lane.appendChild(stageGroup);
+    });
+
+    const loop = variant.stages.find(stage => stage.kind === 'loop');
+    if (loop && loop.back_to && loop.back_from) {
+      const to = drawn.findIndex(stage => stage.id === loop.back_to);
+      const from = drawn.findIndex(stage => stage.id === loop.back_from);
+      if (to >= 0 && from >= to) {
+        const firstX = stageX + to * (bw + gap);
+        const lastX = stageX + from * (bw + gap);
+        const rectX = firstX - 12, rectY = y - 23;
+        const rectW = lastX + bw - firstX + 24;
+        const loopGroup = el('g', { class: 'loop-group', 'data-loop': loop.id,
+          'data-variant-id': variant.id });
+        loopGroup.appendChild(el('rect', { x: rectX, y: rectY, width: rectW,
+          height: bh + 37, rx: 12, class: 'loop-rect' }));
+        loopGroup.appendChild(el('text', { x: rectX + 9, y: rectY + 15,
+          class: 'loop-label' }, loop.label));
+        groups.appendChild(loopGroup);
+        const firstCenter = firstX + bw/2, lastCenter = lastX + bw/2;
+        edges.appendChild(el('path', { class: 'edge', stroke: 'var(--accent)',
+          'stroke-dasharray': '5 4', 'marker-end': 'url(#arw)',
+          d: `M ${lastCenter} ${y + bh} C ${lastCenter} ${y + bh + 39}, ` +
+             `${firstCenter} ${y + bh + 39}, ${firstCenter} ${y + bh}` }));
+        lane.appendChild(el('text', { x: (firstCenter + lastCenter)/2,
+          y: y + bh + 51, 'text-anchor': 'middle', class: 'hint' },
+          loop.back_label || 'repeat until answer'));
+      }
+    }
+    svg.appendChild(lane);
+  });
+  addArrowMarker();
+}
+
+function drawVariantSystem(sys) {
+  const recommended = sys.variants.find(variant => variant.default) || sys.variants[0];
+  if (!SHOW_VARIANT_COMPARISON && recommended) drawRecommendedVariant(sys, recommended);
+  else drawVariantComparison(sys);
+}
+
 function drawSystem(sys) {
   crumb.textContent = 'overview  ›  ' + sys.name;
   backBtn.style.display = '';
   closeDetail();
   buildLegend('system');
   clear(svg);
-  const H = svg.clientHeight;
-  svg.setAttribute('height', H);
+  const H = Math.max(430, window.innerHeight - 96);
   // The `loop` stage is metadata (back_to/back_from/label/tools), not a drawn
   // box -- change #3 replaces its old standalone marker box with a bounding
   // rect around the stages it actually spans, so it's excluded from the row.
   const lp = sys.stages.find(s => s.kind === 'loop');
   const drawn = sys.stages.filter(s => s.kind !== 'loop');
-  const bw = 150, bh = 62, gap = 34;
+  const bw = 168, bh = 76, gap = 36;
   const totalW = drawn.length * bw + (drawn.length - 1) * gap;
-  // Long pipelines can exceed the viewport (7 stages need ~1334px); scale the
-  // whole row down via viewBox instead of clipping the last box. Same svg is
-  // reused across views, so the narrow path must remove a lingering viewBox.
+  // Preserve readable type at every viewport width. Long pipelines scroll
+  // horizontally instead of shrinking all labels through a large viewBox.
   const needW = totalW + 80;
-  let W = svg.clientWidth || 1200;
-  if (needW > W) { svg.setAttribute('viewBox', '0 0 ' + needW + ' ' + H); W = needW; }
-  else svg.removeAttribute('viewBox');
+  const W = Math.max(needW, document.documentElement.clientWidth);
+  setCanvas(W, H);
   const x0 = Math.max(40, (W - totalW) / 2), y = 150;
 
   svg.appendChild(el('text', { x: x0, y: 60, class: 'lbl', 'font-size': 18, 'font-weight': 700 }, sys.name));
-  svg.appendChild(el('text', { x: x0, y: 84, class: 'sub2', 'font-size': 13 }, sys.kind + ' — ' + sys.blurb));
-  svg.appendChild(el('text', { x: x0, y: 108, class: 'hint' }, 'modules: ' + sys.modules.join(', ')));
+  appendWrappedText(svg, sys.kind + ' — ' + sys.blurb, x0, 84, {
+    anchor: 'start', maxChars: 105, maxLines: 2, lineHeight: 16,
+    className: 'sub2',
+  });
+  svg.appendChild(el('text', { x: x0, y: 118, class: 'hint' },
+    sys.modules.length + ' modules · click any stage for prompts, tools, and code'));
 
   const groups = el('g'); svg.appendChild(groups);   // loop bounding rects, drawn first (behind stages)
   const edges = el('g'); svg.appendChild(edges);
@@ -964,10 +1639,12 @@ function drawSystem(sys) {
                         'data-stage-id': stg.id, 'data-kind': stg.kind });
     if (stg.run) g.setAttribute('data-run', stg.run);
     g.appendChild(el('rect', { x, y, width: bw, height: bh, class: 'k-' + stg.kind }));
-    g.appendChild(el('text', { x: x + bw/2, y: y + 26, 'text-anchor': 'middle', class: 'lbl', 'font-weight': 600 }, stg.label));
-    g.appendChild(el('text', { x: x + bw/2, y: y + 44, 'text-anchor': 'middle', class: 'sub2' }, stg.kind));
+    appendWrappedText(g, stg.label, x + bw/2, y + 25, {
+      maxChars: 20, maxLines: 2, lineHeight: 14, weight: 600,
+    });
+    g.appendChild(el('text', { x: x + 10, y: y + bh - 10, class: 'sub2' }, stg.kind));
     if (stg.run) {
-      g.appendChild(el('text', { x: x + bw - 8, y: y + 16, 'text-anchor': 'end', class: 'runbadge', 'font-size': 9 },
+      g.appendChild(el('text', { x: x + bw - 8, y: y + bh - 10, 'text-anchor': 'end', class: 'runbadge', 'font-size': 9 },
         stg.run.toUpperCase()));
     }
     if (stg.note) {
@@ -1026,12 +1703,7 @@ function drawSystem(sys) {
     svg.appendChild(el('text', { x: (lx0+lx1)/2, y: y+bh+64, 'text-anchor':'middle', class:'hint' },
       lp.back_label || 'repeat until answer'));
   }
-  // arrow marker
-  const defs = el('defs');
-  const m = el('marker', { id: 'arw', viewBox: '0 0 10 10', refX: 9, refY: 5,
-    markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
-  m.appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--muted)' }));
-  defs.appendChild(m); svg.appendChild(defs);
+  addArrowMarker();
 }
 
 // Deep link: #<system-name> opens that system's pipeline directly, so a run can
@@ -1039,14 +1711,18 @@ function drawSystem(sys) {
 function route() {
   const want = decodeURIComponent((location.hash || '').replace(/^#/, ''));
   const sys = MODEL.systems.find(s => s.name === want);
-  if (sys) drawSystem(sys); else drawOverview();
+  if (sys && sys.variants && sys.variants.length) drawVariantSystem(sys);
+  else if (sys) drawSystem(sys);
+  else drawOverview();
 }
 backBtn.addEventListener('click', () => {
+  SHOW_VARIANT_COMPARISON = false;
   if (location.hash) location.hash = ''; else drawOverview();
 });
 document.addEventListener('keydown', ev => {
   if (ev.key !== 'Escape') return;
   if (!detail.hidden) { closeDetail(); return; }
+  SHOW_VARIANT_COMPARISON = false;
   if (location.hash) location.hash = ''; else drawOverview();
 });
 window.addEventListener('hashchange', route);

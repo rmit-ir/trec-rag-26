@@ -1,6 +1,6 @@
 """End-to-end coverage for the ``src/systems/aus_agent`` AGENT LOOP.
 
-Scope note: ``ContextLedger`` has its own unit suite (``tests/aus_agent_context``);
+Scope note: ``ContextLedger`` has its own unit suite (``tests/agent_harness_context``);
 this file exercises ``agent.run_agent`` — the ``while True`` loop, its protocol
 branches, and the artifacts it writes — plus the pure helpers the loop's
 correctness rests on (``_parse_final_prose``, ``_map_citations``,
@@ -22,13 +22,14 @@ contract must stop, not hang. Those are the ones worth reading first.
 from __future__ import annotations
 
 import json
+from datetime import datetime, timezone
 from typing import Any, Callable
 
 import pytest
 from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn, tool_call
 
-from aus_agent import agent as agent_mod
-from aus_agent.agent import (
+from agent_harness import agent as agent_mod
+from agent_harness.agent import (
     FINISHING_ROUNDS_GRACE,
     MAX_REPORT_WORDS,
     MAX_UNCITED_REFUSALS,
@@ -37,12 +38,25 @@ from aus_agent.agent import (
     _parse_final_prose,
     _usage_token_stats,
     make_provider,
+    now_full,
     run_agent,
+)
+from aus_agent.agent import (
+    DEFAULT_MAX_COMMITTED_PER_STEP,
+    DEFAULT_PROMPT_VARIANT,
+    load_system_prompt,
 )
 
 QID = "mock_aus_001"
 QUERY = "How effective is congestion pricing at reducing traffic?"
 D = CLIMBMIX_DOCIDS
+
+
+def test_model_clock_is_utc_without_a_host_locale_signal() -> None:
+    """Every topic sees this line, so a local zone silently biases every run."""
+    instant = datetime(2026, 8, 6, 14, 5, 7, tzinfo=timezone.utc)
+
+    assert now_full(instant) == "Thursday, 06 August 2026, 14:05:07 UTC"
 
 
 @pytest.fixture
@@ -64,6 +78,10 @@ def drive(monkeypatch: pytest.MonkeyPatch,
                             lambda backend, model: provider)
         kwargs.setdefault("k", 2)
         kwargs.setdefault("safety_max_rounds", 20)
+        kwargs.setdefault("system_prompt", load_system_prompt(
+            kwargs.get("max_committed_per_step",
+                       DEFAULT_MAX_COMMITTED_PER_STEP),
+            kwargs.get("prompt_variant", DEFAULT_PROMPT_VARIANT)))
         summary = run_agent(query_id, query, **kwargs)
         trajectory = json.loads(summary["paths"]["trajectory"].read_text())
         output = json.loads(summary["paths"]["output"].read_text())
@@ -974,7 +992,8 @@ def test_a_non_positive_context_budget_is_rejected_up_front() -> None:
     Failing fast beats a run that reports 0% forever or divides by zero.
     """
     with pytest.raises(ValueError, match="context_token_budget must be"):
-        run_agent(QID, QUERY, context_token_budget=0)
+        run_agent(QID, QUERY, context_token_budget=0,
+                 system_prompt="test system prompt")
 
 
 # ---------------------------------------------------------------------------
@@ -1337,8 +1356,8 @@ def test_openai_read_timeout_clears_a_slow_model_and_still_beats_600s(
     """
     import httpx
 
-    from aus_agent.providers.openai import (CONNECT_TIMEOUT_S, MAX_RETRIES,
-                                            READ_TIMEOUT_S, OpenAIProvider)
+    from agent_harness.providers.openai import (CONNECT_TIMEOUT_S, MAX_RETRIES,
+                                                READ_TIMEOUT_S, OpenAIProvider)
 
     assert 250.0 <= READ_TIMEOUT_S < 600.0   # slow-model headroom, still < old
     assert CONNECT_TIMEOUT_S < READ_TIMEOUT_S
@@ -1372,7 +1391,7 @@ def test_openai_timeouts_are_tunable_per_model_without_a_code_change(
     # process actually does; reload keeps the module's other users unaffected.
     import importlib
 
-    from aus_agent.providers import openai as openai_provider
+    from agent_harness.providers import openai as openai_provider
     reloaded = importlib.reload(openai_provider)
     try:
         assert reloaded.READ_TIMEOUT_S == 45.0

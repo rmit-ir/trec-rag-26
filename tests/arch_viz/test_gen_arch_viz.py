@@ -20,6 +20,10 @@ def _stage(system: dict, stage_id: str) -> dict:
     return next(s for s in system["stages"] if s["id"] == stage_id)
 
 
+def _variant(system: dict, variant_id: str) -> dict:
+    return next(v for v in system["variants"] if v["id"] == variant_id)
+
+
 def test_build_model_succeeds_without_raising() -> None:
     """Every ref declared in STAGE_REGISTRY must resolve against real source.
 
@@ -136,6 +140,73 @@ def test_rendering_wiring_is_present_in_the_generated_html() -> None:
         assert marker in html
 
 
+def test_aus_agent_v2_variants_are_mutually_exclusive_runnable_paths() -> None:
+    """The diagram must not imply candidate gates run after the graded default.
+
+    Each path maps to one callable pipeline entrypoint. In particular, semantic
+    closure belongs only to its candidate lane and extractive union consumes
+    completed answers instead of appearing in the normal request pipeline.
+    """
+    system = _system(gav.build_model(), "aus_agent_v2")
+    assert [variant["id"] for variant in system["variants"]] == [
+        "verified", "lean", "semantic", "union",
+    ]
+    assert [variant["id"] for variant in system["variants"]
+            if variant["default"]] == ["verified"]
+
+    verified = _variant(system, "verified")
+    lean = _variant(system, "lean")
+    semantic = _variant(system, "semantic")
+    union = _variant(system, "union")
+    assert verified["label"] == "Verified research-first control"
+    assert verified["entrypoint"].endswith("::run_one")
+    assert lean["entrypoint"].endswith("::run_lean_contract_one")
+    assert semantic["entrypoint"].endswith("::run_semantic_contract_one")
+    assert union["entrypoint"].endswith("::run_candidate_union_one")
+    assert "semantic" not in {stage["id"] for stage in verified["stages"]}
+    assert "semantic" not in {stage["id"] for stage in lean["stages"]}
+    assert "semantic" in {stage["id"] for stage in semantic["stages"]}
+    assert [stage["id"] for stage in union["stages"]] == ["union", "save"]
+    assert union["input"] == "eight completed cited answers"
+
+
+def test_verified_variant_exposes_only_the_tools_used_by_graded_research() -> None:
+    """Candidate terminal-submit tooling must not leak into the default lane."""
+    verified = _variant(_system(gav.build_model(), "aus_agent_v2"), "verified")
+    research = next(stage for stage in verified["stages"] if stage["id"] == "research")
+    assert {tool["name"] for tool in research["tools"]} == {
+        "search", "commit_context",
+    }
+
+
+def test_variant_renderer_wraps_labels_and_uses_scrollable_branch_lanes() -> None:
+    """Long labels must retain font size without overlapping adjacent boxes."""
+    html = gav.render_html(gav.build_model())
+    for marker in (
+        "drawVariantSystem", "variant-lane", "appendWrappedText",
+        "overflow: auto", "each lane = a mutually exclusive runnable branch",
+    ):
+        assert marker in html
+
+
+def test_recommended_variant_is_the_default_focused_explanation() -> None:
+    """The submission path must be understandable before candidates appear.
+
+    The default drill-in groups the verified path by responsibility and keeps
+    the three experimental alternatives behind an explicit comparison control.
+    """
+    html = gav.render_html(gav.build_model())
+    for marker in (
+        "SHOW_VARIANT_COMPARISON = false",
+        "drawRecommendedVariant",
+        "Recommended: ",
+        "ONE EVIDENCE-OWNING MODEL CONVERSATION",
+        "Compare ' + Math.max(0, sys.variants.length - 1) + ' candidate variants",
+        "data-view', 'recommended",
+    ):
+        assert marker in html
+
+
 def test_render_html_is_deterministic() -> None:
     """`--check` (pre-commit/CI freshness gate) depends on byte-stable output."""
     model = gav.build_model()
@@ -166,3 +237,70 @@ def test_arch_stages_override_preserves_types_instead_of_stringifying(tmp_path) 
         "id": "a", "label": "A", "kind": "llm", "note": "n",
         "prompt": ["systems/o3_deep_research/run.py::SYSTEM_PROMPT"],
     }]
+
+
+def _shared_rooted_imports(name: str, py_files: list) -> list[str]:
+    """Every ``ragrun``/``tools``/``utils``/``agent_harness`` import in
+    ``py_files`` that ``_classify_import`` can't turn into an edge and that
+    isn't explicitly named in ``UNMODELED_SHARED_IMPORTS`` -- i.e. a gap.
+    """
+    roots = ("ragrun", "tools", "utils", "agent_harness")
+    gaps = []
+    for py in py_files:
+        for mod, names in gav._imported_names(py).items():
+            if mod.split(".")[0] not in roots:
+                continue
+            if mod in gav.UNMODELED_SHARED_IMPORTS:
+                continue
+            if gav._classify_import(name, mod, names):
+                continue
+            gaps.append(f"{py.relative_to(gav.REPO_ROOT)}: {mod}")
+    return gaps
+
+
+def test_every_shared_rooted_import_is_classified_or_explicitly_unmodeled() -> None:
+    """Nothing under ragrun/tools/utils/agent_harness may go un-diagrammed silently.
+
+    The point of this test: it fails the moment someone adds a NEW shared-layer
+    import to a system (or to agent_harness/ragrun themselves), not months
+    later when a human notices the overview graph is missing an edge. The fix
+    when it fails is always one of two things -- add a ``_classify_import``
+    branch (+ a ``SHARED`` catalog entry) for the new import, or add it to
+    ``UNMODELED_SHARED_IMPORTS`` with a one-line reason if it's genuinely
+    internal plumbing, not an architectural component worth its own node.
+
+    Also covers shared-layer packages scanning THEMSELVES (mirroring
+    ``_shared_internal_edges``): a new dependency agent_harness or ragrun
+    picks up must be classified too, or the one-hop expansion in
+    ``build_model`` would silently miss it for every consumer.
+    """
+    gaps: list[str] = []
+    for pkg in sorted(p for p in gav.SYSTEMS_DIR.iterdir() if p.is_dir()):
+        if pkg.name == "__pycache__":
+            continue
+        scan = [p for p in pkg.rglob("*.py") if "__pycache__" not in p.parts]
+        gaps += _shared_rooted_imports(pkg.name, scan)
+    for shared in gav.SHARED:
+        pkg_dir = gav.SRC / shared["id"]
+        if not pkg_dir.is_dir():
+            continue
+        scan = [p for p in pkg_dir.rglob("*.py") if "__pycache__" not in p.parts]
+        gaps += _shared_rooted_imports(shared["id"], scan)
+    assert gaps == [], (
+        "shared-layer import(s) the diagram can't classify:\n" + "\n".join(gaps))
+
+
+def test_arch_variants_override_preserves_nested_stage_overrides(tmp_path) -> None:
+    """Branch metadata must survive AST extraction without importing a system."""
+    pkg = tmp_path / "fake_system"
+    pkg.mkdir()
+    (pkg / "pipeline.py").write_text(
+        "ARCH_VARIANTS = [{"
+        "'id': 'lean', 'label': 'Lean', 'status': 'UNTESTED', "
+        "'path': ['search'], 'stage_overrides': {"
+        "'search': {'tools': [{'name': 'search', 'ref': 'x::Y'}]}}"
+        "}]\n"
+    )
+    override = gav._arch_variants_override(pkg)
+    assert override is not None
+    assert override[0]["stage_overrides"]["search"]["tools"][0]["name"] == "search"

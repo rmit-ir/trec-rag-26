@@ -1,0 +1,2154 @@
+"""End-to-end protection for v2's plan -> research -> evidence-patch pipeline.
+
+The research loop itself deliberately reuses the well-tested ``aus_agent``
+ledger and tools. These tests defend the new stage boundaries and the critical
+property the failed whole-answer writer lacked: finishing cannot delete an
+unmentioned draft claim.
+"""
+from __future__ import annotations
+
+import json
+import subprocess
+import sys
+from pathlib import Path
+from typing import Any, Callable
+
+import pytest
+from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn, tool_call
+
+from aus_agent_v2 import agent as agent_mod
+from aus_agent_v2 import pipeline as pipeline_mod
+from aus_agent_v2.agent import run_agent
+
+QID = "mock_aus_v2_001"
+QUERY = "How effective is congestion pricing at reducing traffic?"
+D = CLIMBMIX_DOCIDS
+
+
+def test_run_script_imports_sibling_systems_without_pytest_path_help() -> None:
+    """Direct CLI execution lacks pytest's src/systems path and must add it."""
+    root = Path(__file__).resolve().parents[2]
+    completed = subprocess.run(
+        [sys.executable, str(root / "src/systems/aus_agent_v2/run.py"), "--help"],
+        cwd=root,
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+
+    assert completed.returncode == 0, completed.stderr
+    assert "--coverage-plan" in completed.stdout
+    assert "--plan-critic" in completed.stdout
+    assert "--coverage-scout" in completed.stdout
+    assert "--plan-reconcile" in completed.stdout
+    assert "--coverage-contract" in completed.stdout
+    assert "--atomic-contract-plan" in completed.stdout
+    assert "--dynamic-contract-rows" in completed.stdout
+    assert "--terminal-evidence-handoff" in completed.stdout
+    assert "--semantic-closure-verify" in completed.stdout
+
+
+def test_public_pipeline_uses_only_the_confirmed_default_stages(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Experimental editors must not silently replace the full-30 winner."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="confirmed-default",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["k"] == 20
+    assert captured["safety_max_rounds"] == 40
+    assert captured["coverage_plan"] is True
+    assert captured["plan_critic"] is True
+    assert captured["observable_scout"] is False
+    assert captured["plan_reconcile"] is False
+    assert captured["coverage_verify"] is False
+    assert captured["audience_verify"] is False
+    assert captured["finish_review"] is False
+    assert captured["answer_blueprint"] is False
+    assert captured["coverage_contract"] is False
+
+
+def test_contract_pipeline_is_explicitly_separate_from_confirmed_default(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """An ungraded architecture must be runnable without silently becoming control."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_contract_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="contract-candidate",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["coverage_contract"] is True
+    assert captured["observable_scout"] is True
+    assert captured["answer_blueprint"] is False
+    assert captured["coverage_verify"] is False
+
+
+def test_lean_contract_pipeline_removes_legacy_prompt_without_promoting_it(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Prompt surgery needs a named candidate while full-30 control stays frozen."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_lean_contract_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="lean-contract-candidate",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["prompt_variant"] == "contract-lean"
+    assert captured["coverage_contract"] is True
+    assert captured["observable_scout"] is True
+    assert captured["finish_review"] is False
+    assert captured["atomic_contract_plan"] is True
+    assert captured["dynamic_contract_rows"] is True
+    assert captured["terminal_evidence_handoff"] is True
+    assert captured.get("semantic_closure_verify", False) is False
+
+
+def test_semantic_contract_pipeline_is_a_separate_post_handoff_candidate(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """The new verifier must be explicit until an all-30 grade establishes it."""
+    captured: dict[str, Any] = {}
+
+    def fake_run_agent(qid: str, narrative: str, **kwargs: Any) -> dict[str, Any]:
+        captured.update({"qid": qid, "narrative": narrative, **kwargs})
+        return {"status": "completed"}
+
+    monkeypatch.setattr(pipeline_mod, "run_agent", fake_run_agent)
+
+    result = pipeline_mod.run_semantic_contract_one(
+        qid=QID,
+        narrative=QUERY,
+        run_id="semantic-contract-candidate",
+    )
+
+    assert result == {"status": "completed"}
+    assert captured["coverage_contract"] is True
+    assert captured["prompt_variant"] == "contract-lean"
+    assert captured["terminal_evidence_handoff"] is True
+    assert captured["semantic_closure_verify"] is True
+
+
+def test_semantic_verifier_requires_the_terminal_evidence_handoff() -> None:
+    """Checking a preview would leave the actual final submission unaudited."""
+    with pytest.raises(
+            ValueError,
+            match="semantic_closure_verify requires terminal_evidence_handoff"):
+        run_agent(
+            QID,
+            QUERY,
+            run_id="invalid-semantic-without-handoff",
+            semantic_closure_verify=True,
+        )
+
+
+def test_full30_runner_selects_the_lean_contract_candidate() -> None:
+    """A costly dev run must select the semantic candidate and all 30 topics."""
+    root = Path(__file__).resolve().parents[2]
+    runner = (
+        root / "tasks/task-comparison/scripts/run_aus_agent_v2_parallel.sh"
+    ).read_text(encoding="utf-8")
+
+    assert 'RUN_ID="${RUN_ID:-sol-aus-v2-semantic-contract-dev30}"' in runner
+    assert 'PROMPT_VARIANT="${PROMPT_VARIANT:-contract-lean}"' in runner
+    assert '--prompt-variant "$PROMPT_VARIANT"' in runner
+    assert "--atomic-contract-plan --dynamic-contract-rows" in runner
+    assert "--terminal-evidence-handoff" in runner
+    assert "--semantic-closure-verify" in runner
+    assert "verify_completed_dev30" in runner
+    assert 'FINAL_COMPLETED="$(verify_completed_dev30)"' in runner
+    cli = (root / "src/systems/aus_agent_v2/run.py").read_text(
+        encoding="utf-8")
+    assert 'summary["status"] not in {"completed", "budget_exhausted"}' in cli
+
+
+@pytest.fixture
+def drive(monkeypatch: pytest.MonkeyPatch,
+          stub_search_tool: dict[str, list[dict[str, Any]]],
+          ) -> Callable[..., dict[str, Any]]:
+    """Substitute only model transport; retrieval and artifact code stay real."""
+    def _drive(script: list[dict[str, Any]], **kwargs: Any) -> dict[str, Any]:
+        provider = ScriptedProvider(script)
+        monkeypatch.setattr(
+            agent_mod,
+            "make_provider",
+            lambda backend, model, region=None: provider,
+        )
+        kwargs.setdefault("k", 1)
+        kwargs.setdefault("safety_max_rounds", 20)
+        kwargs.setdefault("finish_review", True)
+        kwargs.setdefault("plan_critic", False)
+        kwargs.setdefault("plan_reconcile", False)
+        kwargs.setdefault("coverage_verify", False)
+        kwargs.setdefault("audience_verify", False)
+        summary = run_agent(QID, QUERY, run_id="aus-agent-v2.mock", **kwargs)
+        trajectory = json.loads(summary["paths"]["trajectory"].read_text())
+        output = json.loads(summary["paths"]["output"].read_text())
+        return {
+            "summary": summary,
+            "provider": provider,
+            "trajectory": trajectory,
+            "output": output,
+            "trace": output["trace"],
+            "calls": stub_search_tool,
+        }
+
+    return _drive
+
+
+def _script(patch_response: str) -> list[dict[str, Any]]:
+    """The five turns make every architecture boundary observable in tests."""
+    draft = (
+        f"Toll revenue funds the capital plan. [{D[0]}]\n"
+        f"Peak-period drivers earn more than transit riders. [{D[0]}]"
+    )
+    return [
+        model_turn(text=(
+            "1. DELIVERABLE: explain effects.\n"
+            "2. EVIDENCE: find measured traffic and equity results."
+        )),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing measured effects",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effects"}]},
+            id="c1",
+        )]),
+        model_turn(text=draft),
+        model_turn(text=patch_response),
+    ]
+
+
+def test_pipeline_applies_one_patch_without_rewriting_other_claims(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A local precision edit must leave the unrelated equity point intact."""
+    response = json.dumps({"edits": [{
+        "line": 1,
+        "replacement": (
+            f"Toll revenue from the program funds the capital plan. [{D[0]}]"
+        ),
+    }]})
+
+    result = drive(_script(response))
+
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].turn_index == 5
+    assert result["output"]["answer"] == [
+        {
+            "text": "Toll revenue from the program funds the capital plan.",
+            "citations": [0],
+        },
+        {
+            "text": "Peak-period drivers earn more than transit riders.",
+            "citations": [0],
+        },
+    ]
+    finish = result["trace"]["summary"]["finish_review"]
+    assert finish["patches"] == {"proposed": 1, "accepted": 1, "rejected": 0}
+    assert finish["patch_errors"] == []
+    assert result["provider"].tools == []
+
+
+def test_non_json_whole_answer_falls_back_to_original_draft(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A model that tries the old destructive rewrite path gets no write access."""
+    result = drive(_script(f"Traffic changed. [{D[0]}]"))
+
+    assert [item["text"] for item in result["output"]["answer"]] == [
+        "Toll revenue funds the capital plan.",
+        "Peak-period drivers earn more than transit riders.",
+    ]
+    finish = result["trace"]["summary"]["finish_review"]
+    assert finish["patches"] == {"proposed": 0, "accepted": 0, "rejected": 0}
+    assert finish["patch_errors"]
+
+
+def test_fresh_context_boundaries_are_archived_in_order(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """Stage isolation is only reproducible when the raw trace names transitions."""
+    result = drive(_script('{"edits":[]}'))
+
+    boundaries = [
+        item["phase"] for item in result["trajectory"]["raw_messages"]
+        if item.get("type") == "phase_boundary"
+    ]
+    assert boundaries == [
+        "coverage_plan_to_research",
+        "research_to_evidence_patcher",
+    ]
+    assert "CITATION-LOCAL EVIDENCE CARDS" in result["provider"].user_messages[-1]
+
+
+def test_answer_blueprint_replays_commit_facts_before_accepting_prose(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """Extracted facts must reach the writer's newest context, not die in history."""
+    early_draft = f"Traffic fell after pricing. [{D[0]}]"
+    finished = (
+        f"Traffic volume fell by 12% in the priced zone in 2025. [{D[0]}]"
+    )
+    script = [
+        model_turn(text="1. EFFECT: quantify the measured traffic change."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing measured traffic change",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{
+                "id": D[0],
+                "reason": "measured effect",
+                "facts": [{
+                    "claim": "Traffic volume",
+                    "value": "fell by 12%",
+                    "scope": "priced zone in 2025",
+                    "source": "transport authority evaluation",
+                }],
+            }]},
+            id="c1",
+        )]),
+        model_turn(text=early_draft),
+        model_turn(tool_calls=[tool_call(
+            "prepare_answer",
+            {
+                "requirements": [{
+                    "requirement": "Quantify the measured traffic change.",
+                    "claims": [{
+                        "claim": (
+                            "Traffic volume fell by 12% in the priced zone "
+                            "in 2025."
+                        ),
+                        "evidence_ids": [D[0]],
+                    }],
+                }],
+                "unresolved": [],
+            },
+            id="b1",
+        )]),
+        model_turn(text=finished),
+    ]
+
+    result = drive(
+        script,
+        answer_blueprint=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].turn_index == 6
+    assert result["output"]["answer"][0]["text"] == finished.rsplit(" [", 1)[0]
+    assert "prepare_answer now" in result["provider"].user_messages[-1]
+    handoff = result["provider"].tool_results[-1][0]["content"]
+    assert "ANSWER BLUEPRINT ACCEPTED" in handoff
+    assert "fell by 12%" in handoff
+    assert "transport authority evaluation" in handoff
+    blueprint = result["trace"]["summary"]["answer_blueprint"]
+    assert blueprint["prepared"] is True
+    assert blueprint["mapped_claims"] == 1
+    assert blueprint["fact_cards"] == 1
+
+
+def test_coverage_contract_closes_every_plan_row_in_terminal_submission(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A partial answer must fail before organizer output even when its citation is valid."""
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect for a general reader.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    partial = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "Traffic volumes fell below the pre-toll baseline."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": ["P02"],
+        }],
+        "unresolved": [],
+    }
+    complete = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "For a general reader, the measured result is that traffic "
+                "volumes fell below the pre-toll baseline."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": ["P01", "P02"],
+        }],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{
+                "id": D[0],
+                "reason": "measured effect",
+                "supports": [{
+                    "requirement_id": "P02",
+                    "claim": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "source_quote": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "value_scope": "pre-toll baseline",
+                    "must_include": ["traffic volumes", "pre-toll baseline"],
+                }],
+            }]},
+            id="c1",
+        )]),
+        model_turn(text=f"Traffic fell after pricing. [{D[0]}]"),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", partial, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", complete, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].turn_index == 6
+    assert result["output"]["answer"] == [{
+        "text": complete["answer_items"][0]["text"],
+        "citations": [0],
+    }]
+    assert "EXECUTABLE COVERAGE CONTRACT" in result["trace"]["input"][
+        "user_message"]
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["submission_attempts"] == 2
+    assert contract_summary["submission"]["missing"] == []
+    assert any("P01" in error
+               for error in contract_summary["submission_errors"])
+    assert sum(len(values) for values in contract_summary["anchors"].values()) == 1
+    assert "COVERAGE CLOSURE STATUS" in (
+        result["provider"].tool_results[1][0]["content"])
+
+
+def test_atomic_dynamic_contract_forces_complete_terminal_evidence_handoff(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """The target candidate must carry post-plan facts through a mandatory retry."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "evidence" if index == 2 else "deliverable",
+            "requirement": (
+                "Report the measured traffic outcome" if index == 2 else
+                f"Address atomic request component {index}"
+            ),
+            "must_mention": [],
+            "minimum_count": 1,
+            "must_research": index == 2,
+            "must_answer": True,
+        }
+        for index in range(1, 10)
+    ]
+    rows.append({
+        "mode": "avoid",
+        "kind": "penalty",
+        "requirement": "Avoid claiming traffic is guaranteed to disappear",
+        "must_avoid": ["guaranteed elimination"],
+        "must_research": False,
+        "must_answer": False,
+    })
+    tool_rows = []
+    for row in rows:
+        tool_row = dict(row)
+        if row["mode"] == "assert":
+            tool_row["must_avoid"] = []
+        else:
+            tool_row["must_mention"] = []
+            tool_row["minimum_count"] = 1
+        tool_rows.append(tool_row)
+    answer = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": (
+                    "For a general reader, traffic volumes fell below the "
+                    "pre-toll baseline."
+                ),
+                "evidence_ids": [D[0]],
+                "satisfies": [
+                    "P01", "P02", "P03", "P04", "P05", "P06", "D01",
+                ],
+            },
+            {
+                "kind": "prose",
+                "text": "The remaining requested components are addressed directly.",
+                "evidence_ids": [],
+                "satisfies": ["P07", "P08", "P09"],
+            },
+        ],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": tool_rows}, id="p1")]),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic outcome",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {
+                "documents": [{
+                    "id": D[0],
+                    "reason": "measured baseline result",
+                    "supports": [{
+                        "requirement_id": "P02",
+                        "claim": (
+                            "early reporting showed traffic volumes below the "
+                            "pre-toll baseline."
+                        ),
+                        "source_quote": (
+                            "early reporting showed traffic volumes below the "
+                            "pre-toll baseline."
+                        ),
+                        "value_scope": "pre-toll baseline",
+                        "must_include": [
+                            "traffic volumes", "pre-toll baseline"],
+                    }],
+                }],
+                "promotions": [{
+                    "document_id": D[0],
+                    "kind": "comparison",
+                    "requirement": "Report the pre-toll baseline comparison",
+                    "must_mention": ["pre-toll baseline"],
+                    "minimum_count": 1,
+                    "claim": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "source_quote": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "value_scope": "pre-toll baseline",
+                    "must_include": [
+                        "traffic volumes", "pre-toll baseline"],
+                }],
+            },
+            id="c1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["terminal_handoff_sent"] is True
+    assert contract_summary["terminal_handoff_chars"] > 0
+    assert contract_summary["dynamic_promotions"] == 1
+    assert contract_summary["submission_attempts"] == 2
+    assert any(item["id"] == "D01" for item in contract_summary["items"])
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    assert plan_summary["atomic_attempts"] == 1
+    assert plan_summary["atomic_errors"] == []
+    assert result["trace"]["input"]["atomic_plan_attempts"] == 1
+    planner_result = result["provider"].tool_results[0][0]
+    assert planner_result["id"] == "p1"
+    assert planner_result["is_error"] is False
+    assert json.loads(planner_result["content"].splitlines()[0]) == {
+        "accepted": True,
+        "rows": 10,
+        "instruction": "atomic planning stage complete",
+    }
+    assert result["trajectory"]["tool_call_counts"][
+        "submit_atomic_plan"] == 1
+    assert any(
+        message.get("role") == "tool"
+        and message.get("tool_call_id") == "p1"
+        for message in result["trajectory"]["raw_messages"]
+    )
+    handoff = result["provider"].tool_results[-2][0]["content"]
+    assert "TERMINAL EVIDENCE HANDOFF" in handoff
+    assert "D01 ASSERT MIN=1" in handoff
+    assert "pre-toll baseline" in handoff
+
+
+def test_terminal_handoff_opens_only_after_a_valid_preview_submission(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A malformed rehearsal must get closure errors before evidence replay opens."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    complete = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first eight requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+            },
+            {
+                "kind": "prose",
+                "text": "The final two requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": ["P09", "P10"],
+            },
+        ],
+        "unresolved": [],
+    }
+    incomplete = {
+        "answer_items": [dict(item) for item in complete["answer_items"]],
+        "unresolved": [],
+    }
+    incomplete["answer_items"][1] = {
+        **incomplete["answer_items"][1],
+        "satisfies": ["P09"],
+    }
+    script = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id="p1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", incomplete, id="a-bad")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", complete, id="a-preview")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", complete, id="a-final")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    contract = result["trace"]["summary"]["coverage_contract"]
+    assert contract["submission_attempts"] == 3
+    assert contract["terminal_handoff_sent"] is True
+    assert any("P10" in error for error in contract["submission_errors"])
+    invalid_payload = json.loads(
+        result["provider"].tool_results[1][0]["content"].splitlines()[0])
+    assert invalid_payload["terminal_evidence_handoff"] is None
+    assert "P10" in " ".join(invalid_payload["problems"])
+    handoff_payload = json.loads(
+        result["provider"].tool_results[2][0]["content"].splitlines()[0])
+    assert handoff_payload["handoff_required"] is True
+    assert "TERMINAL EVIDENCE HANDOFF" in handoff_payload["instruction"]
+
+
+def _semantic_contract_rows() -> list[dict[str, Any]]:
+    """Build a valid atomic inventory with one factual closure relationship."""
+    requirements = [
+        "Explain the measured traffic result for a general reader",
+        "Report the measured traffic outcome",
+        "Use language suitable for a general reader",
+        "State the observed policy effect",
+        "Keep the conclusion scoped to the reported baseline",
+        "Distinguish observation from certainty",
+        "Answer the effectiveness question directly",
+        "Describe the direction of the measured change",
+        "Avoid implying an unlimited causal conclusion",
+        "Close with the practical evidentiary limitation",
+    ]
+    return [{
+        "mode": "assert",
+        "kind": "evidence" if index == 2 else "deliverable",
+        "requirement": requirement,
+        "must_mention": [],
+        "must_avoid": [],
+        "minimum_count": 1,
+        "must_research": index == 2,
+        "must_answer": True,
+    } for index, requirement in enumerate(requirements, 1)]
+
+
+def _semantic_answers() -> tuple[dict[str, Any], dict[str, Any]]:
+    """Return a source-local overclaim and its one-item bounded correction."""
+    flawed = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "For a general reader, traffic volumes fell below the pre-toll "
+                "baseline, proving pricing permanently eliminates congestion."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+        }, {
+            "kind": "prose",
+            "text": (
+                "The reported observation does not establish an unlimited "
+                "long-term causal conclusion."
+            ),
+            "evidence_ids": [],
+            "satisfies": ["P09", "P10"],
+        }],
+        "unresolved": [],
+    }
+    corrected = {
+        "answer_items": [dict(item) for item in flawed["answer_items"]],
+        "unresolved": [],
+    }
+    corrected["answer_items"][0] = {
+        **corrected["answer_items"][0],
+        "text": (
+            "For a general reader, early reporting showed traffic volumes "
+            "below the pre-toll baseline."
+        ),
+    }
+    return flawed, corrected
+
+
+def _semantic_verdicts(*, reject_p02: bool) -> dict[str, Any]:
+    """Build a complete native-tool inventory for the ten row packets."""
+    checks = []
+    for index in range(1, 11):
+        check_id = f"P{index:02d}"
+        answer_index = 1 if index <= 8 else 2
+        if index == 2 and reject_p02:
+            checks.append({
+                "check_id": check_id,
+                "verdict": "reject",
+                "closure": "complete",
+                "support": "unsupported",
+                "count": "not_applicable",
+                "failure_codes": ["SOURCE_UNSUPPORTED"],
+                "item_indices": [1],
+                "evidence_ids": [D[0]],
+                "diagnosis": (
+                    "The quote supports the observed baseline comparison, not "
+                    "permanent elimination of congestion."
+                ),
+            })
+        elif index in {5, 6} and reject_p02:
+            checks.append({
+                "check_id": check_id,
+                "verdict": "reject",
+                "closure": "partial",
+                "support": "not_applicable",
+                "count": "not_applicable",
+                "failure_codes": ["CLOSURE_PARTIAL"],
+                "item_indices": [1],
+                "evidence_ids": [],
+                "diagnosis": (
+                    "The sentence changes a scoped observation into a "
+                    "permanent causal certainty."
+                ),
+            })
+        else:
+            checks.append({
+                "check_id": check_id,
+                "verdict": "pass",
+                "closure": "complete",
+                "support": (
+                    "direct_entailment" if index == 2 else "not_applicable"),
+                "count": "not_applicable",
+                "failure_codes": [],
+                "item_indices": [answer_index],
+                "evidence_ids": [D[0]] if index == 2 else [],
+                "diagnosis": "",
+            })
+    return {"checks": checks}
+
+
+def _semantic_research_provider(
+    flawed: dict[str, Any],
+    corrected: dict[str, Any] | None,
+) -> ScriptedProvider:
+    """Create the evidence-owning conversation through optional correction."""
+    turns = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": _semantic_contract_rows()}, id="p1")]),
+        model_turn(tool_calls=[tool_call(
+            "search", {
+                "query": "congestion pricing measured traffic outcome",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            }, id="s1")]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", {"documents": [{
+                "id": D[0],
+                "reason": "measured baseline result",
+                "supports": [{
+                    "requirement_id": "P02",
+                    "claim": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "source_quote": (
+                        "early reporting showed traffic volumes below the "
+                        "pre-toll baseline."
+                    ),
+                    "value_scope": "pre-toll baseline",
+                    "must_include": ["traffic volumes", "pre-toll baseline"],
+                }],
+            }]}, id="c1")]),
+        model_turn(tool_calls=[tool_call("submit_answer", flawed, id="a-preview")]),
+        model_turn(tool_calls=[tool_call("submit_answer", flawed, id="a-final")]),
+    ]
+    if corrected is not None:
+        turns.append(model_turn(tool_calls=[tool_call(
+            "submit_answer", corrected, id="a-corrected")]))
+    return ScriptedProvider(turns)
+
+
+def test_semantic_reject_repairs_only_flagged_item_then_verifies_final(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """Finish-the-claim must alter the final output, not merely annotate context."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, corrected)
+    first_verifier = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-1",
+    )])])
+    second_verifier = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=False),
+        id="semantic-2",
+    )])])
+    providers = iter([research, first_verifier, second_verifier])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-repair.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+    trajectory = json.loads(summary["paths"]["trajectory"].read_text())
+
+    assert summary["status"] == "completed"
+    assert output["answer"][0]["text"] == corrected["answer_items"][0]["text"]
+    assert output["answer"][1]["text"] == flawed["answer_items"][1]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["attempts"] == 2
+    assert semantic["corrections_requested"] == 1
+    assert semantic["verdict"] == "pass"
+    assert semantic["final_verified"] is True
+    assert semantic["fallback"] is None
+    assert [entry["verdict"] for entry in semantic["history"]] == [
+        "repair", "pass"]
+    correction_feedback = json.loads(
+        research.tool_results[-2][0]["content"].splitlines()[0])
+    assert "SEMANTIC CLOSURE FINDINGS" in "\n".join(
+        correction_feedback["problems"])
+    assert "TERMINAL EVIDENCE HANDOFF" in correction_feedback[
+        "terminal_evidence_handoff"]
+    assert first_verifier.tools[0]["name"] == "submit_semantic_closure"
+    assert second_verifier.tools[0]["name"] == "submit_semantic_closure"
+    phases = [
+        item.get("phase") for item in trajectory["raw_messages"]
+        if isinstance(item, dict) and item.get("type") == "phase_boundary"
+    ]
+    assert phases.count("terminal_submission_to_fresh_semantic_verifier") == 2
+    assert "semantic_verifier_to_same_writer" in phases
+    assert "semantic_verifier_to_terminal_accept" in phases
+    assert trajectory["tool_call_counts"]["submit_semantic_closure"] == 2
+
+
+def test_second_semantic_reject_is_bounded_and_retains_valid_baseline(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """Persistent judge rejection must not trigger a destructive third rewrite."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, corrected)
+    verifier_one = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-1",
+    )])])
+    verifier_two = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-2",
+    )])])
+    providers = iter([research, verifier_one, verifier_two])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-bounded.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert summary["status"] == "semantic_rejected"
+    assert output["trace"]["status"] == "semantic_rejected"
+    assert output["answer"][0]["text"] == flawed["answer_items"][0]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["attempts"] == 2
+    assert semantic["corrections_requested"] == 1
+    assert semantic["verdict"] == "repair"
+    assert semantic["final_verified"] is False
+    assert semantic["fallback"] == "persistent_rejection"
+    assert semantic["saved_answer_audit"]["verdict"] == "repair"
+    assert research.turn_index == 6
+
+
+def test_indeterminate_second_audit_is_noncompleted_and_keeps_correction(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A repaired answer needs a valid recheck before batch completion."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, corrected)
+    first_verifier = ScriptedProvider([model_turn(tool_calls=[tool_call(
+        "submit_semantic_closure",
+        _semantic_verdicts(reject_p02=True),
+        id="semantic-1",
+    )])])
+    malformed_second = ScriptedProvider([model_turn(text="probably fixed")])
+    providers = iter([research, first_verifier, malformed_second])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-unverified.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert summary["status"] == "semantic_unverified"
+    assert output["trace"]["status"] == "semantic_unverified"
+    assert output["answer"][0]["text"] == corrected["answer_items"][0]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["verdict"] == "indeterminate"
+    assert semantic["saved_answer_audit"]["verdict"] == "indeterminate"
+    assert semantic["fallback"] == "corrected_answer_indeterminate"
+    accepted = json.loads(research.tool_results[-1][0]["content"].splitlines()[0])
+    assert accepted["accepted"] is False
+
+
+def test_malformed_semantic_verifier_fails_open_without_writer_turn(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A verifier protocol fault cannot consume a valid answer or loop."""
+    flawed, corrected = _semantic_answers()
+    research = _semantic_research_provider(flawed, None)
+    malformed = ScriptedProvider([model_turn(text="pass")])
+    providers = iter([research, malformed])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.semantic-malformed.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        observable_scout=False,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        semantic_closure_verify=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert output["answer"][0]["text"] == flawed["answer_items"][0]["text"]
+    semantic = output["trace"]["summary"]["semantic_closure_verify"]
+    assert semantic["attempts"] == 1
+    assert semantic["corrections_requested"] == 0
+    assert semantic["verdict"] == "indeterminate"
+    assert semantic["final_verified"] is False
+    assert semantic["fallback"] == "baseline_verifier_indeterminate"
+    assert semantic["parse_error"] is True
+    assert research.turn_index == 5
+
+
+def test_atomic_planner_rejects_raw_json_then_corrects_typed_inventory(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """Only a corrected tool call may cross the isolated planning boundary."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    invalid_rows = [dict(row) for row in rows]
+    invalid_rows[0]["requirement"] = "Address component one; address component two"
+    answer = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first eight requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+            },
+            {
+                "kind": "prose",
+                "text": "The final two requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": ["P09", "P10"],
+            },
+        ],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=json.dumps({"rows": rows})),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": invalid_rows}, id="p-bad")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id="p-good")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    assert plan_summary["atomic_attempts"] == 3
+    assert plan_summary["atomic_errors"] == [
+        "attempt 1: call submit_atomic_plan exactly once and no other tool",
+        "attempt 1: do not include prose outside submit_atomic_plan",
+        "attempt 1: planner output must contain exactly one rows field",
+        "attempt 2: row 1 requirement is overlong or visibly compound",
+    ]
+    correction = result["provider"].tool_results[0][0]
+    assert correction["id"] == "p-bad"
+    assert correction["is_error"] is True
+    assert "row 1 requirement" in correction["content"]
+    assert result["trace"]["input"]["atomic_plan_attempts"] == 3
+    assert result["trajectory"]["tool_call_counts"][
+        "submit_atomic_plan"] == 1
+    assert result["trajectory"]["tool_call_counts_all"][
+        "submit_atomic_plan"] == 2
+
+
+def test_atomic_planner_rejects_encoded_arguments_and_companion_prose(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """Neither nested JSON nor text beside a tool call may cross the boundary."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    answer = {
+        "answer_items": [
+            {
+                "kind": "prose",
+                "text": "The first eight requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": [f"P{index:02d}" for index in range(1, 9)],
+            },
+            {
+                "kind": "prose",
+                "text": "The final two requested components are addressed.",
+                "evidence_ids": [],
+                "satisfies": ["P09", "P10"],
+            },
+        ],
+        "unresolved": [],
+    }
+    encoded_call = {
+        "id": "p-encoded",
+        "name": "submit_atomic_plan",
+        "arguments": json.dumps({"rows": rows}),
+    }
+    script = [
+        model_turn(tool_calls=[encoded_call]),
+        model_turn(
+            text="Here is the plan.",
+            tool_calls=[tool_call(
+                "submit_atomic_plan", {"rows": rows}, id="p-prose")],
+        ),
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id="p-valid")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a2")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    assert result["summary"]["status"] == "completed"
+    assert plan_summary["atomic_attempts"] == 3
+    assert plan_summary["atomic_errors"] == [
+        "attempt 1: tool arguments must be an object, not encoded JSON text",
+        "attempt 2: do not include prose outside submit_atomic_plan",
+    ]
+    assert result["trajectory"]["tool_call_counts"][
+        "submit_atomic_plan"] == 1
+    assert result["trajectory"]["tool_call_counts_all"][
+        "submit_atomic_plan"] == 3
+    assert [batch[0]["is_error"] for batch in
+            result["provider"].tool_results[:3]] == [True, True, False]
+
+
+def test_atomic_planner_third_failure_is_answered_and_fully_traced(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A failed topic must preserve every rejected call and its planner contract."""
+    rows = [
+        {
+            "mode": "assert",
+            "kind": "deliverable",
+            "requirement": f"Address atomic request component {index}",
+            "must_mention": [],
+            "must_avoid": [],
+            "minimum_count": 1,
+            "must_research": False,
+            "must_answer": True,
+        }
+        for index in range(1, 11)
+    ]
+    rows[0]["requirement"] = "Address component one; address component two"
+    script = [
+        model_turn(tool_calls=[tool_call(
+            "submit_atomic_plan", {"rows": rows}, id=f"p-bad-{attempt}")])
+        for attempt in range(1, 4)
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        atomic_contract_plan=True,
+        dynamic_contract_rows=True,
+        terminal_evidence_handoff=True,
+        prompt_variant="contract-lean",
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "failed"
+    plan_summary = result["trace"]["summary"]["coverage_plan"]
+    expected_errors = [
+        f"attempt {attempt}: row 1 requirement is overlong or visibly compound"
+        for attempt in range(1, 4)
+    ]
+    assert plan_summary["atomic_attempts"] == 3
+    assert plan_summary["atomic_errors"] == expected_errors
+    trace_input = result["trace"]["input"]
+    assert trace_input["coverage_plan_system"]
+    assert trace_input["coverage_plan_request"] == (
+        "ORIGINAL RESEARCH REQUEST\n\n" + QUERY)
+    assert trace_input["coverage_plan_tools"][0]["name"] == (
+        "submit_atomic_plan")
+    assert trace_input["atomic_plan_errors"] == expected_errors
+    assert result["trajectory"]["tool_call_counts"] == {}
+    assert result["trajectory"]["tool_call_counts_all"][
+        "submit_atomic_plan"] == 3
+    assert len(result["provider"].tool_results) == 3
+    assert all(batch[0]["is_error"] is True
+               for batch in result["provider"].tool_results)
+
+
+def test_contract_commit_annotation_can_be_corrected_without_research_loss(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """One malformed exact-term annotation must not discard useful full text."""
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    invalid_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "Traffic volumes fell by 12%.",
+                "source_quote": "Traffic volumes fell by 12%.",
+                "must_include": ["12%"],
+            }],
+        }],
+    }
+    corrected_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": (
+                    "early reporting showed traffic volumes below the pre-toll "
+                    "baseline."
+                ),
+                "source_quote": (
+                    "early reporting showed traffic volumes below the pre-toll "
+                    "baseline."
+                ),
+                "must_include": ["traffic volumes", "pre-toll baseline"],
+            }],
+        }],
+    }
+    answer = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": (
+                "The measured effect was that traffic volumes fell from the "
+                "pre-toll baseline."
+            ),
+            "evidence_ids": [D[0]],
+            "satisfies": ["P01", "P02"],
+        }],
+        "unresolved": [],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", invalid_commit, id="c1")]),
+        model_turn(tool_calls=[
+            tool_call("commit_context", corrected_commit, id="c2"),
+            tool_call(
+                "search",
+                {
+                    "query": "a correction turn must not start new research",
+                    "search_engine": "semantic",
+                    "k": 1,
+                    "for_requirements": ["P02"],
+                },
+                id="s2",
+            ),
+        ]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", answer, id="a1")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    assert result["provider"].turn_index == 5
+    assert D[0] in result["trace"]["summary"]["context"]["committed"]
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["commit_corrections"] == 1
+    assert contract_summary["commit_expirations"] == 0
+    assert len(contract_summary["commit_validation_errors"]) == 1
+    assert "does not contain the exact contiguous source_quote" in (
+        contract_summary["commit_validation_errors"][0])
+    correction = result["provider"].tool_results[1][0]["content"]
+    assert "staged evidence remains available" in correction
+    assert D[0] in correction
+    assert result["calls"]["semantic"] == [{
+        "query": "congestion pricing measured traffic change", "k": 1}]
+    correction_results = {
+        item["id"]: item["content"]
+        for item in result["provider"].tool_results[2]
+    }
+    assert "correction must be the only action" in correction_results["s2"]
+    assert len(result["provider"].compactions) == 1
+    assert "s1" in result["provider"].compactions[0]
+
+
+def test_contract_commit_corrections_expire_after_the_bounded_retry_window(
+        drive: Callable[..., dict[str, Any]]) -> None:
+    """A malformed tool loop gets two corrections, then releases its full text."""
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    invalid_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The study reported a change.",
+                "source_quote": "The study reported a change.",
+                "must_include": ["reported"],
+            }],
+        }],
+    }
+    fallback = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "The available evidence did not establish a usable result.",
+            "evidence_ids": [],
+            "satisfies": ["P01"],
+        }],
+        "unresolved": ["P02"],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        *[
+            model_turn(tool_calls=[tool_call(
+                "commit_context", invalid_commit, id=f"c{attempt}")])
+            for attempt in range(1, 4)
+        ],
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", fallback, id="a1")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "completed"
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["commit_corrections"] == 2
+    assert contract_summary["commit_expirations"] == 1
+    assert len(contract_summary["commit_validation_errors"]) == 3
+    assert D[0] in result["trace"]["summary"]["context"]["rejected"]
+    third_failure = result["provider"].tool_results[3][0]["content"]
+    assert "compacted and cannot be reselected" in third_failure
+
+
+def test_contract_commit_does_not_offer_retry_without_submit_headroom(
+        drive: Callable[..., dict[str, Any]],
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Near the hard cap, expiry leaves one honest terminal-submission turn."""
+    monkeypatch.setattr(agent_mod, "FINISHING_ROUNDS_GRACE", 1)
+    plan = (
+        "1. DELIVERABLE: Explain the measured traffic effect.\n"
+        "2. EVIDENCE: Quantify the measured traffic change with its scope."
+    )
+    invalid_commit = {
+        "documents": [{
+            "id": D[0],
+            "reason": "measured effect",
+            "supports": [{
+                "requirement_id": "P02",
+                "claim": "The study reported a change.",
+                "source_quote": "The study reported a change.",
+                "must_include": ["reported"],
+            }],
+        }],
+    }
+    fallback = {
+        "answer_items": [{
+            "kind": "prose",
+            "text": "The available evidence did not establish a usable result.",
+            "evidence_ids": [],
+            "satisfies": ["P01"],
+        }],
+        "unresolved": ["P02"],
+    }
+    script = [
+        model_turn(text=plan),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", invalid_commit, id="c1")]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context", invalid_commit, id="c2")]),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer", fallback, id="a1")]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+        safety_max_rounds=3,
+    )
+
+    assert result["summary"]["status"] == "budget_exhausted"
+    assert result["provider"].turn_index == 5
+    contract_summary = result["trace"]["summary"]["coverage_contract"]
+    assert contract_summary["commit_corrections"] == 1
+    assert contract_summary["commit_expirations"] == 1
+    assert contract_summary["submission_attempts"] == 1
+    assert result["output"]["answer"] == [{
+        "text": "The available evidence did not establish a usable result.",
+        "citations": [],
+    }]
+    first_failure = result["provider"].tool_results[1][0]["content"]
+    assert "0 further correction attempt(s)" in first_failure
+    second_failure = result["provider"].tool_results[2][0]["content"]
+    assert "compacted and cannot be reselected" in second_failure
+
+
+def test_unexpected_contract_commit_error_fails_without_compacting_evidence(
+        drive: Callable[..., dict[str, Any]],
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """An implementation defect must remain visible instead of becoming model blame."""
+    def broken_normalizer(*args: Any, **kwargs: Any) -> Any:
+        raise RuntimeError("normalizer defect")
+
+    monkeypatch.setattr(
+        agent_mod, "normalize_commit_supports", broken_normalizer)
+    script = [
+        model_turn(text=(
+            "1. DELIVERABLE: Explain the measured effect.\n"
+            "2. EVIDENCE: Find a measured traffic result."
+        )),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {
+                "query": "congestion pricing measured traffic change",
+                "search_engine": "semantic",
+                "k": 1,
+                "for_requirements": ["P02"],
+            },
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effect"}]},
+            id="c1",
+        )]),
+    ]
+
+    result = drive(
+        script,
+        coverage_contract=True,
+        finish_review=False,
+    )
+
+    assert result["summary"]["status"] == "failed"
+    assert "RuntimeError: normalizer defect" in result["output"]["answer"][0][
+        "text"]
+    search_history = next(
+        item for item in result["provider"].raw_messages
+        if item.get("role") == "tool" and item.get("tool_call_id") == "s1"
+    )
+    assert "traffic volumes below the pre-toll baseline" in search_history[
+        "content"]
+    assert result["provider"].compactions == []
+    assert D[0] not in result["trace"]["summary"]["context"]["rejected"]
+
+
+def test_terminal_contract_preserves_request_authorized_runnable_python(
+        monkeypatch: pytest.MonkeyPatch) -> None:
+    """Organizer projection must not corrupt indentation, operators, or indexing."""
+    query = (
+        "Design a modified U-Net and include Python code for the model and loss."
+    )
+    code = (
+        "class Block:\n"
+        "    def __init__(self, values):\n"
+        "        self.first = values[0]\n\n"
+        "def loss(p, y):\n"
+        "    return p * y + (1 - p) * (1 - y)"
+    )
+    provider = ScriptedProvider([
+        model_turn(text="1. FORMAT: Include runnable Python model and loss code."),
+        model_turn(tool_calls=[tool_call(
+            "submit_answer",
+            {
+                "answer_items": [{
+                    "kind": "code",
+                    "text": code,
+                    "evidence_ids": [],
+                    "satisfies": ["P01", "F01"],
+                }],
+                "unresolved": [],
+            },
+            id="a1",
+        )]),
+    ])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: provider,
+    )
+
+    summary = run_agent(
+        "mock_aus_v2_python",
+        query,
+        run_id="aus-agent-v2.python.mock",
+        safety_max_rounds=10,
+        coverage_plan=True,
+        plan_critic=False,
+        coverage_verify=False,
+        audience_verify=False,
+        finish_review=False,
+        coverage_contract=True,
+        prompt_variant="contract-lean",
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert output["answer"] == [{"text": code, "citations": []}]
+    assert output["trace"]["input"]["answer_form"]["python_code"] is True
+    assert provider.system_prompt is not None
+    assert provider.system_prompt.startswith("# Research agent")
+    assert "write exactly one sentence per line" not in provider.system_prompt
+    assert "raw, complete, multiline Python" in output["trace"]["input"][
+        "system_prompt"]
+
+
+def test_fresh_verifier_routes_gap_to_preservation_safe_claim_patcher(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A planned fact lost in drafting must be patched without answer authority."""
+    first_draft = f"Toll revenue requires institutional oversight. [{D[0]}]"
+    repaired = (
+        f"Toll revenue requires institutional oversight and funds the MTA "
+        f"capital plan. [{D[0]}]"
+    )
+    research = ScriptedProvider([
+        model_turn(text="11. SAFETY: name the MTA capital plan explicitly."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "MTA capital plan oversight",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "capital oversight"}]},
+            id="c1",
+        )]),
+        model_turn(text=first_draft),
+    ])
+    verifier = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "repair",
+            "missing": [{
+                "plan_item": 11,
+                "requirement": "Name the MTA capital plan explicitly.",
+                "draft_gap": "The draft says oversight but omits the named plan.",
+            }],
+        }))])
+    patcher = ScriptedProvider([model_turn(text=json.dumps({
+        "patches": [{
+            "finding": 1,
+            "mode": "replace",
+            "line": 1,
+            "sentence": repaired,
+        }],
+    }))])
+    transient_failure = ScriptedProvider([])
+    providers = iter([research, transient_failure, verifier, patcher])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.verify.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        coverage_verify=True,
+        audience_verify=False,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert output["answer"][0]["text"].endswith("the MTA capital plan.")
+    assert "MATERIAL FINDINGS" in patcher.user_messages[-1]
+    verify = output["trace"]["summary"]["coverage_verify"]
+    assert verify["verdict"] == "repair"
+    assert verify["missing"][0]["plan_item"] == 11
+    assert len(verify["attempt_errors"]) == 1
+    assert verify["patches"] == {
+        "proposed": 1, "accepted": 1, "rejected": 0}
+    assert verifier.tools == []
+
+
+def test_fresh_plan_critic_adds_a_searchable_requirement_before_research(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A second context must change evidence acquisition, not merely annotate trace."""
+    research = ScriptedProvider([
+        model_turn(text="1. EXPLICIT: compare measured traffic effects."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing equity distribution measured",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "equity evidence"}]},
+            id="c1",
+        )]),
+        model_turn(text=(
+            f"Traffic fell and distributional effects varied by group. [{D[0]}]"
+        )),
+    ])
+    critic = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "add",
+        "additions": [{
+            "requirement": "Compare distributional effects across groups.",
+            "reason": "A policy-effectiveness answer is incomplete without equity.",
+            "search_leads": ["congestion pricing equity distribution measured"],
+        }],
+    }))])
+    providers = iter([research, critic])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.critic.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=True,
+        observable_scout=False,
+        plan_reconcile=False,
+        coverage_verify=False,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert "Compare distributional effects" in research.user_messages[-1]
+    critic_summary = output["trace"]["summary"]["plan_critic"]
+    assert critic_summary["verdict"] == "add"
+    assert len(critic_summary["additions"]) == 1
+    assert critic.tools == []
+
+
+def test_plan_reconciler_replaces_additive_breadth_with_priority_contract(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """Research should receive the compiled contract, not every proposed item."""
+    research = ScriptedProvider([
+        model_turn(text="1. CORE: compare traffic effects."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing measured effects",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effects"}]},
+            id="c1",
+        )]),
+        model_turn(text=f"Traffic fell after pricing. [{D[0]}]"),
+    ])
+    critic = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "add",
+        "additions": [{
+            "requirement": "Name the accountable authority.",
+            "reason": "Implementation needs ownership.",
+            "search_leads": ["transport authority implementation"],
+        }],
+    }))])
+    reconciled = """\
+1. DELIVERABLE: Produce one concise policy assessment.
+2. AUDIENCE: Define congestion pricing for a general reader.
+3. CORE: State the measured traffic effect.
+4. CORE: Explain the comparison baseline and time scope.
+5. SAFETY: Avoid unsupported causal generalization.
+6. EVIDENCE: Use one measured result with place and period.
+7. LATENT: Name the accountable transport authority.
+8. BUDGET: Allocate 840 first-draft words across evidence, tradeoffs, and conclusion."""
+    reconciler = ScriptedProvider([model_turn(text=reconciled)])
+    providers = iter([research, critic, reconciler])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.reconcile.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=True,
+        observable_scout=False,
+        plan_reconcile=True,
+        coverage_verify=False,
+        audience_verify=False,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert reconciled in research.user_messages[-1]
+    assert output["trace"]["summary"]["plan_reconcile"]["applied"] is True
+    assert reconciler.tools == []
+
+
+def test_observable_scout_adds_a_distinct_countable_unit(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """The second lens must reach research rather than exist only in trace."""
+    research = ScriptedProvider([
+        model_turn(text="1. CORE: compare traffic effects."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing named software measured effects",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effects"}]},
+            id="c1",
+        )]),
+        model_turn(text=f"Traffic fell after pricing. [{D[0]}]"),
+    ])
+    critic = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "pass", "additions": [],
+    }))])
+    observable = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "add",
+        "additions": [{
+            "kind": "term",
+            "requirement": "Name one usable analysis package.",
+            "must_mention": ["pandas"],
+            "reason": "A novice needs an actionable tool.",
+            "search_leads": ["congestion pricing pandas analysis"],
+        }],
+    }))])
+    providers = iter([research, critic, observable])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.observable.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=True,
+        observable_scout=True,
+        plan_reconcile=False,
+        coverage_verify=False,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert "Name one usable analysis package" in research.user_messages[-1]
+    scout = output["trace"]["summary"]["observable_scout"]
+    assert scout["requested"] is True
+    assert scout["combined_additions"] == 1
+    assert observable.tools == []
+
+
+def test_claim_patcher_never_restarts_research_search(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """Post-draft completion can only use evidence research already committed."""
+    draft = f"Toll revenue requires institutional oversight. [{D[0]}]"
+    repaired = (
+        f"Toll revenue requires institutional oversight and funds the MTA "
+        f"capital plan. [{D[0]}]"
+    )
+    research = ScriptedProvider([
+        model_turn(text="1. SAFETY: name the MTA capital plan explicitly."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "MTA capital plan", "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "capital evidence"}]},
+            id="c1",
+        )]),
+        model_turn(text=draft),
+    ])
+    verifier = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "repair",
+            "missing": [{
+                "plan_item": 1,
+                "requirement": "Name the MTA capital plan explicitly.",
+                "draft_gap": "The draft only says institutional oversight.",
+            }],
+        }))])
+    patcher = ScriptedProvider([model_turn(text=json.dumps({
+        "patches": [{
+            "finding": 1,
+            "mode": "replace",
+            "line": 1,
+            "sentence": repaired,
+        }],
+    }))])
+    providers = iter([research, verifier, patcher])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.repair-budget.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        coverage_verify=True,
+        audience_verify=False,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert len(stub_search_tool["semantic"]) == 1
+    verify = output["trace"]["summary"]["coverage_verify"]
+    assert verify["repair_search_batches"] == 0
+    assert verify["repair_search_batch_cap"] == 1
+    assert verify["patches"]["accepted"] == 1
+    assert output["answer"][0]["text"].endswith("the MTA capital plan.")
+
+
+@pytest.mark.parametrize("strategy", ["patch-first", "research-first"])
+def test_zero_grounded_patches_reopen_one_bounded_research_batch(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]],
+        strategy: str) -> None:
+    """Both policies must reach evidence retrieval when local evidence is absent."""
+    first_draft = f"Traffic fell after congestion pricing. [{D[0]}]"
+    repaired_draft = (
+        f"Traffic fell after congestion pricing. [{D[0]}]\n"
+        f"The MTA capital plan is the closest measured implementation "
+        f"precedent. [{D[1]}]"
+    )
+    research = ScriptedProvider([
+        model_turn(text="1. EVIDENCE: name the measured implementation."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing measured effects",
+             "search_engine": "semantic", "k": 2},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effects"}]},
+            id="c1",
+        )]),
+        model_turn(text=first_draft),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "MTA capital plan measured implementation precedent",
+             "search_engine": "keyword", "k": 2},
+            id="s2",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[1], "reason": "named precedent"}]},
+            id="c2",
+        )]),
+        model_turn(text=repaired_draft),
+    ])
+    verifier = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "repair",
+        "missing": [{
+            "plan_item": 1,
+            "requirement": "Name a measured implementation precedent.",
+            "draft_gap": "The draft gives an effect but no named precedent.",
+        }],
+    }))])
+    patcher = ScriptedProvider([model_turn(text='{"patches":[]}')])
+    providers = iter(
+        [research, verifier, patcher]
+        if strategy == "patch-first" else [research, verifier])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.research-repair.mock",
+        k=2,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        coverage_verify=True,
+        coverage_repair_strategy=strategy,
+        audience_verify=False,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert [item["text"] for item in output["answer"]] == [
+        "Traffic fell after congestion pricing.",
+        "The MTA capital plan is the closest measured implementation precedent.",
+    ]
+    assert len(stub_search_tool["semantic"]) == 1
+    assert len(stub_search_tool["keyword"]) == 1
+    verify = output["trace"]["summary"]["coverage_verify"]
+    assert verify["repair_strategy"] == strategy
+    assert verify["patches"] == {
+        "proposed": 0, "accepted": 0, "rejected": 0}
+    assert verify["research_repair_active"] is True
+    assert verify["repair_search_batches"] == 1
+    assert "at most one parallel search batch" in research.user_messages[-1]
+
+
+def test_plan_independent_audience_gap_joins_the_grounded_repair(
+        monkeypatch: pytest.MonkeyPatch,
+        stub_search_tool: dict[str, list[dict[str, Any]]]) -> None:
+    """A planner blind spot must reach the evidence-owning writer without a new answerer."""
+    draft = f"Traffic fell after congestion pricing. [{D[0]}]"
+    research = ScriptedProvider([
+        model_turn(text="1. EXPLICIT: report measured traffic effects."),
+        model_turn(tool_calls=[tool_call(
+            "search",
+            {"query": "congestion pricing measured effects",
+             "search_engine": "semantic", "k": 1},
+            id="s1",
+        )]),
+        model_turn(tool_calls=[tool_call(
+            "commit_context",
+            {"documents": [{"id": D[0], "reason": "measured effects"}]},
+            id="c1",
+        )]),
+        model_turn(text=draft),
+    ])
+    plan_verifier = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "pass", "missing": [],
+    }))])
+    audience_verifier = ScriptedProvider([model_turn(text=json.dumps({
+        "verdict": "repair",
+        "missing": [{
+            "requirement": "Name the authority accountable for capital oversight.",
+            "draft_gap": "The implementation owner is absent.",
+            "search_lead": "transport authority capital oversight",
+        }],
+    }))])
+    patcher = ScriptedProvider([model_turn(text=json.dumps({
+        "insertions": [{
+            "finding": 1,
+            "after_line": 1,
+            "sentence": (
+                f"The transport authority is accountable for capital "
+                f"oversight. [{D[0]}]"
+            ),
+        }],
+    }))])
+    providers = iter([research, plan_verifier, audience_verifier, patcher])
+    monkeypatch.setattr(
+        agent_mod,
+        "make_provider",
+        lambda backend, model, region=None: next(providers),
+    )
+
+    summary = run_agent(
+        QID,
+        QUERY,
+        run_id="aus-agent-v2.audience-verify.mock",
+        k=1,
+        safety_max_rounds=20,
+        coverage_plan=True,
+        plan_critic=False,
+        coverage_verify=True,
+        audience_verify=True,
+        finish_review=False,
+    )
+    output = json.loads(summary["paths"]["output"].read_text())
+
+    assert [item["text"] for item in output["answer"]] == [
+        "Traffic fell after congestion pricing.",
+        "The transport authority is accountable for capital oversight.",
+    ]
+    audience = output["trace"]["summary"]["audience_verify"]
+    assert audience["verdict"] == "repair"
+    assert audience["missing"][0]["requirement"].startswith("Name the authority")
+    assert audience["patches"] == {
+        "proposed": 1, "accepted": 1, "rejected": 0}
+    assert audience_verifier.tools == []
+    assert patcher.tools == []
+
+
+@pytest.mark.live
+def test_run_agent_v2_live() -> None:
+    """The real provider/search path stays exercisable outside hermetic CI."""
+    result = run_agent(
+        QID,
+        QUERY,
+        backend="openai",
+        run_id="aus-agent-v2-live-test",
+        safety_max_rounds=20,
+    )
+    assert result["status"] in {"completed", "budget_exhausted"}
+    assert result["n_references"] > 0

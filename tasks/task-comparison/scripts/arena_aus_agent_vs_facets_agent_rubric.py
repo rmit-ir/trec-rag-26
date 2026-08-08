@@ -187,7 +187,13 @@ def main() -> int:
     parser.add_argument("--model", default="gpt-5.6-terra")
     parser.add_argument("--aus-agent-run-id", default=RUN_IDS["aus_agent"])
     parser.add_argument("--facets-agent-run-id", default=RUN_IDS["facets_agent"])
+    parser.add_argument("--out-dir", type=Path, default=OUT_DIR,
+                        help="where to write judgments.jsonl/summary.json "
+                             "(default: the 15-topic dir; pass a new dir for "
+                             "a different run/topic-set so it never overwrites)")
     args = parser.parse_args()
+    out_dir = args.out_dir
+    judge_dir = out_dir / "raw-events"
 
     runs = {
         "aus_agent": load_answers_from_outputs(
@@ -224,7 +230,7 @@ def main() -> int:
                 "rubric": rubrics[qid],
             })
 
-    cache = JUDGE_DIR / args.model
+    cache = judge_dir / args.model
     todo = [t for t in tasks if not (cache / f"{t['task_id']}.json").exists()]
     print(f"{len(qids)} shared topics x 1 pair x 2 orders = {len(tasks)} "
           f"battles, {len(todo)} not cached, judge={args.model}")
@@ -300,8 +306,8 @@ def main() -> int:
     if bad:
         print(f"\n{bad} battles were unparsed or failed and are excluded")
 
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    judgments_path = OUT_DIR / "judgments.jsonl"
+    out_dir.mkdir(parents=True, exist_ok=True)
+    judgments_path = out_dir / "judgments.jsonl"
     judgments_path.write_text(
         "\n".join(json.dumps(r, ensure_ascii=False) for r in records) + "\n",
         encoding="utf-8")
@@ -315,7 +321,7 @@ def main() -> int:
         "shared_topics": len(qids),
         "rubric_source": str(RESEARCH_RUBRICS.relative_to(ROOT)),
     }
-    summary_path = OUT_DIR / "summary.json"
+    summary_path = out_dir / "summary.json"
     summary_path.write_text(json.dumps(summary, indent=2) + "\n", encoding="utf-8")
     print(f"\nwrote {judgments_path}\nwrote {summary_path}")
     return 0

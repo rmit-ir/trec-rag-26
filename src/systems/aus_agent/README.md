@@ -12,6 +12,14 @@ Both run artifacts (`*.trajectory.json` + `*.output.json`) are written to
 `data/outputs/aus_agent/` via `ragrun.save_run`. Every citation must be a docid
 the agent explicitly committed.
 
+The loop itself (`run_agent`), `ContextLedger`, the Bedrock/OpenAI providers,
+and the search/commit_context/get_documents tool builders live in the shared
+`agent_harness` package (a sibling of `ragrun`/`tools`/`utils`), not here —
+this package now holds only what is genuinely aus_agent-specific: its own
+`prompts/system/*.md` variants and the loader that resolves one. facets_agent
+runs the same shared loop with its own prompt/tools; see `agent_harness`'s
+own docstrings for the harness contract.
+
 Search and document results use a staged/committed context protocol:
 
 1. Documents returned by a search turn are staged with an independent

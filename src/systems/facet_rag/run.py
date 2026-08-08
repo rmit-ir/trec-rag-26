@@ -7,7 +7,7 @@ evidence is synthesized into a grounded, cited report (orchestrator draft +
 analyzer fact-check). Retrieval is corpus-only — no web search — and every
 citation is a ClimbMix docid.
 
-Two fixed Bedrock roles (``aus_agent.providers.bedrock.BedrockProvider``,
+Two fixed Bedrock roles (``agent_harness.providers.bedrock.BedrockProvider``,
 shared, not duplicated): the ORCHESTRATOR plans + drives search
 (default ``openai.gpt-oss-120b-1:0``), the ANALYZER judges passages and
 fact-checks (default ``qwen.qwen3-next-80b-a3b``). They commonly need
@@ -28,7 +28,7 @@ Examples (repo root):
     uv run --group facet-rag python src/systems/facet_rag/run.py --all
 
 Config comes from the repo ``.env`` (auto-loaded): AWS creds +
-``BEDROCK_REGION``. See ``src/systems/aus_agent/providers/bedrock.py`` for
+``BEDROCK_REGION``. See ``src/agent_harness/providers/bedrock.py`` for
 per-model region caveats (qwen.*/moonshot.* need us-east-1/us-west-2).
 """
 from __future__ import annotations
@@ -39,9 +39,11 @@ import sys
 from pathlib import Path
 
 # --- import surgery (same pattern as the other systems' run.py) -------------
-# Put src/systems on the path and drop this package dir, so ``ragrun``,
-# ``ali_deepresearch``, ``aus_agent``, ``tools.*`` and ``utils.*`` all resolve
-# whether run from the repo root or from inside the package.
+# Put src/systems on the path and drop this package dir, so ``ali_deepresearch``
+# resolves whether run from the repo root or from inside the package.
+# ``ragrun``/``tools``/``utils``/``agent_harness`` need no path entry either
+# way -- they are installed editable (see pyproject's
+# [tool.hatch.build.targets.wheel]).
 _HERE = os.path.dirname(os.path.abspath(__file__))
 _SYSTEMS = os.path.dirname(_HERE)
 sys.path[:] = [p for p in sys.path if os.path.abspath(p or ".") != _HERE]
@@ -57,7 +59,7 @@ except ImportError:  # pragma: no cover
 
 from tools.search_tool import SEARCH_ENGINES  # noqa: E402
 
-from aus_agent.agent import make_provider  # noqa: E402  (reuse the factory)
+from agent_harness.agent import make_provider  # noqa: E402  (reuse the factory)
 
 from facet_rag.pipeline import run_one  # noqa: E402
 
@@ -69,7 +71,7 @@ DEFAULT_ANALYZER_MODEL = "qwen.qwen3-next-80b-a3b"
 # Both pinned to a region verified working for that model under this account
 # -- NOT left to fall back on the repo's BEDROCK_REGION env, which varies by
 # .env (e.g. ap-southeast-1) and 400s as "invalid model identifier" for both
-# of these non-Anthropic models. See src/systems/aus_agent/providers/bedrock.py.
+# of these non-Anthropic models. See src/agent_harness/providers/bedrock.py.
 DEFAULT_ORCHESTRATOR_REGION = "ap-southeast-2"
 DEFAULT_ANALYZER_REGION = "us-east-1"
 DEFAULT_RUN_DESC = (
@@ -121,6 +123,13 @@ def main() -> None:
                     help="max chars of passage text per result fed to the "
                          "analyzer/synthesis (default matches aus_agent's "
                          "4096-token/~20480-char stage depth, PLAN.md §3.1)")
+    ap.add_argument(
+        "--backend", default="bedrock", choices=["bedrock", "openai"],
+        help="provider backend for BOTH roles. `bedrock` (default) speaks "
+             "boto3 and needs AWS credentials; `openai` speaks the "
+             "OpenAI-compatible gateway via OPENAI_BASE_URL/OPENAI_API_KEY. "
+             "The two roles were hardcoded to bedrock, which made the system "
+             "unrunnable on a host that only has the gateway token.")
     ap.add_argument("--run-id", default="facet_rag.dev")
     ap.add_argument("--run-desc", default=DEFAULT_RUN_DESC)
     ap.add_argument("--no-format-llm", action="store_true",
@@ -131,11 +140,11 @@ def main() -> None:
     engines = list(dict.fromkeys(args.engines))  # unique, preserve order
 
     def make_orchestrator():
-        return make_provider("bedrock", args.orchestrator_model,
+        return make_provider(args.backend, args.orchestrator_model,
                              region=args.orchestrator_region)
 
     def make_analyzer():
-        return make_provider("bedrock", args.analyzer_model,
+        return make_provider(args.backend, args.analyzer_model,
                              region=args.analyzer_region)
 
     if args.query:

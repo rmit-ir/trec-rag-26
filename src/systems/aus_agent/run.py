@@ -32,6 +32,7 @@ sys.path.insert(0, _src_root)
 from ragrun.outputs import data_dir  # noqa: E402
 from systems.aus_agent.agent import (  # noqa: E402
     DEFAULT_MAX_COMMITTED_PER_STEP,
+    load_system_prompt,
     run_agent,
 )
 from utils.env import env  # noqa: E402
@@ -165,6 +166,8 @@ def main() -> None:
     for qid, query in jobs:
         print(f"=== {qid}: {query[:80]}...", flush=True)
         try:
+            system_prompt = load_system_prompt(args.max_committed_per_step,
+                                               args.prompt_variant)
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
                                 context_token_budget=args.context_token_budget,
@@ -173,6 +176,7 @@ def main() -> None:
                                     args.max_committed_per_step),
                                 run_id=args.run_id,
                                 prompt_variant=args.prompt_variant,
+                                system_prompt=system_prompt,
                                 engines=search_backends)
         except Exception:  # keep --all going
             failures += 1
