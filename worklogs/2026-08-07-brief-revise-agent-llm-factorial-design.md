@@ -989,3 +989,26 @@ wrapper). Explicitly do not use a submission slot on `hybrid`-alone.
 Fixed one table-rendering bug while building this (an inline code span
 overflowing a narrow table column, same class of bug the earlier Opus
 report revision had already fixed once).
+
+## 28. Expanded to 6-system submission, hedged across both real eval axes
+
+User wants more submissions since the actual official evaluation method
+is uncertain, and explicitly wants the best-on-rubric system included.
+Checked the track guidelines directly (`rag-task.md`, not assumed): the
+organizers' real evaluation is confirmed BOTH pairwise battles AND
+independent nugget-rubric scoring, plus separate citation precision/
+recall -- not a single method. This makes the arena-vs-standalone
+disagreement found in §25/§26 directly actionable rather than just a
+methodological curiosity: a portfolio that only wins one axis has a real
+gap against the organizers' own stated evaluation design.
+
+Recommendation revised from 4 to 6 systems (of the 10 allowed slots):
+`aus_agent_v2`, `brief_revise_agent` base cell (best cheap arena
+performer), `brief_revise_agent` `hybrid`-alone (best standalone/nugget-
+rubric score in the whole report, previously excluded -- now included
+specifically as the rubric-axis hedge), `aus_agent`, `facets_agent`,
+and `facet_rag` (weakest but a fourth genuinely distinct architecture,
+zero additional cost since it already has real generated output). Still
+excludes the 4 zero-output systems -- hedging a known unknown
+(evaluation method) is not the same as submitting a system with zero
+evidence behind it at all.

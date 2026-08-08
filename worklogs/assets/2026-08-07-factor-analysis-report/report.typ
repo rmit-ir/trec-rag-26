@@ -898,47 +898,63 @@ comparison; not every pair has been run head-to-head): `aus_agent_v2` $gt.eq$
 `brief_revise_agent` base cell are statistically tied on standalone but
 `aus_agent_v2` wins their one direct arena comparison, so it ranks first.
 
-== Recommendation: submit 4, not 10
+== Recommendation: submit 6, hedged across both real evaluation axes
 
-*Do not fill all 10 slots.* Four of the nine systems have never produced
-a single output and would need real implementation and generation work,
-not just a submission-format wrapper, before they could be evaluated at
-all -- submitting an untested scaffold on the strength of an unfilled
-slot count is worse than not submitting it. Of the five systems with real
-evidence, `facet_rag` loses every available head-to-head comparison
-(100% loss rate against both other baselines that beat it) and is not
-worth a submission slot either. That leaves four credible candidates:
+The organizers' own evaluation plan (`rag-task.md`, not this report)
+confirms the exact hedge worth making: submitted responses are scored
+*both* ways -- "system-by-system battles" (pairwise, blind, randomized
+order, matching this report's arena protocol, §5) *and* "individualized
+nugget rubric scoring... independently against narrative-specific nugget
+criteria" (matching this report's standalone protocol, §4), plus separate
+weighted citation precision/recall scoring. §6 already showed these two
+protocols can rank the SAME two cells in opposite orders. Since the
+organizers are really going to run both, a portfolio that wins on only
+one axis is a real hedging gap, not excess caution -- submit the winner
+of each:
 
 + *`aus_agent_v2`* -- the strongest system in the repo by every available
   comparison, at the highest cost (§7, \$1,096.72 documented build cost).
-  Submit if that cost is affordable for the final run.
-+ *`brief_revise_agent` (base cell, NOT `hybrid`-alone -- §8)* -- ties
-  `aus_agent_v2` on standalone rubric at roughly 1/50th the cost (\$21.61
-  vs. \$1,096.72 per this report's and `aus_agent_v2`'s own figures,
-  though the two costs were measured with different methodologies, §7),
-  and is the second-best system in the ranking. A genuinely distinct,
-  much cheaper alternative to `aus_agent_v2`, not a near-duplicate of it.
-+ *`aus_agent`* -- cheaper than both of the above (no brief/review
-  passes), beats both other mid-tier systems in this repo's own arena
-  history (`facets_agent`, `facet_rag`) convincingly. Worth a slot as a
-  distinct, simpler architecture and a cost/quality floor reference.
++ *`brief_revise_agent` (base cell)* -- ties `aus_agent_v2` on standalone
+  rubric at roughly 1/50th the cost (\$21.61 vs. \$1,096.72, though the
+  two costs were measured with different methodologies, §7), and is the
+  best-available *arena* performer among the cheaper systems (§5.1, 40%
+  vs. `aus_agent_v2`).
++ *`brief_revise_agent` (`hybrid`-alone)* -- the best-scoring cell on the
+  *standalone/nugget-rubric* axis in this entire report (2.333, §4.6),
+  despite being arena-worse than the base cell (§5.2). Excluding it would
+  mean betting the whole `brief_revise_agent` entry on the arena reading
+  being the one that matters -- given the organizers score both, submit
+  both `brief_revise_agent` variants rather than picking one axis for
+  them.
++ *`aus_agent`* -- cheaper than the three above (no brief/review passes),
+  beats both systems below it in this repo's own arena history
+  (`facets_agent`, `facet_rag`) convincingly. A distinct, simpler
+  architecture and a cost/quality floor reference.
 + *`facets_agent`* -- weaker than `aus_agent` on every available
-  comparison, but still convincingly beats `facet_rag` and represents a
-  third genuinely distinct architecture (minimal-prompt continuous-agent
-  design vs. `aus_agent`'s tuned prompt vs. `brief_revise_agent`'s
-  brief+review passes). Marginal case for inclusion -- include only if
-  submission-portfolio diversity (distinct architectures, not just
-  distinct scores) is itself valued by the organizers' evaluation design;
-  omit if the goal is strictly "the 4 best scores," where `facet_rag`
-  would not displace it but a second `aus_agent_v2`/`brief_revise_agent`
-  variant might.
+  comparison, but still convincingly beats `facet_rag` and is a third
+  genuinely distinct architecture (minimal-prompt continuous-agent vs.
+  `aus_agent`'s tuned prompt vs. `brief_revise_agent`'s brief+review
+  passes). Real, working, and architecturally distinct -- worth the slot
+  under a "we don't know exactly how this will be judged" hedge, even
+  though it is not the strongest score in the portfolio.
++ *`facet_rag`* -- the weakest system with real output (loses every
+  available comparison, §10.2), but it is a fourth genuinely distinct
+  architecture (facet decomposition + separate per-facet curation, unlike
+  any of the other four), it already has working generated output at
+  zero additional cost to include, and its consistent losses so far are
+  all against systems tuned specifically for this repo's own evaluation
+  loop -- an unknown official judge/rubric could rate it differently.
+  Weakest recommendation of the six, but a real architecture, not a
+  guess.
 
-Do not submit `facet_rag` (loses every available comparison) or any of
-the four zero-output systems (no evidence, real implementation work
-required first). Do not submit `hybrid`-alone as a `brief_revise_agent`
-variant distinct from the base cell -- §8 already recommends against
-using it at all, submitting it as a "second `brief_revise_agent` entry"
-would just spend a slot on the arena-confirmed-worse configuration.
+*Do not submit any of the four zero-output systems* (`ali_deepresearch`,
+`claude-code-research`, `codex_cli_research`, `o3_deep_research`) --
+hedging against evaluation-method uncertainty is not the same as
+submitting an unimplemented scaffold with no evidence at all; the former
+covers a known unknown (which axis the judge weights), the latter is a
+pure guess with zero information behind it. That leaves 4 of the 10
+slots open if the organizers' rules reward using fewer, more confident
+entries, or as headroom for a genuinely new system built later.
 
 = Data and code
 
