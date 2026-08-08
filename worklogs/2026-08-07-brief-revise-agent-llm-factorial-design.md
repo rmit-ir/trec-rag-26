@@ -730,3 +730,66 @@ fixed by scoping the font override to block-level code only
 (`#show raw.where(block: true): ...`) and widening the ID columns of the
 three new tables to fit their longest unbreakable code identifier on one
 line. Final PDF: 11 pages (was ~6), compiles clean, no overflow.
+
+## 20. $100 extension: standalone baseline comparison + best-of-4 ensemble probe
+
+User instruction: dedicate $100 more, focused on the report's own
+recommended direction (a structural mechanism genuinely distinct from
+everything tried) -- and, per a follow-up correction, **skip arena for this
+round; focus on standalone scoring against `aus_agent_v2` and other
+baselines instead**.
+
+### Baseline standalone comparison (new -- not done earlier this session)
+
+Every baseline comparison so far had been arena-only. Standalone-scored
+`aus_agent_v2`, `aus_agent`, and `facets_agent` on the SAME 15 topics for
+the first time (reusing existing generations, zero new generation cost --
+only judge calls). `aus_agent`/`facets_agent`'s existing runs covered 30
+topics, not just this session's 15, so `standalone_rubric_score.py` gained
+a `--topics` filter (restrict scoring to a topics TSV's qids) to score them
+on the matched subset rather than their full run.
+
+| system | run_id | overall (0-3) |
+|---|---|---:|
+| **brief_revise_agent (base cell)** | `br-model-main-sol-exp15-b1` | **2.267** |
+| **aus_agent_v2** | `aus-agent-v2-exp15-luna` | **2.267** |
+| aus_agent | `aus-agent-dev30-luna-e2708ab` | 2.000 |
+| facets_agent | `facets-agent-dev30-e2708ab` | 1.800 |
+
+**`brief_revise_agent`'s base cell exactly TIES `aus_agent_v2` on
+standalone rubric grading** and beats both other baselines. This sharpens
+the standalone-vs-arena tension already flagged in the FINAL REPORT
+section: arena said `aus_agent_v2` wins 60/40; standalone rubric says the
+two systems are equal. Neither number is wrong -- they measure different
+things (a direct pairwise reader-preference judgment vs. per-criterion
+rubric adherence), and this session has now found two independent cases
+(this one, and round B's luna-specific arena/standalone disagreement) where
+they diverge. Worth stating plainly: **`brief_revise_agent` is not
+unambiguously behind `aus_agent_v2`** -- it depends which evaluation mode
+you trust more for the actual submission objective.
+
+### Best-of-4 ensemble probe (sol's design, `worklogs/assets/2026-08-07-sol-100-answer.md`)
+
+Sol picked a **best-of-4 winner-take-all selector** over `aus_agent_v2`'s
+heavier `candidate_union` (explicitly rejected as too much new-code risk
+for $100): reuse the existing base-cell answer as Candidate A, generate 3
+fresh independent reruns of the identical base-cell config as B/C/D
+(sampling variance only, no config change), one `gpt-5.6-sol` selector
+call per topic picks a single winner verbatim (no rewriting/merging).
+Promotion bar: standalone >= 2.400 (+0.133) AND it must beat the
+predeclared raw fresh-candidate diagnostic row, or the observed gain can't
+be attributed to selection rather than lucky resampling.
+
+Metering probe (1 topic, real cost): ~188.5k processed tokens/topic
+(~$0.94 at the placeholder rate) -- lower than sol's own $0.10-0.30/topic
+guess would suggest generation is cheap, but well within the $45 sol
+budgeted for 3x15 fresh generation. New script (reuses `one_shot`/
+`strip_fences` from `facet_rag.llm`, `score_one`/`load_env` from the
+existing rubric scorer -- no reimplementation): `ensemble_best_of_4.py`.
+Deterministic per-topic candidate order (hashed from qid, not a fixed
+A=base convention) so the selector can't learn a positional bias toward
+the base answer. Fails open to the base answer on any selector parse
+failure or missing candidate.
+
+Candidate batches B/C/D (3x15 = 45 fresh trajectories, `br-ensemble-
+cand{B,C,D}-exp15`) launched, in progress.

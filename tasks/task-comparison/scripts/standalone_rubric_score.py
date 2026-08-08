@@ -52,12 +52,23 @@ def main() -> int:
                         help="where to write scores.jsonl/summary.json "
                              "(one dir per factorial cell, never overwritten "
                              "by another cell)")
+    parser.add_argument("--topics", type=Path, default=None,
+                        help="restrict scoring to the qids in this topics "
+                             "TSV (qid<TAB>narrative) -- for comparing a "
+                             "system's wider run against one factorial "
+                             "cell's own topic subset, e.g. a baseline run "
+                             "covering 30 topics scored fairly against a "
+                             "15-topic cell")
     args = parser.parse_args()
 
     answers = load_answers_from_outputs(
         ROOT / "data/outputs" / args.system, args.run_id)
     criteria_by_qid = load_criteria(RESEARCH_RUBRICS)
     qids = sorted(set(answers) & set(criteria_by_qid))
+    if args.topics:
+        wanted = {line.split("\t", 1)[0].strip()
+                 for line in args.topics.read_text().splitlines() if line.strip()}
+        qids = [q for q in qids if q in wanted]
     missing = set(answers) - set(criteria_by_qid)
     if missing:
         print(f"note: {len(missing)} answered topics have no rubric, excluded",
