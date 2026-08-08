@@ -228,6 +228,29 @@ fig4.update_layout(
 fig4.write_html(OUT / "fig4_arena.html", **HTML_KW)
 
 # ---------------------------------------------------------------------------
+# Figure 6: second arena result, hybrid-alone vs aus_agent_v2 (worse).
+# ---------------------------------------------------------------------------
+win2, loss2, amb2 = 2, 7, 6
+fig6 = go.Figure()
+left = 0
+for label, count, color in [("brief_revise_agent wins", win2, GREEN),
+                            ("ambiguous (order flips)", amb2, MUTED),
+                            ("aus_agent_v2 wins", loss2, RED)]:
+    fig6.add_trace(go.Bar(
+        x=[count], y=["arena"], orientation="h", name=f"{label} ({count})",
+        marker_color=color, base=left,
+        hovertemplate=f"<b>{label}</b>: {count} of 15 topics<extra></extra>",
+    ))
+    left += count
+fig6.update_layout(
+    template=TEMPLATE, barmode="stack",
+    title="Arena, hybrid-alone cell vs aus_agent_v2 — worse than the base cell's own arena result",
+    height=260, showlegend=True, legend=dict(orientation="h", y=-0.3),
+    yaxis=dict(visible=False), xaxis=dict(visible=False),
+)
+fig6.write_html(OUT / "fig6_arena_hybrid.html", **HTML_KW)
+
+# ---------------------------------------------------------------------------
 # Figure 5: cost-effectiveness scatter, hover shows n_cells + exact $/score.
 # ---------------------------------------------------------------------------
 cost_data = json.loads((Path(__file__).resolve().parent / "cost_by_run.json").read_text())

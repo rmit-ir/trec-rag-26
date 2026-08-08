@@ -269,6 +269,41 @@ fig.tight_layout()
 fig.savefig(OUT / "fig4_arena.pdf")
 plt.close(fig)
 
+# ---------------------------------------------------------------------------
+# Figure 6: second arena result -- hybrid-alone vs aus_agent_v2 (WORSE than
+# the base cell's own arena result, despite scoring higher on standalone).
+# ---------------------------------------------------------------------------
+fig, ax = plt.subplots(figsize=(7.2, 2.0))
+win2, loss2, amb2 = 2, 7, 6
+total2 = win2 + loss2 + amb2
+left = 0
+for label, count, color in [("brief_revise_agent wins", win2, GREEN),
+                            ("ambiguous (order flips)", amb2, MUTED),
+                            ("aus_agent_v2 wins", loss2, RED)]:
+    frac = count / total2
+    ax.barh([0], [frac], left=left, color=color, height=0.55, edgecolor="white",
+           linewidth=1.5)
+    if frac > 0.06:
+        ax.text(left + frac / 2, 0, f"{count}", ha="center", va="center",
+               color="white", fontsize=11, fontweight="bold")
+    left += frac
+ax.set_xlim(0, 1)
+ax.set_ylim(-0.6, 0.6)
+ax.set_yticks([])
+ax.set_xticks([])
+for spine in ax.spines.values():
+    spine.set_visible(False)
+ax.set_title("Arena, hybrid-alone vs aus_agent_v2 — worse than the base cell",
+            fontsize=11.5, color=TEXT, loc="left", pad=10)
+handles = [plt.Rectangle((0, 0), 1, 1, color=c) for c in (GREEN, MUTED, RED)]
+ax.legend(handles, ["brief_revise_agent wins (2)", "ambiguous (6)",
+                    "aus_agent_v2 wins (7)"],
+         loc="upper center", bbox_to_anchor=(0.5, -0.15), ncol=3, frameon=False,
+         fontsize=9)
+fig.tight_layout()
+fig.savefig(OUT / "fig6_arena_hybrid.pdf")
+plt.close(fig)
+
 
 # ---------------------------------------------------------------------------
 # Figure 5: cost-effectiveness -- avg cost vs avg standalone score, one

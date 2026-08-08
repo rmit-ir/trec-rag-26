@@ -15,7 +15,7 @@
 
   #text(size: 12pt, fill: muted)[LLM and structural factor analysis vs. `aus_agent_v2`]
 
-  #text(size: 9.5pt, fill: muted)[2026-08-07/08 -- 15-topic TREC RAG 2026 dev subset -- 31 scored cells -- ≈\$499 of a \$600 cumulative budget]
+  #text(size: 9.5pt, fill: muted)[2026-08-07/08 -- 15-topic TREC RAG 2026 dev subset -- 31 scored cells, 2 arena batches -- ≈\$504 of a \$600 cumulative budget]
 ]
 
 #v(0.4cm)
@@ -32,32 +32,33 @@ strongest, most expensive system) via standalone rubric scoring on a fixed
 the current session as orchestrator/implementer.
 
 #box(fill: rgb("#f4f8fd"), inset: 10pt, radius: 4pt, width: 100%)[
-  *Ties `aus_agent_v2` on standalone rubric at a fraction of the cost, and a
-  cheaper, better-scoring configuration was found and replicated:* The
-  best configuration found -- gpt-5.6-sol as main generator, round-B
-  adjacent-page fetch on, gpt-5.6-luna as brief-analyst and reviewer,
-  $k=10$, iteration-1 structure -- scores *2.267/3* on standalone rubric
-  grading (§4, tied with the best of every cell tested), *exactly ties
-  `aus_agent_v2`'s own standalone score* (2.267, §4.5 -- a much more
-  expensive system, §8 Cost-effectiveness), but still loses to it in a
-  head-to-head arena match (§5), *18--12 (60/40)*, order_consistency 0.733
-  (4W--7L clean, 4 non-order-consistent). §6 compares the two evaluation
-  modes directly. Fourteen further single-factor moves against the
-  standalone base -- five generic `agent_harness` toggles, one factor
-  interaction, three brief-analyst model swaps, adjacent-fetch removal, a
-  novel post-draft "closure critic" mechanism, four individual search
-  engines, and a best-of-4 ensemble selector -- returned at most one
-  marginal gain since independently REPLICATED on a fresh 15-topic set
-  (`hybrid` engine alone, +0.067 to +0.200 depending on topic sample, §4.6)
-  and no other improvement (§4.2, §4.7). $k$ and
-  the reviewer model were held fixed throughout and were never themselves
-  varied as a factor. Of the 16 factors in the underlying taxonomy (§3), 8
-  were empirically scored this session; the base cell is a confirmed local
-  optimum *on the factors actually tested*, not a claim about the full
-  factor space. §8 shows generator-model choice is not just the largest
-  effect but also the cheapest per point of standalone score gained --
-  every other tested lever costs roughly as much to test as the model
-  factor while moving the score an order of magnitude less.
+  *Ties `aus_agent_v2` on standalone rubric at a fraction of the cost --
+  and a standalone-only "improvement" turned out to be arena-worse when
+  actually checked, the report's own cautionary case study.* The base
+  configuration -- gpt-5.6-sol as main generator, round-B adjacent-page
+  fetch on, gpt-5.6-luna as brief-analyst and reviewer, $k=10$,
+  iteration-1 structure -- scores *2.267/3* on standalone rubric grading
+  (§4), *exactly ties `aus_agent_v2`'s own standalone score* (2.267,
+  §4.5 -- a much more expensive system, §7 Cost-effectiveness), but still
+  loses to it in a head-to-head arena match (§5.1), *18--12 (60/40)*,
+  order_consistency 0.733 (4W--7L clean, 4 non-order-consistent). Of
+  fourteen further single-factor moves against the standalone base, one
+  -- `hybrid` search engine alone -- scored *higher* (2.333) and
+  replicated cleanly on an independent topic set (§4.6), so it was
+  provisionally promoted; arena-confirming it (§5.2) reversed that
+  promotion outright, *33.3% win rate vs. the base cell's 40%* -- worse
+  in the metric that actually matters despite being better on the one
+  used to find it. §6 and §8 discuss why, and why the base cell remains
+  the recommendation. Every other tested lever (five generic
+  `agent_harness` toggles, one factor interaction, three brief-analyst
+  model swaps, adjacent-fetch removal, a "closure critic" mechanism, a
+  best-of-4 ensemble selector) was null or negative on standalone and was
+  never arena-tested at all. $k$ and the reviewer model were held fixed
+  throughout. Of the 16 factors in the underlying taxonomy (§3), 8 were
+  empirically scored this session. §7 shows generator-model choice is not
+  just the largest standalone effect but also the cheapest per point of
+  standalone score gained -- though this report's own arena reversal
+  above is a reason not to over-trust standalone effect size alone.
 ]
 
 = Method
@@ -93,8 +94,8 @@ for every cell.
 
 *Pairwise arena (confirmatory, §5).* One head-to-head judge call
 (`gpt-5.6-terra`), both presentation orders, comparing two full answers on
-the same topic and declaring a win/loss/tie -- run once this session,
-standalone-best cell vs. `aus_agent_v2`, as the direct test of the actual
+the same topic and declaring a win/loss/tie -- run twice this session,
+each cell vs. `aus_agent_v2`, as the direct test of the actual
 competitive objective rather than a tuning signal.
 
 *Judge/generator overlap.* `gpt-5.6-terra` is both the sole judge for every
@@ -428,10 +429,10 @@ score the matched subset rather than the full run.
 rubric grading and beats both other baselines. This sharpens the
 standalone-vs-arena tension already documented in §6: arena says
 `aus_agent_v2` wins 60/40; standalone rubric says the two systems are
-equal. Given §8 shows `aus_agent_v2` costs roughly an order of magnitude
+equal. Given §7 shows `aus_agent_v2` costs roughly an order of magnitude
 more per topic to generate (its own tracked build cost is \$1,097 across a
 much larger effort), this tie is a materially different headline than "did
-not beat `aus_agent_v2`" -- see §9 Recommendation.
+not beat `aus_agent_v2`" -- see §8 Recommendation.
 
 == Search-engine sweep
 
@@ -498,12 +499,12 @@ the exact same value is real signal, not resampling luck -- this is now a
 ) <tab-replication-hybrid>
 
 *This is the concrete answer to "match `aus_agent_v2` at lower cost using
-the best search engine and cheapest confirmed components" (§9): sol +
+the best search engine and cheapest confirmed components" (§8): sol +
 `hybrid` engine alone, dropping the default `semantic,keyword` pair, is
 the new recommended `brief_revise_agent` configuration* -- it ties or
 beats the previous base cell's standalone score (which itself already
 tied `aus_agent_v2`, §4.5) on two independent topic samples, at lower
-generation cost than that base cell (§8).
+generation cost than that base cell (§7).
 
 == Best-of-4 ensemble probe
 
@@ -566,10 +567,11 @@ This section is a completely separate protocol from §4: a head-to-head
 judge call (`gpt-5.6-terra`), both presentation orders, comparing two full
 answers on the same topic and declaring win/loss/tie (§2.2) -- no per-
 criterion rubric grades, no 0--3 scale, no shared noise-floor unit with §4.
-Exactly one arena batch was run this session: the standalone-best cell
-(base, 2.267 from §4.1) against `aus_agent_v2`, on the same 15 topics, as a
-confirmatory check on the actual competitive objective rather than a tuning
-signal (no other cell was arena-tested).
+Two arena batches were run this session, both against `aus_agent_v2` on
+the same 15 topics: the original base cell (§5.1, 2.267 standalone), and
+-- after §4.6's replication made `hybrid`-alone look like a promotion
+candidate -- `hybrid`-alone itself (§5.2, 2.333 standalone). The second
+batch's result reverses that promotion; see §6 and §8.
 
 == Arena outcome
 
@@ -588,6 +590,42 @@ reading `aus_agent_v2` wins the majority of battles.
   caption: [Arena outcome, base cell vs. `aus_agent_v2`, 15 topics, both battle orders. #link("interactive/fig4_arena.html")[#text(fill: accent)[Interactive version →]]],
 ) <fig-arena>
 
+== Arena confirmation of `hybrid`-alone -- reverses the §4.6 promotion
+
+§4.6 replicated `hybrid`-alone's standalone lead over the base cell
+(2.333 vs. 2.267) on an independent topic set and, on that basis,
+promoted it to a candidate new standing configuration. Arena-confirming
+that candidate against `aus_agent_v2` (same 15 topics, both orders,
+reusing the existing `br-enginesweep-hybrid-exp15` generation --
+judging-only cost) reverses the promotion:
+
+#figure(
+  table(
+    columns: (auto, auto, auto, auto, auto),
+    align: (left, right, right, left, right),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 6pt,
+    table.header([*Cell*], [*Standalone*], [*Arena win rate*], [*Clean W-L-A*], [*order\_consistency*]),
+    [Base cell (default engines)], [2.267], [40% (18--12)], [4W--7L--4A], [0.733],
+    [*`hybrid`-alone*], [*2.333*], [*33.3% (20--10)*], [*2W--7L--6A*], [*0.600*],
+  ),
+  caption: [Arena, both cells vs. `aus_agent_v2`, same 15 topics.],
+) <tab-arena-hybrid>
+
+#figure(
+  image("figures/fig6_arena_hybrid.pdf", width: 78%),
+  caption: [Arena outcome, `hybrid`-alone cell vs. `aus_agent_v2`, 15 topics, both battle orders. #link("interactive/fig6_arena_hybrid.html")[#text(fill: accent)[Interactive version →]]],
+) <fig-arena-hybrid>
+
+*`hybrid`-alone scores higher on standalone rubric but performs worse in
+arena than the base cell it was meant to replace* -- fewer clean wins (2
+vs. 4), more ambiguous outcomes (6 vs. 4), lower order-consistency (0.600
+vs. 0.733), lower overall win rate (33.3% vs. 40%). This is the sharpest
+and most consequential instance of the standalone-vs-arena divergence in
+this report (§6) -- sharp enough to directly reverse a recommendation
+made on standalone evidence alone. See §8 for the corrected
+recommendation.
+
 = Comparing the two evaluations
 
 §4 and §5 measure different things on the same base cell, and disagree about
@@ -603,8 +641,9 @@ whether it is good enough:
     [Judge calls per configuration], [15 (1 per topic)], [30 (2 presentation orders × 15 topics)],
     [What is judged], [One answer, read alone, against \~31 rubric criteria], [Two answers, read together, relative preference],
     [Unit], [0--3 holistic score, $1\/15$ resolution], [win / loss / ambiguous count],
-    [Role this session], [Primary -- drove all 31 scored cells (§4.1--§4.7)], [Confirmatory -- one batch only, base cell vs. `aus_agent_v2`],
+    [Role this session], [Primary -- drove all 31 scored cells (§4.1--§4.7)], [Confirmatory -- 2 batches, base cell and `hybrid`-alone vs. `aus_agent_v2`],
     [Base cell's result], [*2.267/3* -- ties `aus_agent_v2` exactly (§4.5, @tab-baselines)], [*40%* win rate vs. `aus_agent_v2` (18--12 pooled; 4W--7L clean)],
+    [`hybrid`-alone's result], [*2.333/3* -- best standalone score in the report (§4.6)], [*33.3%* win rate (20--10 pooled; 2W--7L clean) -- WORSE than the base cell, §5.2],
   ),
   caption: [Standalone vs. arena, same base cell, same 15 topics.],
 )
@@ -631,12 +670,29 @@ overall level (as the table above shows), they can disagree in *direction*
 on the same structural change, and this session did not resolve which
 reading to trust for that factor.
 
+A third, sharper case makes the same point at higher stakes: §4.6
+replicated `hybrid`-alone's standalone lead over the base cell on an
+independent topic set and promoted it as a candidate new standing
+configuration on that basis -- arena-confirming it (§5.2) reversed the
+promotion outright. `hybrid`-alone is confirmed *better* on standalone
+(2.333 vs. 2.267) and confirmed *worse* in arena (33.3% vs. 40% win rate)
+than the cell it was meant to replace, in the same session, on the same
+15 topics. This is not a marginal-effect ambiguity like the S5 case above
+-- it is a real reversal of which cell is "better," entirely dependent on
+which evaluation mode is asked.
+
 Practically: standalone score is necessary-but-not-sufficient evidence for
-this system. It is the right tool for cheap, high-resolution hill-climbing
-(§4), but a standalone win is not a reliable predictor of an arena win, and
-any future claim that a configuration "beats" `aus_agent_v2` should be
-checked against arena before being trusted, not inferred from a standalone
-delta alone.
+this system, and this session found a concrete case where it was actively
+*misleading* as a promotion signal. It is the right tool for cheap,
+high-resolution hill-climbing (§4) -- generating and ranking dozens of
+candidates would not have been affordable at arena's 2x judge-call cost
+-- but a standalone win is not a reliable predictor of an arena win, and
+any claim that a configuration "beats" or "matches" `aus_agent_v2` MUST be
+checked against arena before being trusted or acted on, never inferred
+from a standalone delta alone. §8's recommendation reflects this directly:
+the arena-confirmed base cell is recommended over the standalone-only-
+confirmed `hybrid`-alone cell, even though the latter scores higher on
+the primary tuning signal.
 
 = Cost-effectiveness
 
@@ -710,30 +766,37 @@ Three things this table shows that the effect-size table (@tab-moves in
 
 = Recommendation
 
-*Use gpt-5.6-sol + `hybrid` engine alone* (round-B structure, $k=10$, luna
-brief-analyst/reviewer, default `semantic,keyword` pair DROPPED in favor
-of `hybrid` alone) as `brief_revise_agent`'s new standing configuration --
-this is the best cell found among the 31 scored, independently replicated
-on two separate 15-topic sets at the identical score (§4.6,
-@tab-replication-hybrid), ties or beats `aus_agent_v2` on standalone
-rubric (§4.5), and does it at *lower* generation cost than the previous
-sol-default-engines base cell (\$16.93 vs. \$21.61/15-topic batch, §8).
-The fourteen-move search that found it (hill-climb §4.2, engine sweep
-§4.6, ensemble probe §4.7) is otherwise exhausted -- every other tested
-lever was null, negative, or (for `hybrid`) already captured by this
-change. It is not yet competitive with `aus_agent_v2` head-to-head in
-arena (§5, §6) despite the standalone tie; the replication above was
-standalone-only per this round's explicit scope, not arena-confirmed.
+*Use the original base cell -- gpt-5.6-sol, default `semantic,keyword`
+engines, round-B structure, $k=10$, luna brief-analyst/reviewer -- as
+`brief_revise_agent`'s standing configuration.* `hybrid`-alone (§4.6)
+looked like a strict improvement on standalone evidence (higher score,
+lower cost, replicated on two topic sets) and was provisionally promoted
+on that basis -- arena-confirming it (§5.2) reversed that: `hybrid`-alone
+is confirmed *worse* in head-to-head competition (33.3% vs. 40% win rate,
+2W--7L--6A vs. 4W--7L--4A) despite its standalone edge. Since arena is
+the actual competitive objective (§2.2) and this session's own evidence
+(§6) shows standalone score can be actively misleading as a promotion
+signal, the arena-confirmed base cell is the correct recommendation, not
+the standalone-only-confirmed `hybrid`-alone cell. Neither cell is
+competitive with `aus_agent_v2` head-to-head (§5): both lose the majority
+of arena battles, `hybrid`-alone by a wider margin.
 
-+ *Arena-confirm sol+hybrid against `aus_agent_v2`* as the natural next
-  step, now that it is a replicated, promoted candidate rather than a
-  one-off -- not yet run this round (scope was standalone-only, per
-  instruction).
++ *Do not switch to `hybrid`-alone* despite its standalone lead -- §5.2's
+  arena result is the direct, higher-priority signal, and it points the
+  other way.
++ *`hybrid`-alone remains worth understanding, not adopting*: the
+  standalone-arena split it produced is now the report's most concrete
+  case study in why arena confirmation is mandatory before any promotion
+  (§6) -- a plausible follow-up (out of scope for this round's budget) is
+  reading the actual failed `hybrid`-alone arena transcripts to see what
+  `aus_agent_v2` does that the official rubric under-weights.
 + *Do not spend further budget on generic `agent_harness` toggles, brief-
-  analyst swaps, or ensemble/selection mechanisms* -- §8 shows all three
+  analyst swaps, or ensemble/selection mechanisms* -- §7 shows all three
   cost as much to test as the model factor while returning an order of
   magnitude less effect (or, for the ensemble probe specifically, zero
-  candidate-pool headroom to exploit at all, §4.7).
+  candidate-pool headroom to exploit at all, §4.7), and none of them was
+  arena-tested at all, so even their standalone-null verdicts carry the
+  same caveat as `hybrid`-alone's standalone-positive one.
 
 Untested factors that remain open questions, not ruled out: S7
 (`search_k`, held at 10 throughout), M3 (reviewer model, never varied),
@@ -748,7 +811,7 @@ against `aus_agent_v2`'s heavier `candidate_union` mechanism too, not just
 against the lighter selector tried here. The realistic remaining paths are
 (a) treating `brief_revise_agent` as the lighter, cheaper, standalone-
 equal alternative and reserving `aus_agent_v2` for submissions where its
-roughly order-of-magnitude-higher cost (§8) is affordable and arena
+roughly order-of-magnitude-higher cost (§7) is affordable and arena
 performance specifically matters, or (b) a genuinely new structural
 mechanism beyond what §4.7 already ruled out as low-value.
 
@@ -769,14 +832,14 @@ cumulative.
     stroke: 0.4pt + rgb("#d8d7d0"),
     inset: 6pt,
     table.header([*Line item*], [*Cost*], [*Basis*]),
-    [OpenAI + Bedrock generation, this workstream only (≈31 newly-generated cells)], [\$428.42], [estimate for OpenAI cells (placeholder \$5/1M, §8); real for Bedrock cells (metered rate-card files)],
-    [Standalone + arena judging (≈465 calls, incl. §4.5 baselines + §4.6 engine sweep \& replication + §4.7 ensemble)], [\$69.75], [estimate, \$0.15/call flat],
+    [OpenAI + Bedrock generation, this workstream only (≈31 newly-generated cells)], [\$428.42], [estimate for OpenAI cells (placeholder \$5/1M, §7); real for Bedrock cells (metered rate-card files)],
+    [Standalone + arena judging (≈495 calls, incl. §4.5 baselines + §4.6 engine sweep \& replication + §4.7 ensemble + §5.2's 2nd arena batch)], [\$74.25], [estimate, \$0.15/call flat],
     [Sol design/thinking calls (7 calls)], [\$0.81], [real -- exact printed API cost],
     [Taxonomy calls (luna draft + terra review)], [\$0.33], [real -- exact printed API cost],
     table.hline(),
-    [*Total*], [*≈\$499.31*], [of the \$600 cumulative cap; ≈\$101 unspent],
+    [*Total*], [*≈\$503.81*], [of the \$600 cumulative cap; ≈\$96 unspent],
   ),
-  caption: [Final cost breakdown, this workstream. Excludes the earlier, separately-reported round B/C/D improvement-loop thread and other systems' own historical generation cost -- both reused here at \$0 marginal cost (§4.5, §8).],
+  caption: [Final cost breakdown, this workstream. Excludes the earlier, separately-reported round B/C/D improvement-loop thread and other systems' own historical generation cost -- both reused here at \$0 marginal cost (§4.5, §7).],
 )
 
 = Data and code
@@ -812,7 +875,7 @@ generic-factor CLI flags, `--hyde-hybrid` (§4.6),
 `--topics` filter on `standalone_rubric_score.py` (§4.5) -- all on branch
 `explore/new-agent-framework-system`.
 
-*Cost-effectiveness data* (§8): `cost_analysis.py` re-derives real
+*Cost-effectiveness data* (§7): `cost_analysis.py` re-derives real
 per-topic token usage from this session's captured generation logs and
 writes `cost_by_run.json` (per-cell and per-factor-group cost, feeding
 @fig-cost and @tab-costeffect); `make_figures.py`/`make_interactive.py`

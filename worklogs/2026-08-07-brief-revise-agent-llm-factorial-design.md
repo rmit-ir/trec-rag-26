@@ -906,3 +906,57 @@ less than the previous base cell ($16.93 vs $21.61/15-topic batch,
 pricier per-call RRF fusion, netting lower total cost). This is the
 concrete answer to achieving `aus_agent_v2` parity at lower cost using
 the best search engine and cheapest confirmed components.
+
+## 25. Arena-confirmed hybrid-alone: WORSE than base, reversing the recommendation
+
+Ran the arena check flagged as the natural next step in §24 (30 battles,
+`gpt-5.6-terra` judge, both orders, `br-enginesweep-hybrid-exp15` vs.
+`aus-agent-v2-exp15-luna`, reusing existing generations -- judging-only
+cost).
+
+| cell | standalone | arena win rate | clean W-L-A | order_consistency |
+|---|---:|---:|---|---:|
+| sol default engines (original base) | 2.267 | 40% (18-12) | 4W-7L-4A | 0.733 |
+| **sol `hybrid` alone** | **2.333** | **33.3% (20-10)** | **2W-7L-6A** | **0.600** |
+
+**Hybrid-alone scores higher on standalone rubric (confirmed, replicated,
+§4.6/§24) but performs WORSE in arena than the original default-engines
+base cell** -- fewer clean wins (2 vs 4), more ambiguous outcomes (6 vs
+4), lower order-consistency (0.600 vs 0.733), lower overall win rate
+(33.3% vs 40%). This is a third, sharper instance of the standalone-vs-
+arena divergence already flagged twice in this report (round B for luna;
+the `aus_agent_v2` standalone tie in §4.5) -- and the most consequential
+one, since it directly reverses the §24 recommendation.
+
+**Recommendation reversed**: the ORIGINAL base cell (sol, default
+`semantic,keyword` engines) remains the config to use if arena/head-to-
+head performance is what matters, despite scoring lower on standalone
+rubric. `hybrid`-alone should be described as "the best standalone-rubric
+cell found, arena-confirmed WORSE than the previous best" -- not promoted
+as the new standing configuration. This is exactly the risk sol's own
+evaluation-method design flagged at the start of this workstream:
+standalone gains are not a reliable predictor of arena outcomes, and any
+"beats/matches aus_agent_v2" claim needs arena confirmation before being
+trusted, precisely because a standalone-driven hill-climb can find a cell
+that is standalone-better but competitively worse.
+
+## 26. Report corrected: arena reversal fully integrated
+
+`report.pdf` extended 16->17 pages: new §5.2 (arena confirmation of
+hybrid-alone, with its own figure/table showing the reversal), §6 and §8
+rewritten to lead with the corrected recommendation (use the ORIGINAL
+base cell, not hybrid-alone), executive summary rewritten around the
+reversal as the headline finding. Also fixed a real section-numbering
+bug introduced while drafting: every "§8 Cost-effectiveness" /
+"§9 Recommendation" cross-reference was off by one (actual order:
+1 Executive summary ... 6 Comparing ... 7 Cost-effectiveness ...
+8 Recommendation ... 9 Budget ... 10 Data and code) -- fixed globally (9
+instances §8->§7, 6 instances §9->§8, both verified unambiguous before
+the blind replace).
+
+**This session's cost-effectiveness thread is now fully closed out
+honestly**: the cheapest-and-best-standalone-scoring cell in the entire
+report (hybrid-alone) is NOT the recommendation, because it is
+arena-worse -- exactly the standalone-score trap sol's own evaluation-
+method design warned about at the start of this workstream. Final total:
+~$504 of $600 cumulative budget.
