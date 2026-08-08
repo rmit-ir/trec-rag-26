@@ -960,3 +960,32 @@ report (hybrid-alone) is NOT the recommendation, because it is
 arena-worse -- exactly the standalone-score trap sol's own evaluation-
 method design warned about at the start of this workstream. Final total:
 ~$504 of $600 cumulative budget.
+
+## 27. New report section: system ranking + submission recommendation (10 slots)
+
+User: organizers allow up to 10 submitted systems. Added a new §10 to the
+report ranking all 9 `src/systems/` implementations, not just
+`brief_revise_agent`. Checked real evidence across the whole repo, not
+just this workstream: `find data/outputs/<system>` showed 4 of 9 systems
+(`ali_deepresearch`, `claude-code-research`, `codex_cli_research`,
+`o3_deep_research`) have never produced a single output -- unranked, not
+ruled worst, since there's no evidence either way. Pulled real arena
+leaderboards from `evaluation-results/arena/` for the other 5:
+`aus_agent` beats `facets_agent` 66.7% and `facet_rag` 100% (15-0);
+`facets_agent` beats `facet_rag` 100% (30-0); `aus_agent_v2` beats every
+`brief_revise_agent` variant tested against it, including this session's
+base cell (§5.1, 40% for `brief_revise_agent`).
+
+**Recommendation: submit 4 systems, not 10** -- `aus_agent_v2` (best,
+most expensive), `brief_revise_agent` base cell (ties `aus_agent_v2`
+standalone at ~1/50th the cost, NOT `hybrid`-alone per §25/§26's
+reversal), `aus_agent` (cheap, beats the two systems below it
+convincingly), and `facets_agent` (marginal -- include only if
+architectural diversity itself is valued, not just top scores). Do not
+submit `facet_rag` (loses every available comparison) or any zero-output
+system (would need real implementation work first, not just a submission
+wrapper). Explicitly do not use a submission slot on `hybrid`-alone.
+
+Fixed one table-rendering bug while building this (an inline code span
+overflowing a narrow table column, same class of bug the earlier Opus
+report revision had already fixed once).

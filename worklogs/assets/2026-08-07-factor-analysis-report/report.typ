@@ -842,6 +842,104 @@ cumulative.
   caption: [Final cost breakdown, this workstream. Excludes the earlier, separately-reported round B/C/D improvement-loop thread and other systems' own historical generation cost -- both reused here at \$0 marginal cost (§4.5, §7).],
 )
 
+= System ranking and submission recommendation
+
+The organizers allow up to 10 submitted systems/runs. This repository
+contains 9 distinct system implementations under `src/systems/`; this
+section ranks every one of them on whatever real evidence exists (not
+just the `brief_revise_agent` cells this report otherwise focuses on) and
+recommends which to submit.
+
+== Implementation status
+
+Four of the nine have *zero generated output anywhere in this repo* --
+`ali_deepresearch`, `claude-code-research`, `codex_cli_research`,
+`o3_deep_research` (checked directly: `find data/outputs/<system> -name
+"*.output.json"` returns nothing for all four). They are scaffolded code,
+not evaluated systems -- there is no evidence basis to rank or recommend
+them, and doing either would mean guessing. The remaining five all have
+real generated answers and at least some comparative evidence:
+`aus_agent`, `aus_agent_v2`, `brief_revise_agent`, `facet_rag`,
+`facets_agent`.
+
+== Ranking evidence
+
+Evidence quality varies by pair -- this table states exactly what each
+number is and is not, since it mixes this report's own measurements
+(§4--§5, 0--3 standalone scale, `gpt-5.6-terra` judge, 15-topic exp15 set)
+with earlier, separately-reported evaluation runs elsewhere in this repo
+(different judge models, different topic counts, a different 0--1
+internal rubric scale for `aus_agent_v2`'s own README figures). Nothing
+here was re-measured for this section; all figures are read directly from
+existing `evaluation-results/` artifacts.
+
+#figure(
+  text(size: 8.4pt)[#table(
+    columns: (3.3cm, 2.6cm, 5.7cm, 3.4cm),
+    align: (left, left, left, left),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 5pt,
+    table.header([*System*], [*This report's standalone (0--3)*], [*Other evidence (this repo, elsewhere)*], [*Cost signal*]),
+    [`aus_agent_v2`], [*2.267* (ties row below, §4.5)], [Own README: 0.7042 vs. 0.6508 prior baseline (internal 0--1 rubric, 30 topics, not directly comparable scale). Beats every `brief_revise_agent` iteration/round in arena this repo has run against it (§5, and the earlier rounds-B/C/D thread).], [\$1,096.72 tracked build cost per its own README -- the most expensive system in the repo by a wide margin],
+    [`brief_revise_agent` (base cell)], [*2.267* -- ties `aus_agent_v2`], [Loses to `aus_agent_v2` in arena, 40% win rate (§5.1). No direct comparison run against plain `aus_agent` exists.], [\$21.61/15-topic batch, this report's own §7],
+    [`aus_agent`], [*2.000* (§4.5, @tab-baselines)], [Beats `facets_agent` 66.7% arena (`aus_agent-vs-facets_agent-dev30-rubric-20260806`, 30 shared topics, `gpt-5.6-terra`). Beats `facet_rag` 15--0 (100%) arena (`aus_agent-vs-facet_rag-15topic`).], [Not measured this workstream],
+    [`facets_agent`], [*1.800* (§4.5, @tab-baselines)], [Loses to `aus_agent` 33.3% arena (above). Beats `facet_rag` 30--0 (100%) arena (`facets_agent-vs-facet_rag-15topic`, `gpt-5.6-luna` judge).], [Not measured this workstream],
+    [`facet_rag`], [Not measured], [Loses to BOTH `aus_agent` (0--15) and `facets_agent` (0--30) -- the clear weakest system with real output in this repo, by every available comparison.], [Not measured this workstream],
+    [`ali_deepresearch`, `claude-code-research`, `codex_cli_research`, `o3_deep_research`], [No output exists], [No output exists -- never run.], [N/A],
+  )],
+  caption: [Every system in the repo, ranked by available evidence. All four zero-output systems are unranked, not last-ranked -- there is no basis to place them at all.],
+) <tab-system-ranking>
+
+Transitive ordering from the table (each arrow is a direct, real
+comparison; not every pair has been run head-to-head): `aus_agent_v2` $gt.eq$
+`brief_revise_agent` (arena) > `aus_agent` (no direct run, but
+`aus_agent` standalone-trails both) > `facets_agent` (arena, 66.7%) >
+`facet_rag` (arena, 100% both ways). `aus_agent_v2` and the
+`brief_revise_agent` base cell are statistically tied on standalone but
+`aus_agent_v2` wins their one direct arena comparison, so it ranks first.
+
+== Recommendation: submit 4, not 10
+
+*Do not fill all 10 slots.* Four of the nine systems have never produced
+a single output and would need real implementation and generation work,
+not just a submission-format wrapper, before they could be evaluated at
+all -- submitting an untested scaffold on the strength of an unfilled
+slot count is worse than not submitting it. Of the five systems with real
+evidence, `facet_rag` loses every available head-to-head comparison
+(100% loss rate against both other baselines that beat it) and is not
+worth a submission slot either. That leaves four credible candidates:
+
++ *`aus_agent_v2`* -- the strongest system in the repo by every available
+  comparison, at the highest cost (§7, \$1,096.72 documented build cost).
+  Submit if that cost is affordable for the final run.
++ *`brief_revise_agent` (base cell, NOT `hybrid`-alone -- §8)* -- ties
+  `aus_agent_v2` on standalone rubric at roughly 1/50th the cost (\$21.61
+  vs. \$1,096.72 per this report's and `aus_agent_v2`'s own figures,
+  though the two costs were measured with different methodologies, §7),
+  and is the second-best system in the ranking. A genuinely distinct,
+  much cheaper alternative to `aus_agent_v2`, not a near-duplicate of it.
++ *`aus_agent`* -- cheaper than both of the above (no brief/review
+  passes), beats both other mid-tier systems in this repo's own arena
+  history (`facets_agent`, `facet_rag`) convincingly. Worth a slot as a
+  distinct, simpler architecture and a cost/quality floor reference.
++ *`facets_agent`* -- weaker than `aus_agent` on every available
+  comparison, but still convincingly beats `facet_rag` and represents a
+  third genuinely distinct architecture (minimal-prompt continuous-agent
+  design vs. `aus_agent`'s tuned prompt vs. `brief_revise_agent`'s
+  brief+review passes). Marginal case for inclusion -- include only if
+  submission-portfolio diversity (distinct architectures, not just
+  distinct scores) is itself valued by the organizers' evaluation design;
+  omit if the goal is strictly "the 4 best scores," where `facet_rag`
+  would not displace it but a second `aus_agent_v2`/`brief_revise_agent`
+  variant might.
+
+Do not submit `facet_rag` (loses every available comparison) or any of
+the four zero-output systems (no evidence, real implementation work
+required first). Do not submit `hybrid`-alone as a `brief_revise_agent`
+variant distinct from the base cell -- §8 already recommends against
+using it at all, submitting it as a "second `brief_revise_agent` entry"
+would just spend a slot on the arena-confirmed-worse configuration.
+
 = Data and code
 
 *Interactive figures* (hover tooltips, self-contained HTML, open directly in
