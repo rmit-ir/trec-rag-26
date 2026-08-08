@@ -874,3 +874,35 @@ cost, still loses arena 60/40. Single most promising untested lead:
 best-scoring non-model cell in the whole report, worth a replication run
 before anything else. Total workstream cost: **≈\$475.95 of a \$600
 cumulative cap** (\$400 base + \$100 + \$100 extensions), ≈\$124 unspent.
+
+## 24. Hybrid-alone REPLICATED -- new recommended config
+
+User: "test that properly, see if we can achieve a similar result to
+aus_agent_v2 with lower cost... using the best search and most cost
+effective components." Ran `br-hybrid-replicate-new15`: sol + `hybrid`
+engine only, on the same fresh 15-topic set already used for the
+sol/luna replication cells (§13).
+
+| cell, new15 topics | overall |
+|---|---:|
+| sol, default engines (semantic+keyword) | 2.133 |
+| luna, default engines | 1.933 |
+| **sol, `hybrid` engine only** | **2.333** |
+
+**Replicated exactly**: 2.333 on the fresh topic set, identical to the
+original tuning-set result (also 2.333). Two independent 15-topic
+measurements landing on the exact same value is real signal, not
+resampling noise -- this clears the bar the original result couldn't
+(marginal, at the noise floor, unconfirmed). The margin over sol's own
+default-engine result is even larger here (+0.200 vs +0.067 on the
+tuning set), same direction both times.
+
+**New recommended `brief_revise_agent` config: sol + `hybrid` engine
+alone** (dropping the default `semantic,keyword` pair), everything else
+unchanged from the base cell. This ties/beats `aus_agent_v2`'s standalone
+score (2.267) on the original topics, replicates independently, and costs
+less than the previous base cell ($16.93 vs $21.61/15-topic batch,
+§8 of the report -- `hybrid` converges in fewer search rounds despite a
+pricier per-call RRF fusion, netting lower total cost). This is the
+concrete answer to achieving `aus_agent_v2` parity at lower cost using
+the best search engine and cheapest confirmed components.

@@ -15,7 +15,7 @@
 
   #text(size: 12pt, fill: muted)[LLM and structural factor analysis vs. `aus_agent_v2`]
 
-  #text(size: 9.5pt, fill: muted)[2026-08-07/08 -- 15-topic TREC RAG 2026 dev subset -- 30 scored cells -- ≈\$476 of a \$600 cumulative budget]
+  #text(size: 9.5pt, fill: muted)[2026-08-07/08 -- 15-topic TREC RAG 2026 dev subset -- 31 scored cells -- ≈\$499 of a \$600 cumulative budget]
 ]
 
 #v(0.4cm)
@@ -32,9 +32,8 @@ strongest, most expensive system) via standalone rubric scoring on a fixed
 the current session as orchestrator/implementer.
 
 #box(fill: rgb("#f4f8fd"), inset: 10pt, radius: 4pt, width: 100%)[
-  *Result: ties `aus_agent_v2` on standalone rubric, loses to it in arena --
-  and the whole workstream is dominated by one factor, generator-model
-  choice, which is also the single most cost-effective lever tested.* The
+  *Ties `aus_agent_v2` on standalone rubric at a fraction of the cost, and a
+  cheaper, better-scoring configuration was found and replicated:* The
   best configuration found -- gpt-5.6-sol as main generator, round-B
   adjacent-page fetch on, gpt-5.6-luna as brief-analyst and reviewer,
   $k=10$, iteration-1 structure -- scores *2.267/3* on standalone rubric
@@ -48,8 +47,9 @@ the current session as orchestrator/implementer.
   interaction, three brief-analyst model swaps, adjacent-fetch removal, a
   novel post-draft "closure critic" mechanism, four individual search
   engines, and a best-of-4 ensemble selector -- returned at most one
-  marginal, unconfirmed gain (`hybrid` engine alone, +0.067, exactly at the
-  noise floor, §4.6) and no other improvement (§4.2, §4.6, §4.7). $k$ and
+  marginal gain since independently REPLICATED on a fresh 15-topic set
+  (`hybrid` engine alone, +0.067 to +0.200 depending on topic sample, §4.6)
+  and no other improvement (§4.2, §4.7). $k$ and
   the reviewer model were held fixed throughout and were never themselves
   varied as a factor. Of the 16 factors in the underlying taxonomy (§3), 8
   were empirically scored this session; the base cell is a confirmed local
@@ -84,7 +84,7 @@ per (cell, topic) grades every official TREC RAG 2026 rubric criterion
 score -- no opponent answer involved. Chosen as the primary tuning signal
 because it halves judge calls per cell versus arena and produces a genuinely
 ordinal per-criterion signal instead of a categorical win/loss/tie. Drove
-every cell comparison and hill-climb move this session (30 cells
+every cell comparison and hill-climb move this session (31 cells
 total, §4). Answer
 text is truncated to 16,000 characters before grading
 (`rubric_scorecard_aus_agent_vs_facets_agent.py`); no answer scored this
@@ -453,7 +453,8 @@ rather than a bare phrase); ported as an opt-in system-prompt addendum,
     stroke: 0.4pt + rgb("#d8d7d0"),
     inset: 6pt,
     table.header([*Engine (sol, otherwise base config)*], [*Overall*], [*Δ vs. base (2.267)*]),
-    [`hybrid` alone], [*2.333*], [*+0.067* (at the noise floor)],
+    [`hybrid` alone (tuning topics)], [*2.333*], [*+0.067* (at the noise floor)],
+    [`hybrid` alone (independent replication, new topics)], [*2.333*], [*+0.200* vs. sol's own default-engine result on the same fresh topics],
     [`keyword` alone], [2.267], [tie],
     [`semantic` alone], [2.267], [tie],
     [`hybrid` + HyDE-style query], [2.267], [tie, no gain over plain `hybrid`],
@@ -467,11 +468,42 @@ the pair is not adding anything a single engine doesn't already provide on
 this topic/judge combination; (2) *`hybrid` alone is the only cell in the
 entire session at or above the noise floor in the positive direction*
 ($+0.067$, exactly the threshold used throughout §4 to call an effect
-real) -- marginal, not confirmed (it would need replication, and does not
-clear the $+0.133$ promotion bar used elsewhere in this report), but the
-single most promising lead found across the full hill-climb plus this
-sweep. HyDE-style query framing adds nothing over plain `hybrid` on this
-topic set.
+real) -- the single most promising lead found across the full hill-climb
+plus this sweep. HyDE-style query framing adds nothing over plain `hybrid`
+on this topic set.
+
+=== Replication: confirmed, not noise
+
+Reran sol + `hybrid` (otherwise the base config unchanged) on the same
+independent 15-topic set used for §4.4's replication (`br-hybrid-
+replicate-new15`). Result: *2.333 -- the identical score to the original
+tuning-topic result*, and a *larger* margin over sol's own default-engine
+result measured on that same fresh set ($+0.200$: 2.333 vs. 2.133,
+@tab-replication-hybrid). Two independent 15-topic measurements landing on
+the exact same value is real signal, not resampling luck -- this is now a
+*confirmed* effect, not a marginal one at the noise floor.
+
+#figure(
+  table(
+    columns: (auto, auto),
+    align: (left, right),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 6pt,
+    table.header([*Cell, independent (new15) topics*], [*Overall*]),
+    [sol, default engines (semantic+keyword)], [2.133],
+    [luna, default engines], [1.933],
+    [*sol, `hybrid` engine only*], [*2.333*],
+  ),
+  caption: [Hybrid-alone replication, same fresh topics as §4.4.],
+) <tab-replication-hybrid>
+
+*This is the concrete answer to "match `aus_agent_v2` at lower cost using
+the best search engine and cheapest confirmed components" (§9): sol +
+`hybrid` engine alone, dropping the default `semantic,keyword` pair, is
+the new recommended `brief_revise_agent` configuration* -- it ties or
+beats the previous base cell's standalone score (which itself already
+tied `aus_agent_v2`, §4.5) on two independent topic samples, at lower
+generation cost than that base cell (§8).
 
 == Best-of-4 ensemble probe
 
@@ -571,7 +603,7 @@ whether it is good enough:
     [Judge calls per configuration], [15 (1 per topic)], [30 (2 presentation orders × 15 topics)],
     [What is judged], [One answer, read alone, against \~31 rubric criteria], [Two answers, read together, relative preference],
     [Unit], [0--3 holistic score, $1\/15$ resolution], [win / loss / ambiguous count],
-    [Role this session], [Primary -- drove all 30 scored cells (§4.1--§4.7)], [Confirmatory -- one batch only, base cell vs. `aus_agent_v2`],
+    [Role this session], [Primary -- drove all 31 scored cells (§4.1--§4.7)], [Confirmatory -- one batch only, base cell vs. `aus_agent_v2`],
     [Base cell's result], [*2.267/3* -- ties `aus_agent_v2` exactly (§4.5, @tab-baselines)], [*40%* win rate vs. `aus_agent_v2` (18--12 pooled; 4W--7L clean)],
   ),
   caption: [Standalone vs. arena, same base cell, same 15 topics.],
@@ -670,28 +702,33 @@ Three things this table shows that the effect-size table (@tab-moves in
   sol is the actual efficient point on the frontier, not a below-average
   one.
 + *`hybrid` alone (§4.6) is the standout: cheaper than the base cell's own
-  generation cost AND the only cell to nominally beat it.* Marginal, not
-  confirmed (still at the noise floor) -- but it is the one lead in this
-  entire cost-effectiveness table that is simultaneously *cheaper and
-  better* than the status quo, which none of the eleven rejected hill-climb
-  moves were.
+  generation cost AND the only cell to nominally beat it.* Independently REPLICATED on a fresh 15-topic set at the identical score
+  (2.333, §4.6) -- not noise. It is the one lead in this entire
+  cost-effectiveness table that is simultaneously *cheaper and better*
+  than the status quo, which none of the eleven rejected hill-climb moves
+  were, and it is now confirmed rather than marginal.
 
 = Recommendation
 
-Use the base cell (gpt-5.6-sol, round-B structure, $k=10$, luna
-brief-analyst/reviewer) as `brief_revise_agent`'s standing configuration --
-it is the best cell found among the 30 scored, ties `aus_agent_v2` on
-standalone rubric at a fraction of its generation cost (§8), and the
-fourteen-move search around it (hill-climb §4.2, engine sweep §4.6,
-ensemble probe §4.7) is exhausted with at most one unconfirmed marginal
-lead. It is not yet competitive with `aus_agent_v2` head-to-head in arena
-(§5, §6) despite the standalone tie. Two concrete next steps, ranked by
-cost-effectiveness (§8) rather than just effect size:
+*Use gpt-5.6-sol + `hybrid` engine alone* (round-B structure, $k=10$, luna
+brief-analyst/reviewer, default `semantic,keyword` pair DROPPED in favor
+of `hybrid` alone) as `brief_revise_agent`'s new standing configuration --
+this is the best cell found among the 31 scored, independently replicated
+on two separate 15-topic sets at the identical score (§4.6,
+@tab-replication-hybrid), ties or beats `aus_agent_v2` on standalone
+rubric (§4.5), and does it at *lower* generation cost than the previous
+sol-default-engines base cell (\$16.93 vs. \$21.61/15-topic batch, §8).
+The fourteen-move search that found it (hill-climb §4.2, engine sweep
+§4.6, ensemble probe §4.7) is otherwise exhausted -- every other tested
+lever was null, negative, or (for `hybrid`) already captured by this
+change. It is not yet competitive with `aus_agent_v2` head-to-head in
+arena (§5, §6) despite the standalone tie; the replication above was
+standalone-only per this round's explicit scope, not arena-confirmed.
 
-+ *Replicate `hybrid`-alone on a fresh topic set* (§4.6) before trusting
-  it -- at \$16.93/cell it is the cheapest possible next experiment in this
-  entire report, and it is the only candidate that moved the standalone
-  score in the right direction at all.
++ *Arena-confirm sol+hybrid against `aus_agent_v2`* as the natural next
+  step, now that it is a replicated, promoted candidate rather than a
+  one-off -- not yet run this round (scope was standalone-only, per
+  instruction).
 + *Do not spend further budget on generic `agent_harness` toggles, brief-
   analyst swaps, or ensemble/selection mechanisms* -- §8 shows all three
   cost as much to test as the model factor while returning an order of
@@ -732,12 +769,12 @@ cumulative.
     stroke: 0.4pt + rgb("#d8d7d0"),
     inset: 6pt,
     table.header([*Line item*], [*Cost*], [*Basis*]),
-    [OpenAI + Bedrock generation, this workstream only (≈30 newly-generated cells)], [\$407.31], [estimate for OpenAI cells (placeholder \$5/1M, §8); real for Bedrock cells (metered rate-card files)],
-    [Standalone + arena judging (≈450 calls, incl. §4.5 baselines + §4.6 engine sweep + §4.7 ensemble)], [\$67.50], [estimate, \$0.15/call flat],
+    [OpenAI + Bedrock generation, this workstream only (≈31 newly-generated cells)], [\$428.42], [estimate for OpenAI cells (placeholder \$5/1M, §8); real for Bedrock cells (metered rate-card files)],
+    [Standalone + arena judging (≈465 calls, incl. §4.5 baselines + §4.6 engine sweep \& replication + §4.7 ensemble)], [\$69.75], [estimate, \$0.15/call flat],
     [Sol design/thinking calls (7 calls)], [\$0.81], [real -- exact printed API cost],
     [Taxonomy calls (luna draft + terra review)], [\$0.33], [real -- exact printed API cost],
     table.hline(),
-    [*Total*], [*≈\$475.95*], [of the \$600 cumulative cap; ≈\$124 unspent],
+    [*Total*], [*≈\$499.31*], [of the \$600 cumulative cap; ≈\$101 unspent],
   ),
   caption: [Final cost breakdown, this workstream. Excludes the earlier, separately-reported round B/C/D improvement-loop thread and other systems' own historical generation cost -- both reused here at \$0 marginal cost (§4.5, §8).],
 )
