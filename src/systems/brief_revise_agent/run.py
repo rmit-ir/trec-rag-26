@@ -210,6 +210,14 @@ def main() -> None:
              "so the model may spend a side call checking whether a batch "
              "supports a named requirement. Default: not advertised.")
     ap.add_argument(
+        "--hyde-hybrid", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_HYDE_HYBRID", False),
+        help="factorial-analysis factor (search-engine sweep): append an "
+             "instruction telling the model to write hybrid-engine queries "
+             "as a short hypothetical passage (the HyDE technique, ported "
+             "from facets_agent's prompt) rather than a short phrase. "
+             "Only meaningful with --engines hybrid. Default: off.")
+    ap.add_argument(
         "--closure-critic", action="store_true",
         default=env("RUN_BRIEF_REVISE_AGENT_CLOSURE_CRITIC", False),
         help="hill-climb (worklogs section 12): widen the existing review "
@@ -256,6 +264,14 @@ def main() -> None:
         try:
             system_prompt = load_system_prompt(args.max_committed_per_step,
                                                args.prompt_variant)
+            if args.hyde_hybrid:
+                system_prompt += (
+                    "\n\n## Hybrid search queries\n\nWhen calling search "
+                    "with engine=hybrid, write the query as a short "
+                    "hypothetical passage that would itself answer the "
+                    "request (the HyDE technique -- a fuller passage embeds "
+                    "closer to real matches than a bare phrase), not a "
+                    "short keyword-style query.\n")
             run_kwargs = {}
             if args.disable_adjacent_pages:
                 run_kwargs["search_result_augment"] = None
