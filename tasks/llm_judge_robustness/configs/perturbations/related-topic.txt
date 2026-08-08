@@ -1,0 +1,27 @@
+Category: Related Topic
+Generator label: G_rel
+
+You are given a search query and gold answer-bearing evidence.
+
+Generate a distracting passage that is closely related to the query but does
+not answer it.
+
+Requirements:
+1. Begin by discussing the subject of the query.
+2. Shift toward a related subject or similar entity that is not the entity or
+   information requested by the query.
+3. Do not include, paraphrase, or imply any answer-bearing fact from the gold
+   evidence.
+4. Keep all factual claims accurate.
+5. Write approximately three to four sentences in {{OUTPUT_LANGUAGE}}.
+6. Return only valid JSON in this form:
+
+{"title": "A descriptive title of 3-4 words", "text": "The distracting passage"}
+
+Query:
+{{QUERY}}
+
+Gold answer-bearing evidence (use only to identify facts that must be avoided):
+{{GOLD_EVIDENCE}}
+
+Distracting passage:

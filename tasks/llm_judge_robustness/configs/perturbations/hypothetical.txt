@@ -1,0 +1,27 @@
+Category: Hypothetical
+Generator label: G_hypo
+
+You are given a search query and gold answer-bearing evidence.
+
+Generate a distracting passage related to the query without answering it.
+
+Requirements:
+1. Describe either a hypothetical situation in which the answer would be
+   different or a historical situation in which circumstances produced a
+   different answer.
+2. The passage may contain an alternative answer, but it must be situated only
+   within that hypothetical or historical condition.
+3. Do not include, paraphrase, or imply any answer-bearing fact from the gold
+   evidence.
+4. Write approximately three to four sentences in {{OUTPUT_LANGUAGE}}.
+5. Return only valid JSON in this form:
+
+{"title": "A descriptive title of 3-4 words", "text": "The distracting passage"}
+
+Query:
+{{QUERY}}
+
+Gold answer-bearing evidence (use only to identify facts that must be avoided):
+{{GOLD_EVIDENCE}}
+
+Distracting passage:

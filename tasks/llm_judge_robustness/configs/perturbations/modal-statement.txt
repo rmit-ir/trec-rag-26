@@ -1,0 +1,26 @@
+Category: Modal Statement
+Generator label: G_modal
+
+You are given a search query and gold answer-bearing evidence.
+
+Generate a distracting passage related to the query without answering it.
+
+Requirements:
+1. Provide a plausible but wrong answer.
+2. Frame that answer as uncertain, speculative, tentative, imperfectly
+   remembered, or merely possible.
+3. Use modal or uncertainty language natural to {{OUTPUT_LANGUAGE}}.
+4. Do not include, paraphrase, or imply any answer-bearing fact from the gold
+   evidence.
+5. Write approximately three to four sentences in {{OUTPUT_LANGUAGE}}.
+6. Return only valid JSON in this form:
+
+{"title": "A descriptive title of 3-4 words", "text": "The distracting passage"}
+
+Query:
+{{QUERY}}
+
+Gold answer-bearing evidence (use only to identify facts that must be avoided):
+{{GOLD_EVIDENCE}}
+
+Distracting passage:
