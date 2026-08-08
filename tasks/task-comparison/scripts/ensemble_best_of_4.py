@@ -83,6 +83,17 @@ CANDIDATE {label_d}:
 {text_d}
 """
 
+# Mirrors review.py's own fail-closed retry: a real answer's cited/quoted
+# text occasionally trips the model into emitting an unescaped quote or a
+# missing comma. One repair retry recovers most of these (see worklog
+# section 20) rather than silently counting every parse hiccup as a
+# genuine "selector had no opinion" fallback.
+REPAIR_SUFFIX = (
+    "\n\nYour previous response did not parse as the exact JSON object "
+    "shape requested above. Return ONLY that JSON object -- no prose, no "
+    "code fences, no explanation before or after it. Escape any double "
+    "quote characters copied from a candidate's text.")
+
 
 def load_topics(path: Path) -> list[tuple[str, str]]:
     rows = []
@@ -169,16 +180,22 @@ def main() -> int:
             winner_rid = args.base_run_id  # fail-open: fall back to base (candidate A-equivalent)
             winner_label = None
             raw = ""
-            try:
-                raw = one_shot(api_provider(api, args.selector_model), SELECTOR_SYSTEM, prompt)
-                payload = json.loads(strip_fences(raw))
-                label = str(payload.get("winner", "")).strip().upper()
-                if label in rid_by_label:
-                    winner_label = label
-                    winner_rid = rid_by_label[label]
-            except Exception as exc:  # noqa: BLE001
-                print(f"  [{qid}] selector FAILED ({type(exc).__name__}: {exc}); "
-                     f"falling back to base", flush=True)
+            for attempt_prompt in (prompt, prompt + REPAIR_SUFFIX):
+                try:
+                    raw = one_shot(api_provider(api, args.selector_model),
+                                   SELECTOR_SYSTEM, attempt_prompt)
+                    payload = json.loads(strip_fences(raw))
+                    label = str(payload.get("winner", "")).strip().upper()
+                    if label in rid_by_label:
+                        winner_label = label
+                        winner_rid = rid_by_label[label]
+                    break
+                except Exception as exc:  # noqa: BLE001
+                    is_repair = attempt_prompt is not prompt
+                    print(f"  [{qid}] selector {'repair-retry ' if is_repair else ''}"
+                         f"FAILED ({type(exc).__name__}: {exc})"
+                         + ("; falling back to base" if is_repair else "; retrying once"),
+                         flush=True)
 
             src_path, src_obj = candidates[winner_rid]
             out_obj = json.loads(json.dumps(src_obj))  # deep copy
