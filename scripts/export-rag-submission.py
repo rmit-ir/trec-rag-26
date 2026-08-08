@@ -37,6 +37,14 @@ def main() -> int:
         help="Export only artifacts whose metadata.run_id exactly matches.",
     )
     parser.add_argument(
+        "--output-run-id",
+        help="Rewrite metadata.run_id to this value in the exported rows "
+             "only (internal artifacts/bookkeeping keep --run-id). Use for "
+             "a short organizer-facing run tag when the internal run_id is "
+             "longer than the track's run_id_max_len (rag26: 20 chars, "
+             "A-Z/a-z/0-9/-/_/. , cannot start with a period).",
+    )
+    parser.add_argument(
         "--topics",
         type=Path,
         help=("Optional narrative_id<TAB>narrative TSV. Require exactly one "
@@ -93,10 +101,13 @@ def main() -> int:
             print("  - no trace.status; cannot confirm the run succeeded",
                   file=sys.stderr)
             return 1
-        if (status == "failed" and args.run_id is not None
-                and expected is not None):
+        if (status not in ("completed", "budget_exhausted")
+                and args.run_id is not None and expected is not None):
             # A resumable production run deliberately keeps failed attempts for
-            # audit. A later completed artifact for the same run/topic should
+            # audit -- not just status="failed": facet_rag's pipeline also
+            # emits its own terminal-but-unsuccessful statuses (e.g.
+            # "no_references") for the same kind of retry-then-resume attempt.
+            # A later completed artifact for the same run/topic should
             # supersede that attempt, while the --topics coverage gate below
             # still fails if no successful replacement exists.
             ignored_failed.append(path)
@@ -108,6 +119,8 @@ def main() -> int:
             return 1
 
         official = submission_output(internal)
+        if args.output_run_id is not None:
+            official["metadata"]["run_id"] = args.output_run_id
         errors = validate_rag_output(official)
         if errors:
             print(f"FAIL {path}", file=sys.stderr)

@@ -68,6 +68,29 @@ def test_exporter_filters_run_and_follows_official_topic_order(tmp_path: Path) -
     assert "ignored 1 superseded failed attempt" in result.stdout
 
 
+def test_exporter_rewrites_run_id_in_output_only(tmp_path: Path) -> None:
+    """rag26's run_id_max_len=20 (NIST run-tag convention) is shorter than
+    this repo's own descriptive internal run_ids -- --output-run-id must
+    swap the emitted tag without touching --run-id's artifact selection."""
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    long_id = "a-very-long-internal-bookkeeping-run-id-2026"
+    (artifacts / "a.output.json").write_text(
+        json.dumps(_artifact("rag2026-0", "First.", long_id)),
+        encoding="utf-8")
+    output = tmp_path / "submission" / "rag_output_trec_rag_2026.jsonl"
+
+    result = subprocess.run(
+        [sys.executable, str(EXPORTER), str(artifacts), "--run-id", long_id,
+         "--output-run-id", "short-tag", "--output", str(output)],
+        check=False, capture_output=True, text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    exported = [json.loads(line) for line in output.read_text().splitlines()]
+    assert exported[0]["metadata"]["run_id"] == "short-tag"
+
+
 def test_exporter_refuses_incomplete_official_topic_set(tmp_path: Path) -> None:
     """A structurally valid partial run must never become a full-run submission."""
     artifacts = tmp_path / "artifacts"
