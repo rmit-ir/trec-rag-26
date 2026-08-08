@@ -689,3 +689,44 @@ plotly`), per repo convention.
 Report covers method, full results, the factor-effect table, the
 axis-weakness finding, discussion, recommendation, and the final budget
 breakdown -- self-contained, does not require reading this log.
+
+## 19. Report revision: taxonomy section + precision fixes (Opus critical review)
+
+The first report draft (§18) named factors as bare labels with no mechanism
+detail. An Opus-run critical review against the taxonomy doc, this worklog,
+and the actual code (`agent.py`/`brief.py`/`review.py`/`prompts.py`/
+`run.py`/`adjacent_pages.py`/`commit_release_tool.py`/`agent_harness/agent.py`)
+found 12 concrete gaps: no factor-mechanism section; the 0.067 "noise floor"
+never stated as being the metric's exact quantum ($1/15$, $n=1$ rerun) rather
+than a statistical estimate; the exec-summary best-config claim not flagging
+$k$ and reviewer-model as held-fixed/untested; "twelve moves" not reconciling
+against the worklog's own drifting counts (6/11/12 across §11/§15/§16);
+arena "clean 4W-7L-4A" omitting order_consistency=0.733; tested-vs-untested
+coverage blurred across the 16-factor taxonomy; replication asserted as
+"real, replicated improvement" without stating the +0.2/+0.4/0.067-rerun
+numbers that actually back it; Fig 1 mixing two different 15-topic sets
+without flagging it; Fig 2's qwen point computed vs. the qwen base (1.400)
+but captioned as vs. the session base (2.267); References-axis finding
+missing its axis names and denominator; the terra-judge/terra-generator
+overlap never disclosed; and the Data section overclaiming subsystem-manifest
+coverage (only 5 of 21 cells have named manifests) and omitting the
+mid-session \$50→\$400 budget-cap raise.
+
+Report rewritten with: a full §3 Factor Taxonomy (13 structural + 3
+model-role factors, each with mechanism type, definition, and this-session
+coverage status, reproduced from `terra-factor-taxonomy-final.md`) plus a
+§3.3 with four verified code/prompt excerpts (S5 adjacent-page fetch, S12
+commit_release schema, S4's closure-critic prompt addition, S9 preview
+truncation); an explicit 11-move reconciled hill-climb table (§4.2); and all
+12 precision fixes above applied in place. Typst was not installed on this
+machine (session's own install was on a different, Linux box) --
+`brew install typst` (0.15.1, same version). One layout bug hit during
+recompilation: wrapping the whole document in a global
+`#show raw: set text(font: ...)` made inline single-backtick code spans
+(e.g. `` `requirements_brief_schema` ``) inherit different line-height
+metrics than surrounding serif text, breaking table row-height sync and
+producing overlapping/unreadable rows in the two new taxonomy tables --
+fixed by scoping the font override to block-level code only
+(`#show raw.where(block: true): ...`) and widening the ID columns of the
+three new tables to fit their longest unbreakable code identifier on one
+line. Final PDF: 11 pages (was ~6), compiles clean, no overflow.
