@@ -35,16 +35,17 @@ the current session as orchestrator/implementer.
   *Result: did not beat `aus_agent_v2`.* The best configuration found --
   gpt-5.6-sol as main generator, round-B adjacent-page fetch on, gpt-5.6-luna
   as brief-analyst and reviewer, $k=10$, iteration-1 structure -- scores
-  *2.267/3* on standalone rubric grading (the best of every cell tested) but
-  still loses to `aus_agent_v2` in a head-to-head arena match, *18--12
-  (60/40)*, order_consistency 0.733 (4W--7L clean, 4 non-order-consistent).
-  Eleven further single-factor moves against this base -- five generic
-  `agent_harness` toggles, one factor interaction, three brief-analyst model
-  swaps, adjacent-fetch removal, and a novel post-draft "closure critic"
-  mechanism -- returned zero improvements (§4.2, §5.2). $k$ and the reviewer
-  model were held fixed throughout and were never themselves varied as a
-  factor. Of the 16 factors in the underlying taxonomy (§3), 8 were
-  empirically scored this session; the base cell is a confirmed local
+  *2.267/3* on standalone rubric grading (§4, the best of every cell tested)
+  but still loses to `aus_agent_v2` in a head-to-head arena match (§5),
+  *18--12 (60/40)*, order_consistency 0.733 (4W--7L clean, 4
+  non-order-consistent). §6 compares the two evaluation modes directly.
+  Eleven further single-factor moves against the standalone base -- five
+  generic `agent_harness` toggles, one factor interaction, three
+  brief-analyst model swaps, adjacent-fetch removal, and a novel post-draft
+  "closure critic" mechanism -- returned zero improvements (§4.2). $k$ and
+  the reviewer model were held fixed throughout and were never themselves
+  varied as a factor. Of the 16 factors in the underlying taxonomy (§3), 8
+  were empirically scored this session; the base cell is a confirmed local
   optimum *on the factors actually tested*, not a claim about the full
   factor space.
 ]
@@ -58,42 +59,52 @@ configuration, one factor was changed at a time, scored, and kept only if it
 improved on the current best -- in contrast to the session's earlier
 factorial-grid framing, which was superseded once the hill-climb approach was
 adopted partway through. The full factor taxonomy that this hill-climb draws
-its factors from is developed in §3; §4 states, per factor, whether it was
-scored this session, scored in a different session/thread, or never wired in
-`brief_revise_agent` at all.
+its factors from is developed in §3, with a "coverage this session" column
+in each factor table stating whether it was scored this session, scored in a
+different session/thread, or never wired in `brief_revise_agent` at all.
 
-== Evaluation
+== Two evaluation modes
 
-*Primary: standalone rubric grading.* One judge call (`gpt-5.6-terra`) per
-(cell, topic) grades every official TREC RAG 2026 rubric criterion (\~31
-criteria across 6 axes, 0--2 each) plus a holistic 0--3 `overall` score -- no
-opponent answer needed. Chosen over pairwise arena judging because it halves
-judge calls per cell and produces a genuinely ordinal per-criterion signal
-instead of a categorical win/loss/tie. Answer text is truncated to 16,000
-characters before grading (`rubric_scorecard_aus_agent_vs_facets_agent.py`);
-no answer scored this session was observed to hit that cap, but it is not
-independently verified for every cell.
+This session used two distinct judge protocols, kept strictly separate in
+§4 and §5 below and compared directly in §6:
 
-*Confirmatory: arena.* One pairwise comparison (`gpt-5.6-terra` judge, both
-battle orders) of the best cell against `aus_agent_v2`, retained as the
-direct test of the actual competitive objective.
+*Standalone rubric grading (primary, §4).* One judge call (`gpt-5.6-terra`)
+per (cell, topic) grades every official TREC RAG 2026 rubric criterion
+(\~31 criteria across 6 axes, 0--2 each) plus a holistic 0--3 `overall`
+score -- no opponent answer involved. Chosen as the primary tuning signal
+because it halves judge calls per cell versus arena and produces a genuinely
+ordinal per-criterion signal instead of a categorical win/loss/tie. Drove
+all 21 cell comparisons and all 11 hill-climb moves this session. Answer
+text is truncated to 16,000 characters before grading
+(`rubric_scorecard_aus_agent_vs_facets_agent.py`); no answer scored this
+session was observed to hit that cap, but it is not independently verified
+for every cell.
+
+*Pairwise arena (confirmatory, §5).* One head-to-head judge call
+(`gpt-5.6-terra`), both presentation orders, comparing two full answers on
+the same topic and declaring a win/loss/tie -- run once this session,
+standalone-best cell vs. `aus_agent_v2`, as the direct test of the actual
+competitive objective rather than a tuning signal.
 
 *Judge/generator overlap.* `gpt-5.6-terra` is both the sole judge for every
-score in this report and one of the five generator models compared in §5.1
-(its own cell scored 1.867). This is a same-family-model confound that was
-not controlled for or discussed at the time; it is disclosed here rather
-than silently assumed away.
+score in this report (standalone and arena alike) and one of the five
+generator models compared in §4.1 (its own cell scored 1.867). This is a
+same-family-model confound that was not controlled for or discussed at the
+time; it is disclosed here rather than silently assumed away.
 
-*Noise floor.* `overall` is a single integer 0--3 graded per topic and
-averaged over 15 topics, so every reported score is an exact multiple of
-$1/15 approx 0.0667$ (e.g. $2.267 = 34\/15$, $2.200=33\/15$, $2.133=32\/15$).
-The best cell was regenerated once on the same 15 topics; the rerun's score
-moved by exactly one topic-grade, i.e. $1/15 = 0.067$, purely from
-generation stochasticity. This single-rerun value ($n=1$) is used throughout
-as the noise floor -- an effect below it is not distinguishable from one
-topic's grade flipping, not a statistically estimated confidence interval.
-Concretely, "$-0.134$" means two of fifteen topics scored one point lower;
-it is not a smaller-than-it-looks effect once read this way.
+*Noise floor (standalone only).* `overall` is a single integer 0--3 graded
+per topic and averaged over 15 topics, so every reported standalone score is
+an exact multiple of $1/15 approx 0.0667$ (e.g. $2.267 = 34\/15$,
+$2.200=33\/15$, $2.133=32\/15$). The best cell was regenerated once on the
+same 15 topics; the rerun's score moved by exactly one topic-grade, i.e.
+$1/15 = 0.067$, purely from generation stochasticity. This single-rerun
+value ($n=1$) is used throughout §4 as the noise floor -- an effect below it
+is not distinguishable from one topic's grade flipping, not a statistically
+estimated confidence interval. Concretely, "$-0.134$" means two of fifteen
+topics scored one point lower; it is not a smaller-than-it-looks effect once
+read this way. Arena results (§5) use a different unit (win/loss/ambiguous
+counts) and this noise floor does not apply to them -- see §6 for how the
+two are actually compared.
 
 == Constraint discovered mid-session
 
@@ -104,7 +115,7 @@ insufficient for a full independent held-out arena confirmation once
 `aus_agent_v2`'s own per-topic generation cost (\~\$36.5/topic) is
 accounted for. The judging budget cap itself was also raised mid-session,
 from an original \$50 (design) + \$50 (evaluation) split to \$400, once the
-model-effect result in §5.1 made further hill-climbing look worthwhile (§12
+model-effect result in §4.1 made further hill-climbing look worthwhile (§12
 of the narrative worklog).
 
 = Factor taxonomy
@@ -116,8 +127,10 @@ role). This taxonomy was produced by an independent draft-then-review pass
 (gpt-5.6-luna drafted from every system's README and 16 `aus_agent_v2` module
 docstrings, gpt-5.6-terra reviewed against the same source material and
 corrected three items) and is reproduced in full at
-`worklogs/assets/2026-08-07-terra-factor-taxonomy-final.md`. §4 states which
-of these 16 were actually scored this session.
+`worklogs/assets/2026-08-07-terra-factor-taxonomy-final.md`. Each table's
+"Coverage this session" column states which of these 16 were actually
+scored this session (all such scoring is standalone-rubric, §4 -- none of
+these per-factor moves were separately arena-tested).
 
 == Structural factors (S1--S13)
 
@@ -162,7 +175,7 @@ are confirmed usable: `gpt-5.6-luna`, `gpt-5.6-terra`, `gpt-5.6-sol`
     stroke: 0.4pt + rgb("#d8d7d0"),
     inset: 5pt,
     table.header([*ID*], [*Role*], [*Coverage this session*]),
-    [M1 `main_research_writer_model`], [Runs the continuous research/writing loop: decomposition, search, context commitment, gap follow-up, final cited report.], [#text(fill: good)[TESTED] -- all 5 models, §5.1],
+    [M1 `main_research_writer_model`], [Runs the continuous research/writing loop: decomposition, search, context commitment, gap follow-up, final cited report.], [#text(fill: good)[TESTED] -- all 5 models, §4.1],
     [M2 `requirements_brief_analyst_model`], [Produces the requirements brief (S1) and word-budget guidance (S3) if enabled.], [#text(fill: good)[TESTED] -- terra/gpt-oss-120b/qwen vs. luna, main=sol fixed],
     [M3 `reviewer_model`], [Grades the candidate against the brief and evidence, emits the one bounded revision.], [Not tested -- explicitly skipped for budget (worklog §14): same role-swap pattern as M2, which showed zero effect],
   )],
@@ -236,22 +249,29 @@ truncation only -- the taxonomy's other preview level (an LLM-generated
 query-relevant snippet, tested inconclusively in `facets_agent`'s Phase 4d)
 was not exercised here.
 
-= Results
+= Standalone rubric evaluation
 
-== All scored cells (§5.1)
+Every result in this section is `overall`, the holistic 0--3 score from
+`gpt-5.6-terra`'s standalone grading protocol (§2.2), averaged over 15
+topics per cell, with no opponent answer involved. This was the session's
+primary tuning signal -- it drove every one of the 21 cell comparisons and
+all 11 hill-climb moves below. Arena (pairwise, confirmatory) is a
+completely separate protocol, reported on its own in §5.
+
+== All scored cells
 
 @fig-allcells ranks every one of the 21 cells scored this session by
 standalone overall score. The four cells tied at the top (2.267) are the
 base cell and three factors that made no measurable difference
 (`commit_release`, `judge_relevance_tool` + `commit_release` together, and
 the closure critic). Two caveats on comparability across this ranking: the
-two `*-new15` cells (sol/luna replication) are scored on a *different*
+two `*-new15` cells (sol/luna replication, §4.4) are scored on a *different*
 15-topic set than the other 19, so their rank position is not a like-for-like
 factor comparison; and the historical `brief-revise-iter1-exp15` reference
 (2.067) predates round B's commit and therefore lacks S5, conflating a model
 question with a structural one if read as a pure luna-vs-sol comparison (the
 apples-to-apples luna comparison is `br-luna-current-code-exp15`, 1.867,
-discussed in §6.2).
+discussed in §6).
 
 #figure(
   image("figures/fig1_all_cells.pdf", width: 92%),
@@ -319,6 +339,17 @@ not a comparison to the session's overall best cell.
   caption: [Factor-effect summary by family. Noise floor: ±0.067 (1 topic-grade of 15, $n=1$ rerun).],
 )
 
+Once the generator model is already optimized (sol), the remaining
+structural and harness-level levers tested have an order of magnitude less
+headroom to move the standalone score: ten of eleven post-model-selection
+moves in @tab-moves landed at or below the 0.067 (one-topic) noise floor --
+not because they were poorly chosen, but because the model-choice effect had
+already consumed most of the available variance at this topic-set size and
+rubric. This is a claim about the *tested* factor set (§3): S1,
+S4-as-a-toggle, S7, S8, S13, and M3 were never varied this session, so
+"local optimum" should be read as scoped to the eight factors actually
+scored, not the full 16-factor taxonomy.
+
 == Rubric axis breakdown
 
 The official rubric groups its \~31 criteria into six axes: Communication
@@ -332,13 +363,40 @@ harness toggle. The number of criterion instances contributing to this axis
 varies by cell and topic (the original validation run against
 `brief-revise-iter1-exp15` pooled $n=9$ instances across 15 topics for this
 axis specifically); no factor tested this session meaningfully moves it.
+This reads as a systemic issue in how `brief_revise_agent` constructs or
+formats citations and reference lists -- a different investigation
+(citation format, reference-list construction logic) than anything this
+session's factor sweep targeted, and plausibly higher-value than further
+generator or harness tuning given how flat the rest of the tested factor
+space turned out to be (§4.2).
 
 #figure(
   image("figures/fig3_axis_heatmap.pdf", width: 92%),
   caption: [Rubric axis means (0--2) by cell, all 6 axes. References & Citation Quality stays pale throughout. #link("interactive/fig3_axis_heatmap.html")[#text(fill: accent)[Interactive version →]]],
 ) <fig-heatmap>
 
-== Arena confirmation
+== Model-choice replication
+
+Sol beats luna on a completely independent 15-topic set (2.133 vs. 1.933,
+$+0.2$), the same direction as the original comparison ($+0.4$ on the tuning
+topics, §4.1), while the same-config, same-topic rerun of sol alone moved by
+$0.067$ purely from stochasticity. The honest summary is that sol beats luna
+by *roughly $0.2$ to $0.4$ points* depending on topic sample -- the
+direction replicates, the magnitude does not pin down to a single number at
+this sample size.
+
+= Pairwise (arena) evaluation
+
+This section is a completely separate protocol from §4: a head-to-head
+judge call (`gpt-5.6-terra`), both presentation orders, comparing two full
+answers on the same topic and declaring win/loss/tie (§2.2) -- no per-
+criterion rubric grades, no 0--3 scale, no shared noise-floor unit with §4.
+Exactly one arena batch was run this session: the standalone-best cell
+(base, 2.267 from §4.1) against `aus_agent_v2`, on the same 15 topics, as a
+confirmatory check on the actual competitive objective rather than a tuning
+signal (no other cell was arena-tested).
+
+== Arena outcome
 
 @fig-arena shows the per-topic outcome of the base cell against
 `aus_agent_v2` on the same 15 topics, both battle orders. Of 15 topics, 11
@@ -347,83 +405,76 @@ are order-consistent ("clean": both orders agree, order_consistency $=
 order-consistent (ambiguous: the judge's verdict flips or ties depending on
 presentation order). The pooled win rate across all 30 individual battle
 judgments (both orders, not just the clean subset) is `aus_agent_v2` 60% /
-`brief_revise_agent` 40% (18--12). The base cell's standalone-rubric lead
-over every other tested configuration does not translate into an arena win
-rate above 50% by either the clean or the pooled reading.
+`brief_revise_agent` 40% (18--12), by either the clean or the pooled
+reading `aus_agent_v2` wins the majority of battles.
 
 #figure(
   image("figures/fig4_arena.pdf", width: 78%),
   caption: [Arena outcome, base cell vs. `aus_agent_v2`, 15 topics, both battle orders. #link("interactive/fig4_arena.html")[#text(fill: accent)[Interactive version →]]],
 ) <fig-arena>
 
-= Discussion
+= Comparing the two evaluations
 
-== Why the hill-climb plateaued
+§4 and §5 measure different things on the same base cell, and disagree about
+whether it is good enough:
 
-@fig-effects makes the mechanism visible: once the generator model is
-already optimized (sol), the remaining structural and harness-level levers
-tested (@tab-moves) have an order of magnitude less headroom to move the
-standalone score. Ten of eleven post-model-selection moves landed at or
-below the 0.067 (one-topic) noise floor -- not because they were poorly
-chosen, but because the model-choice effect had already consumed most of
-the available variance at this topic-set size and rubric. This is a claim
-about the *tested* factor set (§4, @tab-moves): S1, S4-as-a-toggle, S7, S8,
-S13, and M3 were never varied this session (§3), so "local optimum" should
-be read as scoped to the eight factors actually scored, not the full
-16-factor taxonomy.
-
-== Standalone score is not a full proxy for the arena objective
+#figure(
+  table(
+    columns: (auto, 1fr, 1fr),
+    align: (left, left, left),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 6pt,
+    table.header([*Aspect*], [*Standalone rubric (§4)*], [*Arena (§5)*]),
+    [Judge calls per configuration], [15 (1 per topic)], [30 (2 presentation orders × 15 topics)],
+    [What is judged], [One answer, read alone, against \~31 rubric criteria], [Two answers, read together, relative preference],
+    [Unit], [0--3 holistic score, $1\/15$ resolution], [win / loss / ambiguous count],
+    [Role this session], [Primary -- drove all 21 cells and 11 hill-climb moves], [Confirmatory -- one batch only, base cell vs. `aus_agent_v2`],
+    [Base cell's result], [*2.267/3* -- best of 21 cells tested], [*40%* win rate vs. `aus_agent_v2` (18--12 pooled; 4W--7L clean)],
+  ),
+  caption: [Standalone vs. arena, same base cell, same 15 topics.],
+)
 
 The base cell is the best standalone-rubric cell found and beats the fair
 (round-B-inclusive) luna comparison cell by 0.4 points (2.267 vs. 1.867,
-`br-luna-current-code-exp15`), yet loses the majority of arena battles
-against `aus_agent_v2` (§5.4). Whatever makes `aus_agent_v2` win head-to-head
+`br-luna-current-code-exp15`, §4.1), yet loses the majority of arena battles
+against `aus_agent_v2` (§5.1). Whatever makes `aus_agent_v2` win head-to-head
 -- plausibly completeness, coverage breadth, or claim density -- is not
-fully captured by the official rubric's per-criterion grading. A parallel,
-unresolved finding from this session: S5 (adjacent-page fetch) helped
-`luna`'s arena result (round B beat no-round-B 3W/9L/3A vs. 3W/10L/2A in the
-earlier rounds-B/C/D thread) but *hurt* its standalone score (1.867 vs. the
-pre-round-B reference 2.067), while helping both metrics for `sol` and
-`qwen`. This is a real disagreement between the two evaluation modes on at
-least one factor, for one model specifically, not an artifact to be
-explained away.
+fully captured by the official rubric's per-criterion grading.
 
-== Model-choice replication is directionally solid, not a fixed number
+A parallel, unresolved finding from this session sharpens this: S5
+(adjacent-page fetch) helped `luna`'s arena result (round B beat no-round-B
+3W/9L/3A vs. 3W/10L/2A in the earlier rounds-B/C/D thread) but *hurt* its
+standalone score (1.867 vs. the pre-round-B reference 2.067, §4.1), while
+helping *both* metrics for `sol` and `qwen` (§4.2 @tab-moves). This is a
+real disagreement between the two evaluation modes on at least one factor,
+for one model specifically -- the two protocols do not just differ in
+overall level (as the table above shows), they can disagree in *direction*
+on the same structural change, and this session did not resolve which
+reading to trust for that factor.
 
-Sol beats luna on a completely independent 15-topic set (2.133 vs. 1.933,
-$+0.2$), the same direction as the original comparison ($+0.4$ on the tuning
-topics), while the same-config, same-topic rerun of sol alone moved by
-$0.067$ purely from stochasticity. The honest summary is that sol beats luna
-by *roughly $0.2$ to $0.4$ points* depending on topic sample -- the
-direction replicates, the magnitude does not pin down to a single number at
-this sample size.
-
-== A separate, untouched weakness
-
-References \& Citation Quality sits near the bottom of every cell's axis
-profile regardless of what factor was varied. This reads as a systemic
-issue in how `brief_revise_agent` constructs or formats citations and
-reference lists -- a different investigation (citation format, reference-
-list construction logic) than anything this session's factor sweep
-targeted, and plausibly higher-value than further generator or harness
-tuning given how flat the rest of the tested factor space turned out to be.
+Practically: standalone score is necessary-but-not-sufficient evidence for
+this system. It is the right tool for cheap, high-resolution hill-climbing
+(§4), but a standalone win is not a reliable predictor of an arena win, and
+any future claim that a configuration "beats" `aus_agent_v2` should be
+checked against arena before being trusted, not inferred from a standalone
+delta alone.
 
 = Recommendation
 
 Use the base cell (gpt-5.6-sol, round-B structure, $k=10$, luna
 brief-analyst/reviewer) as `brief_revise_agent`'s standing configuration --
-it is the best cell found among the 21 scored, and the eleven-move search
-around it on the tested factor set (@tab-moves) is exhausted. It is not yet
-competitive with `aus_agent_v2` head-to-head. Untested factors that remain
-open questions, not ruled out: S7 (`search_k`, held at 10 throughout), M3
-(reviewer model, never varied), S2/S3/S13 (schema/word-budget/screener
-variants, each tested in a different thread against a different baseline,
-not against the current sol base), and S8 (`search_result_filter`, not
-wired -- would need a `requirement`-carrying search-tool schema first).
-Closing the arena gap most likely needs either (a) a structural change
-genuinely distinct from anything tried this session (e.g. a
-multi-candidate/ensemble mechanism, explicitly out of scope here per the
-brief to diverge from `aus_agent_v2`'s own architecture rather than
+it is the best cell found among the 21 scored (§4.1), and the eleven-move
+search around it on the tested factor set (§4.2 @tab-moves) is exhausted. It
+is not yet competitive with `aus_agent_v2` head-to-head (§5, §6). Untested
+factors that remain open questions, not ruled out: S7 (`search_k`, held at
+10 throughout), M3 (reviewer model, never varied), S2/S3/S13
+(schema/word-budget/screener variants, each tested in a different thread
+against a different baseline, not against the current sol base), and S8
+(`search_result_filter`, not wired -- would need a `requirement`-carrying
+search-tool schema first). Closing the arena gap most likely needs either
+(a) a structural change genuinely distinct from anything tried this session
+(e.g. a multi-candidate/ensemble mechanism, explicitly out of scope here per
+the brief to diverge from `aus_agent_v2`'s own architecture rather than
 re-derive it), or (b) treating `brief_revise_agent` as the lighter, cheaper
 alternative and reserving `aus_agent_v2` for submissions where its cost is
 affordable.
@@ -431,8 +482,8 @@ affordable.
 = Budget
 
 The judging/generation budget cap was raised mid-session from an original
-\$50+\$50 split to \$400 once §5.1's model-effect result made further
-hill-climbing look worthwhile (§Method, Constraint discovered mid-session).
+\$50+\$50 split to \$400 once §4.1's model-effect result made further
+hill-climbing look worthwhile (§2, Constraint discovered mid-session).
 
 #figure(
   table(
@@ -461,7 +512,7 @@ its interactive counterpart.
 All generated answers: `data/outputs/brief_revise_agent/` (by `run_id`).
 Standalone scores: `evaluation-results/factorial/<run_id>/` (each
 `scores.jsonl`/`summary.json`, per-topic grades truncated at 16,000
-input characters, §Method). Arena judgments:
+input characters, §2.2). Arena judgments:
 `evaluation-results/factorial/arena-sol-vs-aus-agent-v2-exp15/`.
 
 *Sub-system manifests* (named, reusable JSON configs under
