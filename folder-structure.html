@@ -1,0 +1,384 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Repository Structure Explorer</title>
+  <style>
+    :root {
+      color-scheme: dark;
+      --bg: #0b0e14;
+      --panel: #121722;
+      --panel-2: #171d2a;
+      --line: #293246;
+      --text: #e7ebf3;
+      --muted: #929db2;
+      --accent: #7dd3fc;
+      --folder: #f6c76b;
+      --file: #9ca9bd;
+      --focus: #38bdf8;
+    }
+
+    * { box-sizing: border-box; }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 15% -10%, #17304a 0, transparent 35rem),
+        var(--bg);
+      color: var(--text);
+      font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    header {
+      position: sticky;
+      top: 0;
+      z-index: 5;
+      padding: 22px clamp(18px, 4vw, 52px) 18px;
+      border-bottom: 1px solid var(--line);
+      background: color-mix(in srgb, var(--bg) 88%, transparent);
+      backdrop-filter: blur(18px);
+    }
+
+    h1 { margin: 0; font-size: clamp(21px, 3vw, 30px); letter-spacing: -.035em; }
+    .subtitle { margin: 4px 0 18px; color: var(--muted); }
+
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+
+    button, input {
+      min-height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 9px;
+      background: var(--panel-2);
+      color: var(--text);
+      font: inherit;
+    }
+
+    button { padding: 0 14px; cursor: pointer; font-weight: 650; }
+    button:hover:not(:disabled) { border-color: var(--accent); }
+    button:disabled { cursor: not-allowed; opacity: .45; }
+    button.primary { background: var(--accent); border-color: var(--accent); color: #08202c; }
+
+    input[type="search"] { flex: 1 1 240px; padding: 0 12px; outline: none; }
+    input:focus, button:focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; }
+
+    main { padding: 24px clamp(18px, 4vw, 52px) 60px; }
+
+    .summary {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 18px;
+      min-height: 25px;
+      margin-bottom: 16px;
+      color: var(--muted);
+    }
+
+    .summary strong { color: var(--text); font-variant-numeric: tabular-nums; }
+
+    .tree-shell {
+      overflow: auto;
+      min-height: 280px;
+      padding: 18px;
+      border: 1px solid var(--line);
+      border-radius: 14px;
+      background: color-mix(in srgb, var(--panel) 92%, transparent);
+      box-shadow: 0 24px 80px rgb(0 0 0 / 25%);
+    }
+
+    .empty { display: grid; min-height: 240px; place-items: center; text-align: center; color: var(--muted); }
+    .empty strong { display: block; margin-bottom: 4px; color: var(--text); font-size: 16px; }
+
+    ul { margin: 0; padding-left: 22px; list-style: none; }
+    #tree { padding-left: 0; }
+    li { position: relative; }
+    li::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: -14px;
+      border-left: 1px solid var(--line);
+    }
+    li:last-child::before { bottom: calc(100% - 16px); }
+    li::after {
+      content: "";
+      position: absolute;
+      top: 15px;
+      left: -14px;
+      width: 10px;
+      border-top: 1px solid var(--line);
+    }
+    #tree > li::before, #tree > li::after { display: none; }
+
+    .node {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      width: max-content;
+      min-width: 100%;
+      min-height: 31px;
+      padding: 3px 8px;
+      border-radius: 6px;
+      white-space: nowrap;
+    }
+    .node:hover { background: rgb(255 255 255 / 4%); }
+    .toggle { width: 17px; color: var(--muted); text-align: center; cursor: pointer; user-select: none; }
+    .toggle.blank { cursor: default; }
+    .icon { width: 18px; text-align: center; }
+    .folder > .node .icon, .folder > .node .name { color: var(--folder); }
+    .file > .node .icon { color: var(--file); }
+    .meta { margin-left: auto; padding-left: 28px; color: var(--muted); font-size: 12px; }
+    .collapsed > ul { display: none; }
+    .hidden-by-filter { display: none; }
+
+    .notice {
+      margin-top: 14px;
+      color: var(--muted);
+      font-size: 12px;
+    }
+
+    #fallbackPicker { display: none; }
+
+    @media (max-width: 600px) {
+      header { position: static; }
+      .meta { display: none; }
+      .tree-shell { padding: 12px 8px; }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <h1>Repository Structure Explorer</h1>
+    <p class="subtitle">A read-only, collapsible view of a local folder.</p>
+    <div class="toolbar">
+      <button class="primary" id="chooseButton">Choose repository</button>
+      <button id="refreshButton" disabled>Refresh</button>
+      <button id="expandButton" disabled>Expand all</button>
+      <button id="collapseButton" disabled>Collapse all</button>
+      <input id="searchInput" type="search" placeholder="Filter files and folders…" disabled>
+      <input id="fallbackPicker" type="file" webkitdirectory multiple>
+    </div>
+  </header>
+
+  <main>
+    <div class="summary" id="summary" aria-live="polite"></div>
+    <section class="tree-shell" aria-label="Folder tree">
+      <div class="empty" id="emptyState">
+        <div><strong>No folder selected</strong>Choose this repository’s root folder to visualize it.</div>
+      </div>
+      <ul id="tree" hidden></ul>
+    </section>
+    <p class="notice">The browser only reads names, paths, sizes, and modification dates. Nothing is uploaded or changed.</p>
+  </main>
+
+  <script>
+    const state = { handle: null, root: null, files: 0, folders: 0, bytes: 0 };
+    const tree = document.querySelector('#tree');
+    const emptyState = document.querySelector('#emptyState');
+    const summary = document.querySelector('#summary');
+    const chooseButton = document.querySelector('#chooseButton');
+    const refreshButton = document.querySelector('#refreshButton');
+    const expandButton = document.querySelector('#expandButton');
+    const collapseButton = document.querySelector('#collapseButton');
+    const searchInput = document.querySelector('#searchInput');
+    const fallbackPicker = document.querySelector('#fallbackPicker');
+
+    const ignored = new Set(['.git', '.venv', 'node_modules', '__pycache__', '.pytest_cache', '.ruff_cache']);
+
+    function formatBytes(bytes) {
+      if (!bytes) return '0 B';
+      const units = ['B', 'KB', 'MB', 'GB', 'TB'];
+      const index = Math.min(Math.floor(Math.log(bytes) / Math.log(1024)), units.length - 1);
+      return `${(bytes / 1024 ** index).toFixed(index ? 1 : 0)} ${units[index]}`;
+    }
+
+    async function readHandle(handle, path = '') {
+      const node = { name: handle.name, kind: handle.kind, path, children: [] };
+      if (handle.kind === 'file') {
+        const file = await handle.getFile();
+        node.size = file.size;
+        node.modified = file.lastModified;
+        state.files += 1;
+        state.bytes += file.size;
+        return node;
+      }
+
+      state.folders += 1;
+      for await (const child of handle.values()) {
+        if (ignored.has(child.name)) continue;
+        node.children.push(await readHandle(child, path ? `${path}/${child.name}` : child.name));
+      }
+      node.children.sort((a, b) => a.kind === b.kind
+        ? a.name.localeCompare(b.name, undefined, { numeric: true })
+        : a.kind === 'directory' ? -1 : 1);
+      return node;
+    }
+
+    function readFallback(files) {
+      const firstPath = files[0]?.webkitRelativePath || 'repository';
+      const rootName = firstPath.split('/')[0];
+      const root = { name: rootName, kind: 'directory', path: '', children: [] };
+      state.folders = 1;
+
+      for (const file of files) {
+        const parts = file.webkitRelativePath.split('/').slice(1);
+        if (parts.some(part => ignored.has(part))) continue;
+        let cursor = root;
+        parts.forEach((part, index) => {
+          const isFile = index === parts.length - 1;
+          let child = cursor.children.find(item => item.name === part);
+          if (!child) {
+            child = {
+              name: part,
+              kind: isFile ? 'file' : 'directory',
+              path: parts.slice(0, index + 1).join('/'),
+              children: []
+            };
+            if (isFile) {
+              child.size = file.size;
+              child.modified = file.lastModified;
+              state.files += 1;
+              state.bytes += file.size;
+            } else {
+              state.folders += 1;
+            }
+            cursor.children.push(child);
+          }
+          cursor = child;
+        });
+      }
+      sortNodes(root);
+      return root;
+    }
+
+    function sortNodes(node) {
+      node.children?.sort((a, b) => a.kind === b.kind
+        ? a.name.localeCompare(b.name, undefined, { numeric: true })
+        : a.kind === 'directory' ? -1 : 1);
+      node.children?.forEach(sortNodes);
+    }
+
+    function nodeElement(item, isRoot = false) {
+      const li = document.createElement('li');
+      li.className = item.kind === 'directory' ? 'folder' : 'file';
+      li.dataset.name = item.name.toLowerCase();
+      li.dataset.path = item.path.toLowerCase();
+
+      const row = document.createElement('div');
+      row.className = 'node';
+      row.title = item.path || item.name;
+
+      const hasChildren = item.kind === 'directory' && item.children.length;
+      const toggle = document.createElement('span');
+      toggle.className = `toggle${hasChildren ? '' : ' blank'}`;
+      toggle.textContent = hasChildren ? '▾' : '';
+
+      const icon = document.createElement('span');
+      icon.className = 'icon';
+      icon.textContent = item.kind === 'directory' ? '◆' : '•';
+
+      const name = document.createElement('span');
+      name.className = 'name';
+      name.textContent = item.name;
+
+      row.append(toggle, icon, name);
+      if (item.kind === 'file') {
+        const meta = document.createElement('span');
+        meta.className = 'meta';
+        meta.textContent = `${formatBytes(item.size)} · ${new Date(item.modified).toLocaleDateString()}`;
+        row.append(meta);
+      }
+      li.append(row);
+
+      if (hasChildren) {
+        const list = document.createElement('ul');
+        item.children.forEach(child => list.append(nodeElement(child)));
+        li.append(list);
+        toggle.addEventListener('click', () => {
+          li.classList.toggle('collapsed');
+          toggle.textContent = li.classList.contains('collapsed') ? '▸' : '▾';
+        });
+      }
+      if (isRoot) li.dataset.root = 'true';
+      return li;
+    }
+
+    function render() {
+      tree.replaceChildren(nodeElement(state.root, true));
+      emptyState.hidden = true;
+      tree.hidden = false;
+      refreshButton.disabled = !state.handle;
+      expandButton.disabled = false;
+      collapseButton.disabled = false;
+      searchInput.disabled = false;
+      summary.innerHTML = `<span><strong>${state.folders.toLocaleString()}</strong> folders</span>` +
+        `<span><strong>${state.files.toLocaleString()}</strong> files</span>` +
+        `<span><strong>${formatBytes(state.bytes)}</strong> visible size</span>` +
+        `<span>Excluded: ${[...ignored].join(', ')}</span>`;
+      filterTree(searchInput.value);
+    }
+
+    async function scanHandle() {
+      chooseButton.disabled = true;
+      refreshButton.disabled = true;
+      summary.textContent = 'Scanning…';
+      state.files = state.folders = state.bytes = 0;
+      try {
+        state.root = await readHandle(state.handle);
+        render();
+      } catch (error) {
+        summary.textContent = `Could not read folder: ${error.message}`;
+      } finally {
+        chooseButton.disabled = false;
+      }
+    }
+
+    function filterTree(value) {
+      const query = value.trim().toLowerCase();
+      function visit(li) {
+        const children = [...li.querySelector(':scope > ul')?.children || []];
+        const childMatch = children.map(visit).some(Boolean);
+        const selfMatch = !query || li.dataset.name.includes(query) || li.dataset.path.includes(query);
+        const visible = selfMatch || childMatch;
+        li.classList.toggle('hidden-by-filter', !visible);
+        if (query && childMatch) li.classList.remove('collapsed');
+        return visible;
+      }
+      const root = tree.firstElementChild;
+      if (root) visit(root);
+    }
+
+    chooseButton.addEventListener('click', async () => {
+      if ('showDirectoryPicker' in window) {
+        try {
+          state.handle = await window.showDirectoryPicker({ mode: 'read' });
+          await scanHandle();
+        } catch (error) {
+          if (error.name !== 'AbortError') summary.textContent = error.message;
+        }
+      } else {
+        fallbackPicker.click();
+      }
+    });
+
+    fallbackPicker.addEventListener('change', () => {
+      state.handle = null;
+      state.files = state.folders = state.bytes = 0;
+      state.root = readFallback([...fallbackPicker.files]);
+      render();
+    });
+
+    refreshButton.addEventListener('click', scanHandle);
+    searchInput.addEventListener('input', event => filterTree(event.target.value));
+    expandButton.addEventListener('click', () => {
+      tree.querySelectorAll('.collapsed').forEach(li => li.classList.remove('collapsed'));
+      tree.querySelectorAll('.folder > .node > .toggle:not(.blank)').forEach(toggle => toggle.textContent = '▾');
+    });
+    collapseButton.addEventListener('click', () => {
+      tree.querySelectorAll('.folder:not([data-root])').forEach(li => li.classList.add('collapsed'));
+      tree.querySelectorAll('.folder:not([data-root]) > .node > .toggle:not(.blank)').forEach(toggle => toggle.textContent = '▸');
+    });
+  </script>
+</body>
+</html>
