@@ -1,9 +1,12 @@
 #!/usr/bin/env python3
-"""Per-cell and per-factor cost accounting for the brief_revise_agent
-factorial/hill-climb workstream (worklogs/2026-08-07-brief-revise-agent-
-llm-factorial-design.md sections 1-21 -- NOT the earlier, separately-
-reported round B/C/D improvement-loop thread, whose cells are reused here
-at zero marginal cost, not re-billed).
+"""PRODUCTION running-cost accounting for brief_revise_agent, per component
+(worklogs/2026-08-07-brief-revise-agent-llm-factorial-design.md sections
+1-28). Deliberately excludes judging/design/taxonomy costs entirely --
+those are one-off evaluation overhead paid once during this analysis, not
+a per-topic expense the deployed system pays every time it runs. The
+question this script answers is: "if we ship this component, how much
+does it cost to run PER TOPIC, and is that worth the effect it buys?" --
+not "how much did it cost us to test it."
 
 `processed_tokens` (agent_harness.agent's own trajectory summary field) is
 INPUT+OUTPUT combined already (`_usage_token_stats(usage)["processed"]` =
@@ -14,16 +17,12 @@ tee'd stdout logs this session captured under each job's scratchpad/ dir
 re-derives them from those logs rather than reconstructing figures from
 memory.
 
-Rates (all placeholders except Bedrock's, see module docstring in the
-worklog itself for the full caveat): OpenAI (luna/terra/sol) has NO real
-rate card in this repo for gpt-5.6-* -- $5/1M blended across input+output
-(likely an UNDERESTIMATE since output is usually priced ~4x input; treat
-as a consistent RELATIVE proxy for comparing cells, not an absolute
-dollar figure). Bedrock (gpt-oss-120b, qwen) uses the real metered
-rate-card file's midpoint (gpt-oss-120b's own file; qwen has no rate file
-in this repo, uses the same tier as a documented placeholder). Judge
-calls: $0.15/call flat estimate (this session's observed range for
-standalone/selector/design calls).
+Rates (placeholders except Bedrock's -- see the report's own caveat, §7):
+OpenAI (luna/terra/sol) has NO real rate card in this repo for
+gpt-5.6-* -- $5/1M blended across input+output (likely an UNDERESTIMATE
+since output is usually priced ~4x input; treat as a consistent RELATIVE
+proxy for comparing components, not an absolute dollar figure). Bedrock
+(gpt-oss-120b, qwen) uses the real metered rate-card file's midpoint.
 
 Usage: uv run --group notebook python \
     worklogs/assets/2026-08-07-factor-analysis-report/cost_analysis.py
@@ -40,61 +39,40 @@ EVAL_DIR = REPO / "evaluation-results/factorial"
 
 OPENAI_RATE_PER_1M = 5.0
 BEDROCK_BLENDED_PER_1K = (0.0001545 + 0.000618) / 2
-JUDGE_CALL_USD = 0.15
 
 RUN_ID_RE = re.compile(r"run_id=(\S+)")
 TOKENS_RE = re.compile(r'"processed_tokens":\s*(\d+)')
 BACKEND_RE = re.compile(r"starting:.*backend=(\S+)\s+model=(\S+)")
 
-# Every run_id newly generated THIS workstream (sections 1-21) -> its
-# factor-group label (matches section 17's grouping) for the cost-
-# effectiveness rollup. Cells reused from the earlier round B/C/D thread
-# or from other systems' pre-existing baselines are listed separately in
-# REUSED, at $0 generation cost (already paid for elsewhere).
-NEW_CELLS: dict[str, str] = {
-    "br-model-main-terra-exp15-b1": "generator_model",
-    "br-model-main-sol-exp15-b1": "generator_model (BASE)",
-    "br-model-main-oss120b-exp15-b1": "generator_model",
-    "br-model-main-qwen-exp15-b1": "generator_model",
-    "br-divergent-anchor-qwen-adj0-k10-exp15": "adjacent_fetch",
-    "br-luna-current-code-exp15": "generator_model",
-    "br-hillclimb-sol-adjoff-exp15": "adjacent_fetch",
-    "br-hillclimb-sol-preview-exp15": "generic_harness",
-    "br-hillclimb-sol-nostage-exp15": "generic_harness",
-    "br-hillclimb-sol-jrel-exp15": "generic_harness",
-    "br-hillclimb-sol-commitrelease-exp15": "generic_harness",
-    "br-hillclimb-sol-widerengines-exp15": "generic_harness",
-    "br-hillclimb-sol-jrelcommit-exp15": "generic_harness",
-    "br-hillclimb-sol-closurecritic-exp15": "closure_critic",
-    "br-replicate-sol-new15": "replication",
-    "br-replicate-luna-new15": "replication",
-    "br-replicate-sol-rerun-exp15": "replication",
-    "br-analystsweep-terra-exp15": "brief_analyst_model",
-    "br-analystsweep-oss120b-exp15": "brief_analyst_model",
-    "br-analystsweep-qwen-exp15": "brief_analyst_model",
-    "br-ensemble-candB-exp15": "ensemble",
-    "br-ensemble-candC-exp15": "ensemble",
-    "br-ensemble-candD-exp15": "ensemble",
-    "br-enginesweep-keyword-exp15": "search_engine",
-    "br-enginesweep-semantic-exp15": "search_engine",
-    "br-enginesweep-hybrid-exp15": "search_engine (BEST NON-MODEL)",
-    "br-enginesweep-hyde-exp15": "search_engine",
-}
-# run_id -> (system_dir, label) for cells whose GENERATION predates/is
-# outside this workstream (reused free) but whose STANDALONE JUDGING was
-# newly run here -- generation cost $0, judging cost counts.
-REUSED_CELLS: dict[str, tuple[str, str]] = {
-    "brief-revise-iter1-exp15": ("brief_revise_agent", "block0_reused"),
-    "aus-agent-v2-exp15-luna": ("aus_agent_v2", "baseline_reused"),
-    "aus-agent-dev30-luna-e2708ab": ("aus_agent", "baseline_reused"),
-    "facets-agent-dev30-e2708ab": ("facets_agent", "baseline_reused"),
-}
-# The ensemble selector call is a per-topic LLM call not tied to a
-# generation run_id -- counted as its own cost line.
-SELECTOR_CALLS = {"br-ensemble-bestof4-exp15": 15 * 2}  # 15 topics, ~2 calls avg (1st + some repairs)
+BASE_RUN_ID = "br-model-main-sol-exp15-b1"
 
-SOL_DESIGN_CALLS_USD_EXACT = 0.17 + 0.08 + 0.1212 + 0.1023 + 0.1036 + 0.1036 + 0.1249
-TAXONOMY_CALLS_USD_EXACT = 0.33
+# Every cell whose GENERATION run_id is real and log-derivable this
+# workstream, mapped to (component, level) -- one row per tested
+# component/level, all compared against BASE_RUN_ID's own per-topic cost.
+# "generator_model" rows compare a full model swap; everything else holds
+# the model at sol and swaps exactly one structural/harness factor.
+CELLS: dict[str, tuple[str, str]] = {
+    BASE_RUN_ID: ("generator_model", "sol (BASE)"),
+    "br-model-main-terra-exp15-b1": ("generator_model", "terra"),
+    "br-model-main-oss120b-exp15-b1": ("generator_model", "gpt-oss-120b"),
+    "br-model-main-qwen-exp15-b1": ("generator_model", "qwen"),
+    "br-luna-current-code-exp15": ("generator_model", "luna"),
+    "br-hillclimb-sol-adjoff-exp15": ("adjacent_page_fetch", "OFF (default ON)"),
+    "br-hillclimb-sol-preview-exp15": ("search_preview_chars", "20480-char cap (default: full)"),
+    "br-hillclimb-sol-nostage-exp15": ("stage_search_results", "OFF (default ON)"),
+    "br-hillclimb-sol-jrel-exp15": ("judge_relevance_tool", "ON (default OFF)"),
+    "br-hillclimb-sol-commitrelease-exp15": ("commit_release", "ON (default OFF)"),
+    "br-hillclimb-sol-widerengines-exp15": ("retrieval_engine_set", "+ssr+lucene_bool (default semantic,keyword)"),
+    "br-hillclimb-sol-jrelcommit-exp15": ("judge_relevance+commit_release", "both ON"),
+    "br-hillclimb-sol-closurecritic-exp15": ("closure_critic", "ON (default OFF)"),
+    "br-analystsweep-terra-exp15": ("brief_analyst_model", "terra (default luna)"),
+    "br-analystsweep-oss120b-exp15": ("brief_analyst_model", "gpt-oss-120b (default luna)"),
+    "br-analystsweep-qwen-exp15": ("brief_analyst_model", "qwen (default luna)"),
+    "br-enginesweep-keyword-exp15": ("retrieval_engine_set", "keyword only (default semantic,keyword)"),
+    "br-enginesweep-semantic-exp15": ("retrieval_engine_set", "semantic only (default semantic,keyword)"),
+    "br-enginesweep-hybrid-exp15": ("retrieval_engine_set", "hybrid only (default semantic,keyword)"),
+    "br-enginesweep-hyde-exp15": ("retrieval_engine_set", "hybrid+HyDE only (default semantic,keyword)"),
+}
 
 
 def find_logs() -> list[Path]:
@@ -131,20 +109,8 @@ def gen_cost(tokens: int, backend: str) -> float:
     return tokens / 1e6 * OPENAI_RATE_PER_1M
 
 
-def _summary_dir(system: str, run_id: str) -> Path:
-    baseline = EVAL_DIR / f"baseline-{system}-{run_id}"
-    return baseline if baseline.exists() else EVAL_DIR / run_id
-
-
-def judged_topics(system: str, run_id: str) -> int:
-    p = _summary_dir(system, run_id) / "summary.json"
-    if not p.exists():
-        return 0
-    return json.loads(p.read_text()).get("n_completed", 0)
-
-
-def standalone_score(system: str, run_id: str) -> float | None:
-    p = _summary_dir(system, run_id) / "summary.json"
+def standalone_score(run_id: str) -> float | None:
+    p = EVAL_DIR / run_id / "summary.json"
     if not p.exists():
         return None
     return json.loads(p.read_text()).get("overall_mean")
@@ -154,87 +120,49 @@ def main() -> None:
     merged: dict[str, list] = {}
     for log in find_logs():
         for run_id, row in parse_log(log).items():
-            if run_id not in NEW_CELLS:
+            if run_id not in CELLS:
                 continue
             prev = merged.get(run_id)
             if prev is None or row[1] > prev[1]:
                 merged[run_id] = row
 
+    base_row = merged[BASE_RUN_ID]
+    base_per_topic = gen_cost(base_row[1], base_row[2]) / base_row[0]
+    base_score = standalone_score(BASE_RUN_ID)
+
+    print(f"BASE (sol, default config): ${base_per_topic:.3f}/topic, "
+         f"score={base_score:.3f}\n")
+
     rows = []
-    print(f"{'run_id':42s} {'group':20s} {'n':>3s} {'gen_usd':>8s} "
-         f"{'judge_usd':>9s} {'total':>8s} {'score':>6s}")
-    total_gen = total_judge = 0.0
-    for run_id, group in NEW_CELLS.items():
+    print(f"{'component':30s} {'level':38s} {'$/topic':>9s} "
+         f"{'marginal $':>11s} {'score':>6s} {'Δ score':>8s}")
+    for run_id, (component, level) in CELLS.items():
         row = merged.get(run_id)
-        n, tok, backend = (row[0], row[1], row[2]) if row else (0, 0, "?")
-        g = gen_cost(tok, backend) if row else 0.0
-        j = judged_topics("brief_revise_agent", run_id) * JUDGE_CALL_USD
-        score = standalone_score("brief_revise_agent", run_id)
-        total_gen += g
-        total_judge += j
-        rows.append({"run_id": run_id, "group": group, "n_topics": n,
-                     "tokens": tok, "backend": backend, "gen_usd": g,
-                     "judge_usd": j, "total_usd": g + j, "score": score})
-        print(f"{run_id:42s} {group:20s} {n:3d} {g:8.2f} {j:9.2f} "
-             f"{g+j:8.2f} {str(score):>6s}")
-
-    print("\n--- reused (generation $0, judging counted) ---")
-    for run_id, (system, group) in REUSED_CELLS.items():
-        j = judged_topics(system, run_id) * JUDGE_CALL_USD
-        score = standalone_score(system, run_id)
-        total_judge += j
-        rows.append({"run_id": run_id, "group": group, "n_topics":
-                     judged_topics(system, run_id), "tokens": 0,
-                     "backend": "reused", "gen_usd": 0.0, "judge_usd": j,
-                     "total_usd": j, "score": score})
-        print(f"{run_id:42s} {group:20s} {'':>3s} {'0.00':>8s} {j:9.2f} "
-             f"{j:8.2f} {str(score):>6s}")
-
-    selector_usd = 0.0
-    for run_id, n_calls in SELECTOR_CALLS.items():
-        c = n_calls * JUDGE_CALL_USD
-        selector_usd += c
-        j = judged_topics("brief_revise_agent", run_id) * JUDGE_CALL_USD
-        score = standalone_score("brief_revise_agent", run_id)
-        rows.append({"run_id": run_id, "group": "ensemble_selector", "n_topics": 15,
-                     "tokens": 0, "backend": "openai", "gen_usd": c,
-                     "judge_usd": j, "total_usd": c + j, "score": score})
-        print(f"{run_id:42s} {'ensemble_selector':20s} {15:3d} {c:8.2f} "
-             f"{j:9.2f} {c+j:8.2f} {str(score):>6s}")
-        total_gen += c
-        total_judge += j
-
-    grand_total = (total_gen + total_judge + SOL_DESIGN_CALLS_USD_EXACT
-                  + TAXONOMY_CALLS_USD_EXACT)
-    print(f"\ngeneration total: ${total_gen:.2f}")
-    print(f"judging total: ${total_judge:.2f}")
-    print(f"sol design calls (exact): ${SOL_DESIGN_CALLS_USD_EXACT:.2f}")
-    print(f"taxonomy calls (exact): ${TAXONOMY_CALLS_USD_EXACT:.2f}")
-    print(f"GRAND TOTAL: ${grand_total:.2f}")
-
-    # Per-factor-group rollup.
-    groups: dict[str, list[dict]] = {}
-    for r in rows:
-        groups.setdefault(r["group"], []).append(r)
-    print(f"\n{'group':22s} {'n_cells':>8s} {'avg_cost':>10s} {'avg_score':>10s}")
-    group_summary = {}
-    for g, items in sorted(groups.items()):
-        scored = [it for it in items if it["score"] is not None]
-        avg_cost = sum(it["total_usd"] for it in items) / len(items)
-        avg_score = (sum(it["score"] for it in scored) / len(scored)
-                    if scored else None)
-        group_summary[g] = {"n_cells": len(items), "avg_cost_usd": avg_cost,
-                            "avg_score": avg_score}
-        print(f"{g:22s} {len(items):8d} {avg_cost:10.2f} "
-             f"{str(round(avg_score,3)) if avg_score else 'n/a':>10s}")
+        if row is None:
+            print(f"{component:30s} {level:38s}  (no log data found)")
+            continue
+        n, tok, backend, _model = row
+        per_topic = gen_cost(tok, backend) / n
+        marginal = per_topic - base_per_topic
+        score = standalone_score(run_id)
+        delta_score = (score - base_score) if score is not None else None
+        rows.append({
+            "run_id": run_id, "component": component, "level": level,
+            "n_topics": n, "cost_per_topic_usd": per_topic,
+            "marginal_cost_per_topic_usd": marginal,
+            "score": score, "delta_score": delta_score,
+        })
+        ds = f"{delta_score:+.3f}" if delta_score is not None else "n/a"
+        sc = f"{score:.3f}" if score is not None else "n/a"
+        print(f"{component:30s} {level:38s} {per_topic:9.3f} "
+             f"{marginal:+11.3f} {sc:>6s} {ds:>8s}")
 
     out = Path(__file__).resolve().parent / "cost_by_run.json"
     out.write_text(json.dumps({
-        "rows": rows, "group_summary": group_summary,
-        "generation_total_usd": total_gen, "judging_total_usd": total_judge,
-        "sol_design_calls_usd": SOL_DESIGN_CALLS_USD_EXACT,
-        "taxonomy_calls_usd": TAXONOMY_CALLS_USD_EXACT,
-        "grand_total_usd": grand_total,
+        "base_run_id": BASE_RUN_ID,
+        "base_cost_per_topic_usd": base_per_topic,
+        "base_score": base_score,
+        "rows": rows,
     }, indent=2))
     print(f"\nwrote {out}")
 

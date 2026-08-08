@@ -1,428 +1,207 @@
 {
+  "base_run_id": "br-model-main-sol-exp15-b1",
+  "base_cost_per_topic_usd": 1.2904856666666666,
+  "base_score": 2.2666666666666666,
   "rows": [
     {
-      "run_id": "br-model-main-terra-exp15-b1",
-      "group": "generator_model",
+      "run_id": "br-model-main-sol-exp15-b1",
+      "component": "generator_model",
+      "level": "sol (BASE)",
       "n_topics": 15,
-      "tokens": 1689444,
-      "backend": "openai",
-      "gen_usd": 8.44722,
-      "judge_usd": 2.25,
-      "total_usd": 10.69722,
-      "score": 1.8666666666666667
+      "cost_per_topic_usd": 1.2904856666666666,
+      "marginal_cost_per_topic_usd": 0.0,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     },
     {
-      "run_id": "br-model-main-sol-exp15-b1",
-      "group": "generator_model (BASE)",
+      "run_id": "br-model-main-terra-exp15-b1",
+      "component": "generator_model",
+      "level": "terra",
       "n_topics": 15,
-      "tokens": 3871457,
-      "backend": "openai",
-      "gen_usd": 19.357285,
-      "judge_usd": 2.25,
-      "total_usd": 21.607285,
-      "score": 2.2666666666666666
+      "cost_per_topic_usd": 0.563148,
+      "marginal_cost_per_topic_usd": -0.7273376666666667,
+      "score": 1.8666666666666667,
+      "delta_score": -0.3999999999999999
     },
     {
       "run_id": "br-model-main-oss120b-exp15-b1",
-      "group": "generator_model",
+      "component": "generator_model",
+      "level": "gpt-oss-120b",
       "n_topics": 14,
-      "tokens": 14252802,
-      "backend": "bedrock",
-      "gen_usd": 5.5051447725,
-      "judge_usd": 2.25,
-      "total_usd": 7.7551447725,
-      "score": 1.2
+      "cost_per_topic_usd": 0.3932246266071428,
+      "marginal_cost_per_topic_usd": -0.8972610400595238,
+      "score": 1.2,
+      "delta_score": -1.0666666666666667
     },
     {
       "run_id": "br-model-main-qwen-exp15-b1",
-      "group": "generator_model",
+      "component": "generator_model",
+      "level": "qwen",
       "n_topics": 14,
-      "tokens": 4100866,
-      "backend": "bedrock",
-      "gen_usd": 1.5839594925,
-      "judge_usd": 2.25,
-      "total_usd": 3.8339594925,
-      "score": 1.4
-    },
-    {
-      "run_id": "br-divergent-anchor-qwen-adj0-k10-exp15",
-      "group": "adjacent_fetch",
-      "n_topics": 15,
-      "tokens": 2935279,
-      "backend": "bedrock",
-      "gen_usd": 1.13375151375,
-      "judge_usd": 2.25,
-      "total_usd": 3.38375151375,
-      "score": 1.2666666666666666
+      "cost_per_topic_usd": 0.11313996375,
+      "marginal_cost_per_topic_usd": -1.1773457029166667,
+      "score": 1.4,
+      "delta_score": -0.8666666666666667
     },
     {
       "run_id": "br-luna-current-code-exp15",
-      "group": "generator_model",
+      "component": "generator_model",
+      "level": "luna",
       "n_topics": 15,
-      "tokens": 1655431,
-      "backend": "openai",
-      "gen_usd": 8.277155,
-      "judge_usd": 2.25,
-      "total_usd": 10.527155,
-      "score": 1.8666666666666667
+      "cost_per_topic_usd": 0.5518103333333334,
+      "marginal_cost_per_topic_usd": -0.7386753333333332,
+      "score": 1.8666666666666667,
+      "delta_score": -0.3999999999999999
     },
     {
       "run_id": "br-hillclimb-sol-adjoff-exp15",
-      "group": "adjacent_fetch",
+      "component": "adjacent_page_fetch",
+      "level": "OFF (default ON)",
       "n_topics": 15,
-      "tokens": 2850934,
-      "backend": "openai",
-      "gen_usd": 14.25467,
-      "judge_usd": 2.25,
-      "total_usd": 16.50467,
-      "score": 2.2
+      "cost_per_topic_usd": 0.9503113333333334,
+      "marginal_cost_per_topic_usd": -0.34017433333333325,
+      "score": 2.2,
+      "delta_score": -0.06666666666666643
     },
     {
       "run_id": "br-hillclimb-sol-preview-exp15",
-      "group": "generic_harness",
+      "component": "search_preview_chars",
+      "level": "20480-char cap (default: full)",
       "n_topics": 15,
-      "tokens": 3734362,
-      "backend": "openai",
-      "gen_usd": 18.67181,
-      "judge_usd": 2.25,
-      "total_usd": 20.92181,
-      "score": 2.1333333333333333
+      "cost_per_topic_usd": 1.2447873333333335,
+      "marginal_cost_per_topic_usd": -0.045698333333333174,
+      "score": 2.1333333333333333,
+      "delta_score": -0.1333333333333333
     },
     {
       "run_id": "br-hillclimb-sol-nostage-exp15",
-      "group": "generic_harness",
+      "component": "stage_search_results",
+      "level": "OFF (default ON)",
       "n_topics": 15,
-      "tokens": 3861854,
-      "backend": "openai",
-      "gen_usd": 19.30927,
-      "judge_usd": 2.25,
-      "total_usd": 21.55927,
-      "score": 2.2
+      "cost_per_topic_usd": 1.2872846666666669,
+      "marginal_cost_per_topic_usd": -0.0032009999999997873,
+      "score": 2.2,
+      "delta_score": -0.06666666666666643
     },
     {
       "run_id": "br-hillclimb-sol-jrel-exp15",
-      "group": "generic_harness",
+      "component": "judge_relevance_tool",
+      "level": "ON (default OFF)",
       "n_topics": 15,
-      "tokens": 3192971,
-      "backend": "openai",
-      "gen_usd": 15.964855,
-      "judge_usd": 2.25,
-      "total_usd": 18.214855,
-      "score": 2.2
+      "cost_per_topic_usd": 1.0643236666666667,
+      "marginal_cost_per_topic_usd": -0.22616199999999997,
+      "score": 2.2,
+      "delta_score": -0.06666666666666643
     },
     {
       "run_id": "br-hillclimb-sol-commitrelease-exp15",
-      "group": "generic_harness",
+      "component": "commit_release",
+      "level": "ON (default OFF)",
       "n_topics": 15,
-      "tokens": 3620675,
-      "backend": "openai",
-      "gen_usd": 18.103375,
-      "judge_usd": 2.25,
-      "total_usd": 20.353375,
-      "score": 2.2666666666666666
+      "cost_per_topic_usd": 1.2068916666666667,
+      "marginal_cost_per_topic_usd": -0.08359399999999995,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     },
     {
       "run_id": "br-hillclimb-sol-widerengines-exp15",
-      "group": "generic_harness",
+      "component": "retrieval_engine_set",
+      "level": "+ssr+lucene_bool (default semantic,keyword)",
       "n_topics": 15,
-      "tokens": 2751624,
-      "backend": "openai",
-      "gen_usd": 13.75812,
-      "judge_usd": 2.25,
-      "total_usd": 16.008119999999998,
-      "score": 2.1333333333333333
+      "cost_per_topic_usd": 0.917208,
+      "marginal_cost_per_topic_usd": -0.3732776666666666,
+      "score": 2.1333333333333333,
+      "delta_score": -0.1333333333333333
     },
     {
       "run_id": "br-hillclimb-sol-jrelcommit-exp15",
-      "group": "generic_harness",
+      "component": "judge_relevance+commit_release",
+      "level": "both ON",
       "n_topics": 15,
-      "tokens": 3409038,
-      "backend": "openai",
-      "gen_usd": 17.045189999999998,
-      "judge_usd": 2.25,
-      "total_usd": 19.295189999999998,
-      "score": 2.2666666666666666
+      "cost_per_topic_usd": 1.1363459999999999,
+      "marginal_cost_per_topic_usd": -0.15413966666666679,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     },
     {
       "run_id": "br-hillclimb-sol-closurecritic-exp15",
-      "group": "closure_critic",
+      "component": "closure_critic",
+      "level": "ON (default OFF)",
       "n_topics": 15,
-      "tokens": 2831087,
-      "backend": "openai",
-      "gen_usd": 14.155435,
-      "judge_usd": 2.25,
-      "total_usd": 16.405435,
-      "score": 2.2666666666666666
-    },
-    {
-      "run_id": "br-replicate-sol-new15",
-      "group": "replication",
-      "n_topics": 15,
-      "tokens": 5143783,
-      "backend": "openai",
-      "gen_usd": 25.718915,
-      "judge_usd": 2.25,
-      "total_usd": 27.968915,
-      "score": 2.1333333333333333
-    },
-    {
-      "run_id": "br-replicate-luna-new15",
-      "group": "replication",
-      "n_topics": 15,
-      "tokens": 2193729,
-      "backend": "openai",
-      "gen_usd": 10.968644999999999,
-      "judge_usd": 2.25,
-      "total_usd": 13.218644999999999,
-      "score": 1.9333333333333333
-    },
-    {
-      "run_id": "br-replicate-sol-rerun-exp15",
-      "group": "replication",
-      "n_topics": 15,
-      "tokens": 3880921,
-      "backend": "openai",
-      "gen_usd": 19.404605,
-      "judge_usd": 2.25,
-      "total_usd": 21.654605,
-      "score": 2.2
+      "cost_per_topic_usd": 0.9436956666666667,
+      "marginal_cost_per_topic_usd": -0.34678999999999993,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     },
     {
       "run_id": "br-analystsweep-terra-exp15",
-      "group": "brief_analyst_model",
+      "component": "brief_analyst_model",
+      "level": "terra (default luna)",
       "n_topics": 15,
-      "tokens": 3482548,
-      "backend": "openai",
-      "gen_usd": 17.41274,
-      "judge_usd": 2.25,
-      "total_usd": 19.66274,
-      "score": 2.2
+      "cost_per_topic_usd": 1.1608493333333334,
+      "marginal_cost_per_topic_usd": -0.12963633333333324,
+      "score": 2.2,
+      "delta_score": -0.06666666666666643
     },
     {
       "run_id": "br-analystsweep-oss120b-exp15",
-      "group": "brief_analyst_model",
+      "component": "brief_analyst_model",
+      "level": "gpt-oss-120b (default luna)",
       "n_topics": 15,
-      "tokens": 3458862,
-      "backend": "openai",
-      "gen_usd": 17.29431,
-      "judge_usd": 2.25,
-      "total_usd": 19.54431,
-      "score": 2.2
+      "cost_per_topic_usd": 1.152954,
+      "marginal_cost_per_topic_usd": -0.1375316666666666,
+      "score": 2.2,
+      "delta_score": -0.06666666666666643
     },
     {
       "run_id": "br-analystsweep-qwen-exp15",
-      "group": "brief_analyst_model",
+      "component": "brief_analyst_model",
+      "level": "qwen (default luna)",
       "n_topics": 15,
-      "tokens": 3837766,
-      "backend": "openai",
-      "gen_usd": 19.18883,
-      "judge_usd": 2.25,
-      "total_usd": 21.43883,
-      "score": 2.2
-    },
-    {
-      "run_id": "br-ensemble-candB-exp15",
-      "group": "ensemble",
-      "n_topics": 14,
-      "tokens": 3462839,
-      "backend": "openai",
-      "gen_usd": 17.314194999999998,
-      "judge_usd": 2.25,
-      "total_usd": 19.564194999999998,
-      "score": 2.2666666666666666
-    },
-    {
-      "run_id": "br-ensemble-candC-exp15",
-      "group": "ensemble",
-      "n_topics": 15,
-      "tokens": 4100017,
-      "backend": "openai",
-      "gen_usd": 20.500085000000002,
-      "judge_usd": 0.0,
-      "total_usd": 20.500085000000002,
-      "score": null
-    },
-    {
-      "run_id": "br-ensemble-candD-exp15",
-      "group": "ensemble",
-      "n_topics": 15,
-      "tokens": 3464214,
-      "backend": "openai",
-      "gen_usd": 17.32107,
-      "judge_usd": 0.0,
-      "total_usd": 17.32107,
-      "score": null
+      "cost_per_topic_usd": 1.2792553333333332,
+      "marginal_cost_per_topic_usd": -0.011230333333333453,
+      "score": 2.2,
+      "delta_score": -0.06666666666666643
     },
     {
       "run_id": "br-enginesweep-keyword-exp15",
-      "group": "search_engine",
+      "component": "retrieval_engine_set",
+      "level": "keyword only (default semantic,keyword)",
       "n_topics": 15,
-      "tokens": 3382503,
-      "backend": "openai",
-      "gen_usd": 16.912515,
-      "judge_usd": 2.25,
-      "total_usd": 19.162515,
-      "score": 2.2666666666666666
+      "cost_per_topic_usd": 1.1275009999999999,
+      "marginal_cost_per_topic_usd": -0.16298466666666678,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     },
     {
       "run_id": "br-enginesweep-semantic-exp15",
-      "group": "search_engine",
+      "component": "retrieval_engine_set",
+      "level": "semantic only (default semantic,keyword)",
       "n_topics": 15,
-      "tokens": 3419450,
-      "backend": "openai",
-      "gen_usd": 17.09725,
-      "judge_usd": 2.25,
-      "total_usd": 19.34725,
-      "score": 2.2666666666666666
+      "cost_per_topic_usd": 1.1398166666666667,
+      "marginal_cost_per_topic_usd": -0.15066899999999994,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     },
     {
       "run_id": "br-enginesweep-hybrid-exp15",
-      "group": "search_engine (BEST NON-MODEL)",
+      "component": "retrieval_engine_set",
+      "level": "hybrid only (default semantic,keyword)",
       "n_topics": 15,
-      "tokens": 2935111,
-      "backend": "openai",
-      "gen_usd": 14.675555,
-      "judge_usd": 2.25,
-      "total_usd": 16.925555,
-      "score": 2.3333333333333335
+      "cost_per_topic_usd": 0.9783703333333332,
+      "marginal_cost_per_topic_usd": -0.3121153333333334,
+      "score": 2.3333333333333335,
+      "delta_score": 0.06666666666666687
     },
     {
       "run_id": "br-enginesweep-hyde-exp15",
-      "group": "search_engine",
+      "component": "retrieval_engine_set",
+      "level": "hybrid+HyDE only (default semantic,keyword)",
       "n_topics": 15,
-      "tokens": 2686690,
-      "backend": "openai",
-      "gen_usd": 13.43345,
-      "judge_usd": 2.25,
-      "total_usd": 15.68345,
-      "score": 2.2666666666666666
-    },
-    {
-      "run_id": "brief-revise-iter1-exp15",
-      "group": "block0_reused",
-      "n_topics": 15,
-      "tokens": 0,
-      "backend": "reused",
-      "gen_usd": 0.0,
-      "judge_usd": 2.25,
-      "total_usd": 2.25,
-      "score": 2.066666666666667
-    },
-    {
-      "run_id": "aus-agent-v2-exp15-luna",
-      "group": "baseline_reused",
-      "n_topics": 15,
-      "tokens": 0,
-      "backend": "reused",
-      "gen_usd": 0.0,
-      "judge_usd": 2.25,
-      "total_usd": 2.25,
-      "score": 2.2666666666666666
-    },
-    {
-      "run_id": "aus-agent-dev30-luna-e2708ab",
-      "group": "baseline_reused",
-      "n_topics": 15,
-      "tokens": 0,
-      "backend": "reused",
-      "gen_usd": 0.0,
-      "judge_usd": 2.25,
-      "total_usd": 2.25,
-      "score": 2.0
-    },
-    {
-      "run_id": "facets-agent-dev30-e2708ab",
-      "group": "baseline_reused",
-      "n_topics": 15,
-      "tokens": 0,
-      "backend": "reused",
-      "gen_usd": 0.0,
-      "judge_usd": 2.25,
-      "total_usd": 2.25,
-      "score": 1.8
-    },
-    {
-      "run_id": "br-ensemble-bestof4-exp15",
-      "group": "ensemble_selector",
-      "n_topics": 15,
-      "tokens": 0,
-      "backend": "openai",
-      "gen_usd": 4.5,
-      "judge_usd": 2.25,
-      "total_usd": 6.75,
-      "score": 2.2666666666666666
+      "cost_per_topic_usd": 0.8955633333333334,
+      "marginal_cost_per_topic_usd": -0.39492233333333326,
+      "score": 2.2666666666666666,
+      "delta_score": 0.0
     }
-  ],
-  "group_summary": {
-    "adjacent_fetch": {
-      "n_cells": 2,
-      "avg_cost_usd": 9.944210756875,
-      "avg_score": 1.7333333333333334
-    },
-    "baseline_reused": {
-      "n_cells": 3,
-      "avg_cost_usd": 2.25,
-      "avg_score": 2.022222222222222
-    },
-    "block0_reused": {
-      "n_cells": 1,
-      "avg_cost_usd": 2.25,
-      "avg_score": 2.066666666666667
-    },
-    "brief_analyst_model": {
-      "n_cells": 3,
-      "avg_cost_usd": 20.21529333333333,
-      "avg_score": 2.2
-    },
-    "closure_critic": {
-      "n_cells": 1,
-      "avg_cost_usd": 16.405435,
-      "avg_score": 2.2666666666666666
-    },
-    "ensemble": {
-      "n_cells": 3,
-      "avg_cost_usd": 19.12845,
-      "avg_score": 2.2666666666666666
-    },
-    "ensemble_selector": {
-      "n_cells": 1,
-      "avg_cost_usd": 6.75,
-      "avg_score": 2.2666666666666666
-    },
-    "generator_model": {
-      "n_cells": 4,
-      "avg_cost_usd": 8.20336981625,
-      "avg_score": 1.5833333333333333
-    },
-    "generator_model (BASE)": {
-      "n_cells": 1,
-      "avg_cost_usd": 21.607285,
-      "avg_score": 2.2666666666666666
-    },
-    "generic_harness": {
-      "n_cells": 6,
-      "avg_cost_usd": 19.392103333333335,
-      "avg_score": 2.1999999999999997
-    },
-    "replication": {
-      "n_cells": 3,
-      "avg_cost_usd": 20.947388333333333,
-      "avg_score": 2.088888888888889
-    },
-    "search_engine": {
-      "n_cells": 3,
-      "avg_cost_usd": 18.064404999999997,
-      "avg_score": 2.2666666666666666
-    },
-    "search_engine (BEST NON-MODEL)": {
-      "n_cells": 1,
-      "avg_cost_usd": 16.925555,
-      "avg_score": 2.3333333333333335
-    }
-  },
-  "generation_total_usd": 407.3094057787499,
-  "judging_total_usd": 67.5,
-  "sol_design_calls_usd": 0.8056,
-  "taxonomy_calls_usd": 0.33,
-  "grand_total_usd": 475.94500577874993
+  ]
 }

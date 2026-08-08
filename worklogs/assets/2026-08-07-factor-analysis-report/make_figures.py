@@ -306,59 +306,82 @@ plt.close(fig)
 
 
 # ---------------------------------------------------------------------------
-# Figure 5: cost-effectiveness -- avg cost vs avg standalone score, one
-# point per factor group (cost_analysis.py's rollup). Form: scatter
-# (magnitude x magnitude, two measures of different scale -> NOT a
-# dual-axis chart, a genuine 2D scatter is the correct form here),
-# categorical color per group family, base cell emphasized.
+# Figure 5: PRODUCTION running cost -- $/topic vs standalone score, one
+# point per component/level (cost_analysis.py, judging excluded --
+# per-topic generation cost only, what the deployed system actually pays).
+# Form: scatter (two independent-scale magnitudes -> not a dual-axis
+# chart), categorical color per component family, base cell emphasized.
 # ---------------------------------------------------------------------------
 cost_data = json.loads((Path(__file__).resolve().parent / "cost_by_run.json").read_text())
-gs = cost_data["group_summary"]
-base_cost = gs["generator_model (BASE)"]["avg_cost_usd"]
-base_score = gs["generator_model (BASE)"]["avg_score"]
+base_cost = cost_data["base_cost_per_topic_usd"]
+base_score = cost_data["base_score"]
 
-GROUP_COLORS = {
-    "generator_model": BLUE, "generator_model (BASE)": BLUE,
-    "adjacent_fetch": ORANGE, "generic_harness": AQUA,
+COMPONENT_COLORS = {
+    "generator_model": BLUE, "adjacent_page_fetch": ORANGE,
+    "search_preview_chars": AQUA, "stage_search_results": AQUA,
+    "judge_relevance_tool": AQUA, "commit_release": AQUA,
+    "judge_relevance+commit_release": AQUA, "retrieval_engine_set": RED,
     "brief_analyst_model": YELLOW, "closure_critic": VIOLET,
-    "replication": MUTED, "ensemble": GREEN, "ensemble_selector": GREEN,
-    "search_engine": RED, "search_engine (BEST NON-MODEL)": RED,
-    "block0_reused": MUTED, "baseline_reused": MUTED,
 }
 
-fig, ax = plt.subplots(figsize=(9.5, 7.2))
+fig, ax = plt.subplots(figsize=(9, 6.8))
 ax.axhline(base_score, color=GRID, linewidth=1, zorder=1)
 ax.axvline(base_cost, color=GRID, linewidth=1, zorder=1)
 
-scored = [(g, row) for g, row in gs.items() if row["avg_score"] is not None]
-scored.sort(key=lambda gr: gr[1]["avg_cost_usd"])
-# Deterministic zigzag stagger, growing offset for the crowded 16-21 cost
-# cluster (6 points within 0.13 score units of each other) -- direct
-# labels are mandatory at this series count, but a fixed (8,6) offset
-# collides badly there, so alternate up/down with growing magnitude and a
-# thin leader line for anything past the first ring.
-OFFSETS = [(10, 8), (10, -14), (10, 24), (10, -30), (10, 40), (10, -46),
-          (10, 56), (10, -62), (-70, 8), (-70, -14), (-70, 24), (-70, -30),
-          (-90, 40)]
-for i, (g, row) in enumerate(scored):
-    color = GROUP_COLORS.get(g, MUTED)
-    is_base = "BASE" in g
-    x, y = row["avg_cost_usd"], row["avg_score"]
-    ax.scatter([x], [y], s=190 if is_base else 120,
-              color=color, edgecolor="white", linewidth=1.2,
+scored = [r for r in cost_data["rows"] if r["score"] is not None]
+# The 5 generator_model points are widely separated (the real story: model
+# choice dominates both axes) -- direct-label those plus the base star and
+# the one standout structural point (hybrid: cheaper AND better). Every
+# other structural/harness point clusters tightly near the base (that
+# clustering IS the finding: none of them move either axis much) --
+# leaving 14 of them unlabeled avoids the collision a full label set had;
+# their exact $/topic and score are in the accompanying table instead.
+DIRECT_LABEL = {"sol (BASE)", "terra", "gpt-oss-120b", "qwen", "luna",
+                "hybrid only"}
+FAMILY_LEGEND = [
+    ("generator_model", BLUE, "generator model"),
+    ("adjacent_page_fetch", ORANGE, "adjacent-page fetch"),
+    ("retrieval_engine_set", RED, "retrieval engine set"),
+    ("brief_analyst_model", YELLOW, "brief-analyst model"),
+    ("closure_critic", VIOLET, "closure critic"),
+    ("__harness__", AQUA, "other agent_harness toggle"),
+]
+OFFSETS = {"sol (BASE)": (12, 6), "terra": (10, -16), "gpt-oss-120b": (10, -16),
+          "qwen": (10, -16), "luna": (-58, 10), "hybrid only": (-70, 14)}
+for r in scored:
+    is_harness = r["component"] in {"search_preview_chars", "stage_search_results",
+                                    "judge_relevance_tool", "commit_release",
+                                    "judge_relevance+commit_release"}
+    color = AQUA if is_harness else COMPONENT_COLORS.get(r["component"], MUTED)
+    is_base = "BASE" in r["level"]
+    x, y = r["cost_per_topic_usd"], r["score"]
+    ax.scatter([x], [y], s=190 if is_base else 90,
+              color=color, edgecolor="white", linewidth=1.1,
               zorder=4 if is_base else 3, marker="*" if is_base else "o")
-    label = g.replace(" (BASE)", "").replace(" (BEST NON-MODEL)", " (best non-model)")
-    dx, dy = OFFSETS[i % len(OFFSETS)]
-    ax.annotate(label, (x, y), textcoords="offset points", xytext=(dx, dy),
-               fontsize=8.5, color=TEXT, zorder=5,
-               arrowprops=dict(arrowstyle="-", color=MUTED, linewidth=0.6,
-                               shrinkA=4, shrinkB=4))
-ax.set_xlabel("Average cost per 15-topic cell, this factor group ($, estimate -- see report caveat)")
-ax.set_ylabel("Average standalone rubric score (0–3)")
-ax.set_title("Cost-effectiveness by factor group — model choice dominates "
-            "both axes", fontsize=12.3, color=TEXT, loc="left", pad=12)
-ax.set_ylim(1.35, 2.55)
-ax.set_xlim(-2, 26)
+    label = r["level"].split(" (default")[0]
+    # "gpt-oss-120b"/"qwen"/"terra" also appear as brief_analyst_model
+    # sweep levels (same text, different component) -- restrict direct
+    # labels to the generator_model family (+ the one retrieval_engine_set
+    # standout) so two same-text points never collide.
+    if label in DIRECT_LABEL and r["component"] in ("generator_model", "retrieval_engine_set"):
+        dx, dy = OFFSETS.get(label, (10, 8))
+        ax.annotate(label, (x, y), textcoords="offset points", xytext=(dx, dy),
+                   fontsize=9, color=TEXT, zorder=5,
+                   arrowprops=dict(arrowstyle="-", color=MUTED, linewidth=0.6,
+                                   shrinkA=4, shrinkB=4))
+ax.annotate("14 structural/harness cells cluster here\n(all within $0.4/topic "
+           "and 0.13 score of base --\nsee accompanying table for exact values)",
+           (1.15, 2.13), textcoords="offset points", xytext=(-40, -55),
+           fontsize=8, color=TEXT2, ha="left",
+           arrowprops=dict(arrowstyle="-", color=MUTED, linewidth=0.6))
+handles = [plt.Line2D([0], [0], marker="o", color="w", markerfacecolor=c,
+                      markersize=8, label=lbl) for _, c, lbl in FAMILY_LEGEND]
+ax.legend(handles=handles, loc="lower right", frameon=False, fontsize=8)
+ax.set_xlabel("Production running cost, $/topic (generation only, no judging — estimate, see report caveat)")
+ax.set_ylabel("Standalone rubric score (0–3)")
+ax.set_title("Component running cost vs. score — cheaper is left, better is up",
+            fontsize=12.3, color=TEXT, loc="left", pad=12)
+ax.set_ylim(1.05, 2.55)
 fig.tight_layout()
 fig.savefig(OUT / "fig5_cost_effectiveness.pdf")
 plt.close(fig)

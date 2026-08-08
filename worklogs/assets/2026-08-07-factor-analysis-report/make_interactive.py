@@ -251,40 +251,53 @@ fig6.update_layout(
 fig6.write_html(OUT / "fig6_arena_hybrid.html", **HTML_KW)
 
 # ---------------------------------------------------------------------------
-# Figure 5: cost-effectiveness scatter, hover shows n_cells + exact $/score.
+# Figure 5: PRODUCTION running cost -- $/topic vs standalone score, one point
+# per component/level (cost_analysis.py, judging excluded). Hover shows the
+# exact marginal cost + delta score every point carries, so the crowded
+# cluster near base stays readable here even where the static PDF (fig5 in
+# make_figures.py) had to drop direct labels for it.
 # ---------------------------------------------------------------------------
 cost_data = json.loads((Path(__file__).resolve().parent / "cost_by_run.json").read_text())
-gs = cost_data["group_summary"]
-GROUP_COLORS = {
-    "generator_model": BLUE, "generator_model (BASE)": BLUE,
-    "adjacent_fetch": ORANGE, "generic_harness": AQUA,
+base_cost = cost_data["base_cost_per_topic_usd"]
+base_score = cost_data["base_score"]
+COMPONENT_COLORS = {
+    "generator_model": BLUE, "adjacent_page_fetch": ORANGE,
+    "search_preview_chars": AQUA, "stage_search_results": AQUA,
+    "judge_relevance_tool": AQUA, "commit_release": AQUA,
+    "judge_relevance+commit_release": AQUA, "retrieval_engine_set": RED,
     "brief_analyst_model": YELLOW, "closure_critic": VIOLET,
-    "replication": MUTED, "ensemble": GREEN, "ensemble_selector": GREEN,
-    "search_engine": RED, "search_engine (BEST NON-MODEL)": RED,
-    "block0_reused": MUTED, "baseline_reused": MUTED,
 }
 fig5 = go.Figure()
-for g, row in gs.items():
-    if row["avg_score"] is None:
+for r in cost_data["rows"]:
+    if r["score"] is None:
         continue
-    is_base = "BASE" in g
+    is_base = "BASE" in r["level"]
+    label = r["level"].split(" (default")[0]
+    ds = f"{r['delta_score']:+.3f}" if r["delta_score"] is not None else "n/a"
     fig5.add_trace(go.Scatter(
-        x=[row["avg_cost_usd"]], y=[row["avg_score"]], mode="markers+text",
-        text=[g.replace(" (BASE)", "").replace(" (BEST NON-MODEL)", "")],
-        textposition="top center", showlegend=False,
-        marker=dict(color=GROUP_COLORS.get(g, MUTED),
-                   size=22 if is_base else 15,
+        x=[r["cost_per_topic_usd"]], y=[r["score"]], mode="markers",
+        showlegend=False,
+        marker=dict(color=COMPONENT_COLORS.get(r["component"], MUTED),
+                   size=22 if is_base else 13,
                    symbol="star" if is_base else "circle",
                    line=dict(color="white", width=1.5)),
-        hovertemplate=f"<b>{g}</b><br>n_cells: {row['n_cells']}<br>"
-                     f"avg cost: ${row['avg_cost_usd']:.2f}<br>"
-                     f"avg score: {row['avg_score']:.3f}<extra></extra>",
+        hovertemplate=f"<b>{r['component']}: {label}</b><br>"
+                     f"$/topic: {r['cost_per_topic_usd']:.3f} "
+                     f"(marginal {r['marginal_cost_per_topic_usd']:+.3f})<br>"
+                     f"score: {r['score']:.3f} (Δ {ds})<extra></extra>",
     ))
+for comp, color in {"generator model": BLUE, "adjacent-page fetch": ORANGE,
+                    "retrieval engine set": RED, "brief-analyst model": YELLOW,
+                    "closure critic": VIOLET,
+                    "other agent_harness toggle": AQUA}.items():
+    fig5.add_trace(go.Scatter(
+        x=[None], y=[None], mode="markers", name=comp,
+        marker=dict(color=color, size=11)))
 fig5.update_layout(
     template=TEMPLATE,
-    title="Cost-effectiveness by factor group — model choice dominates both axes",
-    xaxis_title="Average cost per 15-topic cell ($, estimate -- see report caveat)",
-    yaxis_title="Average standalone rubric score (0–3)",
+    title="Component running cost vs. score — cheaper is left, better is up (hover for exact values)",
+    xaxis_title="Production running cost, $/topic (generation only, no judging — estimate, see report caveat)",
+    yaxis_title="Standalone rubric score (0–3)",
     height=650,
 )
 fig5.write_html(OUT / "fig5_cost_effectiveness.html", **HTML_KW)

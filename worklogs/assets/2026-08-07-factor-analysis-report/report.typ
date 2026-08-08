@@ -696,73 +696,110 @@ the primary tuning signal.
 
 = Cost-effectiveness
 
-Every \$ figure in this section is an *estimate*, not a metered bill: this
-repo has no real rate card for any `gpt-5.6-*` OpenAI-backend model, so a
-placeholder \$5/1M blended rate (input+output combined -- confirmed by
-reading `agent_harness.agent`'s own trajectory summary field,
-`processed_tokens`, which already sums uncached-input + cache-write +
-output into one number) is applied throughout. This likely
-*underestimates* true OpenAI-backend cost, since output tokens are usually
-priced several times higher than input. Bedrock cells (gpt-oss-120b, qwen)
-use the real metered rate-card file where one exists. Treat every \$ figure
-below as a *consistent relative proxy* for comparing factors against each
-other, not an absolute dollar amount. Real per-topic token counts were
-re-derived from this session's own captured generation logs (never
-persisted into `output.json`/`trajectory.json`); reused baseline/Block-0
-cells (§4.5, and the five pre-session luna structural cells) are costed at
-*\$0 generation* -- their generation was already paid for in an earlier,
-separately-reported thread -- but their newly-run standalone judging cost
-*does* count here.
+This section answers a different question than the Budget total in §9.
+Budget (§9) is *what this whole analysis session spent* -- generation +
+judging + design, summed once. This section is *what the deployed system
+would pay per topic, forever, if shipped with a given component turned
+on* -- generation only, judging excluded entirely, because judging is a
+one-off evaluation cost this workstream pays to find out which
+configuration is good, not something the production system pays on every
+query. That is the number that should actually drive an
+include/exclude call on any one component.
+
+Every \$ figure below is still an *estimate*, not a metered bill, for the
+same reason as before: no real rate card exists in this repo for any
+`gpt-5.6-*` OpenAI-backend model, so a placeholder \$5/1M blended rate
+(input+output combined) is applied to every OpenAI-backend cell; Bedrock
+cells (gpt-oss-120b, qwen) use the real metered rate-card file. Treat
+every \$/topic figure as a *consistent relative proxy* for comparing
+components, not an absolute dollar amount -- it is likely an
+*underestimate* since OpenAI output tokens are usually priced several
+times higher than input. Per-topic token counts are re-derived from this
+session's own captured generation logs (`processed_tokens`,
+`agent_harness.agent`'s own summed input+output field), the only
+surviving source since these values are never persisted into
+`output.json`/`trajectory.json`.
+
+Each row below is one tested component/level, held against the base
+cell's own \$1.290/topic and 2.267 score (sol, default `semantic,keyword`
+engines, all structural toggles at their default). "Marginal \$/topic" is
+that row's cost *minus* the base cell's -- negative means cheaper than
+shipping the base config, not cheaper in absolute terms.
 
 #figure(
-  image("figures/fig5_cost_effectiveness.pdf", width: 94%),
-  caption: [Average cost vs. average standalone score, by factor group (n=1-6 cells per group). #link("interactive/fig5_cost_effectiveness.html")[#text(fill: accent)[Interactive version →]]],
+  image("figures/fig5_cost_effectiveness.pdf", width: 92%),
+  caption: [Production running cost (\$/topic, generation only, no judging) vs. standalone score, one point per tested component/level. #link("interactive/fig5_cost_effectiveness.html")[#text(fill: accent)[Interactive version →]] (hover for exact marginal-\$ and Δ-score per point).],
 ) <fig-cost>
 
 #figure(
-  text(size: 8.6pt)[#table(
-    columns: (4.2cm, 1.5cm, 2.2cm, 2.3cm, 5.3cm),
-    align: (left, center, right, right, left),
+  text(size: 7.2pt)[#table(
+    columns: (3.1cm, 3.6cm, 1.5cm, 1.6cm, 1.3cm, 1.3cm),
+    align: (left, left, right, right, right, right),
     stroke: 0.4pt + rgb("#d8d7d0"),
-    inset: 5pt,
-    table.header([*Factor group*], [*n cells*], [*Avg cost*], [*Avg score*], [*Reading*]),
-    [Generator model (M1)], [4], [\$8.20], [1.583], [Cheapest AND worst on average -- dominated by gpt-oss-120b/qwen, which are individually cheap but score poorly (§4.1)],
-    [*Generator model (BASE, sol)*], [1], [*\$21.61*], [*2.267*], [*Best score in the report, mid-pack cost -- the actual efficient point, not the group average*],
-    [Adjacent-page fetch off (S5)], [2], [\$9.94], [1.733], [Cheap because dominated by the low-cost qwen cell; real per-model effect is negative regardless of cost (§4.2)],
-    [Search engine, single (S6)], [3], [\$18.06], [2.267], [Keyword/semantic alone: same cost tier as harness toggles, no gain],
-    [*Search engine, `hybrid` alone*], [1], [*\$16.93*], [*2.333*], [*Cheapest-and-best-scoring non-model cell in the entire report -- the one lead worth replicating (§4.6)*],
-    [Generic `agent_harness` toggles (S9--S12)], [6], [\$19.39], [2.200], [Consistently costs as much as the model factor for a fraction of the effect],
-    [Brief-analyst model swap (M2)], [3], [\$20.22], [2.200], [Same cost tier as generic toggles, same null result],
-    [Closure critic (S4 ext.)], [1], [\$16.41], [2.267], [No effect, ordinary cost -- a genuinely new mechanism bought nothing here],
-    [Ensemble (3 fresh candidates)], [3], [\$19.13], [2.267], [Generation-only cost; the selector call itself is a separate, cheap line below],
-    [Ensemble selector (best-of-4)], [1], [\$6.75], [2.267], [Cheap (one selector call/topic + judging) but ties the ensemble candidates' own average -- no selection value added (§4.7)],
-    [Replication (3 cells)], [3], [\$20.95], [2.089], [Confirms model direction; costs as much as a fresh factor test],
-    [Baselines, reused (aus\_agent\_v2/aus\_agent/facets\_agent)], [3], [\$2.25], [2.022], [\$0 generation (reused); judging-only cost is the cheapest line in the table by construction],
+    inset: 4.2pt,
+    table.header([*Component*], [*Level*], [*\$/topic*], [*Marginal \$*], [*Score*], [*Δ score*]),
+    [*Generator model*], [*sol (BASE)*], [*1.290*], [*+0.000*], [*2.267*], [*+0.000*],
+    [Generator model], [terra], [0.563], [-0.727], [1.867], [-0.400],
+    [Generator model], [gpt-oss-120b], [0.393], [-0.897], [1.200], [-1.067],
+    [Generator model], [qwen], [0.113], [-1.177], [1.400], [-0.867],
+    [Generator model], [luna], [0.552], [-0.739], [1.867], [-0.400],
+    [Adjacent-page fetch], [OFF (default ON)], [0.950], [-0.340], [2.200], [-0.067],
+    [Search preview chars], [20480-char cap (default: full)], [1.245], [-0.046], [2.133], [-0.133],
+    [Stage search results], [OFF (default ON)], [1.287], [-0.003], [2.200], [-0.067],
+    [Judge-relevance tool], [ON (default OFF)], [1.064], [-0.226], [2.200], [-0.067],
+    [Commit-release], [ON (default OFF)], [1.207], [-0.084], [2.267], [+0.000],
+    [Retrieval engine set], [+ssr+lucene\_bool], [0.917], [-0.373], [2.133], [-0.133],
+    [Judge-rel. + commit-rel.], [both ON], [1.136], [-0.154], [2.267], [+0.000],
+    [Closure critic], [ON (default OFF)], [0.944], [-0.347], [2.267], [+0.000],
+    [Brief-analyst model], [terra (default luna)], [1.161], [-0.130], [2.200], [-0.067],
+    [Brief-analyst model], [gpt-oss-120b (default luna)], [1.153], [-0.138], [2.200], [-0.067],
+    [Brief-analyst model], [qwen (default luna)], [1.279], [-0.011], [2.200], [-0.067],
+    [Retrieval engine set], [keyword only], [1.128], [-0.163], [2.267], [+0.000],
+    [Retrieval engine set], [semantic only], [1.140], [-0.151], [2.267], [+0.000],
+    [*Retrieval engine set*], [*hybrid only*], [*0.978*], [*-0.312*], [*2.333*], [*+0.067*],
+    [Retrieval engine set], [hybrid+HyDE only], [0.896], [-0.395], [2.267], [+0.000],
   )],
-  caption: [Cost-effectiveness by factor group. "Avg cost" = mean of (generation + judging) per cell in the group, all 15-topic cells unless noted. Bold rows are the two standout points in @fig-cost.],
+  caption: [Production running cost per tested component/level, generation only, judging excluded. All rows compare against the base cell's own \$1.290/topic, 2.267 score. Bold rows: base and the one cell that is both cheaper and better.],
 ) <tab-costeffect>
 
-Three things this table shows that the effect-size table (@tab-moves in
-§4.2) alone does not:
+Four things this table supports that the effect-size table (@tab-moves in
+§4.2) alone does not -- an actual per-component include/exclude call:
 
-+ *Every non-model factor costs roughly the same to test* (\$16--21/cell,
-  regardless of what the factor actually is) *while moving the score by an
-  order of magnitude less* than the model factor. The generic-harness row,
-  the brief-analyst row, and the replication row are all within \$2 of the
-  base cell's own generation cost -- none of them was cheap to rule out.
-+ *The base cell (sol) is not the cheapest generator-model option, but it
-  is the only one that is both cheap enough to run at this scale and the
-  best-scoring.* The `generator_model` group AVERAGE looks cheap (\$8.20)
-  only because gpt-oss-120b and qwen are individually far cheaper *and*
-  far worse (§4.1) -- averaging them with sol's own \$21.61 obscures that
-  sol is the actual efficient point on the frontier, not a below-average
-  one.
-+ *`hybrid` alone (§4.6) is the standout: cheaper than the base cell's own
-  generation cost AND the only cell to nominally beat it.* Independently REPLICATED on a fresh 15-topic set at the identical score
-  (2.333, §4.6) -- not noise. It is the one lead in this entire
-  cost-effectiveness table that is simultaneously *cheaper and better*
-  than the status quo, which none of the eleven rejected hill-climb moves
-  were, and it is now confirmed rather than marginal.
++ *`hybrid`-alone is the only component in this entire table that is both
+  cheaper AND scores higher than the base config on standalone* --
+  \$0.978/topic (24% cheaper than base) and +0.067 score, replicated on a
+  second topic set (§4.6). On running cost alone this is a clean win to
+  ship. *It is not a clean win overall* -- §5.2 arena-confirmed it loses
+  to the base cell's own arena result, so cost-effectiveness and
+  arena-effectiveness disagree here exactly as badly as standalone and
+  arena disagreed for it in the first place. Cost data does not resolve
+  that disagreement; it just makes plain that the standalone-only case
+  for `hybrid`-alone was already strong before arena reversed it.
++ *Running both `semantic` and `keyword` engines together (the current
+  default) is the single most expensive retrieval-engine option and buys
+  nothing on standalone over running either one alone.* Every
+  single-engine variant (keyword-only, semantic-only, hybrid-only,
+  hybrid+HyDE-only) costs \$0.15--0.39/topic less than the two-engine
+  default, and three of the four tie or beat its score. Fewer engine
+  calls per topic is fewer search-tool round-trips to pay for -- the
+  option matters as much as which engine is chosen (`+ssr+lucene_bool`
+  actually costs *less* than the default too, likely because a richer
+  tool set let the agent close out topics in fewer total steps rather
+  than because the tools themselves are free -- worth confirming before
+  reading too much into engine-count savings generally).
++ *gpt-oss-120b and qwen cost 70--91% less per topic than sol but lose
+  0.87--1.07 points of standalone score* -- a real, quantified
+  cost/quality tradeoff, not a wash. Include one of them only under an
+  explicit hard budget constraint, and expect the quality hit that comes
+  with it; nothing in this table makes that trade free.
++ *Every structural/harness toggle (adjacent-page fetch, search-preview
+  capping, staged search results, judge-relevance tool, commit-release,
+  closure critic) moves both cost and score by less than \$0.4/topic and
+  0.13 points -- inside the noise this 15-topic-per-cell sample can
+  resolve.* None of them is a cost lever worth pulling either way; keep
+  them at whatever setting other considerations (latency, robustness,
+  §4.2's own qualitative read) already favor, since cost is not the
+  deciding factor for any of them.
 
 = Recommendation
 

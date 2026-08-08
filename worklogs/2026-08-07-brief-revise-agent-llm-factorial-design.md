@@ -1012,3 +1012,74 @@ zero additional cost since it already has real generated output). Still
 excludes the 4 zero-output systems -- hedging a known unknown
 (evaluation method) is not the same as submitting a system with zero
 evidence behind it at all.
+
+## 29. Cost analysis reframed: production running cost, not testing cost
+
+User wants the §7 cost analysis to answer a different question than it
+was answering: not "what did it cost to test this factor across a
+15-topic batch" (the old framing, which folded in judging overhead and
+group-averaged cells together) but "what would it cost the *deployed*
+system to run this component, per topic, forever" -- the number that
+should actually drive include/exclude calls per component.
+
+Rewrote `cost_analysis.py` from scratch: dropped all judging-cost logic
+(judging is a one-off evaluation expense, not something production pays
+per query), dropped the group-average table (`generator_model`,
+`generic_harness`, etc.) in favor of one row per tested component/level,
+each carrying its own \$/topic (generation only) and marginal \$/topic
+against the base cell's own \$1.290/topic. Re-derives real per-topic
+`processed_tokens` from the same tee'd stdout logs as before (still the
+only surviving source -- never persisted to `output.json`).
+
+New finding the per-component framing surfaces that the old group-average
+table hid: **every single-engine retrieval variant is cheaper than the
+current two-engine (`semantic,keyword`) default**, not just `hybrid`-
+alone. Keyword-only, semantic-only, and hybrid+HyDE-only all cost
+\$0.15--0.40/topic less than the default and tie its score; `hybrid`-alone
+is the standout, \$0.978/topic (24% cheaper than base) *and* +0.067
+score. Running two engines per query is paying for extra search-tool
+round-trips that standalone score doesn't reward. (Caveat needing a
+follow-up look: `+ssr+lucene_bool` -- strictly *more* tools -- also came
+out cheaper than the default, most likely because a richer tool set let
+the agent close topics in fewer total steps rather than because tool
+count itself is free. Not chased further this round.)
+
+Quantified the model-swap tradeoff precisely for the first time:
+gpt-oss-120b and qwen cost 70--91% less per topic than sol but lose
+0.87--1.07 points of standalone score -- a real cost/quality trade, not a
+wash, worth stating for anyone considering them under a hard budget cap.
+Every structural/harness toggle (adjacent-page fetch, preview capping,
+staged search results, judge-relevance tool, commit-release, closure
+critic) moves both cost and score by under \$0.4/topic and 0.13 points --
+inside this 15-topic-per-cell sample's noise floor, so none of them is a
+cost lever worth pulling either direction.
+
+Note: `hybrid`-alone's cost-effectiveness win does **not** reopen §25/§26's
+arena reversal -- it is still arena-confirmed worse than the base cell in
+head-to-head competition. Cost data doesn't resolve that disagreement, it
+just confirms the standalone-only case for `hybrid`-alone was genuinely
+strong on its own terms before arena overturned it.
+
+Also rewrote `make_figures.py`'s fig5 (static PDF) and
+`make_interactive.py`'s fig5 (HTML/Plotly) to match the new per-row
+schema. The static chart's first pass direct-labeled all 19 points and
+collided badly in the crowded near-base cluster; fixed by direct-labeling
+only the 5 generator_model points + the `hybrid`-alone standout (the
+widely-separated, individually-interesting points) and leaving the 14
+tightly-clustered structural/harness cells as unlabeled colored dots with
+a family-color legend + a text callout noting their cluster bounds --
+their exact values are in the accompanying table (`report.typ`
+@tab-costeffect) anyway. The interactive version keeps all 19 points
+individually hoverable (exact \$/topic, marginal \$, score, Δ score per
+point), so nothing is actually lost, just not all directly labeled in the
+static PDF.
+
+Rewrote `report.typ` §7 entirely around this framing: explicit intro
+paragraph distinguishing this section's per-topic running-cost question
+from §9 Budget's per-session testing-cost total (so the two \$ figures
+elsewhere in the report don't get conflated), a new 19-row table
+(component, level, \$/topic, marginal \$/topic, score, Δ score), and four
+numbered takeaways ending in explicit include/exclude language per
+component family. §8 Recommendation's own text didn't need changing --
+it only referenced §7 generically ("roughly order-of-magnitude-higher
+cost"), no stale dollar figures to reconcile.
