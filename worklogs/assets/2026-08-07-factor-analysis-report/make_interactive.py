@@ -75,6 +75,11 @@ cells = [
     ("qwen + round B", "br-model-main-qwen-exp15-b1"),
     ("qwen, adjacent-fetch OFF", "br-divergent-anchor-qwen-adj0-k10-exp15"),
     ("gpt-oss-120b + round B", "br-model-main-oss120b-exp15-b1"),
+    ("sol + engine=hybrid (best non-model)", "br-enginesweep-hybrid-exp15"),
+    ("sol + engine=keyword", "br-enginesweep-keyword-exp15"),
+    ("sol + engine=semantic", "br-enginesweep-semantic-exp15"),
+    ("sol + engine=hybrid+HyDE", "br-enginesweep-hyde-exp15"),
+    ("sol + best-of-4 ensemble", "br-ensemble-bestof4-exp15"),
 ]
 vals = [(label, rid, score(rid)["overall_mean"]) for label, rid in cells]
 vals.sort(key=lambda x: x[2])
@@ -126,6 +131,15 @@ groups = [
     ]),
     ("Closure critic (sol)", VIOLET, [
         ("overclaim + contradiction check", score("br-hillclimb-sol-closurecritic-exp15")["overall_mean"] - BASE),
+    ]),
+    ("Search engine (sol, single-engine)", RED, [
+        ("hybrid alone", score("br-enginesweep-hybrid-exp15")["overall_mean"] - BASE),
+        ("keyword alone", score("br-enginesweep-keyword-exp15")["overall_mean"] - BASE),
+        ("semantic alone", score("br-enginesweep-semantic-exp15")["overall_mean"] - BASE),
+        ("hybrid + HyDE query style", score("br-enginesweep-hyde-exp15")["overall_mean"] - BASE),
+    ]),
+    ("Ensemble (sol)", GREEN, [
+        ("best-of-4 selector", score("br-ensemble-bestof4-exp15")["overall_mean"] - BASE),
     ]),
 ]
 rows = []
@@ -212,6 +226,45 @@ fig4.update_layout(
     yaxis=dict(visible=False), xaxis=dict(visible=False),
 )
 fig4.write_html(OUT / "fig4_arena.html", **HTML_KW)
+
+# ---------------------------------------------------------------------------
+# Figure 5: cost-effectiveness scatter, hover shows n_cells + exact $/score.
+# ---------------------------------------------------------------------------
+cost_data = json.loads((Path(__file__).resolve().parent / "cost_by_run.json").read_text())
+gs = cost_data["group_summary"]
+GROUP_COLORS = {
+    "generator_model": BLUE, "generator_model (BASE)": BLUE,
+    "adjacent_fetch": ORANGE, "generic_harness": AQUA,
+    "brief_analyst_model": YELLOW, "closure_critic": VIOLET,
+    "replication": MUTED, "ensemble": GREEN, "ensemble_selector": GREEN,
+    "search_engine": RED, "search_engine (BEST NON-MODEL)": RED,
+    "block0_reused": MUTED, "baseline_reused": MUTED,
+}
+fig5 = go.Figure()
+for g, row in gs.items():
+    if row["avg_score"] is None:
+        continue
+    is_base = "BASE" in g
+    fig5.add_trace(go.Scatter(
+        x=[row["avg_cost_usd"]], y=[row["avg_score"]], mode="markers+text",
+        text=[g.replace(" (BASE)", "").replace(" (BEST NON-MODEL)", "")],
+        textposition="top center", showlegend=False,
+        marker=dict(color=GROUP_COLORS.get(g, MUTED),
+                   size=22 if is_base else 15,
+                   symbol="star" if is_base else "circle",
+                   line=dict(color="white", width=1.5)),
+        hovertemplate=f"<b>{g}</b><br>n_cells: {row['n_cells']}<br>"
+                     f"avg cost: ${row['avg_cost_usd']:.2f}<br>"
+                     f"avg score: {row['avg_score']:.3f}<extra></extra>",
+    ))
+fig5.update_layout(
+    template=TEMPLATE,
+    title="Cost-effectiveness by factor group — model choice dominates both axes",
+    xaxis_title="Average cost per 15-topic cell ($, estimate -- see report caveat)",
+    yaxis_title="Average standalone rubric score (0–3)",
+    height=650,
+)
+fig5.write_html(OUT / "fig5_cost_effectiveness.html", **HTML_KW)
 
 print("wrote interactive figures to", OUT)
 for p in sorted(OUT.glob("*.html")):

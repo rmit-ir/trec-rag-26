@@ -25,6 +25,7 @@ import argparse
 import glob
 import hashlib
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -106,6 +107,18 @@ def load_topics(path: Path) -> list[tuple[str, str]]:
     return rows
 
 
+def _repair_unclosed_assessments(raw: str) -> str:
+    """The dominant real-world parse failure (worklog section 20's ~80%
+    fallback-rate investigation): the model consistently forgets the `}`
+    that closes ``assessments`` before adding ``"winner"``, nesting
+    ``winner`` INSIDE ``assessments`` and leaving the outer object
+    unclosed -- deterministic and free to fix locally (insert the missing
+    brace) rather than spending a repair-retry API call on every
+    occurrence. A no-op (returns ``raw`` unchanged) if the pattern isn't
+    present, so it's always safe to try first."""
+    return re.sub(r'(?<!\})\s*,\s*"winner"', '},"winner"', raw, count=1)
+
+
 def find_output(run_id: str, qid: str) -> tuple[Path, dict] | None:
     for path in glob.glob(str(SYSTEM_DIR / "*.output.json")):
         obj = json.loads(Path(path).read_text(encoding="utf-8"))
@@ -184,7 +197,11 @@ def main() -> int:
                 try:
                     raw = one_shot(api_provider(api, args.selector_model),
                                    SELECTOR_SYSTEM, attempt_prompt)
-                    payload = json.loads(strip_fences(raw))
+                    cleaned = strip_fences(raw)
+                    try:
+                        payload = json.loads(cleaned)
+                    except json.JSONDecodeError:
+                        payload = json.loads(_repair_unclosed_assessments(cleaned))
                     label = str(payload.get("winner", "")).strip().upper()
                     if label in rid_by_label:
                         winner_label = label

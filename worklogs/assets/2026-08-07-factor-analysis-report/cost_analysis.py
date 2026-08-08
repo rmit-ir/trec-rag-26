@@ -77,7 +77,7 @@ NEW_CELLS: dict[str, str] = {
     "br-ensemble-candD-exp15": "ensemble",
     "br-enginesweep-keyword-exp15": "search_engine",
     "br-enginesweep-semantic-exp15": "search_engine",
-    "br-enginesweep-hybrid-exp15": "search_engine",
+    "br-enginesweep-hybrid-exp15": "search_engine (BEST NON-MODEL)",
     "br-enginesweep-hyde-exp15": "search_engine",
 }
 # run_id -> (system_dir, label) for cells whose GENERATION predates/is

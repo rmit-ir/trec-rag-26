@@ -84,6 +84,11 @@ cells = [
     ("qwen + round B", "br-model-main-qwen-exp15-b1"),
     ("qwen, adjacent-fetch OFF", "br-divergent-anchor-qwen-adj0-k10-exp15"),
     ("gpt-oss-120b + round B", "br-model-main-oss120b-exp15-b1"),
+    ("sol + engine=hybrid (best non-model)", "br-enginesweep-hybrid-exp15"),
+    ("sol + engine=keyword", "br-enginesweep-keyword-exp15"),
+    ("sol + engine=semantic", "br-enginesweep-semantic-exp15"),
+    ("sol + engine=hybrid+HyDE", "br-enginesweep-hyde-exp15"),
+    ("sol + best-of-4 ensemble", "br-ensemble-bestof4-exp15"),
 ]
 vals = [(label, score(rid)["overall_mean"]) for label, rid in cells]
 vals.sort(key=lambda x: x[1])
@@ -140,6 +145,15 @@ groups = [
     ]),
     ("Closure critic (sol)", VIOLET, [
         ("overclaim + contradiction check", score("br-hillclimb-sol-closurecritic-exp15")["overall_mean"] - BASE),
+    ]),
+    ("Search engine (sol, single-engine)", RED, [
+        ("hybrid alone", score("br-enginesweep-hybrid-exp15")["overall_mean"] - BASE),
+        ("keyword alone", score("br-enginesweep-keyword-exp15")["overall_mean"] - BASE),
+        ("semantic alone", score("br-enginesweep-semantic-exp15")["overall_mean"] - BASE),
+        ("hybrid + HyDE query style", score("br-enginesweep-hyde-exp15")["overall_mean"] - BASE),
+    ]),
+    ("Ensemble (sol)", GREEN, [
+        ("best-of-4 selector", score("br-ensemble-bestof4-exp15")["overall_mean"] - BASE),
     ]),
 ]
 
@@ -253,6 +267,65 @@ ax.legend(handles, ["brief_revise_agent wins (4)", "ambiguous (4)",
          fontsize=9)
 fig.tight_layout()
 fig.savefig(OUT / "fig4_arena.pdf")
+plt.close(fig)
+
+
+# ---------------------------------------------------------------------------
+# Figure 5: cost-effectiveness -- avg cost vs avg standalone score, one
+# point per factor group (cost_analysis.py's rollup). Form: scatter
+# (magnitude x magnitude, two measures of different scale -> NOT a
+# dual-axis chart, a genuine 2D scatter is the correct form here),
+# categorical color per group family, base cell emphasized.
+# ---------------------------------------------------------------------------
+cost_data = json.loads((Path(__file__).resolve().parent / "cost_by_run.json").read_text())
+gs = cost_data["group_summary"]
+base_cost = gs["generator_model (BASE)"]["avg_cost_usd"]
+base_score = gs["generator_model (BASE)"]["avg_score"]
+
+GROUP_COLORS = {
+    "generator_model": BLUE, "generator_model (BASE)": BLUE,
+    "adjacent_fetch": ORANGE, "generic_harness": AQUA,
+    "brief_analyst_model": YELLOW, "closure_critic": VIOLET,
+    "replication": MUTED, "ensemble": GREEN, "ensemble_selector": GREEN,
+    "search_engine": RED, "search_engine (BEST NON-MODEL)": RED,
+    "block0_reused": MUTED, "baseline_reused": MUTED,
+}
+
+fig, ax = plt.subplots(figsize=(9.5, 7.2))
+ax.axhline(base_score, color=GRID, linewidth=1, zorder=1)
+ax.axvline(base_cost, color=GRID, linewidth=1, zorder=1)
+
+scored = [(g, row) for g, row in gs.items() if row["avg_score"] is not None]
+scored.sort(key=lambda gr: gr[1]["avg_cost_usd"])
+# Deterministic zigzag stagger, growing offset for the crowded 16-21 cost
+# cluster (6 points within 0.13 score units of each other) -- direct
+# labels are mandatory at this series count, but a fixed (8,6) offset
+# collides badly there, so alternate up/down with growing magnitude and a
+# thin leader line for anything past the first ring.
+OFFSETS = [(10, 8), (10, -14), (10, 24), (10, -30), (10, 40), (10, -46),
+          (10, 56), (10, -62), (-70, 8), (-70, -14), (-70, 24), (-70, -30),
+          (-90, 40)]
+for i, (g, row) in enumerate(scored):
+    color = GROUP_COLORS.get(g, MUTED)
+    is_base = "BASE" in g
+    x, y = row["avg_cost_usd"], row["avg_score"]
+    ax.scatter([x], [y], s=190 if is_base else 120,
+              color=color, edgecolor="white", linewidth=1.2,
+              zorder=4 if is_base else 3, marker="*" if is_base else "o")
+    label = g.replace(" (BASE)", "").replace(" (BEST NON-MODEL)", " (best non-model)")
+    dx, dy = OFFSETS[i % len(OFFSETS)]
+    ax.annotate(label, (x, y), textcoords="offset points", xytext=(dx, dy),
+               fontsize=8.5, color=TEXT, zorder=5,
+               arrowprops=dict(arrowstyle="-", color=MUTED, linewidth=0.6,
+                               shrinkA=4, shrinkB=4))
+ax.set_xlabel("Average cost per 15-topic cell, this factor group ($, estimate -- see report caveat)")
+ax.set_ylabel("Average standalone rubric score (0–3)")
+ax.set_title("Cost-effectiveness by factor group — model choice dominates "
+            "both axes", fontsize=12.3, color=TEXT, loc="left", pad=12)
+ax.set_ylim(1.35, 2.55)
+ax.set_xlim(-2, 26)
+fig.tight_layout()
+fig.savefig(OUT / "fig5_cost_effectiveness.pdf")
 plt.close(fig)
 
 print("wrote figures to", OUT)
