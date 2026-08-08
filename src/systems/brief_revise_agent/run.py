@@ -210,6 +210,14 @@ def main() -> None:
              "so the model may spend a side call checking whether a batch "
              "supports a named requirement. Default: not advertised.")
     ap.add_argument(
+        "--closure-critic", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_CLOSURE_CRITIC", False),
+        help="hill-climb (worklogs section 12): widen the existing review "
+             "pass's issue taxonomy with UNSUPPORTED_CLAIM (overclaim vs "
+             "cited evidence) and CONTRADICTION, checked in the SAME single "
+             "pre_final_hook call (not a second scout/plan/verify stage). "
+             "Default: off (existing UNCITED_CLAIM/WEAK_SENTENCE only).")
+    ap.add_argument(
         "--commit-release", action="store_true",
         default=env("RUN_BRIEF_REVISE_AGENT_COMMIT_RELEASE", False),
         help="factorial-analysis factor S12: advertise `release` on "
@@ -267,6 +275,8 @@ def main() -> None:
                 run_kwargs["judge_tool"] = JUDGE_RELEVANCE_TOOL
             if args.commit_release:
                 run_kwargs["commit_context_tool"] = COMMIT_CONTEXT_TOOL_WITH_RELEASE
+            if args.closure_critic:
+                run_kwargs["closure_check"] = True
             summary = run_agent(qid, query, backend=args.backend,
                                 model=args.model, k=args.k,
                                 context_token_budget=args.context_token_budget,

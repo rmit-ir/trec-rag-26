@@ -178,6 +178,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               search_result_augment: Any = adjacent_pages.augment,
               brief_backend: str | None = None, brief_model: str | None = None,
               brief_region: str | None = None,
+              closure_check: bool = False,
               review_backend: str | None = None, review_model: str | None = None,
               review_region: str | None = None,
               **kwargs: Any) -> dict[str, Any]:
@@ -240,6 +241,7 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
 
         def active_hook(context: dict[str, Any]) -> str | None:
             return review.hook(context, requirements=requirements,
+                               closure_check=closure_check,
                                provider=reviewer_provider)
     else:
         active_hook = pre_final_hook

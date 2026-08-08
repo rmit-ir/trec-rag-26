@@ -146,6 +146,41 @@ def test_review_hook_names_a_partial_requirement_and_forbids_touching_full_ones(
     assert "PATCH" in feedback and "FULL" in feedback
 
 
+def test_review_hook_closure_check_off_drops_unsupported_claim_type() -> None:
+    """Default behaviour (``closure_check=False``): an issue naming the
+    NEW ``UNSUPPORTED_CLAIM`` type must be dropped by ``_parse_review``'s
+    type-set gate exactly like any other unrecognized type -- proves the
+    closure-critic taxonomy is fully opt-in, not silently on."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "A fully supported claim.", "citations": [D[0]]}]}
+    provider = ScriptedProvider([model_turn(text=json.dumps({
+        "requirements": [], "issues": [
+            {"type": "UNSUPPORTED_CLAIM", "target": "1",
+             "problem": "overclaims the evidence", "fix": "narrow the claim"}]}))])
+    assert review.hook(context, requirements=[], provider=provider) is None
+
+
+def test_review_hook_closure_check_on_flags_unsupported_claim_and_contradiction() -> None:
+    """``closure_check=True`` (hill-climb, worklogs section 12): both new
+    issue types reach the rendered feedback in the SAME single hook call --
+    no second reviewer turn, same one-bounded-revision contract."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "Ridership tripled overnight.", "citations": [D[0]]},
+        {"text": "Ridership fell slightly.", "citations": [D[1]]},
+    ]}
+    provider = ScriptedProvider([model_turn(text=json.dumps({
+        "requirements": [], "issues": [
+            {"type": "UNSUPPORTED_CLAIM", "target": "1",
+             "problem": "evidence does not say 'tripled'", "fix": "cite the real figure"},
+            {"type": "CONTRADICTION", "target": "1, 2",
+             "problem": "tripled vs fell slightly", "fix": "reconcile with the evidence"},
+        ]}))])
+    feedback = review.hook(context, requirements=[], provider=provider,
+                           closure_check=True)
+    assert feedback is not None
+    assert "UNSUPPORTED_CLAIM" in feedback and "CONTRADICTION" in feedback
+
+
 def test_review_hook_accepts_the_draft_when_the_reviewer_call_raises() -> None:
     """PLAN.md §3.3 step 4's blanket guard: an exception anywhere in the
     reviewer call must degrade to accepting the draft, even when the

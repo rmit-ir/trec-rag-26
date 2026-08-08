@@ -146,4 +146,81 @@ requirement...], "issues": [{{"type": "UNCITED_CLAIM or WEAK_SENTENCE", \
 "fix": "<the substitution>"}}]}}
 """
 
-__all__ = ["APPENDIX_TEMPLATE", "BRIEF_PROMPT", "ENTRY_TEMPLATE", "REVIEW_PROMPT"]
+# Closure-critic variant (hill-climb, worklogs/2026-08-07-brief-revise-agent-
+# llm-factorial-design.md section 12): same review pass, plus two issue
+# types review.py's own docstring flagged as NOT built -- overclaim/
+# entailment (a citation that does not actually say what the sentence
+# claims) and internal contradiction. Deliberately NOT a second scout/plan/
+# verify pipeline (sol's explicit constraint) -- same single hook, same one
+# bounded revision, just a wider issue taxonomy checked in the one pass the
+# harness allows (pre_final_hook fires at most once).
+REVIEW_PROMPT_WITH_CLOSURE = """You are reviewing a draft research report before it is \
+submitted to its reader. You do not rewrite the report yourself -- you \
+grade the draft against EVERY requirement in the brief, one by one, and \
+flag citation and evidence problems, so the writer can PATCH the draft in \
+one more pass rather than rewrite it.
+
+RESEARCH REQUEST:
+{narrative}
+
+REQUIREMENTS BRIEF:
+{brief}
+
+DRAFT (one sentence per line, numbered, citations shown in brackets):
+{draft}
+
+SENTENCES WITH NO CITATION (found automatically by a deterministic scan, listed \
+by number):
+{uncited}
+
+COMMITTED EVIDENCE ALREADY AVAILABLE (already retrieved and held by the writer -- \
+point the writer at one of these ids rather than asking for a new search when an \
+existing one would resolve the gap; this is also what each citation's evidence \
+must actually say):
+{evidence}
+
+Current length: {word_count} words. Hard maximum: {max_words} words.
+
+First, grade EVERY requirement in the brief -- do not skip any, even ones \
+that look fine:
+- FULL: the draft states it in the specific form the brief names (a named \
+mechanism, number, or entity), not a category label, and it is cited.
+- PARTIAL: the draft mentions the topic but stays at a category label, or \
+covers only part of what the requirement asks.
+- MISSING: the draft does not address it at all.
+For PARTIAL or MISSING, name the missing specific in one phrase (a term, a \
+number, a name -- something the writer can go add) and check the evidence \
+inventory above first: if it already contains something that would resolve \
+the gap, say so by id instead of asking for a new search.
+
+Second, list AT MOST 4 additional issues not already covered by a \
+requirement grade, each ONE of:
+- UNCITED_CLAIM: a factual sentence (name its number) with no citation that \
+the evidence inventory above could support.
+- WEAK_SENTENCE: a sentence too vague or hedged to earn credit, that a \
+specific fact already in the evidence above would fix.
+- UNSUPPORTED_CLAIM: a cited sentence that claims MORE than its cited \
+evidence actually states (a number, scope, or causal claim the evidence \
+text does not contain) -- an overclaim, not a missing citation.
+- CONTRADICTION: two sentences in the draft that cannot both be true, or a \
+sentence that contradicts its own cited evidence text.
+
+This is a PATCH, not a rewrite: the fix for each PARTIAL/MISSING requirement \
+or issue must be a SUBSTITUTION naming what to cut to make room, since the \
+draft is already close to the {max_words}-word cap. Never suggest cutting or \
+touching a sentence that supports a requirement already graded FULL -- that \
+content stays exactly as written. Do not invent a requirement grade or issue \
+you cannot name a concrete fix for.
+
+Return ONLY a JSON object of this exact shape (no prose, no code fences):
+{{"requirements": [{{"id": "<id from the brief>", "status": "FULL, PARTIAL, \
+or MISSING", "missing_specific": "<the specific term/number/name still \
+needed, or empty string if FULL>", "fix": "<the substitution: what to cut \
+to make room for what, or empty string if FULL>"}}, ...one entry per brief \
+requirement...], "issues": [{{"type": "UNCITED_CLAIM, WEAK_SENTENCE, \
+UNSUPPORTED_CLAIM, or CONTRADICTION", "target": "<sentence number>", \
+"problem": "<what is wrong, briefly>", "fix": "<the substitution>"}}]}}
+"""
+
+__all__ = ["APPENDIX_TEMPLATE", "BRIEF_PROMPT", "ENTRY_TEMPLATE", "REVIEW_PROMPT",
+          "REVIEW_PROMPT_WITH_CLOSURE"]

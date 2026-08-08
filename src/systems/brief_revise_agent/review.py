@@ -50,12 +50,17 @@ from facet_rag.llm import one_shot, strip_fences
 from agent_harness.agent import MAX_REPORT_WORDS
 
 from .brief import Requirement
-from .prompts import REVIEW_PROMPT
+from .prompts import REVIEW_PROMPT, REVIEW_PROMPT_WITH_CLOSURE
 
 log = logging.getLogger(__name__)
 
 MAX_ISSUES = 4
 ISSUE_TYPES = frozenset({"UNCITED_CLAIM", "WEAK_SENTENCE"})
+# closure-critic hill-climb (worklogs section 12): overclaim/entailment +
+# contradiction, checked in the SAME single review pass -- the harness's
+# pre_final_hook fires at most once, so this widens the existing hook's
+# issue taxonomy rather than adding a second scout/plan/verify stage.
+CLOSURE_ISSUE_TYPES = frozenset({"UNSUPPORTED_CLAIM", "CONTRADICTION"})
 REQ_STATUSES = frozenset({"FULL", "PARTIAL", "MISSING"})
 # How much of a committed document's text to quote back to the reviewer --
 # enough to judge relevance, not the full ~4K-token staged budget.
@@ -138,7 +143,7 @@ def _clean_field(value: Any, max_len: int = 500) -> str:
     return value.strip()[:max_len]
 
 
-def _parse_review(raw: str, valid_ids: set[str]
+def _parse_review(raw: str, valid_ids: set[str], issue_types: frozenset[str]
                   ) -> tuple[list[dict[str, str]], list[dict[str, str]], bool]:
     """Parse the reviewer's JSON into ``(requirement_grades, issues, parsed_ok)``.
 
@@ -185,7 +190,7 @@ def _parse_review(raw: str, valid_ids: set[str]
             continue
         issue_type = _clean_field(row.get("type"), max_len=40).upper()
         fix = _clean_field(row.get("fix"))
-        if issue_type not in ISSUE_TYPES or not fix:
+        if issue_type not in issue_types or not fix:
             continue
         issues.append({
             "type": issue_type,
@@ -237,12 +242,17 @@ def _render_feedback(grades: list[dict[str, str]],
 
 def hook(context: dict[str, Any], *,
         requirements: list[Requirement] = (),  # type: ignore[assignment]
-        provider: Any = None) -> str | None:
+        provider: Any = None, closure_check: bool = False) -> str | None:
     """``pre_final_hook``: ``None`` accepts the draft; a string sends the
     model back once. ``requirements`` and ``provider`` are supplied by
     ``agent.run_agent`` via a closure (the harness calls this with a single
     positional ``context`` dict, so both must already be bound by the time
     the harness invokes it) -- see that module for the wiring.
+
+    ``closure_check`` (hill-climb, worklogs section 12): when ``True``,
+    also checks for overclaim/entailment and internal contradiction in the
+    SAME single pass (``REVIEW_PROMPT_WITH_CLOSURE``, ``CLOSURE_ISSUE_TYPES``)
+    -- not a second hook, since ``pre_final_hook`` fires at most once.
 
     Never raises: PLAN.md §3.3 step 4's blanket guard, because a review
     failure must degrade to plain aus_agent behaviour (accept the draft), not
@@ -259,7 +269,9 @@ def hook(context: dict[str, Any], *,
 
         req_list = list(requirements)
         valid_ids = {r.id for r in req_list}
-        prompt = REVIEW_PROMPT.format(
+        issue_types = ISSUE_TYPES | CLOSURE_ISSUE_TYPES if closure_check else ISSUE_TYPES
+        template = REVIEW_PROMPT_WITH_CLOSURE if closure_check else REVIEW_PROMPT
+        prompt = template.format(
             narrative=context.get("query", ""),
             brief=_render_brief(req_list),
             draft=_render_draft(sentences),
@@ -270,7 +282,7 @@ def hook(context: dict[str, Any], *,
         )
         raw = one_shot(provider, "", prompt)
         log.info("review.hook: usage=%s", getattr(provider, "_last_usage", None))
-        grades, issues, parsed_ok = _parse_review(raw, valid_ids)
+        grades, issues, parsed_ok = _parse_review(raw, valid_ids, issue_types)
 
         if not parsed_ok:
             # Fail-CLOSED, not fail-open: retry once with a repair prompt
@@ -284,7 +296,7 @@ def hook(context: dict[str, Any], *,
             raw = one_shot(provider, "", prompt + _REPAIR_SUFFIX)
             log.info("review.hook: retry usage=%s",
                      getattr(provider, "_last_usage", None))
-            grades, issues, parsed_ok = _parse_review(raw, valid_ids)
+            grades, issues, parsed_ok = _parse_review(raw, valid_ids, issue_types)
             if not parsed_ok:
                 log.warning("review.hook: repair retry also failed to "
                            "parse (raw[:200]=%r); accepting draft as-is, "
