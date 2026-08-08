@@ -620,6 +620,37 @@ allow it.
   contract) -- explicitly out of scope per the user's "diverge from
   aus_agent_v2" instruction.
 
+## 17. Factor-effect analysis (21 scored cells)
+
+Grouped effect sizes vs the base cell (2.267), using the sol same-topic
+rerun's self-variance (**±0.067**) as the noise floor -- an effect must
+exceed this to be distinguishable from resampling noise at 15 topics:
+
+| factor group | levels tested | effect range | verdict |
+|---|---|---:|---|
+| **Generator model** | terra/qwen/gpt-oss-120b/luna vs sol | -0.40 to -1.07 | **dominant, real** -- ~10x any other factor |
+| Adjacent-page fetch (round B) | off vs on, sol/qwen | -0.067 (sol) / -0.133 (qwen) | real for qwen, borderline for sol -- keep on |
+| Generic `agent_harness` factors | preview/nostage/jrel/commit/wider-engines/jrel+commit | -0.134 to 0.000 | only 2 of 6 exceed noise (preview, wider-engines), both negative -- none help |
+| Brief-analyst model | terra/gpt-oss-120b/qwen vs luna | -0.067 (all 3, identical) | noise-level, no real effect |
+| Closure critic (overclaim+contradiction) | on vs off, sol | 0.000 | no effect |
+
+**Generator-model choice is the dominant factor by roughly an order of
+magnitude** over every structural factor tested -- this alone explains
+why 11 of 12 hill-climb moves (everything except the model swap itself)
+landed at or below the noise floor: once the best model is already
+selected, this system's remaining structural levers have little headroom
+left to move the standalone score.
+
+**Cross-cutting finding, independent of any single tested factor**:
+**References & Citation Quality is the weakest rubric axis in every one
+of the 21 scored cells** (mean 0.196/2 across all cells, range 0.00-0.67)
+-- no factor tested (model, structure, harness toggle) meaningfully moves
+it. This reads as a systemic weakness in how `brief_revise_agent`
+constructs/formats citations and reference lists, not something
+addressable by more generator or harness tuning -- a different, more
+targeted investigation (citation format, reference-list construction
+logic) would likely be higher-value than another factor sweep.
+
 ### Where everything lives
 
 - All generated answers: `data/outputs/brief_revise_agent/` (by `run_id`).
