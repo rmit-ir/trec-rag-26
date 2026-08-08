@@ -793,3 +793,33 @@ failure or missing candidate.
 
 Candidate batches B/C/D (3x15 = 45 fresh trajectories, `br-ensemble-
 cand{B,C,D}-exp15`) launched, in progress.
+
+## 21. Search-engine sweep: individual engines never tested alone
+
+User question: have the different search tools/engines been tested
+individually? No -- every cell so far used the default `semantic,keyword`
+pair, except the one "wider retrieval_engine_set" cell (section 11, all 4
+engines combined, 2.133, rejected). No cell isolated a single engine, and
+`hybrid` (dense+sparse RRF fusion, a real third engine per
+`src/tools/search_tool.py::ENGINE_INFO`) had never been used at all.
+
+User also asked to test "HyDE" -- not a selectable engine name (checked
+`ENGINE_INFO`: only `semantic`/`keyword`/`hybrid`/`ssr`/`lucene_bool`
+exist). It's a query-WRITING STYLE `facets_agent`'s own prompt teaches for
+the `hybrid` engine specifically (write the query as a short hypothetical
+passage, not a bare phrase -- embeds closer to real matches). Ported that
+exact instruction as an opt-in system-prompt addendum, `--hyde-hybrid`
+(off by default, byte-identical when unset). User explicitly scoped this
+sweep to keyword/semantic/hybrid/HyDE-hybrid, skipping `ssr`/`lucene_bool`
+this round.
+
+Budget: extended by ~$100 more (new running pool, on top of the original
+$400) after a cost check showed testing all 4 engines individually plus
+finishing the in-flight ensemble probe wouldn't fit the remaining ~$57 of
+the first $100 extension.
+
+Smoke-tested all 4 conditions (1 topic each) clean before committing --
+`hybrid` costs roughly 1.5-2x a single-engine call (263k vs 140-184k
+processed tokens), matching `facets_agent`'s own documented cost note.
+Full 15-topic batches launched: `br-enginesweep-{keyword,semantic,hybrid,
+hyde}-exp15`.
