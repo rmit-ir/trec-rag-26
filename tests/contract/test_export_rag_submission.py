@@ -11,6 +11,7 @@ import subprocess
 import sys
 from pathlib import Path
 
+import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 EXPORTER = REPO_ROOT / "scripts/export-rag-submission.py"
@@ -66,6 +67,56 @@ def test_exporter_filters_run_and_follows_official_topic_order(tmp_path: Path) -
                for row in exported)
     assert "secret_debug" not in output.read_text()
     assert "ignored 1 superseded failed attempt" in result.stdout
+
+
+def test_exporter_rewrites_run_id_in_output_only(tmp_path: Path) -> None:
+    """rag26's run_id_max_len=20 (NIST run-tag convention) is shorter than
+    this repo's own descriptive internal run_ids -- --output-run-id must
+    swap the emitted tag without touching --run-id's artifact selection."""
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    long_id = "a-very-long-internal-bookkeeping-run-id-2026"
+    (artifacts / "a.output.json").write_text(
+        json.dumps(_artifact("rag2026-0", "First.", long_id)),
+        encoding="utf-8")
+    output = tmp_path / "submission" / "rag_output_trec_rag_2026.jsonl"
+
+    result = subprocess.run(
+        [sys.executable, str(EXPORTER), str(artifacts), "--run-id", long_id,
+         "--output-run-id", "short-tag", "--output", str(output)],
+        check=False, capture_output=True, text=True,
+    )
+
+    assert result.returncode == 0, result.stderr
+    exported = [json.loads(line) for line in output.read_text().splitlines()]
+    assert exported[0]["metadata"]["run_id"] == "short-tag"
+
+
+@pytest.mark.parametrize("bad_tag", [
+    "a" * 21,           # over rag26's run_id_max_len=20
+    "has a space",      # outside [A-Za-z0-9._-]
+    ".leading-period",  # NIST run-tag rule: cannot start with a period
+    "",                 # empty
+])
+def test_exporter_rejects_invalid_output_run_id(tmp_path: Path, bad_tag: str) -> None:
+    """A caller-supplied --output-run-id that violates rag26's own
+    constraints must fail fast at the CLI, not export a submission file
+    that only an external spec checker would catch as broken."""
+    artifacts = tmp_path / "artifacts"
+    artifacts.mkdir()
+    (artifacts / "a.output.json").write_text(
+        json.dumps(_artifact("rag2026-0", "First.", "some-run-id")),
+        encoding="utf-8")
+    output = tmp_path / "submission" / "rag_output_trec_rag_2026.jsonl"
+
+    result = subprocess.run(
+        [sys.executable, str(EXPORTER), str(artifacts),
+         "--output-run-id", bad_tag, "--output", str(output)],
+        check=False, capture_output=True, text=True,
+    )
+
+    assert result.returncode != 0
+    assert not output.exists()
 
 
 def test_exporter_refuses_incomplete_official_topic_set(tmp_path: Path) -> None:

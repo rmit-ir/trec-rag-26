@@ -64,6 +64,15 @@ facets-agent = [
     "boto3>=1.40",
     "openai>=2.45",
 ]
+# brief_revise_agent: fork of aus_agent (same harness config) plus a
+# pre-flight requirements brief and one review-and-revise pass
+# (src/systems/brief_revise_agent). Same two SDKs as aus-agent since it
+# reuses aus_agent.agent.make_provider via agent_harness -- no new
+# dependencies (PLAN.md §6 Phase 0).
+brief-revise-agent = [
+    "boto3>=1.40",
+    "openai>=2.45",
+]
 # Non-interactive Codex research agent. The CLI is installed separately; this
 # group supplies its private stdio ClimbMix MCP server.
 codex-cli-research = [
@@ -91,6 +100,7 @@ notebook = [
     "ipykernel",
     "jupyter",
     "nbconvert",
+    "plotly>=6.9.0",
 ]
 
 [tool.pytest.ini_options]

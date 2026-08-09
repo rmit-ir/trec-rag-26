@@ -1,0 +1,35 @@
+{
+  "schema_version": "brief-revise-subsystem/v1",
+  "subsystem_name": "brv__ba-luna__m-qwen3-80b__rv-luna__base-i1__adj0__k10",
+  "parent_system": "brief_revise_agent",
+  "description": "Divergent-anchor screen (sol design, worklogs/assets/2026-08-07-sol-subsystems-answer.md): main generator on qwen3-80b, adjacent-page auto-fetch OFF and k=10 -- both the opposite of aus_agent_v2's own choice (adjacent-fetch ON, k=20). Deliberately NOT re-deriving aus_agent_v2's own architecture; this is the control cell for the generic-harness-factor screen below it.",
+  "status": "active",
+  "factors": {
+    "structural": {
+      "requirements_brief": true,
+      "brief_schema": "v1",
+      "brief_word_budget": "off",
+      "review_revise_pass": true,
+      "adjacent_page_augmentation": false,
+      "search_k": 10,
+      "retrieval_engine_set": ["semantic", "keyword"],
+      "search_result_filter": "off",
+      "search_preview_policy": "full",
+      "stage_search_results": true,
+      "judge_relevance_tool": false,
+      "commit_release": false
+    },
+    "models": {
+      "brief_analyst": {"alias": "luna", "backend": "openai", "model": "gpt-5.6-luna"},
+      "main_generator": {"alias": "qwen3-80b", "backend": "bedrock", "model": "qwen.qwen3-next-80b-a3b"},
+      "reviewer": {"alias": "luna", "backend": "openai", "model": "gpt-5.6-luna"}
+    }
+  },
+  "provenance": {
+    "design_block": "divergent-screen-v1",
+    "created_at": "2026-08-07",
+    "design_authority": "gpt-5.6-sol",
+    "comparison_anchor": "aus_agent_v2",
+    "notes": "Intentionally differs from aus_agent_v2 through adj0 and k10 (aus_agent_v2 runs adjacent-fetch ON and k=20). Uses the cheap Qwen model as the anchor for the rest of the divergent screen."
+  }
+}

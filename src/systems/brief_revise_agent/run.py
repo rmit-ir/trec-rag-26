@@ -1,0 +1,318 @@
+"""CLI for the brief_revise_agent RAG harness.
+
+Usage (from the repo root):
+
+    uv run --group brief-revise-agent python src/systems/brief_revise_agent/run.py \\
+        --qid 6847465956a0f6376a605492
+    uv run --group brief-revise-agent python src/systems/brief_revise_agent/run.py \\
+        --query "..." [--model au.anthropic.claude-sonnet-5] [--k 10]
+    uv run --group brief-revise-agent python src/systems/brief_revise_agent/run.py --all
+
+Every option's default can also be set via a ``RUN_BRIEF_REVISE_AGENT_<OPTION>``
+env var (e.g. ``RUN_BRIEF_REVISE_AGENT_BACKEND=openai``,
+``RUN_BRIEF_REVISE_AGENT_MODEL=...`` in a ``.env``); an explicit CLI flag
+still wins. A copy of ``aus_agent/run.py`` (same import-surgery convention,
+same topics file, same defaults) with its env-var prefix and output
+directory renamed to this system's own.
+"""
+from __future__ import annotations
+
+import argparse
+import json
+import logging
+import sys
+from pathlib import Path
+
+# The sys.path munge MUST run before any project import: in script mode the
+# script's own dir (src/systems/brief_revise_agent) leads sys.path, where the
+# local `tools`/`prompts` names could shadow src/tools etc. Hence the
+# noqa: E402 on the imports below -- an import sorter hoisting them above this
+# block breaks script execution (see aus_agent/run.py, the source of this
+# convention).
+#
+# Both `src` AND `src/systems` go on the path (not just `src`, unlike
+# aus_agent/run.py, which never cross-imports a sibling system package):
+# brief.py/review.py import `facet_rag.llm` bare (facets_agent's own
+# convention for a same-level sibling import), which only resolves with
+# `src/systems` itself on sys.path. Mirrors pytest's own
+# `pythonpath = ["src", "src/systems", "tests"]` (pyproject.toml) exactly --
+# discovered because the offline test suite passed (pytest sets up both) but
+# `run.py` alone did not, before this fix.
+_SRC_ROOT = Path(__file__).resolve().parents[2]
+_SYSTEMS_ROOT = _SRC_ROOT / "systems"
+for _entry in (str(_SRC_ROOT), str(_SYSTEMS_ROOT)):
+    sys.path[:] = [p for p in sys.path if p != _entry]
+    sys.path.insert(0, _entry)
+
+# aus_agent/run.py (this file's source) never needed this: its default
+# backend is `bedrock`, which reads AWS creds straight from the environment
+# (a shell export or an AWS profile), not from `.env`. `--backend openai`
+# (needed here to match aus_agent's own gpt-5.6-luna baseline runs -- see
+# PLAN.md §6 Phase 4) needs OPENAI_API_KEY/OPENAI_BASE_URL, which live in
+# `.env` and are never loaded without this -- facets_agent's run.py already
+# has this same block since it defaults to openai. Found running the live
+# pilot: every --qid call failed on a credentials error before this fix.
+try:
+    from dotenv import load_dotenv
+
+    load_dotenv()
+except ImportError:  # pragma: no cover
+    pass
+
+from agent_harness.tools import JUDGE_RELEVANCE_TOOL  # noqa: E402
+from ragrun.outputs import data_dir  # noqa: E402
+from systems.brief_revise_agent.agent import (  # noqa: E402
+    DEFAULT_MAX_COMMITTED_PER_STEP,
+    SYSTEM_NAME,
+    load_system_prompt,
+    run_agent,
+)
+from systems.brief_revise_agent.commit_release_tool import (  # noqa: E402
+    COMMIT_CONTEXT_TOOL_WITH_RELEASE,
+)
+from utils.env import env  # noqa: E402
+
+
+_REPO_ROOT = Path(__file__).resolve().parents[3]
+DEFAULT_TOPICS = (_REPO_ROOT / "data/official/trec-rag-2026-data/trec-rag-2026"
+                  "/development-data/topics/research-rubrics-topics-dev.tsv")
+
+
+def load_topics(path: Path) -> list[tuple[str, str]]:
+    """Parse a ``qid \\t narrative`` TSV into (qid, narrative) pairs."""
+    topics = []
+    for line in path.read_text().splitlines():
+        line = line.strip()
+        if not line:
+            continue
+        qid, _, narrative = line.partition("\t")
+        topics.append((qid, narrative.strip()))
+    return topics
+
+
+def finished_topics(run_id: str) -> set[str]:
+    """Topic ids this ``run_id`` has already answered successfully (see
+    aus_agent.run.finished_topics -- same resume semantics, own output dir)."""
+    out_dir = data_dir() / "outputs" / SYSTEM_NAME
+    done: set[str] = set()
+    for path in out_dir.glob("*.output.json"):
+        try:
+            obj = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, json.JSONDecodeError):
+            continue
+        if obj.get("metadata", {}).get("run_id") != run_id:
+            continue
+        if obj.get("trace", {}).get("status") in ("completed",
+                                                  "budget_exhausted"):
+            done.add(str(obj["metadata"]["narrative_id"]))
+    return done
+
+
+def main() -> None:
+    logging.basicConfig(level=logging.INFO,
+                        format="%(asctime)s %(levelname)s %(message)s")
+    ap = argparse.ArgumentParser(description="brief_revise_agent RAG harness")
+    src = ap.add_mutually_exclusive_group(required=True)
+    src.add_argument("--query", help="ad-hoc query text (qid 'adhoc')")
+    src.add_argument("--qid", help="topic id from the topics TSV")
+    src.add_argument("--all", action="store_true",
+                     help="run every topic in the topics TSV")
+    ap.add_argument("--topics", type=Path,
+                    default=env("RUN_BRIEF_REVISE_AGENT_TOPICS", DEFAULT_TOPICS),
+                    help=f"topics TSV (default: {DEFAULT_TOPICS})")
+    ap.add_argument("--backend",
+                    default=env("RUN_BRIEF_REVISE_AGENT_BACKEND", "bedrock"))
+    ap.add_argument("--model",
+                    default=env("RUN_BRIEF_REVISE_AGENT_MODEL", None),
+                    help="model id (default: backend's own env/default, e.g. "
+                         "BEDROCK_MODEL_ID or OPENAI_MODEL_ID)")
+    ap.add_argument(
+        "--brief-backend", default=env("RUN_BRIEF_REVISE_AGENT_BRIEF_BACKEND", None),
+        help="factorial-analysis round: backend for the requirements-brief "
+             "analyst ONLY, decoupled from --backend/--model (default: same "
+             "as --backend)")
+    ap.add_argument("--brief-model",
+                    default=env("RUN_BRIEF_REVISE_AGENT_BRIEF_MODEL", None),
+                    help="model id for the brief analyst only (default: same as --model)")
+    ap.add_argument(
+        "--review-backend", default=env("RUN_BRIEF_REVISE_AGENT_REVIEW_BACKEND", None),
+        help="factorial-analysis round: backend for the reviewer ONLY, "
+             "decoupled from --backend/--model (default: same as --backend)")
+    ap.add_argument("--review-model",
+                    default=env("RUN_BRIEF_REVISE_AGENT_REVIEW_MODEL", None),
+                    help="model id for the reviewer only (default: same as --model)")
+    ap.add_argument("--k", type=int, default=env("RUN_BRIEF_REVISE_AGENT_K", 10),
+                    help="search results per call")
+    ap.add_argument(
+        "--context-token-budget", type=int,
+        default=env("RUN_BRIEF_REVISE_AGENT_CONTEXT_TOKEN_BUDGET", 500_000),
+        help="stop retrieval when one generation's provider-reported input "
+             "context reaches this size (default: 500000)")
+    ap.add_argument(
+        "--safety-max-rounds", "--max-rounds", type=int,
+        default=env("RUN_BRIEF_REVISE_AGENT_SAFETY_MAX_ROUNDS", 100),
+        help="runaway-loop safety backstop, not the normal research budget "
+             "(default: 100)")
+    ap.add_argument(
+        "--max-committed-per-step", type=int,
+        default=env("RUN_BRIEF_REVISE_AGENT_MAX_COMMITTED_PER_STEP",
+                    DEFAULT_MAX_COMMITTED_PER_STEP),
+        help="maximum documents commit_context may retain from one staged "
+             f"batch (default: {DEFAULT_MAX_COMMITTED_PER_STEP})")
+    ap.add_argument("--run-id",
+                    default=env("RUN_BRIEF_REVISE_AGENT_RUN_ID",
+                                "brief-revise-agent-dev"))
+    ap.add_argument(
+        "--prompt-variant", dest="prompt_variant",
+        default=env("RUN_BRIEF_REVISE_AGENT_PROMPT_VARIANT", "default"),
+        help="system-prompt variant = filename stem under prompts/system/ "
+             "('default' is the only variant this fork ships). Recorded in "
+             "run metadata + run_desc.")
+    ap.add_argument(
+        "--search-backends", "--engines", dest="search_backends",
+        default=env("RUN_BRIEF_REVISE_AGENT_SEARCH_BACKENDS",
+                    "semantic,keyword"),
+        help="comma-separated retrieval backends the search tool may use: "
+             "semantic, keyword, ssr, lucene_bool. Default is aus_agent's own "
+             "dense+sparse pair semantic,keyword (PLAN.md §3.4: unchanged). "
+             "The model must name search_engine on every call either way. "
+             "Alias: --engines.")
+    ap.add_argument(
+        "--skip-existing", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_SKIP_EXISTING", False),
+        help="skip topics this --run-id has already answered successfully, so "
+             "an interrupted batch resumes instead of starting over (a failed "
+             "run does not count as answered)")
+    ap.add_argument(
+        "--disable-adjacent-pages", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_DISABLE_ADJACENT_PAGES", False),
+        help="pass search_result_augment=None, disabling round B's "
+             "adjacent-page auto-retrieval (agent.py's default is ON) -- "
+             "for an isolated A/B/C/D comparison of the sol-vs-aus_agent_v2 "
+             "improvement-loop rounds")
+    ap.add_argument(
+        "--no-stage-search-results", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_NO_STAGE_SEARCH_RESULTS", False),
+        help="factorial-analysis factor S10: pass stage_search_results=False "
+             "(search results are not staged into the ledger; get_documents "
+             "remains available for full-text reads). Default: staged (True).")
+    ap.add_argument(
+        "--search-preview-chars", type=int,
+        default=env("RUN_BRIEF_REVISE_AGENT_SEARCH_PREVIEW_CHARS", None),
+        help="factorial-analysis factor S9: cap each staged search result's "
+             "text to this many characters (positional preview, no "
+             "generator). Default: no cap (full staging).")
+    ap.add_argument(
+        "--judge-relevance-tool", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_JUDGE_RELEVANCE_TOOL", False),
+        help="factorial-analysis factor S11: advertise the shared "
+             "judge_relevance tool (agent_harness.tools.JUDGE_RELEVANCE_TOOL) "
+             "so the model may spend a side call checking whether a batch "
+             "supports a named requirement. Default: not advertised.")
+    ap.add_argument(
+        "--hyde-hybrid", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_HYDE_HYBRID", False),
+        help="factorial-analysis factor (search-engine sweep): append an "
+             "instruction telling the model to write hybrid-engine queries "
+             "as a short hypothetical passage (the HyDE technique, ported "
+             "from facets_agent's prompt) rather than a short phrase. "
+             "Only meaningful with --engines hybrid. Default: off.")
+    ap.add_argument(
+        "--closure-critic", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_CLOSURE_CRITIC", False),
+        help="hill-climb (worklogs section 12): widen the existing review "
+             "pass's issue taxonomy with UNSUPPORTED_CLAIM (overclaim vs "
+             "cited evidence) and CONTRADICTION, checked in the SAME single "
+             "pre_final_hook call (not a second scout/plan/verify stage). "
+             "Default: off (existing UNCITED_CLAIM/WEAK_SENTENCE only).")
+    ap.add_argument(
+        "--commit-release", action="store_true",
+        default=env("RUN_BRIEF_REVISE_AGENT_COMMIT_RELEASE", False),
+        help="factorial-analysis factor S12: advertise `release` on "
+             "commit_context (commit_release_tool.py's isolated schema, "
+             "release only -- no coverage ledger), letting the model "
+             "retroactively drop a superseded committed document. "
+             "Default: off (release not advertised).")
+    args = ap.parse_args()
+    search_backends = [e.strip() for e in str(args.search_backends).split(",")
+                       if e.strip()]
+
+    if args.query:
+        jobs = [("adhoc", args.query)]
+    elif args.qid:
+        topics = dict(load_topics(args.topics))
+        if args.qid not in topics:
+            ap.error(f"qid {args.qid!r} not found in {args.topics}")
+        jobs = [(args.qid, topics[args.qid])]
+    else:
+        jobs = load_topics(args.topics)
+
+    if args.skip_existing:
+        done = finished_topics(args.run_id)
+        remaining = [job for job in jobs if job[0] not in done]
+        print(f"--skip-existing: {len(jobs) - len(remaining)} of {len(jobs)} "
+              f"topics already answered by run-id {args.run_id!r}; "
+              f"running {len(remaining)}", flush=True)
+        jobs = remaining
+        if not jobs:
+            print("nothing to do", flush=True)
+            return
+
+    failures = 0
+    for qid, query in jobs:
+        print(f"=== {qid}: {query[:80]}...", flush=True)
+        try:
+            system_prompt = load_system_prompt(args.max_committed_per_step,
+                                               args.prompt_variant)
+            if args.hyde_hybrid:
+                system_prompt += (
+                    "\n\n## Hybrid search queries\n\nWhen calling search "
+                    "with engine=hybrid, write the query as a short "
+                    "hypothetical passage that would itself answer the "
+                    "request (the HyDE technique -- a fuller passage embeds "
+                    "closer to real matches than a bare phrase), not a "
+                    "short keyword-style query.\n")
+            run_kwargs = {}
+            if args.disable_adjacent_pages:
+                run_kwargs["search_result_augment"] = None
+            if args.brief_backend:
+                run_kwargs["brief_backend"] = args.brief_backend
+            if args.brief_model:
+                run_kwargs["brief_model"] = args.brief_model
+            if args.review_backend:
+                run_kwargs["review_backend"] = args.review_backend
+            if args.review_model:
+                run_kwargs["review_model"] = args.review_model
+            if args.no_stage_search_results:
+                run_kwargs["stage_search_results"] = False
+            if args.search_preview_chars:
+                run_kwargs["search_preview_chars"] = args.search_preview_chars
+            if args.judge_relevance_tool:
+                run_kwargs["judge_tool"] = JUDGE_RELEVANCE_TOOL
+            if args.commit_release:
+                run_kwargs["commit_context_tool"] = COMMIT_CONTEXT_TOOL_WITH_RELEASE
+            if args.closure_critic:
+                run_kwargs["closure_check"] = True
+            summary = run_agent(qid, query, backend=args.backend,
+                                model=args.model, k=args.k,
+                                context_token_budget=args.context_token_budget,
+                                safety_max_rounds=args.safety_max_rounds,
+                                max_committed_per_step=(
+                                    args.max_committed_per_step),
+                                run_id=args.run_id,
+                                prompt_variant=args.prompt_variant,
+                                system_prompt=system_prompt,
+                                engines=search_backends, **run_kwargs)
+        except Exception:  # keep --all going
+            failures += 1
+            logging.exception("run for %s failed", qid)
+            continue
+        summary["paths"] = {k: str(v) for k, v in summary["paths"].items()}
+        print(json.dumps(summary, indent=2), flush=True)
+        if summary["status"] == "failed":
+            failures += 1
+    sys.exit(1 if failures else 0)
+
+
+if __name__ == "__main__":
+    main()

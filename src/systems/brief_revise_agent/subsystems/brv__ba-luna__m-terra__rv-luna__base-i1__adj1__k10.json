@@ -1,0 +1,35 @@
+{
+  "schema_version": "brief-revise-subsystem/v1",
+  "subsystem_name": "brv__ba-luna__m-terra__rv-luna__base-i1__adj1__k10",
+  "parent_system": "brief_revise_agent",
+  "description": "Block 1 model cell: main generator swapped to gpt-5.6-terra, brief/reviewer held on luna, iteration-1 canonical structure.",
+  "status": "active",
+  "factors": {
+    "structural": {
+      "requirements_brief": true,
+      "brief_schema": "v1",
+      "brief_word_budget": "off",
+      "review_revise_pass": true,
+      "adjacent_page_augmentation": true,
+      "search_k": 10,
+      "retrieval_engine_set": ["semantic", "keyword"],
+      "search_result_filter": "off",
+      "search_preview_policy": "full",
+      "stage_search_results": true,
+      "judge_relevance_tool": false,
+      "commit_release": false
+    },
+    "models": {
+      "brief_analyst": {"alias": "luna", "backend": "openai", "model": "gpt-5.6-luna"},
+      "main_generator": {"alias": "terra", "backend": "openai", "model": "gpt-5.6-terra"},
+      "reviewer": {"alias": "luna", "backend": "openai", "model": "gpt-5.6-luna"}
+    }
+  },
+  "provenance": {
+    "design_block": "block-1-model-sweep",
+    "created_at": "2026-08-07",
+    "design_authority": "gpt-5.6-sol",
+    "comparison_anchor": "aus_agent_v2",
+    "notes": "Same-territory model swap, structural config unchanged from iteration-1."
+  }
+}
