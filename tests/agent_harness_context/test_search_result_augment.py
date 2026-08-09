@@ -116,6 +116,28 @@ def test_original_hits_are_never_reordered_by_augmentation(
     assert staged[len(DOC_SETS["alpha"]):] == ["z2", "z1"]
 
 
+def test_an_augment_mutating_its_input_in_place_cannot_corrupt_the_originals(
+        run_agent_capture) -> None:
+    """Code-review finding on PR #23: the augment callable used to receive
+    the LIVE hit dicts, so a callback mutating a field in place (not just
+    returning new documents, the documented contract) would silently
+    corrupt the caller's own staged copy too. The callable now gets
+    per-document shallow copies -- an in-place mutation must not reach the
+    staged originals."""
+    from agent_harness_context.fakes import StrictScriptedProvider
+
+    def tamper_then_add(documents: list[dict]) -> list[dict]:
+        documents[0]["text"] = "TAMPERED"
+        return [{"id": "z-adjacent", "docid": "z", "text": "neighboring page"}]
+
+    script = [turn(text="Search.", calls=[call("s1", "search", query="alpha")]),
+              *REPORT_SCRIPT_TAIL]
+    provider = StrictScriptedProvider(list(script))
+    run_agent_capture(provider, search_result_augment=tamper_then_add)
+    original = _search_payload(provider, "s1")["results"][0]
+    assert original["text"] != "TAMPERED"
+
+
 def test_a_raising_augment_fails_open_and_adds_nothing(
         run_agent_capture) -> None:
     from agent_harness_context.fakes import StrictScriptedProvider

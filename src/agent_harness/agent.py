@@ -198,12 +198,15 @@ def _apply_search_result_augment(
     from ``tools.get_documents.execute_get_documents`` fetching a specific
     constructed id -- this function does no fetching itself). Fails open
     (returns the untouched originals) on any exception, same discipline as
-    ``_apply_search_result_filter``."""
+    ``_apply_search_result_filter``. The callable receives per-document
+    shallow copies, not the live hits, so an augmenter that mutates its
+    input in place cannot corrupt the caller's own ``documents`` list even
+    if it violates this contract."""
     if search_result_augment is None or not documents:
         return out, documents
     try:
         original_ids = {str(d["id"]) for d in documents}
-        added = [d for d in search_result_augment(documents)
+        added = [d for d in search_result_augment([dict(d) for d in documents])
                 if isinstance(d, dict) and str(d.get("id", "")) not in original_ids
                 and str(d.get("id", ""))]
         if not added:

@@ -283,20 +283,29 @@ def hook(context: dict[str, Any], *,
         raw = one_shot(provider, "", prompt)
         log.info("review.hook: usage=%s", getattr(provider, "_last_usage", None))
         grades, issues, parsed_ok = _parse_review(raw, valid_ids, issue_types)
+        missing_ids = valid_ids - {g["id"] for g in grades}
 
-        if not parsed_ok:
+        if not parsed_ok or missing_ids:
             # Fail-CLOSED, not fail-open: retry once with a repair prompt
-            # rather than silently treating an unparseable response as "no
-            # issues found" (v1's behavior -- sol's improvement analysis
-            # caught a real instance of this masking a genuine review
-            # failure, topic 6847465956a0f6376a605493).
-            log.warning("review.hook: reviewer response did not parse "
+            # rather than silently treating an unparseable OR incomplete
+            # response as "no issues found" (v1's behavior -- sol's
+            # improvement analysis caught a real instance of the parse
+            # case masking a genuine review failure, topic
+            # 6847465956a0f6376a605493). A syntactically valid but empty
+            # `{"requirements": [], "issues": []}` parses fine yet grades
+            # zero of the brief's own requirements -- indistinguishable
+            # from "everything is FULL" without this coverage check, so it
+            # gets the same one retry a parse failure does.
+            log.warning("review.hook: reviewer response %s "
                        "(raw[:200]=%r); retrying once with a repair prompt",
+                       "did not parse" if not parsed_ok
+                       else f"omitted {len(missing_ids)} requirement id(s): {sorted(missing_ids)}",
                        raw[:200])
             raw = one_shot(provider, "", prompt + _REPAIR_SUFFIX)
             log.info("review.hook: retry usage=%s",
                      getattr(provider, "_last_usage", None))
             grades, issues, parsed_ok = _parse_review(raw, valid_ids, issue_types)
+            missing_ids = valid_ids - {g["id"] for g in grades}
             if not parsed_ok:
                 log.warning("review.hook: repair retry also failed to "
                            "parse (raw[:200]=%r); accepting draft as-is, "
@@ -308,6 +317,16 @@ def hook(context: dict[str, Any], *,
                     # grading is unusable.
                     return _render_feedback([], [], uncited, word_count, req_list)
                 return None
+            if missing_ids:
+                # Still incomplete after one repair attempt: log and
+                # proceed fail-open (same philosophy as the parse-failure
+                # path -- a review gap must degrade to plain aus_agent
+                # behaviour, not a failed topic or an infinite retry loop),
+                # but on the record rather than silently.
+                log.warning("review.hook: retry still omitted %d "
+                           "requirement id(s): %s; accepting draft with "
+                           "partial coverage", len(missing_ids),
+                           sorted(missing_ids))
 
         if not any(g["status"] != "FULL" and g["fix"] for g in grades) \
                 and not issues and not uncited:

@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -51,6 +52,19 @@ def main() -> int:
               "matching artifact per row and emit rows in TSV order."),
     )
     args = parser.parse_args()
+
+    if args.output_run_id is not None:
+        # rag26's run_id_max_len=20, NIST run-tag charset (autojudge_base's
+        # track_specs.yml) -- enforced here rather than left to whatever
+        # third-party spec checker happens to run later, since an invalid
+        # tag would otherwise export "successfully" and only fail an
+        # external check.
+        if not re.fullmatch(r"[A-Za-z0-9._-]{1,20}", args.output_run_id):
+            parser.error(
+                f"--output-run-id {args.output_run_id!r} must be 1-20 "
+                "characters from [A-Za-z0-9._-]")
+        if args.output_run_id.startswith("."):
+            parser.error("--output-run-id must not start with a period")
 
     files: list[Path] = []
     for item in args.inputs:

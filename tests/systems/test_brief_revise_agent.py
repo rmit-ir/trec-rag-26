@@ -241,6 +241,40 @@ def test_review_hook_still_flags_uncited_sentences_when_both_reviewer_attempts_f
     assert feedback is not None and "#1" in feedback
 
 
+def test_review_hook_retries_once_when_reviewer_omits_a_requirement_id() -> None:
+    """A syntactically valid but empty ``{"requirements": [], "issues": []}``
+    parses fine yet grades zero of the brief's own requirements --
+    indistinguishable from a legitimate 'everything is FULL' without a
+    coverage check (code-review finding on PR #23: the parse-only gate let
+    a reviewer that silently skipped every requirement look identical to
+    one that graded them all FULL). Coverage gap must get the same one
+    retry a parse failure does, and the retry's content must be used."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "Traffic fell.", "citations": [D[0]]}]}
+    provider = ScriptedProvider([
+        EMPTY_REVIEW_TURN,  # omits R1 entirely -- syntactically valid, incomplete
+        model_turn(text=json.dumps({
+            "requirements": [{"id": "R1", "status": "MISSING",
+                              "missing_specific": "a percentage figure",
+                              "fix": "add it"}],
+            "issues": []})),
+    ])
+    feedback = review.hook(context, requirements=[SAMPLE_REQ], provider=provider)
+    assert feedback is not None and "MISSING" in feedback and "R1" in feedback
+
+
+def test_review_hook_accepts_draft_when_retry_still_omits_a_requirement_id() -> None:
+    """Fail-OPEN, not an infinite loop: if the one repair retry STILL omits
+    a requirement id, the draft is accepted with partial coverage rather
+    than blocked -- same 'a review gap must degrade to plain aus_agent
+    behaviour' philosophy as the parse-failure terminal case."""
+    context = {"query": QUERY, "ledger": None, "candidate_sentences": [
+        {"text": "Traffic fell.", "citations": [D[0]]}]}
+    provider = ScriptedProvider([EMPTY_REVIEW_TURN, EMPTY_REVIEW_TURN])
+    assert review.hook(context, requirements=[SAMPLE_REQ],
+                       provider=provider) is None
+
+
 # ---------------------------------------------------------------------------
 # brief.py -- direct unit coverage (PLAN.md §6 Phase 3, case iv)
 # ---------------------------------------------------------------------------
