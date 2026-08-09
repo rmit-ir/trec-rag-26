@@ -1086,26 +1086,83 @@ stronger of the two -- exactly the kind of judge artifact this report's own
 pass. Judging cost: 357 raw Pi events, ≈\$2.23 total (real Bedrock `us-east-1`
 Luna rates, \$1.10/M input + cache-write, \$6.60/M output).
 
-*Cost to extend this evaluation to the other 4 submitted systems:* using the
-same rate and this run's own measured tokens/judgment (≈3,404
-input+cache-write, ≈378 output -- ≈\$0.00624/judgment, ≈\$0.743 per
-119-topic pair), two scopes are worth pricing separately:
+This section's own cost-effectiveness data feeds §10.6, which extends the
+same organizer-baseline comparison to the other 4 submitted systems.
 
-- *Minimal -- each new system vs the organizer baseline only* (4 separate
-  two-way `compare-all` runs, since RAGDoll's `compare-all` always judges
-  every pair among the files it's given, with no flag to pin one file as a
-  fixed reference): 4 pairs × 119 topics ≈ *\$2.97*.
-- *Comprehensive -- one single 7-way run* (organizer baseline + all 6
-  recommended systems together, matching this section's own methodology of
-  giving RAGDoll every file at once for one connected leaderboard):
-  $binom(7,2)=21$ pairs, 18 of them new (3 already exist from this run) ×
-  119 topics ≈ *\$13.37* for the 18 new pairs (≈\$15.60 if re-running all 21
-  from scratch instead of reusing the 3 already-judged pairs).
+== Organizer-baseline arena, extended: two of the four hedge picks lose to it
 
-Both estimates likely *overstate* facets\_agent/facet\_rag's true cost
-slightly, since their answers run shorter (mean 613/389 words, §10.4) than
-the ≈900-word answers this rate was measured on -- fewer input tokens per
-judgment. Not yet run this session; pending a decision on scope and budget.
+Extending §10.5's comparison to the four systems prepared 2026-08-08
+(`brief_revise_agent` base, `brief_revise_agent` hybrid, `facets_agent`,
+`facet_rag`) --
+`worklogs/2026-08-09-ragdoll-arena-5way-organizer-baseline.md`, full
+reproduction detail (exact commands, environment setup, two new Pi
+config gotchas not documented before) in that worklog and §12.
+
+*Scope constraint:* `aus_agent`/`aus_agent_v2`'s test119 submission files
+are not present on this machine (a data-sync gap, not a re-run decision --
+confirmed absent from both `data/outputs/submissions/` and the internal
+per-topic artifacts). This is therefore a *5-way* comparison (organizer
+baseline + the 4 new systems, $binom(5,2)=10$ pairs), not the 7-way
+comparison §10.5 priced -- `aus_agent`/`aus_agent_v2`'s own
+organizer-baseline numbers remain §10.5's separate 3-pair result, not
+re-merged into one leaderboard here.
+
+Same 119 official test topics, same judge (`mantle/gpt-5.6-luna`, thinking
+`medium`), same seed (13), same native RAGDoll `arena compare-all` --
+methodology identical to §10.5 (§12 gives the exact prompt and
+every hyperparameter). 1,190/1,190 judgments completed (10 pairs × 119
+topics), 0 errors, 0 duplicate task ids.
+
+#figure(
+  text(size: 7.6pt)[#table(
+    columns: (3.6cm, 3.6cm, 2.6cm, 2.6cm),
+    align: (left, left, center, center),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 5pt,
+    table.header([*Run A*], [*Run B*], [*A / B / tie*], [*Preference*]),
+    [organizer baseline], [`brief-base-t119`], [19 / 99 / 1], [*83.6%* B],
+    [organizer baseline], [`brief-hybrid-t119`], [18 / 101 / 0], [*84.9%* B],
+    [organizer baseline], [`facets-t119`], [105 / 13 / 1], [*88.7%* A -- baseline wins],
+    [organizer baseline], [`facetrag-t119`], [119 / 0 / 0], [*100%* A -- baseline wins],
+    [`brief-base-t119`], [`brief-hybrid-t119`], [57 / 58 / 4], [50.4% B -- not robust, see below],
+    [`brief-base-t119`], [`facets-t119`], [114 / 4 / 1], [96.2% A],
+    [`brief-base-t119`], [`facetrag-t119`], [119 / 0 / 0], [100% A],
+    [`brief-hybrid-t119`], [`facets-t119`], [116 / 2 / 1], [97.9% A],
+    [`brief-hybrid-t119`], [`facetrag-t119`], [119 / 0 / 0], [100% A],
+    [`facets-t119`], [`facetrag-t119`], [118 / 1 / 0], [99.2% A],
+  )],
+  caption: [All 10 pairs, 119 topics each, native RAGDoll `arena compare-all`, seed 13. Arena-rank leaderboard: `brief-hybrid-t119` 1487, `brief-base-t119` 1477, organizer baseline 1196, `facets-t119` 849, `facetrag-t119` -10.],
+) <tab-5way-arena>
+
+*Both `brief_revise_agent` variants clearly beat the organizer baseline
+(83.6%/84.9%). `facets_agent` LOSES to it (88.7% baseline preference).
+`facet_rag` loses to everything it was compared against, including the
+baseline, 100% of the time.* This is real, new evidence that two of this
+report's six recommended submissions -- exactly the two included as
+architectural-diversity/evaluation-method hedges (§10.3), not on strength
+of score -- would likely lose against the organizers' own reference system
+specifically, not just against this repo's other systems. It does not
+change the §10.3 recommendation (the hedging rationale was never "these
+will win"), but it is the clearest evidence yet of how large that gap
+really is.
+
+The position audit (same script as §10.5,
+`worklogs/assets/2026-08-07-ragdoll-arena-position-audit.py`) shows every
+organizer-baseline pairing is *robust to display position* -- e.g.
+`brief-base-t119` beats the baseline 77.6% as A and 87.9% as B, same
+winner both ways. The one pair whose winner *flips* with position is
+`brief-base-t119` vs `brief-hybrid-t119` (34.5% as A, 63.9% as B) -- the
+near-tie 49.6%/50.4% aggregate should not be read as evidence either
+variant beats the other, the same caution §6 and §10.5 already raise for
+close pairs on other judge passes.
+
+*Cost: 1,190 judgments, \$5.91 total* -- read directly from RAGDoll's own
+per-judgment `cost_usd` (real committed Luna rates were configured this
+time, unlike §10.5's zero-valued placeholder that needed manual
+recomputation) -- cheaper than the \$7.43 estimate in an earlier revision
+of this section, because `facets_agent`/`facet_rag`'s shorter answers
+(§10.4) reduced average judgment cost below the rate that estimate was
+based on, exactly as predicted.
 
 = Data and code
 
@@ -1157,10 +1214,114 @@ validation output, the rate-limit and `run_id_max_len` incidents):
 `worklogs/2026-08-08-test119-facets-agent-submission.md`,
 `worklogs/2026-08-08-test119-facet-rag-submission.md`.
 
-*Organizer-baseline arena* (§10.5): Kun Ran,
-`worklogs/2026-08-07-ragdoll-arena-sol-runs-vs-organizer-baseline.md` --
-raw RAGDoll artifacts (`tasks.jsonl`, `judgments.jsonl`, `pairwise.csv`,
-`coverage.csv`, `leaderboard.csv`, `raw-events/`) under
+*Organizer-baseline arena* (§10.5, §10.6): Kun Ran,
+`worklogs/2026-08-07-ragdoll-arena-sol-runs-vs-organizer-baseline.md`
+(`aus_agent`/`aus_agent_v2`, 2-system); this session,
+`worklogs/2026-08-09-ragdoll-arena-5way-organizer-baseline.md` (the other
+4 systems, 5-way, including the exact reproduction gotchas -- also see
+§12). Raw RAGDoll artifacts (`tasks.jsonl`, `judgments.jsonl`,
+`pairwise.csv`, `coverage.csv`, `leaderboard.csv`, `raw-events/`) under
 `data/outputs/ragdoll-arena/sol-test119-vs-organizer-sol-agentic-bm25-20260807/`
-on the machine that generated them -- not present on every synced copy of
-`data/outputs/` (see `CLAUDE.md`'s data-sync notes).
+and `data/outputs/ragdoll-arena/test119-5way-vs-organizer-baseline-20260809/`
+respectively, on the machines that generated them -- not present on every
+synced copy of `data/outputs/` (see `CLAUDE.md`'s data-sync notes).
+
+= Appendix: organizer-baseline arena reproducibility <app-reproduce>
+
+Full detail to reproduce §10.5/§10.6 independently -- topics, exact judge
+prompt, and every hyperparameter. §4--§9's own standalone/arena evaluation
+(`gpt-5.6-terra` judge, `evaluation-results/factorial/`) uses different
+topics (the 15-topic `exp15` set, §4.5) and a different prompt/harness
+entirely -- this appendix covers *only* the organizer-baseline arena work
+in §10.5/§10.6, not the rest of the report.
+
+== Topics
+
+All organizer-baseline arena judgments (§10.5, §10.6) use the *official
+119-topic TREC RAG 2026 test set*, not `exp15`:
+
+```
+data/official/trec-rag-2026-data/trec-rag-2026/test-data/trec_rag_2026_queries.tsv
+```
+
+119 rows, ids `rag2026-0` through `rag2026-118`, SHA-256
+`72dc2fd358d3eeda973397ccd7a8775545b19a6deaefc67709167eee6a9f8a2c`. Every
+pair in both §10.5 and §10.6 was judged on all 119 shared topics -- no
+sampling, no per-pair topic subsetting.
+
+== Judge prompt (verbatim)
+
+Native RAGDoll `PAIRWISE_ANSWER_COMPARISON_NAIVE`
+(`evaluation/ragdoll/src/ragdoll/arena/prompts.py`, pinned commit
+`1f0671908ab6dc581a61648463e3566ba413b480`), system prompt empty. Not the
+rubric-guided variant (`PAIRWISE_ANSWER_COMPARISON_W_RUBRICS`) -- test
+topics carry no organizer rubrics, so the rubric-guided prompt does not
+apply here.
+
+#block(
+  fill: rgb("#f7f6f2"), inset: 10pt, radius: 3pt, width: 100%,
+  text(size: 8pt, font: "DejaVu Sans Mono")[
+You are judging two assistant answers to the same user question. Read the user's question and both answers carefully, infer what the user is trying to accomplish, and choose the answer the user would rather receive.
+
+This is a preference judgment, not a checklist. Judge each answer by the qualities that matter for this specific request. Prefer the answer that is more useful, better matched to the user's intent, more complete where completeness matters, and more trustworthy.
+
+Do not apply a generic preference for short answers, long answers, polished wording, or rigid formatting. A longer answer can be better when the added content is relevant and useful. A shorter answer can be better when it answers the user's need directly without omitting important information.
+
+Consider the following dimensions when relevant: intent and style match, directness, usefulness, completeness, specificity, accuracy and plausibility, calibration, explanation quality, recommendation quality, organization, noise control.
+
+Prefer the answer with greater useful substance for the user's actual need. Do not reward brevity, fluency, confidence, or formatting by itself.
+
+Choose A or B only when one answer's advantage is meaningful to the user, not merely detectable on close inspection. If the differences are minor or unlikely to affect which answer the user would prefer, choose [[Tie]]. Choose [[Tie (Both Bad)]] when both answers substantially fail the user's core need, even if one is marginally less bad.
+
+Output your final verdict by strictly following this format:
+"[[A]]" if Assistant A is better,
+"[[B]]" if Assistant B is better,
+"[[Tie]]" if they are effectively tied and both are at least acceptable,
+"[[Tie (Both Bad)]]" if they are effectively tied because both are bad.
+
+Do not include any explanation, reasoning, or additional text outside the verdict.
+
+[The Start of User's Question] \{query\} [The End of User's Question]
+
+[The Start of Assistant A's Answer] \{answer\_a\} [The End of Assistant A's Answer]
+
+[The Start of Assistant B's Answer] \{answer\_b\} [The End of Assistant B's Answer]
+  ]
+)
+
+The full 11-dimension bulleted list (intent/style match, directness,
+usefulness, completeness, specificity, accuracy/plausibility, calibration,
+explanation quality, recommendation quality, organization, noise control --
+each with its own one-sentence definition) is condensed above for space;
+the verbatim, unabridged prompt lives at
+`evaluation/ragdoll/src/ragdoll/arena/prompts.py`. `{query}`, `{answer_a}`,
+`{answer_b}` are substituted per-battle; `answer_a`/`answer_b` are each
+system's `answer[].text` sentences concatenated, with no citation markers
+(both harnesses already emit citation-free `answer[].text` in the
+organizer schema) and no references block rendered into the prompt.
+
+== Hyperparameters
+
+#figure(
+  table(
+    columns: (5cm, 10cm),
+    align: (left, left),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 5.5pt,
+    table.header([*Parameter*], [*Value*]),
+    [Judge model], [`mantle/gpt-5.6-luna` (Azure OpenAI-compatible gateway, `openai-responses` API, same credential/endpoint as every other `gpt-5.6-*` call in this report)],
+    [Thinking level], [`medium`],
+    [Temperature], [not set (provider default)],
+    [Context window], [272,000 tokens (configured; not necessarily exercised per-call)],
+    [Max output tokens], [8,000],
+    [Cost rates (§10.6 only)], [\$1.10/M input, \$6.60/M output, \$1.10/M cache-read, \$1.10/M cache-write -- real committed `us-east-1` Luna rates, not a placeholder],
+    [Sampling / battle order], [One deterministic randomized A/B order per `(pair, qid)`, seed 13 -- native `compare-all` semantics, not the older custom wrapper's duplicate reverse-order calls],
+    [Topics per pair], [All 119 (no `--sample-topics-per-pair`, no `--sample-battles-*` flags on the full runs -- those flags were used only for the 1-topic-per-pair preflight, seed 13)],
+    [Max concurrency], [8],
+    [Timeout], [300s per judgment],
+    [RAGDoll commit], [`1f0671908ab6dc581a61648463e3566ba413b480` (`github.com/castorini/RAGDoll`, `main`, confirmed current as of both run dates)],
+    [Pi CLI version], [0.84.0 (§10.5, Kun's run) / 0.83.0 (§10.6, this session's run) -- see `worklogs/2026-08-09-ragdoll-arena-5way-organizer-baseline.md` for why this difference is not expected to matter],
+    [Tie handling], [`Tie` and `Tie (Both Bad)` both count as 0.5 preference to each side in aggregate preference-rate figures, matching RAGDoll's own convention],
+  ),
+  caption: [Every hyperparameter governing the organizer-baseline arena judgments in §10.5 and §10.6.],
+)
