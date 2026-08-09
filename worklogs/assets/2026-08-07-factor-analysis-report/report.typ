@@ -1048,6 +1048,65 @@ earlier session (`worklogs/2026-08-07-test119-production-runs.md`,
   is 43 characters, `sol-aus-default-test119-20260807` is 33 -- both over
   the limit if it applies) -- open, not yet resolved.
 
+== Organizer-baseline arena: `aus_agent`/`aus_agent_v2` beat the official baseline
+
+Separately from this report's own arena work (§5, always against
+`aus_agent_v2` as the opponent), a native RAGDoll arena run
+(`worklogs/2026-08-07-ragdoll-arena-sol-runs-vs-organizer-baseline.md`,
+2026-08-07) compared both already-submitted test119 files against the
+organizer's own *Sol agentic-search BM25* baseline
+(`gpt-5.6-sol_medium_agentic-search_bm25_output-mode-answer.jsonl`, shipped
+in the official data submodule) -- the first evidence in this repo of how
+these systems perform against a baseline the organizers themselves built,
+not just against each other.
+
+#figure(
+  table(
+    columns: (5.4cm, 2.6cm, 2.6cm, 2.6cm),
+    align: (left, center, center, center),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 5.5pt,
+    table.header([*Matchup*], [*Result (A/B/tie)*], [*Preference*], [*Robust to position?*]),
+    [organizer baseline vs `aus_agent_v2`], [10 / 108 / 1], [*91.2%* ours], [Yes],
+    [organizer baseline vs `aus_agent`], [11 / 107 / 1], [*90.3%* ours], [Yes],
+    [`aus_agent_v2` vs `aus_agent`], [67 / 51 / 1], [56.7% v2], [*No* -- 0.38 as A, 0.77 as B],
+  ),
+  caption: [RAGDoll native `arena compare-all`, 357 judgments (119 topics × 3 pairs), `mantle/openai.gpt-5.6-luna` judge, seed 13, `PAIRWISE_ANSWER_COMPARISON_NAIVE`. Ties count half in preference. Arena-rank leaderboard: `aus_agent_v2` 1154, `aus_agent` 1111, organizer baseline 735.],
+) <tab-organizer-arena>
+
+Both submitted systems beat the organizer's own baseline decisively and
+*robustly to display position* -- the position audit
+(`worklogs/assets/2026-08-07-ragdoll-arena-position-audit.py`) shows the
+preference holds regardless of which side of the pair each system is shown
+on. The `aus_agent_v2`-vs-`aus_agent` result is the opposite case: it swings
+from 0.38 to 0.77 preference depending on display position, so the 56.7%
+aggregate should *not* be read as evidence `aus_agent_v2` is really the
+stronger of the two -- exactly the kind of judge artifact this report's own
+§6 already warns about, now demonstrated on a third, independent judge
+pass. Judging cost: 357 raw Pi events, ≈\$2.23 total (real Bedrock `us-east-1`
+Luna rates, \$1.10/M input + cache-write, \$6.60/M output).
+
+*Cost to extend this evaluation to the other 4 submitted systems:* using the
+same rate and this run's own measured tokens/judgment (≈3,404
+input+cache-write, ≈378 output -- ≈\$0.00624/judgment, ≈\$0.743 per
+119-topic pair), two scopes are worth pricing separately:
+
+- *Minimal -- each new system vs the organizer baseline only* (4 separate
+  two-way `compare-all` runs, since RAGDoll's `compare-all` always judges
+  every pair among the files it's given, with no flag to pin one file as a
+  fixed reference): 4 pairs × 119 topics ≈ *\$2.97*.
+- *Comprehensive -- one single 7-way run* (organizer baseline + all 6
+  recommended systems together, matching this section's own methodology of
+  giving RAGDoll every file at once for one connected leaderboard):
+  $binom(7,2)=21$ pairs, 18 of them new (3 already exist from this run) ×
+  119 topics ≈ *\$13.37* for the 18 new pairs (≈\$15.60 if re-running all 21
+  from scratch instead of reusing the 3 already-judged pairs).
+
+Both estimates likely *overstate* facets\_agent/facet\_rag's true cost
+slightly, since their answers run shorter (mean 613/389 words, §10.4) than
+the ≈900-word answers this rate was measured on -- fewer input tokens per
+judgment. Not yet run this session; pending a decision on scope and budget.
+
 = Data and code
 
 *Interactive figures* (hover tooltips, self-contained HTML, open directly in
@@ -1097,3 +1156,11 @@ validation output, the rate-limit and `run_id_max_len` incidents):
 `worklogs/2026-08-08-test119-brief-revise-hybrid-submission.md`,
 `worklogs/2026-08-08-test119-facets-agent-submission.md`,
 `worklogs/2026-08-08-test119-facet-rag-submission.md`.
+
+*Organizer-baseline arena* (§10.5): Kun Ran,
+`worklogs/2026-08-07-ragdoll-arena-sol-runs-vs-organizer-baseline.md` --
+raw RAGDoll artifacts (`tasks.jsonl`, `judgments.jsonl`, `pairwise.csv`,
+`coverage.csv`, `leaderboard.csv`, `raw-events/`) under
+`data/outputs/ragdoll-arena/sol-test119-vs-organizer-sol-agentic-bm25-20260807/`
+on the machine that generated them -- not present on every synced copy of
+`data/outputs/` (see `CLAUDE.md`'s data-sync notes).
