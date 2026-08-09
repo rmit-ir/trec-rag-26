@@ -993,6 +993,61 @@ pure guess with zero information behind it. That leaves 4 of the 10
 slots open if the organizers' rules reward using fewer, more confident
 entries, or as headroom for a genuinely new system built later.
 
+== Submission log: all 6 systems run on the 119-topic official test set
+
+All six recommended systems now have a complete official test-set run and
+an exported organizer JSONL, not just the exp15/dev-scale evidence §10.2
+ranks them on. `aus_agent`/`aus_agent_v2` were prepared and submitted in an
+earlier session (`worklogs/2026-08-07-test119-production-runs.md`,
+2026-08-07); the remaining four were prepared the following day
+(`worklogs/2026-08-08-test119-*-submission.md`).
+
+#figure(
+  text(size: 7.6pt)[#table(
+    columns: (2.6cm, 2.6cm, 1.2cm, 1.6cm, 1.5cm, 6.1cm),
+    align: (left, left, center, right, right, left),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 4.5pt,
+    table.header([*System*], [*Organizer run tag*], [*Topics*], [*\$/topic*], [*Total*], [*Notes*]),
+    [`aus_agent_v2`], [`sol-aus-v2-research-first-test119-20260807`], [119/119], [n/a], [n/a], [Refs/topic 10--40 (mean 27.67); words/topic 731--1024 (mean 936.55); 3,732 searches, 507 commits total. Per-topic token logs from that session are not present on this machine, so no \$ figure can be re-derived here (§7's own logs-only fragility caveat, now realized) -- its README's \$1,096.72 is total tracked BUILD cost across many rounds, not this run's generation cost, and should not be read as one.],
+    [`aus_agent`], [`sol-aus-default-test119-20260807`], [119/119], [n/a], [n/a], [Sol default method. Refs/topic 7--51 (mean 27.87); words/topic 497--1022 (mean 882.50); 2,849 searches, 473 commits total. 2 of 119 topics failed once (`400 validation_error`, transient gateway error) and were resumed cleanly. Same token-log gap as `aus_agent_v2`.],
+    [`brief_revise_agent` base], [`brief-base-t119`], [119/119], [\$1.638], [\$194.91], [Refs/topic 5--43 (mean 25.8); words/topic 554--1007 (mean 830.2); mean 26.4 searches/topic. 3 launches needed -- see rate-limit note below.],
+    [`brief_revise_agent` hybrid], [`brief-hybrid-t119`], [119/119], [\$1.503], [\$178.87], [Refs/topic 8--47 (mean 24.7); words/topic 609--1001 (mean 834.3); mean 22.6 searches/topic -- fewer than the base cell's 26.4, confirming §7's per-topic finding at test-set scale too. 8% cheaper than base.],
+    [`facets_agent`], [`facets-t119`], [119/119], [\$0.724], [\$86.18], [Refs/topic 4--25 (mean 13.6); words/topic 178--1018 (mean 613.0); mean 11.7 searches/topic. Single clean pass, no rate-limit issues (finished before the other two OpenAI jobs it ran alongside hit sustained 429s).],
+    [`facet_rag`], [`facetrag-t119`], [119/119], [\$0.178], [\$21.21], [Refs/topic 7--21 (mean 13.9); words/topic 142--802 (mean 388.9, shortest of all six -- consistent with §10.2's own prior finding). Real Bedrock rate (not the OpenAI placeholder) -- an order of magnitude cheaper than any OpenAI-backed system despite the highest search count (mean 33.7/topic).],
+  )],
+  caption: [All six recommended systems' official 119-topic test runs. \$ figures use the same placeholder OpenAI rate and real Bedrock rate-card as §7 (generation only, no judging). Total across the four systems with a computable figure: *≈\$481.17*.],
+) <tab-submissions>
+
+*Two new, real findings from running at test-set scale, not exp15 scale:*
+
++ *The shared OpenAI gateway quota cannot sustain 3 systems' concurrency-6
+  traffic at once.* Launching `brief_revise_agent` base, `brief_revise_agent`
+  hybrid, and `facets_agent` simultaneously (all `gpt-5.6-*` models sharing
+  one `westus` Azure OpenAI quota) produced sustained `429` rate-limit
+  errors that exhausted the client's own retry budget on a growing fraction
+  of topics per pass -- 76 of 119 failed on the first combined launch. Two
+  resume passes at falling concurrency (6 → 3 → 2, the last one run alone)
+  were needed before both `brief_revise_agent` variants reached 119/119.
+  `facet_rag` (Bedrock) was unaffected throughout, confirming the
+  bottleneck was the shared OpenAI quota specifically, not a per-system
+  problem. Future multi-system test-set batches on this gateway should
+  serialize OpenAI-backed systems, or hold combined concurrency near what
+  one system alone was already shown safe at (6), not multiply it.
++ *A real submission-format gap survived this report's own validator.* The
+  third-party `autojudge_base` tool's `rag26` spec check (independent of
+  this repo's `validate_rag_output`) caught `run_id_max_len=20` (a NIST
+  run-tag convention) -- every one of this report's own internal run_ids is
+  intentionally longer and more descriptive for bookkeeping across dozens
+  of experiment cells (`brief-revise-hybrid-test119-20260808` = 37 chars).
+  `scripts/export-rag-submission.py` gained `--output-run-id` to rewrite
+  only the organizer-facing tag, leaving internal artifacts untouched; all
+  four new submissions now validate 119/119 against `rag26`. *The two
+  already-submitted `aus_agent`/`aus_agent_v2` files were not re-checked or
+  re-tagged against this rule* (`sol-aus-v2-research-first-test119-20260807`
+  is 43 characters, `sol-aus-default-test119-20260807` is 33 -- both over
+  the limit if it applies) -- open, not yet resolved.
+
 = Data and code
 
 *Interactive figures* (hover tooltips, self-contained HTML, open directly in
@@ -1032,3 +1087,13 @@ writes `cost_by_run.json` (per-cell and per-factor-group cost, feeding
 @fig-cost and @tab-costeffect); `make_figures.py`/`make_interactive.py`
 read it directly, no numbers hand-copied between the analysis and the
 report.
+
+*Submission log* (§10.4): organizer-ready files under
+`data/outputs/submissions/<tag>/rag_output_trec_rag_2026.jsonl` for all six
+recommended systems. Full per-system detail (exact commands, checksums,
+validation output, the rate-limit and `run_id_max_len` incidents):
+`worklogs/2026-08-07-test119-production-runs.md` (`aus_agent`/
+`aus_agent_v2`), `worklogs/2026-08-08-test119-brief-revise-base-submission.md`,
+`worklogs/2026-08-08-test119-brief-revise-hybrid-submission.md`,
+`worklogs/2026-08-08-test119-facets-agent-submission.md`,
+`worklogs/2026-08-08-test119-facet-rag-submission.md`.
