@@ -154,6 +154,17 @@ Key changes from the draft:
 - **Mechanism type:** **RETRIEVAL**
 - **Availability note:** This is a real prior mechanism, but **not currently available without restoring historical code**.
 
+## S14. `blind_obligation_scout` — added 2026-08-09, ported from `aus_agent_v2`
+
+- **Definition:** A second, independent pre-flight LLM call, blind to the requirements brief's own output (sees only the original request): recalls up to 8 additional atomic checks a demanding reader would expect, rendered as extra bullet entries appended after the brief's own appendix. This is not a new mechanism invented for the taxonomy — it is `aus_agent_v2`'s own `plan_critic.py` (`PLAN_CRITIC_SYSTEM`, `plan_critic_request`, `normalize_plan_critique`), reused directly rather than re-derived, with only the rendering adapted to `brief_revise_agent`'s bullet-appendix format instead of `aus_agent_v2`'s numbered-plan format. S1 (`requirements_brief`) is a single analyst call; S14 is a second, independently-recalled one layered on top of it, closer in spirit to `aus_agent_v2`'s own two-stage coverage-plan-then-critic design than to brief_revise_agent's original single-brief design.
+- **Levels:**
+  - **Off** — brief-only appendix, current `brief_revise_agent`/pre-S14 behavior.
+  - **On** — brief appendix plus up to 8 scout-recalled additions.
+- **Source:** `systems/aus_agent_v2/plan_critic.py` (original mechanism, this repo's best arena performer per §10.2/§10.3 of this report); `systems/oss_agent/scout.py` (the port, reusing the original prompt/parser unmodified); `worklogs/2026-08-09-oss-agent-open-weight-system.md`.
+- **Already tested?** As part of `aus_agent_v2`'s own promoted default pipeline, `plan_critic` runs unconditionally (`plan_critic=True` is the shipped default, not a toggle this repo's factor sweeps ever isolated) — so no prior A/B result for the scout stage ALONE exists anywhere in this repo before `oss_agent`'s own bake-off (see the report body for that result, run against open-weight models specifically, not against the `gpt-5.6-*` models the original mechanism was designed for).
+- **Mechanism type:** **PROMPT**
+- **Availability note:** Available in both `aus_agent_v2` (unconditional) and `oss_agent` (toggleable via `--no-plan-critic`, open-weight models only).
+
 ---
 
 # 2. Model-choice factors

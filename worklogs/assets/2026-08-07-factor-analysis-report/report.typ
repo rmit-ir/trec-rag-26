@@ -1325,3 +1325,190 @@ organizer schema) and no references block rendered into the prompt.
   ),
   caption: [Every hyperparameter governing the organizer-baseline arena judgments in §10.5 and §10.6.],
 )
+
+= Addendum: `oss_agent`, an open-weight-only system (2026-08-09)
+
+Added after this report's original session (§1-§11 above), on a separate
+\$200 budget, per an explicit constraint the earlier sessions never
+applied: every model in the pipeline must be open-weight (no
+`gpt-5.6-*`, no proprietary Bedrock model). Full narrative and raw
+run-ids in `worklogs/2026-08-09-oss-agent-open-weight-system.md`; only
+the headline evidence is reproduced here, matching this report's own
+figures for direct comparison.
+
+Built from the two systems this report itself ranks highest (§10.2-10.3):
+`brief_revise_agent`'s architecture (pre-flight requirements brief +
+review/revise pass over the shared `agent_harness` loop, ties
+`aus_agent_v2` on standalone rubric at ~1/50th the cost) as the base,
+plus one structural idea ported from `aus_agent_v2` (this report's best
+arena performer): its blind obligation-scout stage
+(`plan_critic.py`), newly isolated as taxonomy factor *S14* -- it had
+never been A/B'd on its own before, since `aus_agent_v2` ships it
+unconditionally. S5 (adjacent-page augmentation) and S6 (`hybrid`-only
+retrieval) are adopted as defaults from this report's own §4.2/§4.6
+findings.
+
+Three open-weight Bedrock models confirmed usable under this account
+(`openai.gpt-oss-120b-1:0`, `qwen.qwen3-next-80b-a3b`,
+`moonshot.kimi-k2-thinking`) were bake-off'd as the main writer model on
+the SAME 15-topic dev subset this report's own hill-climb tuned on (the
+qids of `br-model-main-sol-exp15-b1`), scored with the identical
+standalone-rubric protocol (§2.2, `gpt-5.6-terra` judge):
+
+#figure(
+  table(
+    columns: (auto, auto, auto, auto),
+    align: (left, left, right, right),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 6pt,
+    table.header([*Model (main writer)*], [*Topics*], [*Standalone overall*], [*Reliability*]),
+    [*`qwen.qwen3-next-80b-a3b` (winner)*], [15/15], [*1.200*], [clean on first attempt, default round cap],
+    [`openai.gpt-oss-120b-1:0`], [15/15], [1.200], [needed round cap raised 30\->100, plus one retry for a transient harness `KeyError`],
+    [`moonshot.kimi-k2-thinking`], [14/15], [1.071], [one topic reproducibly failed/hung across three attempts],
+  ),
+  caption: [`oss_agent` open-weight model bake-off, same 15 topics and judge protocol as §4.],
+)
+
+Two ablations against the qwen-based default (same 15 topics): the new
+S14 blind-scout stage ties on the holistic score (1.200 either way) but
+moves `Implicit Criteria` specifically (0.694 with it on vs. 0.571 off,
+the report's own axis-breakdown methodology from §4.5 applied to a new
+factor) -- kept on. S5 (adjacent-page augmentation) is decisively
+confirmed for qwen, dropping the score to 0.800 when disabled (-0.400,
+far past this report's own $plus.minus 0.067$ noise floor) -- a larger
+effect than this report's own qwen-specific S5 result on
+`brief_revise_agent` (-0.133, §4.2), same direction.
+
+*Reading the result against §4.2/§7's own claim that generator-model
+choice is the dominant standalone-score factor*: `oss_agent`'s best
+open-weight configuration (1.200) does not close the gap to any
+`gpt-5.6-*` main model tested in this report (1.867-2.267) -- consistent
+with, not a contradiction of, this report's own finding that once a
+weaker generator model is fixed, structural levers move an order of
+magnitude less. `oss_agent` is not a competitive submission candidate
+against `aus_agent_v2`/`brief_revise_agent` on this evidence; it is a
+demonstration that this report's own taxonomy-informed architecture
+transfers to an all-open-weight pipeline, at roughly \$0.16/topic
+generation cost (the qwen bake-off cell's own token count, same
+placeholder Bedrock rate §7 uses) -- an order of magnitude below even
+`brief_revise_agent`'s own \$1.29/topic base-cell figure.
+
+*Correction to a claim made when this addendum was first drafted, caught
+while preparing a follow-up deep-research prompt and worth recording
+here rather than silently fixing*: the LLM-generated-snippet rejection
+above (and in `oss_agent`'s own README/worklog) leaned on §4.5's
+project-wide finding that References \& Citation Quality is the weakest
+rubric axis in every cell scored -- true in aggregate across this
+report's 30 proprietary-model cells, but pulling `oss_agent`'s own
+per-axis numbers (same 15 topics, same judge) against its two
+proprietary progenitors shows the opposite for THIS system specifically:
+
+#figure(
+  table(
+    columns: (auto, auto, auto, auto),
+    align: (left, right, right, right),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 6pt,
+    table.header([*Axis (0--2)*], [*`oss_agent` qwen*], [*sol baseline*], [*`aus_agent_v2`*]),
+    [Communication Quality], [0.633], [0.733], [0.833],
+    [Explicit Criteria], [1.239], [1.450], [1.505],
+    [*Implicit Criteria*], [*0.694*], [*0.988*], [*1.100*],
+    [Instruction Following], [0.875], [1.000], [1.188],
+    [*Synthesis of Information*], [*0.590*], [*0.795*], [*1.000*],
+    [References \& Citation Quality], [*0.667*], [0.222], [0.000],
+  ),
+  caption: [`oss_agent` (qwen) vs. its two proprietary progenitors, same 15 topics, same judge, `n` per axis identical across all three (30/109/170/16/39/9 -- same topics, same rubric file).],
+)
+
+Citation Quality is `oss_agent`'s single BEST-scoring axis, beating both
+proprietary baselines outright (n=9 is small, but a gap this size in the
+favorable direction is a specific signal, not noise) -- the opposite of
+what the project-wide aggregate would suggest applies here. The two axes
+carrying the real gap are Implicit Criteria (largest, +0.294) and
+Synthesis of Information (+0.205). The decision not to adopt LLM-
+generated snippets still stands (no positive evidence exists either way,
+and the documented citation-support regression elsewhere in this report
+remains a real risk on principle), but the STATED REASON for it should
+be read as weaker than originally written, and future work on this
+system should prioritize Implicit Criteria and Synthesis, not citation
+mechanisms, per this corrected reading. Full context:
+`worklogs/assets/2026-08-09-oss-agent-deep-research-prompt.md`.
+
+== Round 2: extended model bake-off -- `zai.glm-5` wins, adopted as default
+
+A deep-research request (`worklogs/assets/2026-08-09-oss-agent-deep-
+research-prompt.md`) sent to `gpt-5.6-sol` and Gemini Deep Research,
+reviewed against a REAL Bedrock model-catalog check (`boto3
+bedrock.list_foundation_models`, not a guess), surfaced several more
+open-weight models already enabled on this account. Same 15-topic set,
+same judge protocol:
+
+#figure(
+  table(
+    columns: (auto, auto, auto),
+    align: (left, right, left),
+    stroke: 0.4pt + rgb("#d8d7d0"),
+    inset: 6pt,
+    table.header([*Model*], [*Standalone overall*], [*Notes*]),
+    [`qwen.qwen3-next-80b-a3b` (round-1 winner)], [1.200], [],
+    [`openai.gpt-oss-120b-1:0`], [1.200], [],
+    [`deepseek.v3.2`], [1.200], [tied, after fixing an AWS-token-expiry contamination],
+    [`moonshotai.kimi-k2.5`], [1.333], [],
+    [`qwen.qwen3-235b-a22b-2507-v1:0`], [0.867], [WORSE than the smaller round-1 model, confirmed on clean data],
+    [`us.meta.llama3-3-70b-instruct-v1:0`], [excluded], [0 tool calls across 4 rounds under this harness's Converse schema],
+    [*`zai.glm-5`*], [*1.467*], [*winner, replicated at 1.333 on an independent 15-topic set (+0.467 there, larger than +0.267 on the tuning set)*],
+  ),
+  caption: [Round-2 open-weight model bake-off, same 15 topics and judge protocol as the round-1 table above.],
+)
+
+`agent.DEFAULT_MODEL` changed to `zai.glm-5`. A bigger, newer model
+(`qwen3-235b`) scoring worse than a smaller one it should supersede is a
+real, useful negative result in its own right, not just noise --
+parameter count is not a reliable proxy for this task/harness
+combination.
+
+== Tier-2 build round: two architecture attempts, both rejected
+
+Full 7-turn review transcript (`gpt-5.6-sol` plus Claude Opus 4.8,
+standing in for Claude Fable 5 which turned out to be blocked by an
+RMIT AWS Organizations Service Control Policy -- confirmed unfixable
+from this account, no permission even to read the policy) in
+`worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md`. Both
+reviewers converged on building an evidence-grounded synthesis compiler
+first (a validated report blueprint before the final prose pass,
+replacing the review pass rather than stacking with it): a 15-topic
+pilot scored *0.933 vs. 1.467* for the plain baseline -- both target
+axes (Implicit Criteria, Synthesis) moved the WRONG direction, plus a
+sharp Communication Quality and Citation Quality collapse.
+
+Both reviewers independently converged again, reading that failure
+signature as "any mechanism that REPLACES the model's own organic
+synthesis loses" -- the only pattern either still trusted was additive
+correction layered on the model's own draft. A second, narrower
+mechanism (widen the existing review pass to also grade the blind
+scout's obligations, reusing it completely unmodified) scored *1.267
+vs. 1.467* -- Synthesis improved (+0.205) but Implicit Criteria, the
+axis this specifically targeted, moved the WRONG way (-0.165), and
+Citation Quality collapsed again (-0.334).
+
+Both reviewers then caught the same gap in the running interpretation:
+every comparison so far measured against a baseline that ALREADY
+carries an always-on review pass, never itself ablated. A third,
+subtractive pilot (`--no-review`, review pass off entirely) resolved
+this definitively: Citation Quality does not rise with no review at
+all -- it collapses to *0.000* (vs. 0.556 baseline), the worst
+citation result of any variant tested. The always-on review pass was
+PROTECTING citation quality the whole session, not costing it; neither
+Tier-2 attempt failed because "revision hurts this model" in general.
+
+*Final verdict: ship the plain baseline unchanged* -- `zai.glm-5` in
+every role, `hybrid`-only retrieval, adjacent-page augmentation on,
+blind scout on, unmodified review pass grading brief requirements only.
+Standalone overall: *1.467/3*, the same number round 2's bake-off
+already established. Both new mechanisms are kept in the codebase, off
+by default, as validated negative results -- this round's own
+deliverable is three decisive negative findings plus one clean
+positive-control confirmation, not a score improvement. Total
+additional spend this round (bake-off + three 15-topic pilots +
+consultation): roughly \$120-150, against a separately-raised \$300
+cumulative budget for this whole open-weight workstream.
