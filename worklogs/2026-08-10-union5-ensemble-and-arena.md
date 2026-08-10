@@ -1,9 +1,10 @@
-# 2026-08-10 — 5-run extractive ensemble (`sol-union5-t119`) and sol-judged 5-way arena
+# 2026-08-10 — 5-run extractive ensemble (`union5`) and sol-judged 5-way arena
 
 Builds the candidate-union ensemble described in
-`docs/extractive-eight-run-candidate-union.md` over the test119 runs available
-on this box plus Oleg's, then compares it against three systems and the
-organizer baseline with a native RAGDoll arena.
+`docs/extractive-eight-run-candidate-union.md` over all test119 runs the team
+has produced — those in this checkout's `data/outputs/` and those in the shared
+synced data dir — then compares it against three systems and the organizer
+baseline with a native RAGDoll arena.
 
 **Headline: the ensemble ranks first, and beats its own anchor 78.6% — but that
 margin is substantially confounded by answer length (see §Length confound). Two
@@ -13,12 +14,13 @@ reliable.**
 ## Data-sync finding (acted on, not fixed)
 
 `data/outputs` on this box is a **real directory, not the symlink** `CLAUDE.md`
-describes. `evaluation-results` *is* correctly symlinked. Consequence: our
-test119 runs and Oleg's have forked — his five full-coverage runs were invisible
-to `union_run.py`'s scanner, which globs `data/outputs/*/*.output.json`.
+describes. `evaluation-results` *is* correctly symlinked. Consequence: the
+checkout-local `data/outputs/` and the shared synced copy have forked — the five
+full-coverage runs held only in the synced copy were invisible to
+`union_run.py`'s scanner, which globs `data/outputs/*/*.output.json`.
 
-Worked around by symlinking his two needed system dirs in (verified `Path.glob`
-traverses symlinked dirs for non-`**` patterns):
+Worked around by symlinking the two needed system dirs in from the synced copy
+(verified `Path.glob` traverses symlinked dirs for non-`**` patterns):
 
 ```bash
 ln -s /research/remote/petabyte/users/oleg/trec_rag_26_data/outputs/brief_revise_agent data/outputs/brief_revise_agent
@@ -34,13 +36,13 @@ Nine full-coverage (119-topic) test119 runs exist across both trees.
 `candidate_union.py:28` caps `MAX_CANDIDATES = 8`, so "all runs" was not
 possible. Operator chose the five strongest:
 
-| run_id | tree | note |
+| run_id | artifacts in | note |
 | --- | --- | --- |
-| `sol-aus-v2-research-first-test119-20260807` | ours | **anchor** |
-| `sol-aus-default-test119-20260807` | ours | |
-| `brief-revise-base-test119-20260808` | Oleg's | beat organizer 83.6% (08-09 arena) |
-| `brief-revise-hybrid-test119-20260808` | Oleg's | arena #1 in 08-09 run |
-| `open-weight-agent-glm5-test119-20260809` | Oleg's | unmeasured before this run |
+| `sol-aus-v2-research-first-test119-20260807` | checkout-local | **anchor** |
+| `sol-aus-default-test119-20260807` | checkout-local | |
+| `brief-revise-base-test119-20260808` | synced copy | beat organizer 83.6% (08-09 arena) |
+| `brief-revise-hybrid-test119-20260808` | synced copy | arena #1 in 08-09 run |
+| `open-weight-agent-glm5-test119-20260809` | synced copy | unmeasured before this run |
 
 Excluded: `facet-rag-test119-20260808` (0/119 vs everything, 08-09),
 `facets-agent-test119-20260808` (loses to organizer baseline),
@@ -69,7 +71,7 @@ set -a; source .env; set +a
 uv run --group aus-agent-v2 python src/systems/aus_agent_v2/union_run.py \
   --topics "$TOPICS" --all --skip-existing \
   --backend openai --model openai.gpt-5.6-sol \
-  --run-id sol-union5-t119 \
+  --run-id union5 \
   --run-desc "extractive candidate union over 5 complete test119 runs (anchor sol-aus-v2-research-first); immutable answer-item selection with deterministic citation remapping" \
   --budget-cap 1500 --per-topic-reserve-usd 10 \
   "${CANDIDATE_ARGS[@]}"
@@ -102,16 +104,22 @@ deleted before the batch.
 
 ```bash
 uv run python scripts/export-rag-submission.py data/outputs/aus_agent_v2 \
-  --output data/outputs/submissions/sol-union5-t119/rag_output_trec_rag_2026.jsonl \
-  --run-id sol-union5-t119 --topics "$TOPICS"
+  --output data/outputs/submissions/union5/rag_output_trec_rag_2026.jsonl \
+  --run-id union5 --topics "$TOPICS"
 ```
 
-119 rows. `run_id` is 15 chars, within rag26's 20-char run-tag limit, so no
+119 rows. `run_id` is 6 chars, within rag26's 20-char run-tag limit, so no
 `--output-run-id` rewrite was needed.
+
+The run was initially built as `sol-union5-t119` and renamed to `union5`
+afterwards: `metadata.run_id` and `trace.metadata.run_id` were rewritten in all
+119 rich artifacts, the submission directory was renamed, and the JSONL was
+re-exported from the artifacts (rather than edited) so the two cannot drift.
+Re-validated after the rename: `119/119 reports valid against rag26`, exit 0.
 
 ```bash
 uv run --no-project --with "autojudge-base>=0.4.3" python -m autojudge_base.report_tool check \
-  data/outputs/submissions/sol-union5-t119/rag_output_trec_rag_2026.jsonl \
+  data/outputs/submissions/union5/rag_output_trec_rag_2026.jsonl \
   --spec rag26 --topics <Request-format topics JSONL>
 ```
 
@@ -156,11 +164,17 @@ Integrity: 1,190 tasks = 1,190 judgments = 10 pairs × 119 topics; 1,190 unique
 task_ids; 1,190 `status=completed`; 0 errors. Verdicts A=491, B=668, Tie=21,
 Tie (Both Bad)=10. Cost **$32.25** ($0.0271/judgment).
 
+The arena ran before the rename, so its raw artifacts (`tasks.jsonl`,
+`judgments.jsonl`, `pairwise.csv`, `leaderboard.csv`, `task_id`s) record this
+run under its id at judging time, **`sol-union5-t119`**. Those files were left
+untouched — they are the evidence record. The tables below use the current id,
+`union5`; the two refer to the same run and the same 119 answers.
+
 ### Leaderboard (native `arena-rank`)
 
 | rank | run | arena score | judgments | wins | losses | ties |
 | ---: | --- | ---: | ---: | ---: | ---: | ---: |
-| 1 | `sol-union5-t119` | 1157.63 | 476 | 338 | 127 | 11 |
+| 1 | `union5` | 1157.63 | 476 | 338 | 127 | 11 |
 | 2 | `sol-aus-default-test119-20260807` | 1099.47 | 476 | 294 | 164 | 18 |
 | 3 | `sol-aus-v2-research-first-test119-20260807` | 1064.89 | 476 | 273 | 193 | 10 |
 | 4 | `brief-base-t119` | 974.62 | 476 | 204 | 255 | 17 |
@@ -170,10 +184,10 @@ Tie (Both Bad)=10. Cost **$32.25** ($0.0271/judgment).
 
 ```
 run_a                        run_b                     A wins B wins ties  A pref  B pref
-sol-union5-t119              sol-aus-v2-research-first   91    23     5    0.786   0.214
-sol-union5-t119              sol-aus-default             65    51     3    0.559   0.441
-sol-union5-t119              brief-base-t119             78    39     2    0.664   0.336
-sol-union5-t119              organizer                  104    14     1    0.878   0.122
+union5              sol-aus-v2-research-first   91    23     5    0.786   0.214
+union5              sol-aus-default             65    51     3    0.559   0.441
+union5              brief-base-t119             78    39     2    0.664   0.336
+union5              organizer                  104    14     1    0.878   0.122
 sol-aus-v2-research-first    sol-aus-default             61    56     2    0.521   0.479
 sol-aus-v2-research-first    brief-base-t119             81    36     2    0.689   0.311
 sol-aus-v2-research-first    organizer                  108    10     1    0.912   0.088
@@ -191,13 +205,13 @@ pair                                              X as A   X as B  flip?
 brief-base            vs organizer                 80.9%    81.6%
 brief-base            vs sol-aus-default           17.8%    41.3%
 brief-base            vs sol-aus-v2-research-first 15.3%    46.6%
-brief-base            vs sol-union5-t119           14.5%    54.5%   FLIP
+brief-base            vs union5           14.5%    54.5%   FLIP
 organizer             vs sol-aus-default            4.6%     1.9%
 organizer             vs sol-aus-v2-research-first  5.9%    12.0%
-organizer             vs sol-union5-t119            4.4%    16.4%
+organizer             vs union5            4.4%    16.4%
 sol-aus-default       vs sol-aus-v2-research-first 33.3%    61.7%   FLIP
-sol-aus-default       vs sol-union5-t119           30.2%    60.4%   FLIP
-sol-aus-v2-research-first vs sol-union5-t119       22.2%    18.3%
+sol-aus-default       vs union5           30.2%    60.4%   FLIP
+sol-aus-v2-research-first vs union5       22.2%    18.3%
 ```
 
 **Union vs its anchor is robust** (anchor wins 22.2% as A, 18.3% as B — same
@@ -228,7 +242,7 @@ is stark and the direction is unambiguous.
 instrument rather than a preference vote — AutoNuggetizer-style nugget coverage,
 or the rubric/entailment grading `judge_client.py` documents as not exhibiting
 the self-preference that "dominated the arena". Recommend running one before
-treating `sol-union5-t119` as better than `sol-aus-default`.
+treating `union5` as better than `sol-aus-default`.
 
 ## Spend
 
@@ -238,8 +252,8 @@ $1,500). Union selector $0.21/call. Arena's own $32.25 is recorded in
 
 ## Artifacts
 
-- `data/outputs/submissions/sol-union5-t119/rag_output_trec_rag_2026.jsonl`
-- `data/outputs/aus_agent_v2/*.output.json` @ `run_id=sol-union5-t119` (119 rich)
+- `data/outputs/submissions/union5/rag_output_trec_rag_2026.jsonl`
+- `data/outputs/aus_agent_v2/*.output.json` @ `run_id=union5` (119 rich)
 - `data/outputs/aus_agent_v2/test-candidate-union-packets.jsonl` (119 packets)
 - `data/outputs/ragdoll-arena/union5-vs-4systems-20260810/` — `tasks.jsonl`,
   `judgments.jsonl`, `coverage.csv`, `pairwise.csv`, `leaderboard.csv`,
