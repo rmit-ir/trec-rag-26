@@ -179,9 +179,16 @@ ARCH_STAGES = [
      "note": "pre_final_hook, fires at most once: deterministic "
              "uncited-sentence scan + one reviewer call reading committed "
              "evidence locally. Reused unmodified from brief_revise_agent "
-             "-- open-weight model only.",
+             "-- open-weight model only. None issues + no uncited sentences "
+             "-> accept; otherwise -> one revision turn, usually back "
+             "through FINAL PROSE, but the feedback re-enters the same "
+             "turn loop the model always has, so it may search again "
+             "first (REVIEW_PROMPT tells it to prefer an existing "
+             "committed docid and only search if a requirement is "
+             "genuinely unsupported). Either way, no second review fires.",
      "back_to": "final", "back_from": "review",
-     "back_label": "at most one revision",
+     "back_label": "usual: patch the draft",
+     "decision_to": "search", "decision_label": "rare: unsupported requirement",
      "prompt": ["systems/brief_revise_agent/prompts.py::REVIEW_PROMPT"],
      "code": ["systems/brief_revise_agent/review.py::hook"]},
     {"id": "map", "label": "MAP CITES", "kind": "format",

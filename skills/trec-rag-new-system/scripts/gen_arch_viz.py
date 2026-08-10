@@ -828,6 +828,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
     --e-retrieval: #1a7f6b; --e-artifacts: #b45309; --e-answer-format: #7c3aed;
     --e-provider: #2563eb; --e-fetch-doc: #0891b2; --e-harness: #be185d;
     --e-mcp: #65a30d;
+    /* a decision edge (conditional, fires 0 or 1 times off a gate's own
+       verdict) is a different fact from the loop edge above (repeats every
+       pass, unconditionally) -- amber + dotted keeps the two from reading
+       as the same kind of return. */
+    --decision: #b45309;
   }
   @media (prefers-color-scheme: dark) {
     :root {
@@ -837,6 +842,7 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
       --e-retrieval: #2dd4bf; --e-artifacts: #f59e0b; --e-answer-format: #a78bfa;
       --e-provider: #60a5fa; --e-fetch-doc: #22d3ee; --e-harness: #f472b6;
       --e-mcp: #a3e635;
+      --decision: #f59e0b;
     }
   }
   * { box-sizing: border-box; }
@@ -1033,7 +1039,8 @@ function buildLegend(view) {
          'blue panel = one continuous model conversation',
          'curved return = search again for evidence gaps']
       : ['LLM = calls a model', 'CODE = deterministic', 'LLM+CODE = both',
-         'dashed box = loop span', 'stacked box = runs concurrently'];
+         'dashed box = loop span', 'stacked box = runs concurrently',
+         'dotted amber return = conditional, fires only if its own gate finds a problem'];
     entries.forEach(t => {
       const s = document.createElement('span'); s.className = 'lg'; s.textContent = t;
       box.appendChild(s);
@@ -1708,6 +1715,41 @@ function drawSystem(sys) {
     svg.appendChild(el('text', { x: (lx0+lx1)/2, y: y+bh+64, 'text-anchor':'middle', class:'hint' },
       lp.back_label || 'repeat until answer'));
   }
+
+  // Decision edges: a non-loop stage's own back_to (a review/gate stage, not
+  // the main turn loop) is a CONDITIONAL return -- it exists only because
+  // that gate's own verdict found a problem, unlike the loop edge above,
+  // which repeats every pass regardless of any verdict. `decision_to` is an
+  // optional SECOND such edge off the same stage (e.g. REVIEW may patch
+  // FINAL PROSE directly, or -- only if a requirement is genuinely
+  // unsupported -- re-enter the loop for one more search first). Both draw
+  // amber/dotted above the row, never the loop's blue/dashed below it, so a
+  // reader never mistakes a maybe-branch for the deterministic repeat.
+  let riseSlot = 0;
+  const decisionArc = (fromId, toId, label) => {
+    const fromI = idx(fromId), toI = idx(toId);
+    if (fromI < 0 || toI < 0) return;
+    const x1 = cx(fromI);
+    const x2 = (loopSpan && toI >= loopSpan.to && toI <= loopSpan.from)
+      ? loopSpan.rx1 : cx(toI);
+    const apex = y - 40 - riseSlot * 36;
+    riseSlot++;
+    edges.appendChild(el('path', {
+      class: 'edge', stroke: 'var(--decision)', 'stroke-dasharray': '2 3',
+      'marker-end': 'url(#arw)',
+      d: `M ${x1} ${y} C ${x1} ${apex}, ${x2} ${apex}, ${x2} ${y}`,
+    }));
+    svg.appendChild(el('text', { x: (x1 + x2) / 2, y: apex - 6,
+      'text-anchor': 'middle', class: 'hint' }, label));
+  };
+  drawn.forEach(stg => {
+    if (stg.kind === 'loop' || !stg.back_to || !stg.back_from) return;
+    decisionArc(stg.id, stg.back_to, stg.back_label || 'conditional revision');
+    if (stg.decision_to) {
+      decisionArc(stg.id, stg.decision_to, stg.decision_label || 'conditional');
+    }
+  });
+
   addArrowMarker();
 }
 

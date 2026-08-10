@@ -115,6 +115,22 @@ ARCH_STAGES = [
      "prompt": ["systems/facets_agent/prompts.py::SYSTEM_PROMPT"],
      "tools_note": "same conversation as the loop -- the report is a turn, "
                     "not a new call"},
+    {"id": "gate", "label": "COVERAGE GATE", "kind": "llm",
+     "note": "pre_final_hook (default coverage_gate, fires at most once): "
+             "reads the last commit_context call's own coverage ledger; any "
+             "entry still 'open' -> sends the model back to name exactly "
+             "those and search again -- not a text patch like "
+             "brief_revise_agent's REVIEW, this gate always points back at "
+             "SEARCH. Nothing open -> accept. Either way, no second gate "
+             "fires. --two-tier-search swaps in two_tier_final_gate, which "
+             "also runs a citation-support audit after coverage is clean "
+             "(review.py::citation_audit_gate) -- not modeled as a "
+             "separate stage here since it is opt-in, not the default.",
+     "back_to": "search", "back_from": "gate",
+     "back_label": "if a requirement is still open",
+     "prompt": ["systems/facets_agent/prompts.py::SYSTEM_PROMPT"],
+     "code": ["systems/facets_agent/review.py::coverage_gate",
+              "agent_harness/agent.py::run_agent"]},
     {"id": "map", "label": "MAP CITES", "kind": "format",
      "note": "docid -> reference-index mapping",
      "code": ["agent_harness/agent.py::_map_citations"]},
