@@ -875,6 +875,11 @@ HTML_TEMPLATE = r"""<!DOCTYPE html>
   .edge.dim { opacity: .12; }
   .engine rect { fill: var(--panel); stroke: var(--line); rx: 6; }
   .hint { fill: var(--muted); font-size: 11px; }
+  /* a stylesheet rule beats a presentation attribute, so the decision
+     label's color/weight must live here, not as an inline fill= on the
+     <text> element -- .hint's own fill would otherwise win and silently
+     grey it back out. */
+  .hint-decision { fill: var(--decision); font-size: 11px; font-weight: 600; }
   #tip { position: absolute; pointer-events: none; background: var(--panel);
          border: 1px solid var(--cardstroke); border-radius: 6px; padding: 6px 9px;
          font-size: 12px; max-width: 320px; color: var(--ink); box-shadow: 0 4px 14px rgba(0,0,0,.18);
@@ -1025,7 +1030,21 @@ function addArrowMarker() {
   const marker = el('marker', { id: 'arw', viewBox: '0 0 10 10', refX: 9, refY: 5,
     markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
   marker.appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--muted)' }));
-  defs.appendChild(marker); svg.appendChild(defs);
+  defs.appendChild(marker);
+  // Decision edges get their own amber arrowhead (matching their line color,
+  // unlike every other edge's generic muted-gray one) plus a small diamond
+  // at the branch point itself -- the universal flowchart glyph for "this is
+  // a conditional split", so the branch reads as conditional even before a
+  // reader notices the line's color or dash pattern.
+  const decArrow = el('marker', { id: 'dec-arw', viewBox: '0 0 10 10', refX: 9, refY: 5,
+    markerWidth: 7, markerHeight: 7, orient: 'auto-start-reverse' });
+  decArrow.appendChild(el('path', { d: 'M 0 0 L 10 5 L 0 10 z', fill: 'var(--decision)' }));
+  defs.appendChild(decArrow);
+  const decStart = el('marker', { id: 'dec-diamond', viewBox: '0 0 10 10', refX: 5, refY: 5,
+    markerWidth: 6, markerHeight: 6 });
+  decStart.appendChild(el('path', { d: 'M 5 0 L 10 5 L 5 10 L 0 5 z', fill: 'var(--decision)' }));
+  defs.appendChild(decStart);
+  svg.appendChild(defs);
 }
 
 // view is 'overview' or 'system' -- the drill-in legend swaps edge-type swatches
@@ -1734,13 +1753,20 @@ function drawSystem(sys) {
       ? loopSpan.rx1 : cx(toI);
     const apex = y - 40 - riseSlot * 36;
     riseSlot++;
+    // "if " is prefixed rather than assumed from color/dash alone -- a
+    // reader who can't tell dotted from dashed at a glance, or is on a
+    // color-blind-unfriendly display, still gets the conditional from the
+    // words. `marker-start` diamond marks the branch point on the stage
+    // itself, `marker-end` arrowhead is amber (not the generic muted one
+    // every other edge uses), so the whole edge reads as one distinct kind.
     edges.appendChild(el('path', {
       class: 'edge', stroke: 'var(--decision)', 'stroke-dasharray': '2 3',
-      'marker-end': 'url(#arw)',
+      'marker-start': 'url(#dec-diamond)', 'marker-end': 'url(#dec-arw)',
       d: `M ${x1} ${y} C ${x1} ${apex}, ${x2} ${apex}, ${x2} ${y}`,
     }));
+    const text = /^if\b/i.test(label) ? label : `if: ${label}`;
     svg.appendChild(el('text', { x: (x1 + x2) / 2, y: apex - 6,
-      'text-anchor': 'middle', class: 'hint' }, label));
+      'text-anchor': 'middle', class: 'hint-decision' }, text));
   };
   drawn.forEach(stg => {
     if (stg.kind === 'loop' || !stg.back_to || !stg.back_from) return;

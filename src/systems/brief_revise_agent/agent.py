@@ -148,8 +148,8 @@ ARCH_STAGES = [
              "genuinely unsupported). Either way, no second review fires. "
              "Any failure -> log, accept anyway",
      "back_to": "final", "back_from": "review",
-     "back_label": "usual: patch the draft",
-     "decision_to": "search", "decision_label": "rare: unsupported requirement",
+     "back_label": "if review found a gap: patch the draft",
+     "decision_to": "search", "decision_label": "if a requirement is genuinely unsupported: search again",
      "prompt": ["systems/brief_revise_agent/prompts.py::REVIEW_PROMPT"],
      "code": ["systems/brief_revise_agent/review.py::hook",
               "agent_harness/agent.py::run_agent"]},
