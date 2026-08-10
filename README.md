@@ -82,6 +82,10 @@ official hosted baseline:
 - [`docs/auto-optimize/`](docs/auto-optimize/README.md) — protocol and
   progress report for the `aus_agent` prompt-optimization loop (measurement
   design, leaderboard, variant registry)
+- [Factor analysis report](worklogs/assets/2026-08-07-factor-analysis-report/report.pdf) —
+  `brief_revise_agent` structural + generator-LLM factorial study (typst lab
+  report with figures); build log in
+  [`worklogs/2026-08-07-brief-revise-agent-llm-factorial-design.md`](worklogs/2026-08-07-brief-revise-agent-llm-factorial-design.md)
 
 ## Getting started
 
