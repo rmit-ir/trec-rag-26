@@ -1512,3 +1512,15 @@ positive-control confirmation, not a score improvement. Total
 additional spend this round (bake-off + three 15-topic pilots +
 consultation): roughly \$120-150, against a separately-raised \$300
 cumulative budget for this whole open-weight workstream.
+
+== Test119 submission prepared
+
+The plain baseline (`zai.glm-5`, no non-default flags) was run on the
+full official 119-topic test set and exported for submission --
+`worklogs/2026-08-09-test119-oss-agent-submission.md` has the complete
+account. 119/119 completed (one resume pass needed for 2 topics that hit
+the same transient shared-harness `KeyError` seen during dev-set work),
+0 `validate_rag_output` violations, organizer-facing run tag
+`oss-glm5-t119`. Real metered Bedrock cost: *\$0.163/topic, \$19.35 total*
+-- roughly 1/10th `brief_revise_agent`'s own test119 figure (§10.4,
+\$1.638/topic).
