@@ -7,7 +7,7 @@
 [![uv](https://img.shields.io/badge/deps-uv-DE5FE9?logo=astral&logoColor=white)](https://docs.astral.sh/uv/)
 [![Tests](https://img.shields.io/badge/tests-947%20hermetic-brightgreen?logo=pytest&logoColor=white)](tests/)
 [![CI](https://img.shields.io/badge/CI-3%20workflows-2088FF?logo=githubactions&logoColor=white)](.github/workflows/)
-[![Systems](https://img.shields.io/badge/RAG%20systems-5-8A2BE2)](src/systems/)
+[![Systems](https://img.shields.io/badge/RAG%20systems-9-8A2BE2)](src/systems/)
 [![Retrieval](https://img.shields.io/badge/retrieval-dense%20%7C%20BM25%20%7C%20SSR%20%7C%20Pyserini-005571)](#retrieval)
 [![Architecture](https://img.shields.io/badge/architecture-interactive%20diagram-F9A03C)](docs/architecture.html)
 
@@ -32,6 +32,8 @@ the evaluation harness we score them with.
 | `tests/` | Hermetic pytest suite (no creds, no network) over the shared layers and every system |
 | `skills/` | Agent skills: track guidelines, corpus creation, Pyserini API, new-system scaffolding |
 | `docs/architecture.html` | Interactive architecture diagram, generated from `src/systems/` |
+| `tasks/outputs_viewer/` | Next.js app to browse runs in `data/outputs/` |
+| `docs/auto-optimize/` | Protocol + progress report for the `aus_agent` prompt-optimization loop |
 | `worklogs/` | Dated log of every substantive work session |
 
 Data artifacts (corpora, built indexes, run outputs) live under `data/` and are
@@ -42,10 +44,15 @@ never committed.
 | System | Approach |
 | --- | --- |
 | [`aus_agent`](src/systems/aus_agent/) | Agentic RAG with a staged/committed context ledger and pluggable LLM backends (Bedrock, OpenAI) |
+| [`aus_agent_v2`](src/systems/aus_agent_v2/) | Experimental fork of the `aus_agent` loop, ClimbMix-only retrieval |
+| [`brief_revise_agent`](src/systems/brief_revise_agent/) | `aus_agent` fork that adds a requirements-brief step and a review/revise pass |
+| [`open_weight_agent`](src/systems/open_weight_agent/) | Open-weight-only fork of `brief_revise_agent` (no proprietary model in the pipeline) plus a blind obligation scout |
+| [`facets_agent`](src/systems/facets_agent/) | Single continuous tool-calling agent (`gpt-5.6-luna`) running `facet_rag`'s facet-decomposition process itself, on a much shorter prompt |
 | [`facet_rag`](src/systems/facet_rag/) | Orchestrator (gpt-oss) plans facets and drives search; analyzer (Qwen) judges passages and fact-checks, per-facet loops run concurrently |
 | [`ali_deepresearch`](src/systems/ali_deepresearch/) | Port of Alibaba Tongyi DeepResearch's multi-turn ReAct agent onto ClimbMix tools |
 | [`o3_deep_research`](src/systems/o3_deep_research/) | OpenAI `o3-deep-research` baseline, grounded through the ClimbMix MCP server |
 | [`claude-code-research`](src/systems/claude-code-research/) | Claude Code driven as a research agent over the corpus CLI |
+| [`codex_cli_research`](src/systems/codex_cli_research/) | Ephemeral non-interactive Codex CLI session per topic, over the stdio ClimbMix MCP server |
 
 Every system emits the same two artifacts under `data/outputs/<system>/`: a
 spec-conformant `*.output.json` for submission and a `*.trajectory.json` trace
@@ -63,6 +70,18 @@ official hosted baseline:
 - **SSR** — Cottontail annotative index with Shortest-Substring Ranking over GCL
   Boolean queries (`tasks/ssr_search/`)
 - **Pyserini REST** — the official TREC RAG hosted BM25 baseline
+
+## Tools & reports
+
+- [`docs/architecture.html`](docs/architecture.html) — interactive diagram of
+  every RAG system's pipeline, generated from `src/systems/`; regenerate with
+  `python skills/trec-rag-new-system/scripts/gen_arch_viz.py --open`
+- [Outputs Viewer](tasks/outputs_viewer/) — Next.js app for browsing runs
+  under `data/outputs/`; `cd tasks/outputs_viewer && pnpm build && pnpm start`
+  serves it at http://localhost:3618
+- [`docs/auto-optimize/`](docs/auto-optimize/README.md) — protocol and
+  progress report for the `aus_agent` prompt-optimization loop (measurement
+  design, leaderboard, variant registry)
 
 ## Getting started
 
