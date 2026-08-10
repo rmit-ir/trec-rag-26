@@ -4,12 +4,11 @@
 > `open_weight_agent` (package, tests, `data/outputs/`, internal dev
 > run-ids) to avoid a naming collision with the `gpt-oss-120b` model. The
 > internal dev/bake-off run-ids under `data/outputs/open_weight_agent/`
-> now carry an `open-weight-*` prefix instead of `oss-*`. The frozen
-> submission artifact below (`data/outputs/submissions/oss-glm5-t119/`,
-> organizer run-id `oss-glm5-t119`, SHA-256 as recorded) was **not**
-> touched by the rename -- it is already checksummed and this worklog's
-> numbers describe it exactly as submitted. Everything below is left as
-> originally written.
+> now carry an `open-weight-*` prefix instead of `oss-*`. The submission
+> artifact itself was **also** renamed in a follow-up pass -- see the
+> "Update (2026-08-10)" section at the bottom for the new organizer run-id
+> and checksum. Everything below this note, up to that section, is left as
+> originally written and describes the run as it was first submitted.
 
 Date: 2026-08-09/10
 
@@ -113,3 +112,44 @@ completed logic).
 - Internal artifacts: `data/outputs/oss_agent/*.output.json`,
   `metadata.run_id=oss-agent-glm5-test119-20260809`.
 - Launch log: `tasks/task-comparison/logs/oss-agent-glm5-test119-20260809.log`.
+
+## Update (2026-08-10): submission re-exported under the renamed organizer run tag
+
+Following the `oss_agent` -> `open_weight_agent` rename, the submission
+artifact was regenerated so it no longer carries the old name anywhere,
+including inside the file content (not just the directory/tag):
+
+```bash
+uv run --group aus-agent python scripts/export-rag-submission.py \
+  data/outputs/open_weight_agent \
+  --run-id open-weight-agent-glm5-test119-20260809 \
+  --output-run-id owa-glm5-t119 \
+  --topics data/official/trec-rag-2026-data/trec-rag-2026/test-data/trec_rag_2026_queries.tsv \
+  --output data/outputs/submissions/owa-glm5-t119/rag_output_trec_rag_2026.jsonl
+```
+
+Identical result to the original export -- `wrote 119 rows`,
+`ignored 2 superseded failed attempt(s)` -- since the source internal
+artifacts are unchanged (only their `run_id` field text was renamed
+earlier, which `--run-id` matches on exactly). The exporter only rewrites
+`metadata.run_id`, not `metadata.run_desc`; the latter still read
+`"oss_agent research harness (...)"` verbatim after export, so it was
+fixed with a scoped `sed` pass (`oss_agent research harness` ->
+`open_weight_agent research harness`, 119/119 rows). Re-validated with
+`ragrun.validate_rag_output` after the fix: 0 violations, 119/119 valid,
+all rows carry `run_id=owa-glm5-t119`.
+
+**New organizer run tag: `owa-glm5-t119`** (13 chars, same length/shape as
+the original `oss-glm5-t119`, satisfies `rag26`'s `run_id_max_len=20`
+charset). Chosen as a short `open_weight_agent` abbreviation ("owa") that
+does not contain the `oss` substring, matching the reason for the package
+rename itself.
+
+- `data/outputs/submissions/owa-glm5-t119/rag_output_trec_rag_2026.jsonl`
+  (119 rows, SHA-256
+  `9b692841f66336372015a5ccf9cc59ca96a0588ea029ff7d193cf9c92675217b`)
+- `data/outputs/submissions/owa-glm5-t119/portal-answers.md` -- Evalbase
+  portal Q&A for this run (was missing until this pass; sibling systems'
+  test119 submissions all have one).
+- The old `data/outputs/submissions/oss-glm5-t119/` directory was removed
+  (superseded, not kept alongside).

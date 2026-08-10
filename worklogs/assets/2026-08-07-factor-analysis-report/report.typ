@@ -1523,6 +1523,7 @@ full official 119-topic test set and exported for submission --
 account. 119/119 completed (one resume pass needed for 2 topics that hit
 the same transient shared-harness `KeyError` seen during dev-set work),
 0 `validate_rag_output` violations, organizer-facing run tag
-`oss-glm5-t119`. Real metered Bedrock cost: *\$0.163/topic, \$19.35 total*
+`owa-glm5-t119` (renamed post-hoc from `oss-glm5-t119`, see the worklog's
+"Update (2026-08-10)" section). Real metered Bedrock cost: *\$0.163/topic, \$19.35 total*
 -- roughly 1/10th `brief_revise_agent`'s own test119 figure (§10.4,
 \$1.638/topic).
