@@ -73,6 +73,13 @@ brief-revise-agent = [
     "boto3>=1.40",
     "openai>=2.45",
 ]
+# open_weight_agent: open-weight-only fork of brief_revise_agent, plus a blind
+# obligation-scout stage ported from aus_agent_v2 (src/systems/open_weight_agent).
+# Bedrock-only by design (agent.ALLOWED_MODELS) -- no openai SDK needed,
+# unlike every other system group above.
+open-weight-agent = [
+    "boto3>=1.40",
+]
 # Non-interactive Codex research agent. The CLI is installed separately; this
 # group supplies its private stdio ClimbMix MCP server.
 codex-cli-research = [

@@ -104,10 +104,18 @@ def now_full(now: datetime | None = None) -> str:
 
 
 def make_provider(backend: str, model: str | None,
-                  region: str | None = None) -> Provider:
+                  region: str | None = None,
+                  max_tokens: int | None = None) -> Provider:
+    """``max_tokens`` overrides the provider's own default output cap --
+    needed for a Bedrock model whose endpoint enforces a lower ceiling than
+    ``BedrockProvider``'s 16000 default (e.g. Llama 3.3 70B's 8192; the
+    Converse API 400s as a ``ValidationException`` otherwise, not a
+    silently-truncated response). ``None`` (the default) keeps each
+    provider's own default unchanged."""
     if backend == "bedrock":
         from .providers.bedrock import BedrockProvider
-        return BedrockProvider(model, region=region)
+        kwargs = {"max_tokens": max_tokens} if max_tokens is not None else {}
+        return BedrockProvider(model, region=region, **kwargs)
     if backend == "openai":
         from .providers.openai import OpenAIProvider
         return OpenAIProvider(model)
@@ -729,6 +737,7 @@ def _record_turn(tb: TrajectoryBuilder, turn: dict[str, Any], *,
 
 def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
               model: str | None = None, k: int = 10,
+              max_tokens: int | None = None,
               context_token_budget: int = DEFAULT_CONTEXT_TOKEN_BUDGET,
               safety_max_rounds: int = DEFAULT_SAFETY_MAX_ROUNDS,
               max_committed_per_step: int = DEFAULT_MAX_COMMITTED_PER_STEP,
@@ -773,6 +782,10 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     as a plain provenance label only — it has no effect here.
     ``default_k_by_engine`` overrides the per-call result
     count for a named engine when the model's call omits ``k``.
+    ``max_tokens`` overrides the main provider's own default output-token
+    cap (see ``make_provider``'s own docstring) — needed for a Bedrock
+    model whose endpoint enforces a lower ceiling than the 16000 default
+    (e.g. Llama 3.3 70B's 8192).
     ``commit_context_tool`` — when given — is advertised to the model instead
     of this module's own ``COMMIT_CONTEXT_TOOL``; ``apply_commit`` already
     handles a ``release`` argument whenever the call carries one regardless of
@@ -857,7 +870,8 @@ def run_agent(query_id: str, query: str, *, backend: str = "bedrock",
     if context_token_budget <= 0:
         raise ValueError("context_token_budget must be positive")
     engines = list(engines) if engines else list(DEFAULT_ENGINES)
-    provider = make_provider(backend, model)
+    provider = (make_provider(backend, model, max_tokens=max_tokens)
+               if max_tokens is not None else make_provider(backend, model))
     tb = TrajectoryBuilder(query_id, query, metadata={
         "model": provider.model_id,
         "backend": backend,

@@ -180,11 +180,14 @@ def test_tool_guard_denies_shell_and_allows_only_climbmix_mcp(tmp_path: Path) ->
 
 def test_nested_codex_config_disables_web_and_requires_private_mcp() -> None:
     """A missing corpus server aborts instead of silently exposing another source."""
-    config = (PACKAGE_DIR / ".codex/config.toml").read_text(encoding="utf-8")
+    runner, calls = fake_runner()
 
-    assert 'web_search = "disabled"' in config
-    assert "required = true" in config
-    assert 'matcher = "*"' in config
+    _run(runner)
+    command, _kwargs = calls[0]
+
+    assert 'web_search="disabled"' in command
+    assert "mcp_servers.climbmix.required=true" in command
+    assert any('matcher="*"' in part for part in command)
 
 
 def test_schema_reserves_more_objects_for_sentence_level_coverage() -> None:
