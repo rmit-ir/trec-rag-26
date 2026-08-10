@@ -1,11 +1,11 @@
-"""oss_agent's own prompt fragment.
+"""open_weight_agent's own prompt fragment.
 
 Every OTHER prompt this system uses is reused verbatim, not duplicated:
 the base system prompt and the requirements-brief/review prompts come from
 ``brief_revise_agent`` (``prompts/system/default.md``, ``prompts.py``), and
 the blind-scout prompt comes from ``aus_agent_v2.plan_critic``
 (``PLAN_CRITIC_SYSTEM``) -- see ``agent.py``'s module docstring for why.
-This file holds only the one template oss_agent adds: how a scout addition
+This file holds only the one template open_weight_agent adds: how a scout addition
 renders into the system-prompt appendix.
 """
 from __future__ import annotations

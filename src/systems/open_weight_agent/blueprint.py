@@ -4,8 +4,8 @@ pass, instead of critiquing an already-written draft (``review.py``'s
 approach, still this system's default).
 
 Ported from a converged gpt-5.6-sol / Claude Opus 4.8 design review
-(``worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md``, turns 4-5,
-plus ``worklogs/2026-08-09-oss-agent-open-weight-system.md``'s own D1
+(``worklogs/assets/2026-08-09-open-weight-agent-sol-plan-review.md``, turns 4-5,
+plus ``worklogs/2026-08-09-open-weight-agent-open-weight-system.md``'s own D1
 diagnostic): sol's own first-turn "A1" proposal, picked over its own "A3"
 (a criterion-partitioned claim union with deterministic stitching)
 specifically because D1 -- this repo's own fixed-evidence-replay

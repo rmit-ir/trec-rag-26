@@ -1,5 +1,11 @@
 # 2026-08-09 -- gpt-5.6-sol review of the oss_agent deep-research request
 
+> **Renamed post-hoc (2026-08-10):** `oss_agent` was renamed to
+> `open_weight_agent` to avoid a naming collision with the `gpt-oss-120b`
+> model. This transcript is left as originally recorded -- every
+> `oss_agent`/`oss-agent` reference below is the accurate historical
+> record.
+
 Three-turn working dialogue with `gpt-5.6-sol` (OpenAI backend, used here ONLY
 as an advisory/design consultant -- not part of `oss_agent`'s own open-weight
 generation pipeline), reviewing the research plan in

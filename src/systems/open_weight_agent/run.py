@@ -1,17 +1,17 @@
-"""CLI for the oss_agent RAG harness -- open-weight models only.
+"""CLI for the open_weight_agent RAG harness -- open-weight models only.
 
 Usage (from the repo root):
 
-    uv run --group oss-agent python src/systems/oss_agent/run.py \\
+    uv run --group open-weight-agent python src/systems/open_weight_agent/run.py \\
         --qid 6847465956a0f6376a605492
-    uv run --group oss-agent python src/systems/oss_agent/run.py \\
+    uv run --group open-weight-agent python src/systems/open_weight_agent/run.py \\
         --query "..." --model qwen.qwen3-next-80b-a3b
-    uv run --group oss-agent python src/systems/oss_agent/run.py --all
+    uv run --group open-weight-agent python src/systems/open_weight_agent/run.py --all
 
 ``--model`` (and ``--brief-model``/``--review-model``/``--scout-model``) must
 be one of ``agent.ALLOWED_MODELS`` -- anything else raises before any API
 call is made. Every option's default can also be set via a
-``RUN_OSS_AGENT_<OPTION>`` env var; an explicit CLI flag still wins (same
+``RUN_OPEN_WEIGHT_AGENT_<OPTION>`` env var; an explicit CLI flag still wins (same
 convention as brief_revise_agent/run.py, this file's template).
 """
 from __future__ import annotations
@@ -53,7 +53,7 @@ from ragrun.outputs import data_dir  # noqa: E402
 from systems.brief_revise_agent.agent import (  # noqa: E402
     DEFAULT_MAX_COMMITTED_PER_STEP,
 )
-from systems.oss_agent.agent import (  # noqa: E402
+from systems.open_weight_agent.agent import (  # noqa: E402
     ALLOWED_MODELS,
     DEFAULT_ENGINES,
     DEFAULT_MODEL,
@@ -112,57 +112,57 @@ def main() -> None:
     logging.basicConfig(level=logging.INFO,
                         format="%(asctime)s %(levelname)s %(message)s")
     ap = argparse.ArgumentParser(
-        description="oss_agent RAG harness -- open-weight models only")
+        description="open_weight_agent RAG harness -- open-weight models only")
     src = ap.add_mutually_exclusive_group(required=True)
     src.add_argument("--query", help="ad-hoc query text (qid 'adhoc')")
     src.add_argument("--qid", help="topic id from the topics TSV")
     src.add_argument("--all", action="store_true",
                      help="run every topic in the topics TSV")
     ap.add_argument("--topics", type=Path,
-                    default=env("RUN_OSS_AGENT_TOPICS", DEFAULT_TOPICS))
-    _model_arg(ap, "--model", "RUN_OSS_AGENT_MODEL", DEFAULT_MODEL,
+                    default=env("RUN_OPEN_WEIGHT_AGENT_TOPICS", DEFAULT_TOPICS))
+    _model_arg(ap, "--model", "RUN_OPEN_WEIGHT_AGENT_MODEL", DEFAULT_MODEL,
               "main research/writer model")
     ap.add_argument(
-        "--brief-model", default=env("RUN_OSS_AGENT_BRIEF_MODEL", DEFAULT_MODEL),
+        "--brief-model", default=env("RUN_OPEN_WEIGHT_AGENT_BRIEF_MODEL", DEFAULT_MODEL),
         help="requirements-brief analyst model. Open-weight only UNLESS "
              "--brief-backend=openai (diagnostic role-decoupling only, see "
              "--brief-backend)")
     ap.add_argument(
-        "--review-model", default=env("RUN_OSS_AGENT_REVIEW_MODEL", DEFAULT_MODEL),
+        "--review-model", default=env("RUN_OPEN_WEIGHT_AGENT_REVIEW_MODEL", DEFAULT_MODEL),
         help="reviewer model. Open-weight only UNLESS --review-backend=openai")
     ap.add_argument(
-        "--scout-model", default=env("RUN_OSS_AGENT_SCOUT_MODEL", DEFAULT_MODEL),
+        "--scout-model", default=env("RUN_OPEN_WEIGHT_AGENT_SCOUT_MODEL", DEFAULT_MODEL),
         help="blind-scout model. Open-weight only UNLESS --scout-backend=openai")
     ap.add_argument(
         "--brief-backend", choices=["bedrock", "openai"],
-        default=env("RUN_OSS_AGENT_BRIEF_BACKEND", "bedrock"),
+        default=env("RUN_OPEN_WEIGHT_AGENT_BRIEF_BACKEND", "bedrock"),
         help="DIAGNOSTIC ONLY: \"openai\" lets --brief-model be a "
              "proprietary model (e.g. gpt-5.6-luna), bypassing the "
              "open-weight allowlist for this ONE support role -- for the "
              "offline role-decoupling experiment localizing the -0.200 "
-             "mixed-pipeline gap (worklogs/assets/2026-08-09-oss-agent-sol-"
+             "mixed-pipeline gap (worklogs/assets/2026-08-09-open-weight-agent-sol-"
              "plan-review.md). Output from a non-bedrock run is NOT "
              "submission-eligible. Default: bedrock (open-weight enforced).")
     ap.add_argument(
         "--review-backend", choices=["bedrock", "openai"],
-        default=env("RUN_OSS_AGENT_REVIEW_BACKEND", "bedrock"),
+        default=env("RUN_OPEN_WEIGHT_AGENT_REVIEW_BACKEND", "bedrock"),
         help="DIAGNOSTIC ONLY, same contract as --brief-backend, for the "
              "reviewer role.")
     ap.add_argument(
         "--scout-backend", choices=["bedrock", "openai"],
-        default=env("RUN_OSS_AGENT_SCOUT_BACKEND", "bedrock"),
+        default=env("RUN_OPEN_WEIGHT_AGENT_SCOUT_BACKEND", "bedrock"),
         help="DIAGNOSTIC ONLY, same contract as --brief-backend, for the "
              "blind-scout role.")
-    ap.add_argument("--region", default=env("RUN_OSS_AGENT_REGION", None),
+    ap.add_argument("--region", default=env("RUN_OPEN_WEIGHT_AGENT_REGION", None),
                     help="Bedrock region override for the MAIN model "
                          "(default: DEFAULT_REGION_BY_MODEL[--model], e.g. "
                          "us-east-1 for qwen/kimi)")
-    ap.add_argument("--brief-region", default=env("RUN_OSS_AGENT_BRIEF_REGION", None))
-    ap.add_argument("--review-region", default=env("RUN_OSS_AGENT_REVIEW_REGION", None))
-    ap.add_argument("--scout-region", default=env("RUN_OSS_AGENT_SCOUT_REGION", None))
-    ap.add_argument("--k", type=int, default=env("RUN_OSS_AGENT_K", 10))
+    ap.add_argument("--brief-region", default=env("RUN_OPEN_WEIGHT_AGENT_BRIEF_REGION", None))
+    ap.add_argument("--review-region", default=env("RUN_OPEN_WEIGHT_AGENT_REVIEW_REGION", None))
+    ap.add_argument("--scout-region", default=env("RUN_OPEN_WEIGHT_AGENT_SCOUT_REGION", None))
+    ap.add_argument("--k", type=int, default=env("RUN_OPEN_WEIGHT_AGENT_K", 10))
     ap.add_argument(
-        "--engines", default=env("RUN_OSS_AGENT_ENGINES",
+        "--engines", default=env("RUN_OPEN_WEIGHT_AGENT_ENGINES",
                                  ",".join(DEFAULT_ENGINES)),
         help="comma-separated retrieval backends (default: hybrid only -- "
              "S6, confirmed the one cheap+quality win in the factor-"
@@ -170,36 +170,36 @@ def main() -> None:
              "own default.")
     ap.add_argument(
         "--context-token-budget", type=int,
-        default=env("RUN_OSS_AGENT_CONTEXT_TOKEN_BUDGET", 500_000))
+        default=env("RUN_OPEN_WEIGHT_AGENT_CONTEXT_TOKEN_BUDGET", 500_000))
     ap.add_argument(
         "--safety-max-rounds", "--max-rounds", type=int,
-        default=env("RUN_OSS_AGENT_SAFETY_MAX_ROUNDS", 100))
+        default=env("RUN_OPEN_WEIGHT_AGENT_SAFETY_MAX_ROUNDS", 100))
     ap.add_argument(
         "--max-committed-per-step", type=int,
-        default=env("RUN_OSS_AGENT_MAX_COMMITTED_PER_STEP",
+        default=env("RUN_OPEN_WEIGHT_AGENT_MAX_COMMITTED_PER_STEP",
                     DEFAULT_MAX_COMMITTED_PER_STEP))
-    ap.add_argument("--run-id", default=env("RUN_OSS_AGENT_RUN_ID", "oss-agent-dev"))
+    ap.add_argument("--run-id", default=env("RUN_OPEN_WEIGHT_AGENT_RUN_ID", "open-weight-agent-dev"))
     ap.add_argument(
         "--no-plan-critic", dest="plan_critic", action="store_false",
-        default=env("RUN_OSS_AGENT_PLAN_CRITIC", True),
+        default=env("RUN_OPEN_WEIGHT_AGENT_PLAN_CRITIC", True),
         help="disable the blind scout stage (default: on)")
     ap.add_argument(
         "--disable-adjacent-pages", action="store_true",
-        default=env("RUN_OSS_AGENT_DISABLE_ADJACENT_PAGES", False),
+        default=env("RUN_OPEN_WEIGHT_AGENT_DISABLE_ADJACENT_PAGES", False),
         help="pass search_result_augment=None (default: on, S5)")
     ap.add_argument(
         "--synthesis-compiler", action="store_true",
-        default=env("RUN_OSS_AGENT_SYNTHESIS_COMPILER", False),
+        default=env("RUN_OPEN_WEIGHT_AGENT_SYNTHESIS_COMPILER", False),
         help="use blueprint.hook instead of review.hook as the "
              "pre_final_hook -- forces a validated obligation-covering "
              "structure before final prose instead of critiquing an "
              "already-written draft. EMPIRICALLY REJECTED (worklogs/2026-"
-             "08-09-oss-agent-open-weight-system.md): scored 0.933 vs. "
+             "08-09-open-weight-agent-open-weight-system.md): scored 0.933 vs. "
              "1.467 for plain review.hook. Default: off. Kept as a "
              "documented negative result, not deleted.")
     ap.add_argument(
         "--review-scout-obligations", action="store_true",
-        default=env("RUN_OSS_AGENT_REVIEW_SCOUT_OBLIGATIONS", False),
+        default=env("RUN_OPEN_WEIGHT_AGENT_REVIEW_SCOUT_OBLIGATIONS", False),
         help="widen review.hook's own requirement list to also grade the "
              "blind scout's additions (S1, S2, ...), not just the "
              "brief's own -- the additive follow-up both sol and Opus "
@@ -207,7 +207,7 @@ def main() -> None:
              "Default: off (brief requirements only).")
     ap.add_argument(
         "--no-review", action="store_true",
-        default=env("RUN_OSS_AGENT_NO_REVIEW", False),
+        default=env("RUN_OPEN_WEIGHT_AGENT_NO_REVIEW", False),
         help="pass pre_final_hook=None, disabling the review/revise pass "
              "(S4) entirely -- the subtractive diagnostic sol and Opus "
              "both asked for after two additive Tier-2 attempts hurt "
@@ -217,7 +217,7 @@ def main() -> None:
              "off (review.hook, unmodified).")
     ap.add_argument(
         "--skip-existing", action="store_true",
-        default=env("RUN_OSS_AGENT_SKIP_EXISTING", False))
+        default=env("RUN_OPEN_WEIGHT_AGENT_SKIP_EXISTING", False))
     args = ap.parse_args()
     engines = [e.strip() for e in str(args.engines).split(",") if e.strip()]
 

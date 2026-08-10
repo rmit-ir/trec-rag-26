@@ -1,4 +1,4 @@
-"""oss_agent -- an open-weight-only fork of brief_revise_agent, plus a
+"""open_weight_agent -- an open-weight-only fork of brief_revise_agent, plus a
 blind obligation scout ported from aus_agent_v2.
 
 Design rationale (worklogs/assets/2026-08-07-factor-analysis-report/report.typ
@@ -54,7 +54,7 @@ from systems.brief_revise_agent.agent import (
 from . import blueprint as blueprint_mod
 from .scout import get_scout_additions, render_scout_appendix
 
-SYSTEM_NAME = "oss_agent"
+SYSTEM_NAME = "open_weight_agent"
 
 # The ONLY model ids this system will ever build a provider for, in any of
 # its four roles (main writer, brief analyst, reviewer, scout) -- verified
@@ -67,7 +67,7 @@ ALLOWED_MODELS = frozenset({
     "qwen.qwen3-next-80b-a3b",
     "moonshot.kimi-k2-thinking",
     # Added 2026-08-09 after a gpt-5.6-sol design review
-    # (worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md) plus a real
+    # (worklogs/assets/2026-08-09-open-weight-agent-sol-plan-review.md) plus a real
     # `boto3 bedrock.list_foundation_models` catalog check (not guessed --
     # sol's own first pass named several candidates it could not verify
     # were actually reachable; this is the confirmed-real subset, sol's and
@@ -117,7 +117,7 @@ MAX_TOKENS_BY_MODEL = {
 # S6 (report §4.6): hybrid alone replicated as the one cheap-AND-better
 # retrieval-engine lever found against the semantic,keyword default, on two
 # independent 15-topic sets. Untested there for an open-weight model, so
-# oss_agent's own bake-off re-checks it (worklogs/2026-08-09-oss-agent-*.md)
+# open_weight_agent's own bake-off re-checks it (worklogs/2026-08-09-open-weight-agent-*.md)
 # rather than assuming the sol-specific result transfers unchecked.
 DEFAULT_ENGINES = ["hybrid"]
 
@@ -139,7 +139,7 @@ ARCH_STAGES = [
              "after the brief's own appendix. Bad JSON or a provider "
              "error -> no scout additions, run proceeds unchanged.",
      "prompt": ["systems/aus_agent_v2/plan_critic.py::PLAN_CRITIC_SYSTEM"],
-     "code": ["systems/oss_agent/scout.py::get_scout_additions",
+     "code": ["systems/open_weight_agent/scout.py::get_scout_additions",
               "systems/aus_agent_v2/plan_critic.py::normalize_plan_critique"]},
     {"id": "loop", "label": "TURN LOOP", "kind": "loop",
      "note": "staged-context state machine (shared agent_harness package, "
@@ -147,7 +147,7 @@ ARCH_STAGES = [
              "default.md plus the brief and scout appendices",
      "back_to": "search", "back_from": "commit",
      "back_label": "repeat until report",
-     "code": ["systems/oss_agent/agent.py::run_agent",
+     "code": ["systems/open_weight_agent/agent.py::run_agent",
               "agent_harness/agent.py::run_agent"],
      "tools": [{"name": "search",
                 "ref": "agent_harness/tools/search.py::SEARCH_TOOL_DEF"},
@@ -207,7 +207,7 @@ def _check_model(model: str, *, backend: str = "bedrock") -> None:
     to run a proprietary model anywhere in this system, and it is a
     diagnostic escape hatch for offline role-decoupling experiments (sol +
     Gemini Deep Research plan review,
-    worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md), never a
+    worklogs/assets/2026-08-09-open-weight-agent-sol-plan-review.md), never a
     deployable configuration: ``run.py`` labels any such run's artifacts
     accordingly, and nothing in this system's own default path can reach
     this branch."""
@@ -215,7 +215,7 @@ def _check_model(model: str, *, backend: str = "bedrock") -> None:
         return
     if model not in ALLOWED_MODELS:
         raise ValueError(
-            f"oss_agent is open-weight-only: {model!r} is not in "
+            f"open_weight_agent is open-weight-only: {model!r} is not in "
             f"ALLOWED_MODELS ({sorted(ALLOWED_MODELS)}). This restriction is "
             "the system's entire premise (see README.md), not a bug to "
             "work around. A proprietary model is only ever permitted in a "
@@ -249,7 +249,7 @@ def run_agent(query_id: str, query: str, *,
               context_token_budget: int = DEFAULT_CONTEXT_TOKEN_BUDGET,
               safety_max_rounds: int = DEFAULT_SAFETY_MAX_ROUNDS,
               max_committed_per_step: int = DEFAULT_MAX_COMMITTED_PER_STEP,
-              run_id: str = "oss-agent-dev",
+              run_id: str = "open-weight-agent-dev",
               run_desc: str | None = None,
               engines: list[str] | None = None,
               system_prompt: str,
@@ -297,7 +297,7 @@ def run_agent(query_id: str, query: str, *,
     allowlist for that role. Passing ``backend="openai"`` for exactly one
     support role (never ``model``/the main writer, which stays hardcoded to
     ``backend="bedrock"`` below) is the diagnostic-only role-decoupling
-    escape hatch (worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md)
+    escape hatch (worklogs/assets/2026-08-09-open-weight-agent-sol-plan-review.md)
     -- a proprietary support role's output is never eligible for
     submission; it exists to localize which role drives the measured
     -0.200 mixed-pipeline gap.
@@ -307,12 +307,12 @@ def run_agent(query_id: str, query: str, *,
     obligation-covering structure before the final prose pass rather than
     critiquing an already-written draft (``blueprint.py``'s own module
     docstring has the full design rationale; converged sol/Opus review,
-    worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md). The harness
+    worklogs/assets/2026-08-09-open-weight-agent-sol-plan-review.md). The harness
     fires ``pre_final_hook`` at most once, so this REPLACES the review
     pass for a run rather than adding a second one -- ignored when an
     explicit ``pre_final_hook`` is also passed (that always wins, same
     override rule brief_revise_agent's own ``_DEFAULT_HOOK`` sentinel uses).
-    **Empirically tested and REJECTED** (worklogs/2026-08-09-oss-agent-
+    **Empirically tested and REJECTED** (worklogs/2026-08-09-open-weight-agent-
     open-weight-system.md): a 15-topic pilot scored 0.933 vs. 1.467 for
     plain ``review.hook`` -- both target axes (Implicit Criteria,
     Synthesis) moved the WRONG direction, plus a sharp Communication/

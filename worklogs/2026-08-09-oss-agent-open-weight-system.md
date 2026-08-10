@@ -1,5 +1,13 @@
 # 2026-08-09 — oss_agent: an open-weight-only system, built from the two best-ranked systems' taxonomy
 
+> **Renamed post-hoc (2026-08-10):** the system documented below as
+> `oss_agent` was renamed to `open_weight_agent` (package, tests,
+> `data/outputs/`, internal dev run-ids) to avoid a naming collision with
+> the `gpt-oss-120b` model, which is not even this system's default model.
+> This worklog's body is left as originally written — every `oss_agent`/
+> `oss-agent` reference below, including run-ids, is the accurate
+> historical record of what was actually run under that name at the time.
+
 Branch: `oss-agent-open-weight-system`. Budget cap: \$200 (generation +
 judging combined), well under it in practice — Bedrock open-weight models
 are far cheaper than the OpenAI `gpt-5.6-*` calls the rest of this repo's

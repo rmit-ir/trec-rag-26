@@ -1326,7 +1326,9 @@ organizer schema) and no references block rendered into the prompt.
   caption: [Every hyperparameter governing the organizer-baseline arena judgments in §10.5 and §10.6.],
 )
 
-= Addendum: `oss_agent`, an open-weight-only system (2026-08-09)
+= Addendum: `open_weight_agent`, an open-weight-only system (2026-08-09)
+
+#text(style: "italic")[Renamed post-hoc (2026-08-10) from `oss_agent` to `open_weight_agent`, to avoid a naming collision with the `gpt-oss-120b` model -- not even this system's default model. Worklog filenames below (e.g. `2026-08-09-oss-agent-open-weight-system.md`) are historical and were not renamed.]
 
 Added after this report's original session (§1-§11 above), on a separate
 \$200 budget, per an explicit constraint the earlier sessions never
@@ -1366,7 +1368,7 @@ standalone-rubric protocol (§2.2, `gpt-5.6-terra` judge):
     [`openai.gpt-oss-120b-1:0`], [15/15], [1.200], [needed round cap raised 30\->100, plus one retry for a transient harness `KeyError`],
     [`moonshot.kimi-k2-thinking`], [14/15], [1.071], [one topic reproducibly failed/hung across three attempts],
   ),
-  caption: [`oss_agent` open-weight model bake-off, same 15 topics and judge protocol as §4.],
+  caption: [`open_weight_agent` open-weight model bake-off, same 15 topics and judge protocol as §4.],
 )
 
 Two ablations against the qwen-based default (same 15 topics): the new
@@ -1380,12 +1382,12 @@ effect than this report's own qwen-specific S5 result on
 `brief_revise_agent` (-0.133, §4.2), same direction.
 
 *Reading the result against §4.2/§7's own claim that generator-model
-choice is the dominant standalone-score factor*: `oss_agent`'s best
+choice is the dominant standalone-score factor*: `open_weight_agent`'s best
 open-weight configuration (1.200) does not close the gap to any
 `gpt-5.6-*` main model tested in this report (1.867-2.267) -- consistent
 with, not a contradiction of, this report's own finding that once a
 weaker generator model is fixed, structural levers move an order of
-magnitude less. `oss_agent` is not a competitive submission candidate
+magnitude less. `open_weight_agent` is not a competitive submission candidate
 against `aus_agent_v2`/`brief_revise_agent` on this evidence; it is a
 demonstration that this report's own taxonomy-informed architecture
 transfers to an all-open-weight pipeline, at roughly \$0.16/topic
@@ -1396,10 +1398,10 @@ placeholder Bedrock rate §7 uses) -- an order of magnitude below even
 *Correction to a claim made when this addendum was first drafted, caught
 while preparing a follow-up deep-research prompt and worth recording
 here rather than silently fixing*: the LLM-generated-snippet rejection
-above (and in `oss_agent`'s own README/worklog) leaned on §4.5's
+above (and in `open_weight_agent`'s own README/worklog) leaned on §4.5's
 project-wide finding that References \& Citation Quality is the weakest
 rubric axis in every cell scored -- true in aggregate across this
-report's 30 proprietary-model cells, but pulling `oss_agent`'s own
+report's 30 proprietary-model cells, but pulling `open_weight_agent`'s own
 per-axis numbers (same 15 topics, same judge) against its two
 proprietary progenitors shows the opposite for THIS system specifically:
 
@@ -1409,7 +1411,7 @@ proprietary progenitors shows the opposite for THIS system specifically:
     align: (left, right, right, right),
     stroke: 0.4pt + rgb("#d8d7d0"),
     inset: 6pt,
-    table.header([*Axis (0--2)*], [*`oss_agent` qwen*], [*sol baseline*], [*`aus_agent_v2`*]),
+    table.header([*Axis (0--2)*], [*`open_weight_agent` qwen*], [*sol baseline*], [*`aus_agent_v2`*]),
     [Communication Quality], [0.633], [0.733], [0.833],
     [Explicit Criteria], [1.239], [1.450], [1.505],
     [*Implicit Criteria*], [*0.694*], [*0.988*], [*1.100*],
@@ -1417,10 +1419,10 @@ proprietary progenitors shows the opposite for THIS system specifically:
     [*Synthesis of Information*], [*0.590*], [*0.795*], [*1.000*],
     [References \& Citation Quality], [*0.667*], [0.222], [0.000],
   ),
-  caption: [`oss_agent` (qwen) vs. its two proprietary progenitors, same 15 topics, same judge, `n` per axis identical across all three (30/109/170/16/39/9 -- same topics, same rubric file).],
+  caption: [`open_weight_agent` (qwen) vs. its two proprietary progenitors, same 15 topics, same judge, `n` per axis identical across all three (30/109/170/16/39/9 -- same topics, same rubric file).],
 )
 
-Citation Quality is `oss_agent`'s single BEST-scoring axis, beating both
+Citation Quality is `open_weight_agent`'s single BEST-scoring axis, beating both
 proprietary baselines outright (n=9 is small, but a gap this size in the
 favorable direction is a specific signal, not noise) -- the opposite of
 what the project-wide aggregate would suggest applies here. The two axes

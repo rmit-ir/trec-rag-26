@@ -7,7 +7,7 @@ never the first planner's own output, so its recall is independent rather
 than anchored on what the first planner already noticed. This module reuses
 that exact prompt and parsing (``systems.aus_agent_v2.plan_critic``) and
 adapts only the rendering: aus_agent_v2 merges additions into a free-text
-numbered plan, oss_agent instead renders them as extra bullet entries
+numbered plan, open_weight_agent instead renders them as extra bullet entries
 appended after ``brief_revise_agent.brief``'s own requirements appendix
 (``prompts.SCOUT_APPENDIX_TEMPLATE``/``SCOUT_ENTRY_TEMPLATE``), so both
 sources read as one consistent checklist to the main research loop.

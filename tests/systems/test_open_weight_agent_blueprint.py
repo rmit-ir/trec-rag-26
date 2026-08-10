@@ -1,8 +1,8 @@
-"""Coverage for ``src/systems/oss_agent/blueprint.py`` -- the alternative
+"""Coverage for ``src/systems/open_weight_agent/blueprint.py`` -- the alternative
 ``pre_final_hook`` from the converged sol/Opus design review (see the
 module's own docstring for the design rationale). Unit tests exercise
 ``parse_blueprint``/``render_blueprint_feedback`` directly (same principle
-``test_oss_agent.py`` uses for ``review.hook``: most tests get a faster,
+``test_open_weight_agent.py`` uses for ``review.hook``: most tests get a faster,
 more precise assertion out of calling the parser/renderer in isolation);
 one end-to-end test proves ``--synthesis-compiler`` actually wires
 ``blueprint.hook`` in place of ``review.hook``, not the mechanism twice.
@@ -17,13 +17,13 @@ from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn, tool_call
 
 from agent_harness import agent as agent_harness_mod
 
-from oss_agent import blueprint
-from oss_agent.agent import load_base_system_prompt
-from oss_agent.agent import run_agent as oss_run_agent
+from open_weight_agent import blueprint
+from open_weight_agent.agent import load_base_system_prompt
+from open_weight_agent.agent import run_agent as oss_run_agent
 from systems.brief_revise_agent.brief import Requirement
 
 D = CLIMBMIX_DOCIDS
-QID = "mock_oss_agent_blueprint_001"
+QID = "mock_open_weight_agent_blueprint_001"
 QUERY = "How effective is congestion pricing at reducing traffic?"
 
 REQS = [Requirement(id="R1", requirement="State a quantified traffic effect",

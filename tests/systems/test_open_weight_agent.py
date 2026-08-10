@@ -1,4 +1,4 @@
-"""End-to-end + unit coverage for ``src/systems/oss_agent`` -- an
+"""End-to-end + unit coverage for ``src/systems/open_weight_agent`` -- an
 open-weight-only fork of ``brief_revise_agent`` (see
 ``tests/systems/test_brief_revise_agent.py`` for the brief/review mechanics
 inherited unmodified, not re-tested here) plus one addition: a blind
@@ -21,8 +21,8 @@ from conftest import CLIMBMIX_DOCIDS, ScriptedProvider, model_turn, tool_call
 
 from agent_harness import agent as agent_harness_mod
 
-from oss_agent import agent as oss_agent_mod
-from oss_agent.agent import (
+from open_weight_agent import agent as open_weight_agent_mod
+from open_weight_agent.agent import (
     ALLOWED_MODELS,
     DEFAULT_ENGINES,
     DEFAULT_MODEL,
@@ -30,9 +30,9 @@ from oss_agent.agent import (
     load_base_system_prompt,
     run_agent as oss_run_agent,
 )
-from oss_agent.scout import render_scout_appendix
+from open_weight_agent.scout import render_scout_appendix
 
-QID = "mock_oss_agent_001"
+QID = "mock_open_weight_agent_001"
 QUERY = "How effective is congestion pricing at reducing traffic?"
 D = CLIMBMIX_DOCIDS
 
@@ -52,7 +52,7 @@ SCOUT_TURN_ONE_ADDITION = model_turn(text=json.dumps({
 def drive(monkeypatch: pytest.MonkeyPatch,
           stub_search_tool: dict[str, list[dict[str, Any]]]
           ) -> Callable[..., dict[str, Any]]:
-    """Run ``oss_agent.agent.run_agent`` against one scripted provider
+    """Run ``open_weight_agent.agent.run_agent`` against one scripted provider
     shared by every internal call this system makes (brief, scout, main
     loop, and -- when the review pass is active -- the reviewer), the same
     single-queue pattern ``test_brief_revise_agent.py``'s own ``drive``
@@ -122,7 +122,7 @@ def test_run_agent_rejects_a_disallowed_role_model_even_when_main_is_allowed(
 def test_brief_backend_openai_bypasses_the_allowlist_for_that_role_only(
         monkeypatch: pytest.MonkeyPatch) -> None:
     """The diagnostic role-decoupling escape hatch (worklogs/assets/
-    2026-08-09-oss-agent-sol-plan-review.md): passing brief_backend="openai"
+    2026-08-09-open-weight-agent-sol-plan-review.md): passing brief_backend="openai"
     must let brief_model be a proprietary id WITHOUT touching the main
     writer's own allowlist enforcement -- proving the bypass is scoped to
     exactly the one role it was given for, not a global relaxation."""
@@ -135,10 +135,10 @@ def test_brief_backend_openai_bypasses_the_allowlist_for_that_role_only(
         return ScriptedProvider([BRIEF_TURN_EMPTY, SCOUT_TURN_EMPTY])
 
     monkeypatch.setattr(agent_harness_mod, "make_provider", fake_make_provider)
-    monkeypatch.setattr(oss_agent_mod, "_run_agent",
+    monkeypatch.setattr(open_weight_agent_mod, "_run_agent",
                         lambda *a, **k: {"status": "completed", "paths": {}})
 
-    oss_agent_mod.run_agent(
+    open_weight_agent_mod.run_agent(
         QID, QUERY, model=DEFAULT_MODEL,
         brief_model="gpt-5.6-luna", brief_backend="openai",
         system_prompt=load_base_system_prompt(40))
@@ -148,7 +148,7 @@ def test_brief_backend_openai_bypasses_the_allowlist_for_that_role_only(
     # with the hardcoded backend="bedrock" default -- a disallowed main
     # model must still raise even with an unrelated support role relaxed.
     with pytest.raises(ValueError, match="open-weight-only"):
-        oss_agent_mod.run_agent(
+        open_weight_agent_mod.run_agent(
             QID, QUERY, model="gpt-5.6-luna",
             brief_model="gpt-5.6-luna", brief_backend="openai",
             system_prompt=load_base_system_prompt(40))
@@ -157,7 +157,7 @@ def test_brief_backend_openai_bypasses_the_allowlist_for_that_role_only(
 def test_default_engines_is_hybrid_only() -> None:
     """S6 (factor-analysis report §4.6): hybrid alone was the one
     confirmed cheap-AND-better retrieval-engine lever found against the
-    semantic,keyword default -- oss_agent adopts it as the default rather
+    semantic,keyword default -- open_weight_agent adopts it as the default rather
     than brief_revise_agent's own semantic,keyword pair."""
     assert DEFAULT_ENGINES == ["hybrid"]
 
@@ -253,7 +253,7 @@ def test_pre_final_hook_none_disables_the_review_pass_but_not_the_brief(
     result = drive(list(script), pre_final_hook=None)
     assert result["summary"]["status"] == "completed"
     assert result["summary"]["paths"]["output"].parent.name == SYSTEM_NAME \
-        == "oss_agent"
+        == "open_weight_agent"
     assert validate_rag_output(result["output"]) == []
     # Only the brief's, the scout's, and the harness's own TASK_PROMPT were
     # ever sent -- no reviewer call happened.
@@ -263,7 +263,7 @@ def test_pre_final_hook_none_disables_the_review_pass_but_not_the_brief(
 def test_review_pass_wired_end_to_end_sends_the_model_back_once(
         drive: Callable[..., dict[str, Any]]) -> None:
     """Proves the reused ``review.hook`` mechanism (unmodified from
-    brief_revise_agent) is still reachable through oss_agent's own closure
+    brief_revise_agent) is still reachable through open_weight_agent's own closure
     -- the one end-to-end proof of wiring, not the mechanism twice (unit
     coverage for ``review.hook`` itself lives in
     ``test_brief_revise_agent.py``)."""
@@ -295,7 +295,7 @@ def test_review_scout_obligations_widens_the_reviewer_requirement_list(
         drive: Callable[..., dict[str, Any]]) -> None:
     """``review_scout_obligations=True`` (the additive follow-up both sol
     and Opus converged on after synthesis_compiler's negative result --
-    worklogs/assets/2026-08-09-oss-agent-sol-plan-review.md) must widen
+    worklogs/assets/2026-08-09-open-weight-agent-sol-plan-review.md) must widen
     what the REVIEWER grades to include the scout's own obligations
     (``S1``), not just the brief's -- proven by the scout's requirement
     text reaching the reviewer's own prompt, which is recorded as a user
@@ -347,9 +347,9 @@ def test_brief_scout_review_roles_can_be_decoupled_from_the_main_model(
         return {"status": "completed", "paths": {}}
 
     monkeypatch.setattr(agent_harness_mod, "make_provider", fake_make_provider)
-    monkeypatch.setattr(oss_agent_mod, "_run_agent", fake_run_agent)
+    monkeypatch.setattr(open_weight_agent_mod, "_run_agent", fake_run_agent)
 
-    oss_agent_mod.run_agent(
+    open_weight_agent_mod.run_agent(
         QID, QUERY, model="qwen.qwen3-next-80b-a3b",
         brief_model="openai.gpt-oss-120b-1:0", brief_region="ap-southeast-2",
         scout_model="openai.gpt-oss-120b-1:0", scout_region="ap-southeast-2",

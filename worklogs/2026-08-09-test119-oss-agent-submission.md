@@ -1,5 +1,16 @@
 # Test119 submission: oss_agent (open-weight-only, glm-5 default)
 
+> **Renamed post-hoc (2026-08-10):** `oss_agent` was renamed to
+> `open_weight_agent` (package, tests, `data/outputs/`, internal dev
+> run-ids) to avoid a naming collision with the `gpt-oss-120b` model. The
+> internal dev/bake-off run-ids under `data/outputs/open_weight_agent/`
+> now carry an `open-weight-*` prefix instead of `oss-*`. The frozen
+> submission artifact below (`data/outputs/submissions/oss-glm5-t119/`,
+> organizer run-id `oss-glm5-t119`, SHA-256 as recorded) was **not**
+> touched by the rename -- it is already checksummed and this worklog's
+> numbers describe it exactly as submitted. Everything below is left as
+> originally written.
+
 Date: 2026-08-09/10
 
 ## Config

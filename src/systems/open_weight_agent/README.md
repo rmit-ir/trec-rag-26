@@ -1,4 +1,4 @@
-# oss_agent — open-weight-only fork of brief_revise_agent + a blind scout (TREC RAG 2026)
+# open_weight_agent — open-weight-only fork of brief_revise_agent + a blind scout (TREC RAG 2026)
 
 **Every model call in this pipeline runs an open-weight model** — main
 research/writer, requirements-brief analyst, blind obligation scout,
@@ -25,11 +25,11 @@ cost (\$21.61 vs. \$1,096.72 for a 15-topic batch, §7), with a much simpler
 architecture: one pre-flight requirements brief + one review/revise pass
 over the shared `agent_harness.agent.run_agent` loop.
 
-`oss_agent` takes `brief_revise_agent` as its base — reusing its
+`open_weight_agent` takes `brief_revise_agent` as its base — reusing its
 `brief.py`/`review.py`/`adjacent_pages.py` modules directly via import,
 not by copying them — and adds exactly one structural idea ported from
 `aus_agent_v2`: its blind obligation-scout stage (`plan_critic.py`,
-`systems/oss_agent/scout.py`), a second independent pre-flight call shown
+`systems/open_weight_agent/scout.py`), a second independent pre-flight call shown
 only the original request, never the requirements brief's own output. This
 is taxonomy factor **S14** (newly added,
 `worklogs/assets/2026-08-07-terra-factor-taxonomy-final.md`).
@@ -43,7 +43,7 @@ than re-derived from scratch:
   `semantic,keyword` default pair. The report's own §4.6 confirms this is
   the one retrieval-engine lever that is both cheaper AND scores higher on
   standalone rubric, replicated on two independent 15-topic sets — but
-  that evidence is `sol`-specific (OpenAI backend); `oss_agent`'s own
+  that evidence is `sol`-specific (OpenAI backend); `open_weight_agent`'s own
   bake-off (below) re-checks it holds for an open-weight main model rather
   than assuming it transfers unchecked.
 
@@ -67,14 +67,14 @@ finds **References & Citation Quality is the weakest rubric axis in every
 single cell scored** (mean 0.167/2). Shipping a mechanism with a documented
 citation-support regression on top of the one axis every cell already fails
 hardest would be working against the report's own strongest finding, not
-with it — so oss_agent stages full search-result text (`stage_search_results
+with it — so open_weight_agent stages full search-result text (`stage_search_results
 =True`, no preview cap), like `brief_revise_agent`'s own base cell.
 
 **Correction, found while preparing a follow-up deep-research prompt**:
 that "weakest axis" claim is true in aggregate across the report's 30
-proprietary-model cells, but oss_agent's own per-axis numbers (below)
+proprietary-model cells, but open_weight_agent's own per-axis numbers (below)
 show the opposite for this system specifically — References & Citation
-Quality is oss_agent's *best*-scoring axis (0.667/2, beats both
+Quality is open_weight_agent's *best*-scoring axis (0.667/2, beats both
 proprietary progenitors), not its worst. The decision not to adopt
 snippets still stands (no positive evidence for them either way, and the
 regression risk is real on principle), but the stated reason above is
@@ -126,7 +126,7 @@ requirements-brief analyst) from `qwen` to the *proprietary* `gpt-5.6-luna`
 config, see `agent.py::_check_model`'s own docstring) — made the system
 WORSE (1.000 and 1.067 vs. 1.200 all-qwen), not better. The earlier
 observation that a mixed-proprietary-support-role pipeline scored 0.200
-higher than `oss_agent`'s own all-open-weight config was comparing two
+higher than `open_weight_agent`'s own all-open-weight config was comparing two
 DIFFERENT systems' architectures, not an isolated role swap; this is the
 first clean single-variable test, and it says a support role's output
 needs to "speak the same language" as the model consuming it more than it
@@ -198,10 +198,10 @@ off by default, as two real, documented negative results.
 ## CLI
 
 ```bash
-uv run --group oss-agent python src/systems/oss_agent/run.py --qid <qid>
-uv run --group oss-agent python src/systems/oss_agent/run.py \
+uv run --group open-weight-agent python src/systems/open_weight_agent/run.py --qid <qid>
+uv run --group open-weight-agent python src/systems/open_weight_agent/run.py \
     --query "..." --model qwen.qwen3-next-80b-a3b
-uv run --group oss-agent python src/systems/oss_agent/run.py --all
+uv run --group open-weight-agent python src/systems/open_weight_agent/run.py --all
 ```
 
 `--model`/`--brief-model`/`--review-model`/`--scout-model` each accept only
@@ -213,11 +213,11 @@ overridden — `qwen.*`/`moonshot.*` only serve this account in
 
 ## Tests
 
-`tests/systems/test_oss_agent.py` — offline coverage for the model
+`tests/systems/test_open_weight_agent.py` — offline coverage for the model
 allowlist (rejects a disallowed model in any of the four roles before any
 provider is built), the scout stage's rendering and end-to-end wiring, and
 one `@pytest.mark.live` smoke test against real Bedrock + ClimbMix. Run:
 
 ```bash
-bash scripts/test.sh tests/systems/test_oss_agent.py
+bash scripts/test.sh tests/systems/test_open_weight_agent.py
 ```
