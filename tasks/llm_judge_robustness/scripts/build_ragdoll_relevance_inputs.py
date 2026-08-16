@@ -20,7 +20,7 @@ from pathlib import Path
 from typing import Any
 
 from generate_distractors import PROMPTS
-from translate_queries import REPO_ROOT, YEARS, parse_csv_option
+from translate_queries import LANGUAGES, REPO_ROOT, YEARS, parse_csv_option
 
 DEFAULT_INPUT_ROOT = REPO_ROOT / "data" / "ragdoll-robustness" / "injected" / "distractors"
 DEFAULT_OUTPUT_ROOT = (
@@ -31,6 +31,20 @@ DEFAULT_ORIGINAL_INPUT_ROOT = REPO_ROOT / "data" / "ragdoll-robustness" / "gold"
 DEFAULT_ORIGINAL_OUTPUT_ROOT = (
     REPO_ROOT / "data" / "ragdoll-robustness" / "derived"
     / "ragdoll-inputs" / "original"
+)
+DEFAULT_YUN_YI_INPUT_ROOT = (
+    REPO_ROOT / "data" / "ragdoll-robustness" / "injected" / "yun_yi"
+)
+DEFAULT_YUN_YI_OUTPUT_ROOT = (
+    REPO_ROOT / "data" / "ragdoll-robustness" / "derived"
+    / "ragdoll-inputs" / "yun_yi"
+)
+DEFAULT_KEYWORDS_INPUT_ROOT = (
+    REPO_ROOT / "data" / "ragdoll-robustness" / "injected" / "keywords"
+)
+DEFAULT_KEYWORDS_OUTPUT_ROOT = (
+    REPO_ROOT / "data" / "ragdoll-robustness" / "derived"
+    / "ragdoll-inputs" / "keywords"
 )
 REQUIRED_COLUMNS = {"qid", "query", "pid", "passage", "relevance"}
 
@@ -114,16 +128,33 @@ def main() -> int:
     parser.add_argument("--input-root", type=Path, default=DEFAULT_INPUT_ROOT)
     parser.add_argument("--output-root", type=Path, default=DEFAULT_OUTPUT_ROOT)
     parser.add_argument("--categories", default="all")
+    parser.add_argument(
+        "--languages", default="english",
+        help=f"Comma-separated language slugs, or all: {', '.join(LANGUAGES)}",
+    )
     parser.add_argument("--years", default="2021,2022,2023")
     parser.add_argument(
         "--original",
         action="store_true",
         help="convert untouched gold TREC-DL CSVs instead of injected distractor CSVs",
     )
+    parser.add_argument(
+        "--yun-yi",
+        action="store_true",
+        help="convert flat yun_yi custom-text injected CSVs",
+    )
+    parser.add_argument(
+        "--keywords",
+        action="store_true",
+        help="convert flat keywords injected CSVs",
+    )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
+    if sum(bool(flag) for flag in (args.original, args.yun_yi, args.keywords)) > 1:
+        parser.error("--original, --yun-yi, and --keywords are mutually exclusive")
     try:
         categories = parse_csv_option(args.categories, PROMPTS, "category")
+        languages = parse_csv_option(args.languages, LANGUAGES, "language")
         years = [int(value) for value in parse_csv_option(
             args.years, [str(year) for year in YEARS], "year"
         )]
@@ -146,21 +177,80 @@ def main() -> int:
             print(f"[original/{year}] {len(requests)} queries, {candidates} candidates -> {destination}")
         return 0
 
-    for category in categories:
+    if args.yun_yi:
+        input_root = (
+            args.input_root
+            if args.input_root != DEFAULT_INPUT_ROOT
+            else DEFAULT_YUN_YI_INPUT_ROOT
+        )
+        output_root = (
+            args.output_root
+            if args.output_root != DEFAULT_OUTPUT_ROOT
+            else DEFAULT_YUN_YI_OUTPUT_ROOT
+        )
         for year in years:
-            source = args.input_root / category / f"trec_dl_{year}.csv"
-            destination = args.output_root / category / f"{year}.requests.jsonl"
+            source = input_root / f"trec_dl_{year}.csv"
+            destination = output_root / f"{year}.requests.jsonl"
             if not source.exists():
                 parser.error(f"input does not exist: {source}")
             if destination.exists() and not args.overwrite:
-                parser.error(f"output exists; pass --overwrite to replace it: {destination}")
+                parser.error(
+                    f"output exists; pass --overwrite to replace it: {destination}"
+                )
             requests = convert_csv(source)
             atomic_write_jsonl(destination, requests)
             candidates = sum(len(row["candidates"]) for row in requests)
             print(
-                f"[{category}/{year}] {len(requests)} queries, {candidates} candidates "
+                f"[yun_yi/{year}] {len(requests)} queries, {candidates} candidates "
                 f"-> {destination}"
             )
+        return 0
+
+    if args.keywords:
+        input_root = (
+            args.input_root
+            if args.input_root != DEFAULT_INPUT_ROOT
+            else DEFAULT_KEYWORDS_INPUT_ROOT
+        )
+        output_root = (
+            args.output_root
+            if args.output_root != DEFAULT_OUTPUT_ROOT
+            else DEFAULT_KEYWORDS_OUTPUT_ROOT
+        )
+        for year in years:
+            source = input_root / f"trec_dl_{year}.csv"
+            destination = output_root / f"{year}.requests.jsonl"
+            if not source.exists():
+                parser.error(f"input does not exist: {source}")
+            if destination.exists() and not args.overwrite:
+                parser.error(
+                    f"output exists; pass --overwrite to replace it: {destination}"
+                )
+            requests = convert_csv(source)
+            atomic_write_jsonl(destination, requests)
+            candidates = sum(len(row["candidates"]) for row in requests)
+            print(
+                f"[keywords/{year}] {len(requests)} queries, {candidates} candidates "
+                f"-> {destination}"
+            )
+        return 0
+
+    for category in categories:
+        for language in languages:
+            for year in years:
+                source = args.input_root / category / language / f"trec_dl_{year}.csv"
+                destination = args.output_root / category / language / f"{year}.requests.jsonl"
+                if not source.exists():
+                    parser.error(f"input does not exist: {source}")
+                if destination.exists() and not args.overwrite:
+                    parser.error(f"output exists; pass --overwrite to replace it: {destination}")
+                requests = convert_csv(source)
+                atomic_write_jsonl(destination, requests)
+                candidates = sum(len(row["candidates"]) for row in requests)
+                print(
+                    f"[{category}/{language}/{year}] {len(requests)} queries, "
+                    f"{candidates} candidates -> {destination}"
+                )
     return 0
 
 

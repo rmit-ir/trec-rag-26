@@ -15,9 +15,7 @@ import random
 import sys
 import tempfile
 import time
-import uuid
 from dataclasses import dataclass
-from datetime import datetime, timezone
 from decimal import Decimal
 from pathlib import Path
 from typing import Any, Callable, Iterable
@@ -29,7 +27,7 @@ DEFAULT_OUTPUT_ROOT = (
 )
 DEFAULT_REGION = "ap-southeast-2"
 YEARS = (2021, 2022, 2023)
-DEFAULT_USD_PER_MILLION_CHARACTERS = Decimal("15.00")
+from cost_tracking import CostRunLogger, DEFAULT_USD_PER_MILLION_CHARACTERS
 
 
 @dataclass(frozen=True)
@@ -102,108 +100,6 @@ def atomic_write_jsonl(path: Path, rows: list[dict[str, Any]]) -> None:
     except BaseException:
         Path(temporary_name).unlink(missing_ok=True)
         raise
-
-
-def atomic_write_json(path: Path, value: dict[str, Any]) -> None:
-    """Write a small JSON summary atomically."""
-    path.parent.mkdir(parents=True, exist_ok=True)
-    fd, temporary_name = tempfile.mkstemp(prefix=f".{path.name}.", dir=path.parent)
-    try:
-        with os.fdopen(fd, "w", encoding="utf-8", newline="\n") as stream:
-            json.dump(value, stream, ensure_ascii=False, indent=2)
-            stream.write("\n")
-            stream.flush()
-            os.fsync(stream.fileno())
-        Path(temporary_name).replace(path)
-    except BaseException:
-        Path(temporary_name).unlink(missing_ok=True)
-        raise
-
-
-class CostRunLogger:
-    """Append one run record and maintain estimated cumulative translation cost."""
-
-    def __init__(
-        self, output_root: Path, *, rate: Decimal, years: list[int], languages: list[str]
-    ) -> None:
-        self.output_root = output_root
-        self.rate = rate
-        self.years = years
-        self.languages = languages
-        self.run_id = f"translate-{datetime.now(timezone.utc):%Y%m%dT%H%M%SZ}-{uuid.uuid4().hex[:8]}"
-        self.started_at = datetime.now(timezone.utc)
-        self.requests = 0
-        self.characters = 0
-        self.status = "complete"
-
-    def __enter__(self) -> "CostRunLogger":
-        return self
-
-    def record_request(self, text: str) -> None:
-        """Count one successful TranslateText request using its billable input text."""
-        self.requests += 1
-        self.characters += len(text)
-
-    def __exit__(self, exc_type: Any, exc: BaseException | None, traceback: Any) -> bool:
-        if exc_type is KeyboardInterrupt:
-            self.status = "interrupted"
-        elif exc_type is not None:
-            self.status = "failed"
-        ended_at = datetime.now(timezone.utc)
-        cost = self.rate * Decimal(self.characters) / Decimal(1_000_000)
-        record: dict[str, Any] = {
-            "run_id": self.run_id,
-            "started_at": self.started_at.isoformat(),
-            "ended_at": ended_at.isoformat(),
-            "status": self.status,
-            "years": self.years,
-            "languages": self.languages,
-            "successful_requests": self.requests,
-            "billable_input_characters": self.characters,
-            "usd_per_million_characters": float(self.rate),
-            "estimated_cost_usd": float(cost),
-        }
-        if exc is not None:
-            record["error"] = f"{type(exc).__name__}: {exc}"
-
-        log_path = self.output_root / "_runs.jsonl"
-        prior = read_jsonl_objects(log_path)
-        atomic_write_jsonl(log_path, [*prior, record])
-        total_characters = sum(int(row.get("billable_input_characters", 0)) for row in prior) + self.characters
-        total_cost = sum(Decimal(str(row.get("estimated_cost_usd", 0))) for row in prior) + cost
-        atomic_write_json(
-            self.output_root / "_cost-total.json",
-            {
-                "updated_at": ended_at.isoformat(),
-                "runs": len(prior) + 1,
-                "successful_requests": sum(int(row.get("successful_requests", 0)) for row in prior)
-                + self.requests,
-                "billable_input_characters": total_characters,
-                "estimated_cost_usd": float(total_cost),
-                "note": "Estimate before free tier, credits, taxes, or account-specific pricing.",
-            },
-        )
-        print(
-            f"Run cost: ${cost:.6f}; cumulative estimated cost: ${total_cost:.6f} "
-            f"({total_characters} characters)"
-        )
-        return False
-
-
-def read_jsonl_objects(path: Path) -> list[dict[str, Any]]:
-    """Read an optional JSONL log as objects."""
-    if not path.exists():
-        return []
-    rows: list[dict[str, Any]] = []
-    with path.open(encoding="utf-8") as stream:
-        for line_number, line in enumerate(stream, start=1):
-            if not line.strip():
-                continue
-            value = json.loads(line)
-            if not isinstance(value, dict):
-                raise ValueError(f"{path}:{line_number}: expected a JSON object")
-            rows.append(value)
-    return rows
 
 
 def read_checkpoint(path: Path) -> list[dict[str, Any]]:

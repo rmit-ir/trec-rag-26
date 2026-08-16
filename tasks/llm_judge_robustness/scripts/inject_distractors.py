@@ -12,7 +12,9 @@ from typing import Any
 
 from generate_distractors import DEFAULT_OUTPUT_ROOT as DEFAULT_DISTRACTOR_ROOT
 from generate_distractors import PROMPTS, read_evidence
-from translate_queries import DEFAULT_INPUT_ROOT, REPO_ROOT, YEARS, parse_csv_option, read_queries
+from translate_queries import (
+    DEFAULT_INPUT_ROOT, LANGUAGES, REPO_ROOT, YEARS, parse_csv_option, read_queries,
+)
 
 DEFAULT_INJECTED_ROOT = REPO_ROOT / "data" / "ragdoll-robustness" / "injected" / "distractors"
 
@@ -27,8 +29,8 @@ def read_csv_rows(path: Path) -> tuple[list[str], list[dict[str, str]]]:
         return list(reader.fieldnames), list(reader)
 
 
-def read_distractors(path: Path) -> list[dict[str, Any]]:
-    """Read unique, complete English distractor objects."""
+def read_distractors(path: Path, *, expected_language: str) -> list[dict[str, Any]]:
+    """Read unique, complete distractor objects in the selected language."""
     if not path.exists():
         raise ValueError(f"missing distractor checkpoint: {path}")
     rows: list[dict[str, Any]] = []
@@ -43,6 +45,7 @@ def read_distractors(path: Path) -> list[dict[str, Any]]:
                 not identity or identity in seen
                 or not str(row.get("title", "")).strip()
                 or not str(row.get("text", "")).strip()
+                or str(row.get("language", "")) != expected_language
             ):
                 raise ValueError(f"{path}:{line_number}: invalid or duplicate distractor")
             seen.add(identity)
@@ -58,7 +61,7 @@ def compact_passage(title: str, text: str) -> str:
 
 
 def build_injected_rows(
-    *, year: int, category: str, gold_rows: list[dict[str, str]],
+    *, year: int, category: str, language_code: str, gold_rows: list[dict[str, str]],
     distractors: list[dict[str, Any]], expected_identities: set[str], allow_partial: bool,
 ) -> list[dict[str, str]]:
     """Validate coverage and suffix every passage belonging to each distractor query."""
@@ -82,8 +85,10 @@ def build_injected_rows(
             raise ValueError(f"{category}/{year}: distractor {identity} does not match a gold query")
         if int(row.get("year", -1)) != year:
             raise ValueError(f"{category}/{year}: distractor {identity} has wrong year")
-        if str(row.get("language", "")) != "en":
-            raise ValueError(f"{category}/{year}: distractor {identity} is not English")
+        if str(row.get("language", "")) != language_code:
+            raise ValueError(
+                f"{category}/{year}: distractor {identity} is not language {language_code}"
+            )
         pair = (qid, source_query)
         if pair in distractor_by_pair:
             raise ValueError(f"{category}/{year}: multiple distractors for query pair {pair}")
@@ -126,47 +131,60 @@ def main() -> int:
     parser.add_argument("--output-root", type=Path, default=DEFAULT_INJECTED_ROOT)
     parser.add_argument("--years", default="2021,2022,2023")
     parser.add_argument("--categories", default="all")
+    parser.add_argument(
+        "--languages", default="english",
+        help=f"Comma-separated language slugs, or all: {', '.join(LANGUAGES)}",
+    )
     parser.add_argument("--allow-partial", action="store_true")
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
     try:
         years = [int(value) for value in parse_csv_option(args.years, [str(y) for y in YEARS], "year")]
         categories = parse_csv_option(args.categories, PROMPTS, "category")
+        languages = parse_csv_option(args.languages, LANGUAGES, "language")
     except ValueError as error:
         parser.error(str(error))
     for category in categories:
-        for year in years:
-            gold_path = args.gold_root / f"trec_dl_{year}.csv"
-            fields, gold_rows = read_csv_rows(gold_path)
-            source_items = read_queries(gold_path)
-            evidence = read_evidence(gold_path)
-            expected = {
-                item["translation_id"] for item in source_items
-                if (item["qid"], item["query"]) in evidence
-            }
-            distractor_path = args.distractor_root / category / "english" / f"{year}.jsonl"
-            distractors = read_distractors(distractor_path)
-            rows = build_injected_rows(
-                year=year, category=category, gold_rows=gold_rows,
-                distractors=distractors, expected_identities=expected,
-                allow_partial=args.allow_partial,
-            )
-            output_path = args.output_root / category / f"trec_dl_{year}.csv"
-            if output_path.exists() and not args.overwrite:
-                parser.error(f"output exists; pass --overwrite to replace it: {output_path}")
-            atomic_write_csv(output_path, fields, rows)
-            distractor_pairs = {
-                (str(row["qid"]).strip(), str(row.get("source_query", row.get("query", ""))).strip())
-                for row in distractors
-            }
-            affected = sum(
-                (row["qid"].strip(), row["query"].strip()) in distractor_pairs
-                for row in gold_rows
-            )
-            print(
-                f"[{category}/{year}] appended {len(distractors)} distractors to "
-                f"{affected}/{len(gold_rows)} passages -> {output_path}"
-            )
+        for language_slug in languages:
+            language = LANGUAGES[language_slug]
+            for year in years:
+                gold_path = args.gold_root / f"trec_dl_{year}.csv"
+                fields, gold_rows = read_csv_rows(gold_path)
+                source_items = read_queries(gold_path)
+                evidence = read_evidence(gold_path)
+                expected = {
+                    item["translation_id"] for item in source_items
+                    if (item["qid"], item["query"]) in evidence
+                }
+                distractor_path = (
+                    args.distractor_root / category / language_slug / f"{year}.jsonl"
+                )
+                distractors = read_distractors(
+                    distractor_path, expected_language=language.code
+                )
+                rows = build_injected_rows(
+                    year=year, category=category, language_code=language.code,
+                    gold_rows=gold_rows, distractors=distractors,
+                    expected_identities=expected, allow_partial=args.allow_partial,
+                )
+                output_path = (
+                    args.output_root / category / language_slug / f"trec_dl_{year}.csv"
+                )
+                if output_path.exists() and not args.overwrite:
+                    parser.error(f"output exists; pass --overwrite to replace it: {output_path}")
+                atomic_write_csv(output_path, fields, rows)
+                distractor_pairs = {
+                    (str(row["qid"]).strip(), str(row.get("source_query", row.get("query", ""))).strip())
+                    for row in distractors
+                }
+                affected = sum(
+                    (row["qid"].strip(), row["query"].strip()) in distractor_pairs
+                    for row in gold_rows
+                )
+                print(
+                    f"[{category}/{language_slug}/{year}] appended {len(distractors)} "
+                    f"distractors to {affected}/{len(gold_rows)} passages -> {output_path}"
+                )
     return 0
 
 
