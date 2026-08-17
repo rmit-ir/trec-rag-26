@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Inject generated query keywords into TREC-DL passages at random sentence boundaries.
+"""Inject generated query keywords individually at random passage intervals.
 
 Examples:
     uv run --project tasks/llm_judge_robustness python \
@@ -14,9 +14,8 @@ import argparse
 import csv
 import hashlib
 import json
-import random
-import re
 import os
+import random
 import tempfile
 from pathlib import Path
 
@@ -74,35 +73,33 @@ def read_keyword_map(path: Path) -> dict[str, list[str]]:
     return rows
 
 
-def split_sentences(text: str) -> list[str]:
-    """Split passage text into lightweight sentence-like chunks."""
-    cleaned = " ".join(text.split())
-    if not cleaned:
-        return []
-    pieces = re.split(r"(?<=[.!?])\s+", cleaned)
-    return [piece.strip() for piece in pieces if piece.strip()]
-
-
-def pick_insert_index(query_id: str, sentence_count: int) -> int:
-    """Pick a stable random boundary per query so reruns remain deterministic."""
-    if sentence_count <= 1:
-        return 0
-    digest = hashlib.sha256(query_id.encode("utf-8")).digest()
+def pick_insert_indices(insertion_id: str, word_count: int, keyword_count: int) -> list[int]:
+    """Pick stable, distinct internal word boundaries whenever space permits."""
+    if word_count < 2:
+        return [word_count] * keyword_count
+    digest = hashlib.sha256(insertion_id.encode("utf-8")).digest()
     seed = int.from_bytes(digest[:8], "big")
     rng = random.Random(seed)
-    return rng.randint(1, sentence_count - 1)
+    internal_boundaries = range(1, word_count)
+    if keyword_count <= len(internal_boundaries):
+        return rng.sample(internal_boundaries, keyword_count)
+    return [rng.choice(internal_boundaries) for _ in range(keyword_count)]
 
 
-def inject_keywords(passage: str, query_id: str, keywords: list[str]) -> str:
-    """Insert keywords between sentences, or append them to short passages."""
-    sentences = split_sentences(passage)
-    injection = f"[KEYWORDS: {', '.join(keywords)}]"
-    if not sentences:
-        return injection
-    if len(sentences) == 1:
-        return f"{sentences[0]} {injection}"
-    index = pick_insert_index(query_id, len(sentences))
-    return " ".join([*sentences[:index], injection, *sentences[index:]])
+def inject_keywords(passage: str, insertion_id: str, keywords: list[str]) -> str:
+    """Distribute raw keywords separately among a passage's word boundaries."""
+    words = passage.split()
+    positions = pick_insert_indices(insertion_id, len(words), len(keywords))
+    insertions: dict[int, list[str]] = {}
+    for position, keyword in zip(positions, keywords, strict=True):
+        insertions.setdefault(position, []).append(keyword)
+
+    output: list[str] = []
+    for position in range(len(words) + 1):
+        output.extend(insertions.get(position, []))
+        if position < len(words):
+            output.append(words[position])
+    return " ".join(output)
 
 
 def main() -> int:
@@ -146,7 +143,9 @@ def main() -> int:
                 continue
             injected_rows.append({
                 **row,
-                "passage": inject_keywords(row["passage"], key, keywords),
+                "passage": inject_keywords(
+                    row["passage"], f"{key}\0{row['pid'].strip()}", keywords
+                ),
             })
 
         atomic_write_csv(destination, fields, injected_rows)
