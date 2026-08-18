@@ -20,6 +20,7 @@ raw string at a randomly selected word boundary. Placements are:
 - deterministic from `qid + pid`, making rebuilds reproducible;
 - different across passages for the same query;
 - wrapper-free: no `[KEYWORDS: ...]` marker or comma-joined keyword block.
+- uppercased at insertion time, including every word in multiword key phrases.
 
 Short passages still receive every keyword. If there are more phrases than
 internal boundaries, deterministic boundary reuse is allowed rather than
@@ -49,4 +50,7 @@ Regenerated 2022 artifacts:
   76 queries and 2,655 deduplicated candidates.
 - Both regenerated artifacts contain zero occurrences of the legacy
   `[KEYWORDS:` marker.
+- The artifacts were regenerated again after uppercase insertion was added;
+  inspection confirms phrases such as `ROOT YUCCA PLANT`,
+  `ROOTING YUCCA CUTTINGS`, and `YUCCA PROPAGATION` are dispersed in uppercase.
 

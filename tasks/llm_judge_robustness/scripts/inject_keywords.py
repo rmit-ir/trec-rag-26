@@ -92,7 +92,7 @@ def inject_keywords(passage: str, insertion_id: str, keywords: list[str]) -> str
     positions = pick_insert_indices(insertion_id, len(words), len(keywords))
     insertions: dict[int, list[str]] = {}
     for position, keyword in zip(positions, keywords, strict=True):
-        insertions.setdefault(position, []).append(keyword)
+        insertions.setdefault(position, []).append(keyword.upper())
 
     output: list[str] = []
     for position in range(len(words) + 1):

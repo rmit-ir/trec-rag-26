@@ -9,8 +9,8 @@ Create and validate a notebook comparing the 2021 uninjected UMBRELA/Bing releva
 ## Exact inputs
 
 - Original / Bing primary ledger: `evaluation-results/llm-judge-robustness/original/gpt-oss-20b/2021.judgments.jsonl`
-- Yun Yi / Bing successful ledger: `evaluation-results/llm-judge-robustness/yun_yi/umbrela-bing/gpt-oss-20b/2021/judgments.jsonl`
-- Yun Yi / Bing failure ledger: `evaluation-results/llm-judge-robustness/yun_yi/umbrela-bing/gpt-oss-20b/2021/failed.jsonl`
+- Yun Yi / Bing successful ledger: `evaluation-results/llm-judge-robustness/yun_yi/gpt-oss-20b/bing/2021/judgments.jsonl`
+- Yun Yi / Bing failure ledger: `evaluation-results/llm-judge-robustness/yun_yi/gpt-oss-20b/bing/2021/failed.jsonl`
 - Yun Yi / PromptArmor successful ledger: `evaluation-results/llm-judge-robustness/yun_yi/promptarmor/gpt-oss-20b/2021/judgments.jsonl`
 - Yun Yi / PromptArmor failure ledger: `evaluation-results/llm-judge-robustness/yun_yi/promptarmor/gpt-oss-20b/2021/failed.jsonl`
 
@@ -103,8 +103,8 @@ Both v4-v1 and v4-v2 confidence intervals cross zero, providing no clear evidenc
 
 The prior `promptarmor-v4` condition above was subsequently proven mislabeled: its command selected `--prompt-type promptarmor`, because v4 had not yet been wired into the CLI/renderer. After wiring `promptarmorv4`, a clean evaluation was saved under:
 
-- Corrected v4 successes: `evaluation-results/llm-judge-robustness/yun_yi/promptarmor-v4-corrected/gpt-oss-20b/2021/judgments.jsonl`
-- Corrected v4 failures: `evaluation-results/llm-judge-robustness/yun_yi/promptarmor-v4-corrected/gpt-oss-20b/2021/failed.jsonl`
+- Corrected v4 successes: `evaluation-results/llm-judge-robustness/yun_yi/gpt-oss-20b/promptarmor-v4-corrected/2021/judgments.jsonl`
+- Corrected v4 failures: `evaluation-results/llm-judge-robustness/yun_yi/gpt-oss-20b/promptarmor-v4-corrected/2021/failed.jsonl`
 
 The corrected run has 2,290 successes and 105 failures, accounting for all 2,395 expected task identities. The notebook now points to this corrected directory and labels the condition `Yun Yi / PromptArmor v4 (corrected)`. The previous mislabeled v4 artifact is no longer read by the notebook.
 

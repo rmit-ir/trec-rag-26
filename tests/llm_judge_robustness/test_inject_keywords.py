@@ -25,7 +25,8 @@ def test_keywords_are_inserted_individually_at_distinct_internal_boundaries() ->
 
     assert "[KEYWORDS:" not in injected
     for keyword in keywords:
-        assert injected.count(keyword) == 1
+        assert injected.count(keyword.upper()) == 1
+        assert keyword not in injected
     sentinel_keywords = [f"KEYWORD_SENTINEL_{index}" for index in range(4)]
     sentinel_injected = inject_keywords(
         " ".join(passage_words), "query\0passage", sentinel_keywords
@@ -61,5 +62,5 @@ def test_short_passages_still_receive_every_keyword_without_markup() -> None:
     """Degenerate passages must retain every generated phrase rather than dropping some."""
     injected = inject_keywords("single", "query\0passage", ["alpha", "beta"])
 
-    assert injected == "single alpha beta"
+    assert injected == "single ALPHA BETA"
     assert "[" not in injected

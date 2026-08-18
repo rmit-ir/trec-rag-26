@@ -6,8 +6,8 @@ Created and executed:
 
 Exact primary inputs:
 
-- `evaluation-results/llm-judge-robustness/yun_yi/umbrela-bing/gpt-oss-20b/2021/judgments.jsonl`
-- `evaluation-results/llm-judge-robustness/yun_yi/umbrela-bing/gpt-oss-20b/2021/failed.jsonl`
+- `evaluation-results/llm-judge-robustness/yun_yi/gpt-oss-20b/bing/2021/judgments.jsonl`
+- `evaluation-results/llm-judge-robustness/yun_yi/gpt-oss-20b/bing/2021/failed.jsonl`
 - `evaluation-results/llm-judge-robustness/yun_yi/promptarmor/gpt-oss-20b/2021/judgments.jsonl`
 - `evaluation-results/llm-judge-robustness/yun_yi/promptarmor/gpt-oss-20b/2021/failed.jsonl`
 
