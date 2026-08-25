@@ -80,6 +80,39 @@ uv run --project tasks/llm_judge_robustness python tasks/llm_judge_robustness/sc
 Existing outputs are protected; use `--overwrite` to rebuild them. Complete
 eligible-query coverage is required unless `--allow-partial` is explicit.
 
+## Combined keyword and Yun Yi injection
+
+`scripts/yunyi_keyword_injector.py` disperses each query's generated keywords
+through its passages at stable random word boundaries, then appends the Yun Yi
+instruction block at the end. Outputs are written to
+`data/ragdoll-robustness/injected/yunyi_keyword_injector/`.
+
+```powershell
+uv run --project tasks/llm_judge_robustness python tasks/llm_judge_robustness/scripts/yunyi_keyword_injector.py
+```
+
+Use `--text` or `--text-file` to override the default Yun Yi block and
+`--overwrite` to rebuild existing outputs.
+
+## Query-at-end injection
+
+`scripts/query_injector.py` appends each row's complete query text to the end
+of its passage. It preserves query wording, passage IDs, relevance grades,
+row count, and CSV column order. Outputs are written to
+`data/ragdoll-robustness/injected/query/`.
+
+```powershell
+uv run --project tasks/llm_judge_robustness python tasks/llm_judge_robustness/scripts/query_injector.py
+```
+
+Existing outputs are protected; pass `--overwrite` to rebuild them. Convert
+the injected CSVs to RAGDOLL request JSONL under
+`data/ragdoll-robustness/derived/ragdoll-inputs/query/` with:
+
+```powershell
+uv run --project tasks/llm_judge_robustness python tasks/llm_judge_robustness/scripts/build_ragdoll_relevance_inputs.py --query-injection
+```
+
 ## Building RAGDOLL relevance inputs
 
 `scripts/build_ragdoll_relevance_inputs.py` converts every injected judged CSV

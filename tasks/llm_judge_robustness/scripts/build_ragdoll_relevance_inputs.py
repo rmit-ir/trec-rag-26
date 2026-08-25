@@ -46,6 +46,13 @@ DEFAULT_KEYWORDS_OUTPUT_ROOT = (
     REPO_ROOT / "data" / "ragdoll-robustness" / "derived"
     / "ragdoll-inputs" / "keywords"
 )
+DEFAULT_QUERY_INJECTION_INPUT_ROOT = (
+    REPO_ROOT / "data" / "ragdoll-robustness" / "injected" / "query"
+)
+DEFAULT_QUERY_INJECTION_OUTPUT_ROOT = (
+    REPO_ROOT / "data" / "ragdoll-robustness" / "derived"
+    / "ragdoll-inputs" / "query"
+)
 REQUIRED_COLUMNS = {"qid", "query", "pid", "passage", "relevance"}
 
 
@@ -148,10 +155,21 @@ def main() -> int:
         action="store_true",
         help="convert flat keywords injected CSVs",
     )
+    parser.add_argument(
+        "--query-injection",
+        action="store_true",
+        help="convert flat query-appended CSVs",
+    )
     parser.add_argument("--overwrite", action="store_true")
     args = parser.parse_args()
-    if sum(bool(flag) for flag in (args.original, args.yun_yi, args.keywords)) > 1:
-        parser.error("--original, --yun-yi, and --keywords are mutually exclusive")
+    flat_modes = (
+        args.original, args.yun_yi, args.keywords, args.query_injection
+    )
+    if sum(bool(flag) for flag in flat_modes) > 1:
+        parser.error(
+            "--original, --yun-yi, --keywords, and --query-injection "
+            "are mutually exclusive"
+        )
     try:
         categories = parse_csv_option(args.categories, PROMPTS, "category")
         languages = parse_csv_option(args.languages, LANGUAGES, "language")
@@ -232,6 +250,35 @@ def main() -> int:
             print(
                 f"[keywords/{year}] {len(requests)} queries, {candidates} candidates "
                 f"-> {destination}"
+            )
+        return 0
+
+    if args.query_injection:
+        input_root = (
+            args.input_root
+            if args.input_root != DEFAULT_INPUT_ROOT
+            else DEFAULT_QUERY_INJECTION_INPUT_ROOT
+        )
+        output_root = (
+            args.output_root
+            if args.output_root != DEFAULT_OUTPUT_ROOT
+            else DEFAULT_QUERY_INJECTION_OUTPUT_ROOT
+        )
+        for year in years:
+            source = input_root / f"trec_dl_{year}.csv"
+            destination = output_root / f"{year}.requests.jsonl"
+            if not source.exists():
+                parser.error(f"input does not exist: {source}")
+            if destination.exists() and not args.overwrite:
+                parser.error(
+                    f"output exists; pass --overwrite to replace it: {destination}"
+                )
+            requests = convert_csv(source)
+            atomic_write_jsonl(destination, requests)
+            candidates = sum(len(row["candidates"]) for row in requests)
+            print(
+                f"[query/{year}] {len(requests)} queries, "
+                f"{candidates} candidates -> {destination}"
             )
         return 0
 
