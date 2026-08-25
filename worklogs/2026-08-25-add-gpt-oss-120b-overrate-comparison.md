@@ -25,3 +25,11 @@ uv run --group notebook jupyter nbconvert --to notebook --execute --inplace tmp/
 
 The GPT-OSS-120B original ledger contains 2,395 completed judgments. Its
 keyword-injected ledger contains 2,391 completed judgments.
+
+## Passage length follow-up
+
+Added a `Passage length by judgment movement` section to the same notebook. It
+reports the task count, mean, and median word count of the keyword-injected
+passage for every model and movement direction: underrated, unchanged, and
+overrated. Words are defined as whitespace-delimited tokens (`\\S+`). The
+notebook was re-executed after this addition with the same command above.
