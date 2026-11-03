@@ -1,5 +1,8 @@
 # Understanding Your RAG Results
 
+For the team's scores, human preference results, and conclusions with report
+context, see [SCORES.md](SCORES.md).
+
 Your team folder contains **tab-separated (TSV)** files for your team's runs
 only. Open them in a spreadsheet using **Tab** as the separator.
 Filter `narrative-id` to **`all`** for

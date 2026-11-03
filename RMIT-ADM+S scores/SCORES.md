@@ -3,6 +3,14 @@
 Source: the TSVs in this folder. Rubric/nugget cells are `vital_strict / all_strict`.
 BT, win/tie/loss exist only for the two side-by-side (SxS) priority runs.
 
+`vital_strict` is coverage of essential items; `all_strict` includes essential
+and optional items equally. Only full support earns credit. Each score is an
+equally weighted mean across narratives: 17 in B1 and 25 in B2. For example,
+`0.7231` means 72.31% average coverage, not a preference win rate.
+Human-authored rubrics/nuggets describe the source of the expected items;
+an LLM judges whether each answer supports them. Compare runs within a column:
+the collections use different criteria.
+
 | Run | B1 human rubric (v / a) | B2 manual nuggets (v / a) | B2 auto nuggets (v / a) |
 | --- | --- | --- | --- |
 | brief-base-t119 | 0.8235 / 0.8616 | 0.6907 / 0.7213 | 0.6482 / 0.5552 |
@@ -14,6 +22,11 @@ BT, win/tie/loss exist only for the two side-by-side (SxS) priority runs.
 | sol-research-first | **0.8922** / 0.8866 | 0.6840 / 0.7018 | **0.6487** / 0.5600 |
 
 ## Side-by-side (top-2 priority runs only)
+
+These are human preference results. Higher Bradley–Terry (BT) ratings are better
+within a batch; ratings cannot be compared across batches. W/T/L counts are wins,
+ties, and losses against the assessed field, not a direct head-to-head record
+between these two runs. The other five runs were not assessed for human preference.
 
 | Run | B1 BT (95% CI) | B1 W/T/L | B2 BT (95% CI) | B2 W/T/L |
 | --- | --- | --- | --- | --- |
@@ -87,8 +100,61 @@ Bold = best in column. B1 = batch 1, B2 = batch 2, v = `vital_strict`, a = `all_
 - What is the exact LLM grading/alignment prompt used for the `vital` / `all` assignments?
 - Is the Batch 2 BT judgment really fully manual, with no LLM involved?
 
-## Takeaways
+## Brief summary and conclusions
 
-- `brief-hybrid-t119` leads rubric/nugget metrics almost everywhere; `sol-research-first` is close and wins auto-nugget vital.
-- `facetrag-t119` is last on every rubric/nugget metric.
-- SxS point estimates flip between batches: `owa-glm5-t119` leads batch 1 (CIs do not overlap), while `sol-research-first` leads batch 2 (CIs overlap), despite `owa-glm5-t119` scoring well below it on batch-2 nuggets. These intervals alone do not establish the significance of the difference.
+**`brief-hybrid-t119` leads coverage; human preferences favor different runs
+across the two batches.** This table expresses `all_strict` as percentages.
+
+| Run | B1 rubric coverage | B2 manual nugget coverage | B2 automatic nugget coverage |
+| --- | --- | --- | --- |
+| brief-hybrid-t119 | **90.87%** | **72.31%** | **56.48%** |
+| brief-base-t119 | 86.16% | 72.13% | 55.52% |
+| sol-default | 86.06% | 70.47% | 56.32% |
+| sol-research-first | 88.66% | 70.18% | 56.00% |
+| facets-t119 | 84.13% | 64.19% | 33.28% |
+| owa-glm5-t119 | 82.13% | 60.54% | 24.32% |
+| facetrag-t119 | 62.17% | 48.07% | 11.04% |
+
+- **Hybrid has the strongest combined coverage-and-efficiency evidence.** It
+  leads all three all-item coverage columns. Compared with brief-base, the gains
+  are 4.71 percentage points in B1, 0.18 on B2 manual nuggets, and 0.96 on B2
+  automatic nuggets. The report records about 8% fewer processed tokens and 14%
+  fewer searches for hybrid. Its B2 coverage advantage is small, and its internal
+  preference comparison with brief-base was nearly tied and position-sensitive.
+- **Coverage and human preference give different rankings.** OWA leads B1 BT
+  ratings, 1212.8 versus 1062.7 for research-first, despite lower coverage.
+  Research-first leads B2, 1124.7 versus 1049.0. B1 confidence intervals do not
+  overlap; B2 intervals overlap. These intervals alone do not establish the
+  significance of the difference.
+- **Extra engineering has selective benefits.** Research-first improves
+  vital-only coverage over sol-default by 10.20, 0.51, and 1.91 percentage points
+  across the three collections, but slightly lowers all-item coverage in both B2
+  collections. It made about 31% more searches. Missing generation-cost logs for
+  the Sol runs prevent a complete cost-effectiveness comparison.
+- **Open-weight generation remains competitive on human preference at low
+  metered cost.** OWA cost $0.163 per topic and trails the strongest proprietary
+  runs on nugget coverage, but its B1 human preference result rules out a blanket
+  conclusion that it produces worse answers under every evaluation. The report's
+  fixed-evidence replay used Qwen, so its writer-level diagnosis cannot simply be
+  transferred to GLM-5.
+- **More searching did not guarantee greater coverage.** Facetrag is last in all
+  coverage columns despite making the most searches (33.7 per topic); it also
+  produced the shortest answers (about 389 words). Model and architecture changes
+  are confounded, so this does not isolate facet decomposition as the cause.
+- **There is no demonstrated overall winner.** Hybrid and brief-base have no
+  official human preference assessment. Coverage does not establish citation
+  quality; the report found References and Citation Quality to be the weakest
+  axis throughout its brief-agent factor study.
+
+Report context comes from the separate `trec-rag-26-report` repository:
+`sections/system-overview.tex`, `sections/retrieval.tex`, `sections/results.tex`,
+`sections/submitted-runs.tex`, and `tables/submissions.tex`. Its internal
+experiments predate these official results and are distinct from them. OpenAI
+cost estimates there use placeholder pricing, whereas Bedrock costs are metered.
+The $1,096.72 attributed to research-first is development expenditure, not
+test-generation cost.
+
+Paired significance has not been tested here, and the underlying assignments
+remain withheld. Small coverage gaps are descriptive. The combined 42-narrative
+scores above pool different evaluation criteria and do not replace the per-batch
+results.
