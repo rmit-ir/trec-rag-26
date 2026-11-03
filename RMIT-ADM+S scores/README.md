@@ -1,7 +1,7 @@
 # Understanding Your RAG Results
 
-For the team's scores, human preference results, and conclusions with report
-context, see [SCORES.md](SCORES.md).
+For the team's scores, human preference results, average token usage and costs,
+and conclusions with report context, see [SCORES.md](SCORES.md).
 
 Your team folder contains **tab-separated (TSV)** files for your team's runs
 only. Open them in a spreadsheet using **Tab** as the separator.

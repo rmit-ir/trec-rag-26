@@ -105,15 +105,33 @@ Bold = best in column. B1 = batch 1, B2 = batch 2, v = `vital_strict`, a = `all_
 **`brief-hybrid-t119` leads coverage; human preferences favor different runs
 across the two batches.** This table expresses `all_strict` as percentages.
 
-| Run | B1 rubric coverage | B2 manual nugget coverage | B2 automatic nugget coverage |
-| --- | --- | --- | --- |
-| brief-hybrid-t119 | **90.87%** | **72.31%** | **56.48%** |
-| brief-base-t119 | 86.16% | 72.13% | 55.52% |
-| sol-default | 86.06% | 70.47% | 56.32% |
-| sol-research-first | 88.66% | 70.18% | 56.00% |
-| facets-t119 | 84.13% | 64.19% | 33.28% |
-| owa-glm5-t119 | 82.13% | 60.54% | 24.32% |
-| facetrag-t119 | 62.17% | 48.07% | 11.04% |
+| Run | B1 rubric coverage | B2 manual nugget coverage | B2 automatic nugget coverage | Avg. processed tokens/topic | Avg. generation cost/topic (USD) |
+| --- | --- | --- | --- | ---: | --- |
+| brief-hybrid-t119 | **90.87%** | **72.31%** | **56.48%** | 300,621 | $1.503 (estimated) |
+| brief-base-t119 | 86.16% | 72.13% | 55.52% | 327,585 | $1.638 (estimated) |
+| sol-default | 86.06% | 70.47% | 56.32% | 189,810 | $0.949 (estimated, includes retries) |
+| sol-research-first | 88.66% | 70.18% | 56.00% | 341,014 | $1.705 (estimated) |
+| facets-t119 | 84.13% | 64.19% | 33.28% | 144,847 | $0.724 (estimated) |
+| owa-glm5-t119 | 82.13% | 60.54% | 24.32% | 420,979 | $0.163 (metered) |
+| facetrag-t119 | 62.17% | 48.07% | 11.04% | 461,381 | $0.178 (metered) |
+
+Token usage and costs average over all 119 test topics, excluding judging.
+Processed tokens count uncached input, cache writes, and output across model
+calls; cached-input reads are excluded. They measure accumulated generation
+work, not answer length or peak context size. Token averages are rounded to the
+nearest whole token. Five systems' token averages and costs come from
+the report; the two Sol costs were recovered from Kun's Sunfyre usage traces and
+cross-checked against production logs. OpenAI estimates use the report's
+placeholder $5 per million processed tokens (uncached input plus output);
+Bedrock costs are metered. Sol-default includes 179,386 processed tokens from
+two failed attempts; successful attempts alone average 188,303 processed tokens
+and $0.942/topic.
+Research-first had no failed production attempts. Preflight runs are excluded.
+See the [recovery worklog](../worklogs/2026-11-04-sol-cost-recovery.md) for exact
+totals, source paths, and per-topic evidence. These are generation-only figures,
+not total system operating costs. Cached-input charges and distinct input/output
+rates are not modeled by the placeholder, and the Sol traces mark all calls as
+unpriced; estimated and metered amounts are not directly comparable billing data.
 
 - **Hybrid has the strongest combined coverage-and-efficiency evidence.** It
   leads all three all-item coverage columns. Compared with brief-base, the gains
@@ -129,8 +147,10 @@ across the two batches.** This table expresses `all_strict` as percentages.
 - **Extra engineering has selective benefits.** Research-first improves
   vital-only coverage over sol-default by 10.20, 0.51, and 1.91 percentage points
   across the three collections, but slightly lowers all-item coverage in both B2
-  collections. It made about 31% more searches. Missing generation-cost logs for
-  the Sol runs prevent a complete cost-effectiveness comparison.
+  collections. It made about 31% more searches and has about 80% higher estimated
+  generation cost than sol-default under the same placeholder pricing, including
+  default's failed attempts. This adds evidence of a substantial token-cost
+  increase for selective coverage gains, without establishing actual billed cost.
 - **Open-weight generation remains competitive on human preference at low
   metered cost.** OWA cost $0.163 per topic and trails the strongest proprietary
   runs on nugget coverage, but its B1 human preference result rules out a blanket

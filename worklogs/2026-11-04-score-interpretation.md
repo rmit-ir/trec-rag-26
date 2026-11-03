@@ -24,3 +24,19 @@ passes. `UV_CACHE_DIR=/tmp/trec-rag-uv-cache bash scripts/test.sh` passed all
 outside the sandbox. The first attempt passed 1,944 tests but could not bind
 loopback ports for 26 dummy API tests.
 No new judgments, generation runs, or experiments were run.
+
+## Cost-column follow-up
+
+Added average generation cost per topic to the brief coverage table, copied
+from the report's `tables/submissions.tex`: brief-hybrid $1.503, brief-base
+$1.638, facets $0.724, OWA $0.163, and facetrag $0.178. Both Sol costs remain
+unavailable. The text distinguishes placeholder-rate OpenAI estimates from
+metered Bedrock charges, states the 119-topic scope and exclusion of judging,
+and avoids presenting generation cost as full operating cost. Verified each
+entry against the report and ran `git diff --check`; no code changed.
+
+Subsequently recovered both Sol runs' production usage from Kun's Sunfyre
+checkout and replaced the unavailable entries. See
+[2026-11-04-sol-cost-recovery.md](2026-11-04-sol-cost-recovery.md) for the
+retry-inclusive estimates, validation, exact sources, and remaining billing
+limitations.
