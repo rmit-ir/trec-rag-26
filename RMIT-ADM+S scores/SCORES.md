@@ -160,12 +160,12 @@ Zone Standard rates so they compare fairly regardless of provider:
 
 | Run | Provider | Cost per topic | Evidence | Same rate card (Azure DZ) |
 | --- | --- | ---: | --- | ---: |
-| brief-hybrid-t119 | Azure | $2.038 | estimated | $2.038 |
-| brief-base-t119 | Azure | $2.236 | estimated | $2.236 |
+| brief-hybrid-t119 | Azure | $2.156 | estimated (traces + logged support calls) | $2.156 |
+| brief-base-t119 | Azure | $2.356 | estimated (traces + logged support calls) | $2.356 |
 | sol-default | Bedrock | $1.566 | verified (AWS bill, 98% match) | $1.315 |
 | sol-research-first | Bedrock | $2.823 | verified (AWS bill, 98% match) | $2.367 |
 | facets-t119 | Azure | $0.040 | estimated (rate read from Azure) | $0.040 |
-| owa-glm5-t119 | Bedrock | $0.517 | estimated (rate from AWS bill) | n/a (open-weight) |
+| owa-glm5-t119 | Bedrock | $0.524 | estimated (rate from AWS bill; traces + support calls) | n/a (open-weight) |
 | facetrag-t119 | not reconciled | $0.106 (range $0.094-0.117) | weak estimate | n/a (open-weight) |
 
 Token usage and costs average over all 119 test topics, excluding judging and
@@ -211,6 +211,15 @@ for totals, raw provider billing, rates and arithmetic.
   billing cannot be split between the three runs or separated from other callers
   of the shared resource. Figures above are the cost of producing the submitted
   answers, not total spend.
+- *Support calls*: brief-base, brief-hybrid and owa-glm5 make brief-analyst,
+  reviewer (and, for owa-glm5, scout) calls outside the trace; only their token
+  usage is logged. Summing the logged usage inside each topic's final completed
+  attempt adds $0.120 (brief-base: 714,218 in / 314,269 out), $0.117 (brief-hybrid:
+  695,299 / 307,617) and $0.007 (owa-glm5: 567,253 / 54,322) per topic. The token
+  table above is trace-only and excludes these. For every other run the trace
+  `summary` equals the sum of step tokens, and sol-research-first's plan, critic
+  and scout turns are recorded as steps, so they are included. See
+  `worklogs/assets/2026-11-09-support-call-costs.py`.
 - *owa-glm5*: the previously reported $0.163 is superseded. AWS bills GLM-5 at
   1.20 / 3.20, so the traced 415,080 input and 5,899 output tokens cost $0.517 per
   topic (about $61.5 for the run); AWS shows $53.16 for GLM-5 on Aug 10.

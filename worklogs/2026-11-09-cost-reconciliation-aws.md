@@ -251,3 +251,27 @@ for sol-research-first, results returned beyond k):
 
 Topics with at least one committed extra page: brief-base 119/119, brief-hybrid 116/119,
 owa-glm5 86/119, sol-research-first 120/120 files.
+
+## Part 4: support-call costs from Sunfyre logs
+
+Brief-analyst, reviewer and scout calls in brief_revise_agent and
+open_weight_agent run on separate providers and are not in trace tokens; only
+`brief.get_requirements: usage=`, `review.hook: usage=`, `scout.get_scout_additions:
+usage=` log lines record them. `worklogs/assets/2026-11-09-support-call-costs.py`
+sums those lines per slot between `starting:` and `finished status=completed`
+(final completed attempt only; 119/119 slots matched per run), adds completed-trace
+tokens, and prices at Azure DZ Sol 5.50/0.55/33.00 (brief) or GLM-5 1.20/3.20 (owa).
+
+| Run | Trace $/topic | Support $/topic | Total |
+| --- | ---: | ---: | ---: |
+| brief-base | 2.236 | 0.120 | 2.356 |
+| brief-hybrid | 2.038 | 0.117 | 2.156 |
+| owa-glm5 | 0.517 | 0.007 | 0.524 |
+
+Support tokens (in/out): base 714,218/314,269; hybrid 695,299/307,617; owa
+567,253/54,322. Completeness check (`/tmp/chk.py` on Sunfyre, all completed 119-topic
+traces): trace `summary.tokens.total` equals the sum of step totals for every run;
+sol-research-first has 238 auxiliary (critic/scout) steps = 2 per topic, so its
+plan/critic/scout cost is inside the 2.823 figure. facetrag plan/draft/check/format
+stages carry stats; 2 of ~4,600 generation steps carried none (negligible).
+Earlier +0.18 scaled estimate was too high; exact is about +0.12.
