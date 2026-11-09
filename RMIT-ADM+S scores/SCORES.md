@@ -117,23 +117,24 @@ across the two batches.** This table expresses `all_strict` as percentages.
 
 Configurations of the seven submitted systems (as in the report's configuration
 table). Sem: semantic; Kw: keyword; Hyb: hybrid RRF; SSR: shortest-substring
-ranking; Bool: Boolean search; Rev: post-draft review; Adj.: automatic
+ranking; Bool: Boolean search; Brief: requirements brief;
+Scout: blind obligation scout; Rev: post-draft review; Adj.: automatic
 adjacent-chunk expansion (the previous and next chunk of the top-ranked search
 hits are added to the evidence); `---`: not applicable (facetrag is a fixed
-pipeline). Retrieval k is the number of passages requested per search call; the
-agents choose it on each call (it is fixed by code in facetrag), and the typical,
+pipeline; its models are an orchestrator and an analyzer). Retrieval k is the
+number of passages requested per search call; the agents choose it on each call (it is fixed by code in facetrag), and the typical,
 most frequently requested value is shown. Runs marked * entered NIST human SxS
 assessment.
 
-| System | Models (Writer / Support) | Retrieval (k) | Planning / Review | Adj. |
+| System | Models (main / support) | Retrieval (k) | Planning / Review | Adj. |
 | --- | --- | --- | --- | --- |
-| sol-default | Sol | Sem+Kw (10) | None | No |
-| sol-research-first* | Sol (all stages) | Sem+Kw (10) | Plan+Scout | Yes |
-| brief-base | Sol / Luna | Sem+Kw (10) | Brief+Rev | Yes |
-| brief-hybrid | Sol / Luna | Hyb (10) | Brief+Rev | Yes |
-| facets | Luna | Sem+Kw (10), Hyb (15) | Facets+coverage check | No |
-| facetrag | OSS-120B / Qwen3-80B | Sem+Kw (10), Hyb (15), SSR+Bool | Facets+multi-stage review | --- |
-| owa-glm5* | GLM-5 (all stages) | Hyb (10) | Brief+Scout+Rev | Yes |
+| sol-default | Sol / --- | Sem+Kw (10) | None | No |
+| sol-research-first* | Sol / Sol | Sem+Kw (10) | Plan+Scout | Yes |
+| brief-base | Sol / Sol | Sem+Kw (10) | Brief+Rev | Yes |
+| brief-hybrid | Sol / Sol | Hyb (10) | Brief+Rev | Yes |
+| facets | Luna / --- | Sem+Kw (10), Hyb (15) | Facets+coverage check | No |
+| facetrag | GPT-OSS-120B / Qwen3-Next-80B | Sem+Kw+SSR+Bool (10), Hyb (15) | Facets+multi-stage review | --- |
+| owa-glm5* | GLM-5 / GLM-5 | Hyb (10) | Brief+Scout+Rev | Yes |
 
 The k values and Adj. flags were checked against the submitted runs' traces (see
 the [cost reconciliation worklog](../worklogs/2026-11-09-cost-reconciliation-aws.md),
