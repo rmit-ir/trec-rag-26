@@ -105,7 +105,11 @@ Standard = OpenAI list and no cache-write charge.
 - CloudWatch `AWS/Bedrock` is empty (invocation logging off), so hourly isolation of
   preflights is impossible; 98% coverage makes it unnecessary.
 
-## Still open
+## Superseded by the Azure section below
+
+The Azure-side rows in the result matrix above were provisional; see "Part 2: Azure billing" for the final figures.
+
+## Still open (as of Part 1)
 
 Azure usage for `trec-rag-2026-llm-resource` on Aug 8 UTC by meter (confirms provider,
 rates, tier, and whether the 174 failed brief attempts were billed); AWS account behind
@@ -117,3 +121,85 @@ facet_rag; management-account view for other member accounts.
 Azure-equivalent cost columns, rate-card section (with the Bedrock 10% markup and
 cache-write billing), evidence and limits; corrected the owa-glm5 and facetrag costs and the
 related conclusion bullets.
+
+# Part 2: Azure billing, run timing and final figures (same day)
+
+## Azure evidence
+
+- Resource `trec-rag-2026-llm-resource`: subscription `SUB-RMIT-RACE-NPE`
+  (e7991b59-570b-4e9a-af5e-209603ce54e2), resource group `rg-kun-ran` (Kun's), westus,
+  kind AIServices. Cost Management in the Azure Copilot tool only reached back 92 days
+  (earliest Aug 9), so the Aug 8 figures were exported from the portal Cost analysis
+  (view InvoiceDetails, Aug 8-9, USD): raw rows in
+  [assets/2026-11-09-azure-cost-analysis-aug8-9.csv](assets/2026-11-09-azure-cost-analysis-aug8-9.csv)
+  (columns UsageDate, Meter, PartNumber, CostUSD, Cost in AUD; no quantity column; constant
+  FX 1.444148 AUD per USD).
+- Meters are `5.6 {sol,luna,terra} ShortCo {Inp,Cd Inp,Opt} Std DZ 1M Tokens`: **Data Zone
+  Standard, short context**, with a cached-input meter and **no cache-write meter**.
+- Aug 8 UTC, USD: Sol input 821.71, cached 84.48, output 169.32 (total 1,075.51); Luna input
+  4.02, cached 0.20, output 1.73 (5.95); Terra 7.30 (not ours: no submitted run used Terra).
+  Aug 9: Sol 1.12, Luna 1.28, Terra 5.38. Aug 8-9 total $1,096.53.
+- Azure Monitor (resource totals, Aug 8 12:00-24:00 UTC): 252,923,609 input and 4,565,211
+  output tokens; activity only 13:00-19:00 UTC (hourly table in the Azure Copilot reply:
+  13:00 27.5M input ... 18:00 24.7M, zero from 19:00), matching the run windows. Per-deployment
+  and status-code splits were not retrievable through the Copilot tool.
+- Retail Prices API probe ([script](assets/2026-11-09-azure-retail-prices-probe.py), output
+  `assets/2026-11-09-azure-retail-prices-probe.out.txt`): Luna DZ westus 0.22 / 0.022 / 1.32
+  effective 2026-08-01 (in force on Aug 8). Sol DZ rows are all effective 2026-09-01
+  (4.40 / 0.44 / 22.00 westus), i.e. after the runs; Azure DZ = 1.1x Global (4.40 vs 4.00).
+  The pricing page and a Copilot quote ($4.40/$0.44/$22) therefore describe post-Sept-1
+  prices. Sol Aug 8 DZ rates are **inferred** as 5.50 / 0.55 / 33.00 (1.1x the pre-cut
+  Global 5 / 0.5 / 30; identical to Bedrock's Sol rates).
+- Repo rate cards (`src/ragrun/prices/`, Aug 5, operator-supplied): Bedrock Sol 5.50 / 33.00
+  (matches the AWS bill); Luna card says 1.10 / 6.60 but AWS billed 0.22 / 1.32 from Aug 5,
+  so that Luna file is stale. No Azure rate card exists anywhere in the repo or on Sunfyre.
+
+## Run timing (UTC), from trace started_at/ended_at, file names and mtimes
+
+facets-agent Aug 8 13:25 to 15:01; facet-rag Aug 8 13:38 to 16:25 (no earlier full test run
+of either exists; earlier runs under other run ids are dev runs); one-topic preflights
+Aug 8 13:01 to 13:37; brief-base 13:25 to 18:19 and brief-hybrid 13:25 to 18:50 (with 3
+launches and retries); sol runs Aug 7 04:29 to 05:19; owa-glm5 Aug 9 23:46 to Aug 10 03:08.
+
+## Final figures: evidence strength
+
+| Evidence | Strength |
+|---|---|
+| Bedrock Sol rates and quantities from AWS usage types; traces match bill at 98% | A, billed |
+| Sol aus runs on Bedrock (request logs, `.env`) | A |
+| GLM-5 rates (1.20 / 3.20), Aug 10 GLM-5 bill $53.16 consistent with run | A rates, B attribution |
+| Azure Aug 8 bill by meter; DZ tier; no cache-write meter | A amounts, C attribution to our runs |
+| Luna DZ rates (retail API, effective Aug 1) | A |
+| Brief/facets on Azure (config, model ids, Monitor window, no AWS Sol/Luna Aug 8) | B+ |
+| Sol DZ rates on Aug 8 = 5.50 / 0.55 / 33.00 | B-, inferred |
+| Azure spend about 2.1x successful-attempt cost (retries billed) | C, other callers not excluded |
+| facetrag cost (no billing match) | D |
+
+## Final per-topic cost (USD, 119 successful attempts)
+
+| Run | Provider | Cost | Evidence | Same rate card (Azure DZ) |
+|---|---|---:|---|---:|
+| brief-hybrid | Azure | 2.038 | estimated | 2.038 |
+| brief-base | Azure | 2.236 | estimated | 2.236 |
+| sol-default | Bedrock | 1.566 | verified | 1.315 |
+| sol-research-first | Bedrock | 2.823 | verified | 2.367 |
+| facets | Azure | 0.040 | estimated, Luna rate read | 0.040 |
+| owa-glm5 | Bedrock | 0.517 | estimated, rate from bill | n/a |
+| facetrag | unreconciled | 0.106 (0.094-0.117) | weak | n/a |
+
+Computation: `assets/2026-11-09-cost-recompute.py` (output `.out.txt`). Azure successful-attempt
+cost of the two brief runs at DZ rates $508.64 against $1,075.51 billed Sol (2.11x); facets
+$4.75 against $5.95 billed Luna. facetrag bounds use repo rate cards (gpt-oss-120b 0.1545 / 0.618;
+qwen3-next-80b 0.14 / 1.2) on 411,653 input and 49,727 output tokens per topic.
+
+## Open items
+
+Azure invoice unit price for `5.6 sol ShortCo Inp Std DZ` on Aug 8 (would confirm 5.50);
+whether other callers used the Azure resource on Aug 8; the AWS account behind facet_rag
+(its Bedrock usage is not in account 507363615341).
+
+## Report
+
+`../trec-rag-26-report/tables/submissions.tex`: only the `$/topic` column updated to the
+figures above (report repo has other uncommitted edits, not committed from here). Its caption
+and `sections/submitted-runs.tex` still describe the old $5/M placeholder and need rewording.

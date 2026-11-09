@@ -127,58 +127,73 @@ Average generation usage per topic:
 | owa-glm5-t119 | 415,080 | 0 | 5,899 |
 | facetrag-t119 | 411,653 | 0 | 49,727 |
 
-Generation cost per topic (USD). "As billed" is what the run's provider charged or
-would have charged; "Azure-equivalent" reprices the OpenAI runs at one common
-rate card so they compare fairly:
+Generation cost per topic (USD), best available evidence. "Verified" figures
+are reconciled to provider billing; "estimated" figures multiply traced token
+usage by a rate card. "Same rate card" reprices every OpenAI run at Azure Data
+Zone Standard rates so they compare fairly regardless of provider:
 
-| Run | Provider | As billed | Azure-equivalent |
-| --- | --- | ---: | ---: |
-| brief-hybrid-t119 | Azure (inferred) | $1.853 (estimated) | $1.853 |
-| brief-base-t119 | Azure (inferred) | $2.033 (estimated) | $2.033 |
-| sol-default | Bedrock | $1.566 (derived from AWS bill) | $1.195 |
-| sol-research-first | Bedrock | $2.823 (derived from AWS bill) | $2.152 |
-| facets-t119 | Azure (inferred) | $0.036 (estimated) | $0.036 |
-| owa-glm5-t119 | Bedrock | $0.517 (AWS GLM-5 rate x traced tokens) | n/a (open-weight) |
-| facetrag-t119 | not reconciled | about $0.09-0.14 (estimated) | n/a (open-weight) |
+| Run | Provider | Cost per topic | Evidence | Same rate card (Azure DZ) |
+| --- | --- | ---: | --- | ---: |
+| brief-hybrid-t119 | Azure | $2.038 | estimated | $2.038 |
+| brief-base-t119 | Azure | $2.236 | estimated | $2.236 |
+| sol-default | Bedrock | $1.566 | verified (AWS bill, 98% match) | $1.315 |
+| sol-research-first | Bedrock | $2.823 | verified (AWS bill, 98% match) | $2.367 |
+| facets-t119 | Azure | $0.040 | estimated (rate read from Azure) | $0.040 |
+| owa-glm5-t119 | Bedrock | $0.517 | estimated (rate from AWS bill) | n/a (open-weight) |
+| facetrag-t119 | not reconciled | $0.106 (range $0.094-0.117) | weak estimate | n/a (open-weight) |
 
 Token usage and costs average over all 119 test topics, excluding judging and
-preflight runs. Processed tokens count uncached input and output across model
-calls; cached-input reads are separate. Tokens measure accumulated generation
-work, not answer length or peak context size. Averages are rounded
-independently. The token breakdowns were recovered from usage traces matched to
-each submitted answer. See the [input/output worklog](../worklogs/2026-11-04-input-output-usage.md)
-and the [Sol recovery worklog](../worklogs/2026-11-04-sol-cost-recovery.md) for
-totals and per-topic rows, and the [cost reconciliation worklog](../worklogs/2026-11-09-cost-reconciliation-aws.md)
-for the AWS evidence, rates and arithmetic.
+preflight runs. Costs count the 119 successful submitted attempts (sol-default
+would be about $1.58 with its two failed attempts). Tokens measure accumulated
+generation work, not answer length or peak context size. Averages are rounded
+independently. Token breakdowns come from usage traces matched to each submitted
+answer. See the [input/output worklog](../worklogs/2026-11-04-input-output-usage.md),
+the [Sol recovery worklog](../worklogs/2026-11-04-sol-cost-recovery.md), and the
+[cost reconciliation worklog](../worklogs/2026-11-09-cost-reconciliation-aws.md)
+for totals, raw provider billing, rates and arithmetic.
 
-**Rate cards used (USD per 1M tokens: uncached input / cached input / output).**
+**Rate cards (USD per 1M tokens: uncached input / cached input / output).**
 
-- *Azure-equivalent Sol*: 5.00 / 0.50 / 30.00 (OpenAI list; Azure Global Standard
-  is assumed to match, with no cache-write fee). *Luna*: 0.20 / 0.02 / 1.20.
 - *Bedrock Sol, as billed (AWS Cost Explorer, Aug 7)*: input 5.50, cache read
   0.55, cache write 6.88, output 33.00. This is a **10% markup** over the
-  OpenAI list rate on every line (Luna on Bedrock is likewise 1.10x list:
-  0.22 / 0.022 / 1.32). Bedrock also bills the traces' "uncached input" as
-  *cache writes* at 1.25x the input rate (6.88), so those tokens cost 38% more
-  than on Azure.
-- *Bedrock GLM-5*: 1.20 input, 3.20 output.
+  OpenAI list rate (5 / 0.50 / 30) on every line. Bedrock also bills the traces'
+  "uncached input" as *cache writes* at 1.25x the input rate, so those tokens
+  cost 38% more than the list input price. *Bedrock GLM-5*: 1.20 input, 3.20
+  output.
+- *Azure Data Zone Standard, Aug 8 invoice*: no cache-write meter, so uncached
+  input is billed at the plain input rate. *Luna* 0.22 / 0.022 / 1.32, read from
+  the Azure Retail Prices API (effective Aug 1). *Sol* 5.50 / 0.55 / 33.00 is
+  **inferred**: Azure Data Zone is priced at 1.1x Global (4.40 against 4.00 today),
+  and the pre-cut Global price was 5 / 0.50 / 30. The API lists only Sol prices
+  effective Sept 1 (4.40 / 0.44 / 22), after these runs.
+- The earlier $5-per-million placeholder is retired.
 
-**Evidence and limits.** The two Sol runs were executed through Bedrock
-(`bedrock-mantle`, us-east-1) and their cost is derived from billed AWS usage:
-the traces' token totals match the Aug 7 bill (cache writes 61.0M vs 61.65M
-billed, cache reads 68.0M vs 68.7M, output 1.97M vs 2.13M) and the rate-card
-cost of the two runs, $522.29, accounts for 98% of that day's $532.77; the
-remainder is preflight and failed-request usage. Sol-default figures exclude its
-two failed attempts (179,386 processed tokens, roughly $0.01 per topic more).
-The brief and facets runs went through Azure OpenAI by configuration and model
-naming, but no Azure invoice or request log has been checked, so their costs are
-rate-card estimates and the Luna rate is inferred from Bedrock. The earlier
-placeholder of $5 per million processed tokens is retired. The previously
-reported $0.163 for owa-glm5 is superseded: at AWS's GLM-5 rates the traced
-tokens cost about $0.52 per topic (about $61.5 for the run). Facetrag's earlier
-$0.178 could not be matched to billing in the AWS account examined (only
-$1.80 of gpt-oss-120b on Aug 8), so it is shown as a rate-card range. All
-figures are generation-only, not total system operating costs.
+**Evidence and limits.**
+
+- *Verified*: the two Sol runs ran through Bedrock (`bedrock-mantle`, us-east-1;
+  1,092 and 1,410 logged requests). The traces' token totals match the Aug 7 bill
+  (cache writes 61.0M against 61.65M billed, cache reads 68.0M against 68.7M,
+  output 1.97M against 2.13M), and the two runs' rate-card cost of $522.29 accounts
+  for 98% of that day's $532.77. The remainder is preflight and failed-request
+  usage.
+- *Azure runs*: brief-base, brief-hybrid and facets ran on Aug 8 (UTC 13:25 to
+  18:50) through Azure OpenAI (Data Zone Standard), identified by configuration,
+  model naming, Azure Monitor token activity in that window, and no Sol or Luna
+  spend on AWS that day. Azure billed $1,075.51 for Sol and $5.95 for Luna on Aug 8,
+  about 2.1x the successful-attempt cost of $508.64 for the two brief runs (the 99
+  and 75 failed attempts from 429 rate limits consumed tokens and were billed), and
+  billing cannot be split between the three runs or separated from other callers
+  of the shared resource. Figures above are the cost of producing the submitted
+  answers, not total spend.
+- *owa-glm5*: the previously reported $0.163 is superseded. AWS bills GLM-5 at
+  1.20 / 3.20, so the traced 415,080 input and 5,899 output tokens cost $0.517 per
+  topic (about $61.5 for the run); AWS shows $53.16 for GLM-5 on Aug 10.
+- *facetrag*: its previously reported $0.178 could not be matched to billing. The
+  AWS account examined shows only $1.80 of gpt-oss-120b on Aug 8, so it was likely
+  billed elsewhere. The figure above is the midpoint of the cost of all tokens at
+  gpt-oss-120b or at Qwen3-Next-80B rates; treat it as indicative.
+- All figures are generation-only and exclude judging, retrieval infrastructure and
+  development spend.
 
 - **Hybrid has the strongest combined coverage-and-efficiency evidence.** It
   leads all three all-item coverage columns. Compared with brief-base, the gains
@@ -196,7 +211,7 @@ figures are generation-only, not total system operating costs.
   across the three collections, but slightly lowers all-item coverage in both B2
   collections. It made about 31% more searches and costs about 80% more
   per topic than sol-default, both as billed on Bedrock ($2.823 vs $1.566) and
-  under the common Azure-equivalent rate card ($2.152 vs $1.195). This is a
+  under the common Azure rate card ($2.367 vs $1.315). This is a
   substantial cost increase for selective coverage gains.
 - **Open-weight generation remains competitive on human preference at lower
   cost.** OWA cost about $0.52 per topic as billed (versus $1.57-$2.82 for the

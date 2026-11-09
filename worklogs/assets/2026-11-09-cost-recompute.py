@@ -35,3 +35,24 @@ for k, (u, c, o) in sol_total.items():
 print("two runs total", round(tot, 2), "vs AWS Aug-07 $532.77 ->", round(tot/D("532.77")*100, 1), "%")
 print("== owa-glm5 at AWS GLM-5 rate, USD/topic", round((D(415080)*GLM5[0]+D(5899)*GLM5[1])/M, 4),
       "run", round((D(415080)*GLM5[0]+D(5899)*GLM5[1])/M*119, 2))
+
+# ---- Added after Azure billing arrived: final per-topic figures (best available evidence) ----
+# Azure Data Zone Standard rates on Aug 8 (USD/1M): luna read from Azure Retail Prices API
+# (effective 2026-08-01); sol INFERRED = 1.1 x pre-cut Global list (5/0.5/30), same as Bedrock.
+AZ_DZ_SOL  = (D("5.50"), D("0.55"), D("33.00"))
+AZ_DZ_LUNA = (D("0.22"), D("0.022"), D("1.32"))
+print("\n== Azure Data Zone rates, USD/topic (successful attempts)")
+for k, t in per_topic.items():
+    print(k, round(cost(t, AZ_DZ_LUNA if k == "facets" else AZ_DZ_SOL), 4))
+for k, t in sol_total.items():
+    print(k, "(repriced on Azure DZ)", round(cost(t, AZ_DZ_SOL)/119, 4))
+az_succ = sum(cost(per_topic[k], AZ_DZ_SOL)*119 for k in ("brief-hybrid", "brief-base"))
+print("brief-base+hybrid successful-attempt Sol cost", round(az_succ, 2),
+      "| billed Sol Aug 8 $1075.51 -> x", round(D("1075.51")/az_succ, 2))
+print("facets successful", round(cost(per_topic["facets"], AZ_DZ_LUNA)*119, 2), "| billed Luna Aug 8 $5.95")
+# facetrag: 411,653 in / 49,727 out per topic; bounds from repo rate cards (src/ragrun/prices/)
+fi, fo = D(411653), D(49727)
+oss = (fi*D("0.1545") + fo*D("0.618"))/M
+qwn = (fi*D("0.14") + fo*D("1.2"))/M
+print("\n== facetrag bounds per topic: all gpt-oss-120b", round(oss, 4), "| all qwen3-next-80b", round(qwn, 4),
+      "| midpoint", round((oss+qwn)/2, 4))
