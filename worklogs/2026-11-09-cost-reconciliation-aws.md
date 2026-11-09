@@ -203,3 +203,51 @@ whether other callers used the Azure resource on Aug 8; the AWS account behind f
 `../trec-rag-26-report/tables/submissions.tex`: only the `$/topic` column updated to the
 figures above (report repo has other uncommitted edits, not committed from here). Its caption
 and `sections/submitted-runs.tex` still describe the old $5/M placeholder and need rewording.
+
+# Part 3: retrieval k and adjacent-page usage in the submitted runs (same day)
+
+Source: completed topics of each submitted run in the trace files on Sunfyre
+(`data/outputs/<system>/*.output.json`, `trace.steps` tool calls; the two Sol runs read from
+Kun's checkout, the rest from the shared dir). Sol counts include one preflight file each
+(120 vs 119 topics, under 1% effect).
+
+## k requested per `search` call (tool schema: "Number of passages to return (default 10)")
+
+`--k` only applies when the model omits `k` (`arguments.get("k", default_k)` in
+`agent_harness/tools/search.py`).
+
+| Run | searches | k distribution (top) | calls with no k key |
+|---|---:|---|---:|
+| sol-default (configured --k 20) | 2,863 | 10: 94%, 8: 4%, 12: 1%, 15: 1% | 0 |
+| sol-research-first (configured --k 20) | 3,764 | 10: 87%, 8: 10%, 15: 1%, 20: 1% | 0 |
+| brief-base (--k 10) | 3,462 | 10: 84%, 8: 11%, 6: 2%, 20: 2% | 0 |
+| brief-hybrid (--k 10) | 2,862 | 10: 88%, 8: 6%, 20: 2%, 6: 1% | 0 |
+| facets (hybrid default 15) | 1,827 | 10: 35%, 15: 29%, 12: 15%, 8: 12% | 0 |
+| facetrag (fixed by pipeline code) | 4,484 | 10: 69%, 15: 31% (hybrid 15, others 10) | 0 |
+| owa-glm5 (--k 10) | 1,540 | explicit 10: 8% | 1,392 (90%): default 10 applied |
+
+Per engine in facets: hybrid requested 15 in 526 of 539 calls. Judgment: modal values above
+are what the table reports.
+
+## Adjacent-page expansion
+
+Mechanism: for the top 5 paginated hits of each search, fetch the previous and next page
+(`brief_revise_agent/adjacent_pages.py`, ported from `aus_agent_v2/search.py`; no model call).
+Introduced in aus_agent_v2 (Kun, 2026-08-06) and in brief_revise_agent as "round B"
+(Oleg, 2026-08-07, commit 6ecfd50, with the harness `search_result_augment` hook b9d7c0b);
+owa-glm5 inherits brief_revise's default (on); no submitted run passed `--disable-adjacent-pages`.
+facetrag has no such mechanism (fixed pipeline), facets and sol-default never enabled it.
+
+Measured from traces (extra staged pages beyond the search results and explicit `get_documents`;
+for sol-research-first, results returned beyond k):
+
+| Run | searches with extra pages | extra pages / topic | committed items from extra pages / topic |
+|---|---:|---:|---:|
+| sol-research-first | 98% | 138.1 | 10.4 of 38.7 (27%) |
+| brief-base | 87% | 105.3 | 7.0 of 35.2 (20%) |
+| brief-hybrid | 89% | 89.2 | 6.0 of 33.2 (18%) |
+| owa-glm5 | 93% | 49.8 | 1.6 of 24.9 (6%) |
+| sol-default, facets | 0% | 0 | 0 |
+
+Topics with at least one committed extra page: brief-base 119/119, brief-hybrid 116/119,
+owa-glm5 86/119, sol-research-first 120/120 files.
