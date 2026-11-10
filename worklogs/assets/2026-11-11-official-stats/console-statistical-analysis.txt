@@ -1,0 +1,59 @@
+Using CPython 3.13.15
+Creating virtual environment at: tasks/official_stats/.venv
+Downloading numpy (5.2MiB)
+Downloading pillow (4.6MiB)
+Downloading fonttools (3.0MiB)
+Downloading scipy (19.5MiB)
+Downloading matplotlib (8.9MiB)
+Downloading pandas (10.7MiB)
+ Downloading pillow
+ Downloading fonttools
+ Downloading matplotlib
+ Downloading numpy
+ Downloading pandas
+ Downloading scipy
+Installed 14 packages in 79ms
+
+=== Part A: all-pairs coverage (Tukey HSD primary; Romano-Wolf, max-T, Holm-21 are sensitivity checks) ===
+  b1_human:vital_strict  N=17  bootstrap-t pairs=5  sparse=16 all-zero=0  degenerate-resamples=0.000% | significant: brief-hybrid-facetrag(+0.292), brief-base-facetrag(+0.224), sol-default-facetrag(+0.190), sol-research-first-facetrag(+0.292), facets-facetrag(+0.231), owa-glm5-facetrag(+0.253) | pairs where methods disagree: 1
+      brief-hybrid - brief-base: d=+0.0686 CI=n/a nz=5 [sparse_signflip] p_raw=0.125 Holm4=0.375 Tukey=0.845 Holm21=1.000 RW21=n/a
+      sol-research-first - sol-default: d=+0.1020 CI=n/a nz=4 [sparse_signflip] p_raw=0.125 Holm4=0.375 Tukey=0.453 Holm21=1.000 RW21=n/a
+      owa-glm5 - brief-hybrid: d=-0.0392 CI=n/a nz=5 [sparse_signflip] p_raw=0.438 Holm4=0.438 Tukey=0.989 Holm21=1.000 RW21=n/a
+      facets - facetrag: d=+0.2314 CI=[+0.098, +0.444] nz=8 [bootstrap_t] p_raw=0.008 Holm4=0.031 Tukey=0.000 Holm21=0.148 RW21=0.032
+  b1_human:all_strict    N=17  bootstrap-t pairs=7  sparse=14 all-zero=0  degenerate-resamples=0.000% | significant: brief-hybrid-facetrag(+0.287), brief-base-facetrag(+0.240), sol-default-facetrag(+0.239), sol-research-first-facetrag(+0.265), facets-facetrag(+0.220), owa-glm5-facetrag(+0.200) | pairs where methods disagree: 0
+      brief-hybrid - brief-base: d=+0.0471 CI=n/a nz=6 [sparse_signflip] p_raw=0.062 Holm4=0.125 Tukey=0.920 Holm21=0.812 RW21=n/a
+      sol-research-first - sol-default: d=+0.0260 CI=n/a nz=7 [sparse_signflip] p_raw=0.438 Holm4=0.438 Tukey=0.996 Holm21=1.000 RW21=n/a
+      owa-glm5 - brief-hybrid: d=-0.0874 CI=n/a nz=6 [sparse_signflip] p_raw=0.031 Holm4=0.094 Tukey=0.374 Holm21=0.469 RW21=n/a
+      facets - facetrag: d=+0.2196 CI=[+0.103, +0.375] nz=12 [bootstrap_t] p_raw=0.002 Holm4=0.010 Tukey=0.000 Holm21=0.042 RW21=0.016
+  b2_manual:vital_strict N=23  bootstrap-t pairs=20 sparse=1  all-zero=0  degenerate-resamples=0.005% | significant: brief-hybrid-owa-glm5(+0.154), brief-hybrid-facetrag(+0.252), brief-base-owa-glm5(+0.153), brief-base-facetrag(+0.251), sol-default-owa-glm5(+0.140), sol-default-facetrag(+0.238), sol-research-first-owa-glm5(+0.146), sol-research-first-facetrag(+0.244), facets-facetrag(+0.182) | pairs where methods disagree: 4
+      brief-hybrid - brief-base: d=+0.0009 CI=[-0.054, +0.053] nz=15 [bootstrap_t] p_raw=0.974 Holm4=1.000 Tukey=1.000 Holm21=1.000 RW21=0.988
+      sol-research-first - sol-default: d=+0.0055 CI=[-0.047, +0.062] nz=9 [bootstrap_t] p_raw=0.836 Holm4=1.000 Tukey=1.000 Holm21=1.000 RW21=0.988
+      owa-glm5 - brief-hybrid: d=-0.1540 CI=[-0.310, -0.073] nz=13 [bootstrap_t] p_raw=0.001 Holm4=0.003 Tukey=0.001 Holm21=0.015 RW21=0.111
+      facets - facetrag: d=+0.1820 CI=[+0.107, +0.267] nz=20 [bootstrap_t] p_raw=0.000 Holm4=0.000 Tukey=0.000 Holm21=0.002 RW21=0.016
+  b2_manual:all_strict   N=25  bootstrap-t pairs=21 sparse=0  all-zero=0  degenerate-resamples=0.000% | significant: brief-hybrid-owa-glm5(+0.118), brief-hybrid-facetrag(+0.242), brief-base-owa-glm5(+0.116), brief-base-facetrag(+0.241), sol-default-owa-glm5(+0.099), sol-default-facetrag(+0.224), sol-research-first-owa-glm5(+0.096), sol-research-first-facetrag(+0.221), facets-facetrag(+0.161), owa-glm5-facetrag(+0.125) | pairs where methods disagree: 6
+      brief-hybrid - brief-base: d=+0.0018 CI=[-0.032, +0.036] nz=17 [bootstrap_t] p_raw=0.916 Holm4=1.000 Tukey=1.000 Holm21=1.000 RW21=0.981
+      sol-research-first - sol-default: d=-0.0029 CI=[-0.037, +0.029] nz=16 [bootstrap_t] p_raw=0.862 Holm4=1.000 Tukey=1.000 Holm21=1.000 RW21=0.981
+      owa-glm5 - brief-hybrid: d=-0.1176 CI=[-0.262, -0.052] nz=19 [bootstrap_t] p_raw=0.001 Holm4=0.003 Tukey=0.004 Holm21=0.017 RW21=0.198
+      facets - facetrag: d=+0.1611 CI=[+0.094, +0.226] nz=24 [bootstrap_t] p_raw=0.000 Holm4=0.000 Tukey=0.000 Holm21=0.001 RW21=0.008
+  b2_auto:vital_strict   N=25  bootstrap-t pairs=21 sparse=0  all-zero=0  degenerate-resamples=0.000% | significant: brief-hybrid-facets(+0.254), brief-hybrid-owa-glm5(+0.356), brief-hybrid-facetrag(+0.506), brief-base-facets(+0.258), brief-base-owa-glm5(+0.360), brief-base-facetrag(+0.510), sol-default-facets(+0.240), sol-default-owa-glm5(+0.342), sol-default-facetrag(+0.491), sol-research-first-facets(+0.259), sol-research-first-owa-glm5(+0.361), sol-research-first-facetrag(+0.510), facets-owa-glm5(+0.102), facets-facetrag(+0.251), owa-glm5-facetrag(+0.149) | pairs where methods disagree: 1
+      brief-hybrid - brief-base: d=-0.0040 CI=[-0.044, +0.041] nz=18 [bootstrap_t] p_raw=0.847 Holm4=0.847 Tukey=1.000 Holm21=1.000 RW21=0.967
+      sol-research-first - sol-default: d=+0.0191 CI=[-0.031, +0.062] nz=22 [bootstrap_t] p_raw=0.402 Holm4=0.804 Tukey=0.995 Holm21=1.000 RW21=0.821
+      owa-glm5 - brief-hybrid: d=-0.3563 CI=[-0.420, -0.295] nz=25 [bootstrap_t] p_raw=0.000 Holm4=0.000 Tukey=0.000 Holm21=0.000 RW21=0.000
+      facets - facetrag: d=+0.2512 CI=[+0.190, +0.307] nz=23 [bootstrap_t] p_raw=0.000 Holm4=0.000 Tukey=0.000 Holm21=0.000 RW21=0.000
+  b2_auto:all_strict     N=25  bootstrap-t pairs=21 sparse=0  all-zero=0  degenerate-resamples=0.000% | significant: brief-hybrid-facets(+0.232), brief-hybrid-owa-glm5(+0.322), brief-hybrid-facetrag(+0.454), brief-base-facets(+0.222), brief-base-owa-glm5(+0.312), brief-base-facetrag(+0.445), sol-default-facets(+0.230), sol-default-owa-glm5(+0.320), sol-default-facetrag(+0.453), sol-research-first-facets(+0.227), sol-research-first-owa-glm5(+0.317), sol-research-first-facetrag(+0.450), facets-owa-glm5(+0.090), facets-facetrag(+0.222), owa-glm5-facetrag(+0.133) | pairs where methods disagree: 1
+      brief-hybrid - brief-base: d=+0.0096 CI=[-0.035, +0.058] nz=23 [bootstrap_t] p_raw=0.724 Holm4=1.000 Tukey=1.000 Holm21=1.000 RW21=0.975
+      sol-research-first - sol-default: d=-0.0032 CI=[-0.052, +0.035] nz=21 [bootstrap_t] p_raw=0.941 Holm4=1.000 Tukey=1.000 Holm21=1.000 RW21=0.993
+      owa-glm5 - brief-hybrid: d=-0.3216 CI=[-0.373, -0.269] nz=25 [bootstrap_t] p_raw=0.000 Holm4=0.000 Tukey=0.000 Holm21=0.000 RW21=0.000
+      facets - facetrag: d=+0.2224 CI=[+0.178, +0.269] nz=24 [bootstrap_t] p_raw=0.000 Holm4=0.000 Tukey=0.000 Holm21=0.000 RW21=0.000
+
+=== Part C: side-by-side Bradley-Terry ===
+  batch1: diff(glm5 - research-first)=+150.1 Wald z=3.94 p=8.3e-05 Holm2=0.00017; tipping rho=None; z@rho=-0.99=2.80 (p=0.00516)
+      narrative-clustered: mean d=+0.158 CI=[+0.062, +0.287] p_signflip=0.0057 (W/T/L [13, 0, 4]); battle-weighted p=0.0049; DEFF=1.29 CI=[0.52, 1.94] p_null=0.186; DEFF-adjusted z=3.47 (p=0.000529)
+  batch2: diff(glm5 - research-first)=-75.7 Wald z=-2.44 p=0.015 Holm2=0.015; tipping rho=-0.5459177064893556; z@rho=-0.99=-1.73 (p=0.0841)
+      narrative-clustered: mean d=-0.093 CI=[-0.227, +0.008] p_signflip=0.1102 (W/T/L [9, 0, 16]); battle-weighted p=0.1399; DEFF=1.54 CI=[0.62, 2.77] p_null=0.038; DEFF-adjusted z=-1.97 (p=0.0493)
+  between-batch (narrative battle score, permutation): B1 +0.158 vs B2 -0.093, diff=+0.251, p=0.0024
+  [secondary, assumes common BT scale] BT diff-of-diffs=+225.8, z=4.59, p=4.4e-06
+
+=== Part D: owa-glm5 - sol-research-first coverage, B1 vs B2 manual interaction ===
+  vital_strict: B1 -0.039 (n=17), B2 manual -0.146 (n=23), B2 auto -0.361; interaction diff=+0.107, p=0.135
+  all_strict: B1 -0.065 (n=17), B2 manual -0.096 (n=25), B2 auto -0.317; interaction diff=+0.031, p=0.660
