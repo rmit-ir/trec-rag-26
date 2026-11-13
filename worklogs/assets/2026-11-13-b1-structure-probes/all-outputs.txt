@@ -1,0 +1,456 @@
+##### struct.py
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+glm {'words': 805.3, 'items': 14.4, 'heads': 0, 'bold': 0, 'bullets': 0, 'tables': 0, 'paras': 1, 'cites': 21.7, 'refs': 16.6}
+sol {'words': 951.2, 'items': 24.5, 'heads': 0, 'bold': 0, 'bullets': 0, 'tables': 0, 'paras': 1, 'cites': 41.9, 'refs': 28.9}
+---- heading-like items (<=12 words, no final period, no citations) / label-prefix items ----
+glm headings/report 2.1 per-topic [0, 8, 0, 0, 0, 15, 0, 6, 0, 0, 0, 0, 7, 0, 0, 0, 0] | label-prefix 2.1 | uncited items 3.5
+sol headings/report 0 per-topic [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] | label-prefix 1.1 | uncited items 2.9
+##### cap.py
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+glm titlecase-heading items 2.1 [0, 8, 0, 0, 0, 15, 0, 6, 0, 0, 0, 0, 7, 0, 0, 0, 0]
+  inline Title-Case label: 1.1 [0, 4, 0, 0, 0, 7, 0, 0, 0, 0, 0, 0, 2, 0, 0, 6, 0]
+  ALLCAPS tokens: 3.1 | topics with any structural marker: 5 /17
+  any marker total/report: 2.8
+sol titlecase-heading items 0 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  inline Title-Case label: 0 [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
+  ALLCAPS tokens: 3.4 | topics with any structural marker: 0 /17
+  any marker total/report: 0
+##### caps2.py
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+B1 glm ALLCAPS headings/report 0 topics with any 0 / 17
+B1 sol ALLCAPS headings/report 0 topics with any 0 / 17
+B2 glm ALLCAPS headings/report 0.4 topics with any 1 / 25
+B2 sol ALLCAPS headings/report 0 topics with any 0 / 25
+all119 glm ALLCAPS headings/report 0.2 topics with any 4 / 119
+all119 sol ALLCAPS headings/report 0 topics with any 0 / 119
+##### sxs.py
+structured: ['rag2026-13', 'rag2026-30', 'rag2026-45', 'rag2026-68', 'rag2026-95']
+topic  glm(w/t/l) net | sol(w/t/l) net | struct
+rag2026-11 (3, 5, 1) 0.22 | (0, 8, 3) -0.27 | 
+rag2026-13 (2, 0, 8) -0.6 | (3, 0, 9) -0.5 | S
+rag2026-16 (10, 2, 1) 0.69 | (2, 1, 7) -0.5 | 
+rag2026-17 (7, 3, 0) 0.7 | (3, 1, 3) 0.0 | 
+rag2026-29 (8, 3, 2) 0.46 | (7, 0, 5) 0.17 | 
+rag2026-30 (7, 0, 2) 0.56 | (6, 0, 7) -0.08 | S
+rag2026-41 (15, 5, 0) 0.75 | (8, 0, 2) 0.6 | 
+rag2026-45 (11, 0, 2) 0.69 | (9, 0, 2) 0.64 | S
+rag2026-50 (7, 0, 5) 0.17 | (5, 0, 3) 0.25 | 
+rag2026-57 (5, 0, 2) 0.43 | (5, 1, 2) 0.38 | 
+rag2026-59 (6, 0, 2) 0.5 | (3, 0, 8) -0.45 | 
+rag2026-61 (7, 1, 1) 0.67 | (3, 5, 0) 0.38 | 
+rag2026-68 (13, 0, 1) 0.86 | (6, 2, 6) 0.0 | S
+rag2026-71 (5, 0, 2) 0.43 | (10, 4, 0) 0.71 | 
+rag2026-79 (8, 0, 2) 0.6 | (8, 0, 3) 0.45 | 
+rag2026-95 (5, 1, 1) 0.57 | (11, 2, 3) 0.5 | S
+rag2026-97 (4, 3, 2) 0.22 | (4, 6, 1) 0.27 | 
+structured owa-glm5-t119 mean net 0.415 n 5
+structured sol-research-first mean net 0.112 n 5
+plain owa-glm5-t119 mean net 0.487 n 12
+plain sol-research-first mean net 0.165 n 12
+all owa-glm5-t119 mean net 0.466 n 17
+all sol-research-first mean net 0.149 n 17
+##### sign.py
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+glm
+  enumerators                    mean 1.0  topics>0 5/17
+  any-case colon lead-in         mean 2.4  topics>0 8/17
+  phase/step markers             mean 0.2  topics>0 1/17
+  semicolons                     mean 2.3  topics>0 14/17
+  'if/when…then' decision rules  mean 0.4  topics>0 3/17
+sol
+  enumerators                    mean 0.0  topics>0 0/17
+  any-case colon lead-in         mean 1.9  topics>0 15/17
+  phase/step markers             mean 0.0  topics>0 0/17
+  semicolons                     mean 5.2  topics>0 15/17
+  'if/when…then' decision rules  mean 0.4  topics>0 5/17
+corr(glm-sol signpost gap, net margin) = -0.44
+##### corr.py
+n 17 | glm-sol net margin>0 on 13
+words                pearson -0.26 spearman -0.20 | GLM better on  0/17 topics
+references           pearson -0.22 spearman -0.04 | GLM better on  0/17 topics
+words_per_sentence   pearson  0.04 spearman  0.12 | GLM better on  0/17 topics
+reading_ease         pearson -0.13 spearman -0.26 | GLM better on  0/17 topics
+fk_grade             pearson  0.11 spearman  0.26 | GLM better on  0/17 topics
+ari                  pearson  0.08 spearman  0.22 | GLM better on  0/17 topics
+coleman_liau         pearson  0.12 spearman  0.19 | GLM better on  0/17 topics
+gunning_fog          pearson  0.25 spearman  0.39 | GLM better on  0/17 topics
+difficult_words      pearson -0.32 spearman -0.26 | GLM better on  0/17 topics
+sentences            pearson -0.08 spearman -0.08 | GLM better on  0/17 topics
+reading_ease glm easier/shorter on 16 topics: mean margin 0.33 | else 1 topics: 0.15
+words_per_sentence glm easier/shorter on 17 topics: mean margin 0.32 | else 0 topics: n/a
+words glm easier/shorter on 15 topics: mean margin 0.32 | else 2 topics: 0.32
+##### rd.py 16 59 68 71 97 50 95 (items truncated to 110 chars)
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+
+######## rag2026-16
+ASK: I'm helping a hospital medication-safety group decide whether to pilot NLP for adverse drug event surveillance. We have discharge summaries and medication notes, but leadership also keeps asking whether patient forums, Twitter-like posts, and published case reports could be useful. What should we realistically expect from named-entity recognition and relation extraction here? How should we compare EHR notes, social media, and literature as data sources, and what technical and workflow choices would matter most before putting anything near a pharmacist review queue?
+
+== glm 7 items
+ - Named-entity recognition for adverse drug event detection identifies spans of text representing drugs, dosages
+ - On drug-drug interaction tasks, systems have achieved 71.1% to 83.5% F1 on benchmark datasets. Social media pr
+ - Clinical text requires handling heavy abbreviation use, spelling errors, ungrammatical sentences, and frequent
+ - EHR notes offer high clinical validity, structured medication lists, and known patient populations, but they r
+ - Large annotated datasets exist for clinical notes through challenges, but social media ADR extraction suffers 
+ - The most critical workflow choice is precision versus recall optimization based on your tolerance for false po
+ - Confidence thresholds should be calibrated so that the positive predictive value of your pharmacist queue matc
+
+== sol 20 items
+ - The realistic objective is an assistive triage system, not automated causality assessment: named-entity recogn
+ - An adverse drug event is harm associated with drug use, whereas an adverse drug reaction is an unintended resp
+ - A reviewable event must also resolve negation, temporality, experiencer, medication status, indication, and at
+ - EHR notes should be the first pilot source because they provide locally relevant exposure records, longitudina
+ - The 2018 n2c2 benchmark contained 505 discharge summaries with 83,869 concepts and 59,810 relations, and its b
+ - MADE 1.0 similarly used 1,089 oncology EHR notes with nine entity and seven relation types, yet relation F1 wa
+ - Patient forums and short posts can surface early, patient-valued signals such as tolerability, functioning, no
+ - CADEC offers an annotation model rather than a deployment estimate: it contains 1,250 AskAPatient posts about 
+ - Extreme prevalence matters operationally because one SMM4H medication task found only 0.2% positive posts, whi
+ - Published case reports offer curated timelines, diagnoses, dechallenge or rechallenge evidence, and clinical i
+ - The ADE-SCAI resource illustrates the scale and framing: 2,972 PubMed case reports contained 5,063 drug mentio
+ - Identical wording can carry different weight: “after starting Drug X, I fainted” in a forum is an unverified s
+ - Other false alerts include “no rash with amoxicillin,” “mother had a penicillin rash,” “rash occurred in 2019,
+ - Use transparent rules and dictionaries as a high-precision baseline, then compare a conventional CRF or BiLSTM
+ - Generative models may help draft annotations or explanations, but ChatGPT pharmacovigilance extraction remaine
+ - Evaluate exact and relaxed span precision, recall, and F1; normalization accuracy; relation and complete-event
+ - Begin with representative retrospective local annotation by two clinical reviewers plus adjudication, include 
+ - Set thresholds against a daily queue cap and predefined minimum patient-level sensitivity, positive predictive
+ - Only proceed to a capped pharmacist queue if silent validation meets those criteria, with feedback captured as
+ - Before processing any source, obtain privacy, security, legal, compliance, and IRB or quality-improvement dete
+
+######## rag2026-59
+ASK: I help manage a small city fleet, and we’re supposed to replace a mix of aging sedans, pickups, and service vans over the next 18 months. A few council members want us to just go electric, while our mechanics are warning that parts and new-vehicle delays are still weird since COVID and Ukraine. Can you help me understand what supply problems are actually hitting the auto industry now, how they differ for gas vehicles versus EVs, and what buying strategy would be least risky for a public fleet that can’t afford long downtime?
+
+== glm 6 items
+ - The auto industry continues to face significant supply chain disruptions. Semiconductor shortages remain a pri
+ - For conventional gasoline vehicles, the core vulnerability is semiconductor dependence and the complexity of t
+ - Electric vehicles face both advantages and vulnerabilities. EVs have fewer moving parts, no oil changes, and r
+ - Your mechanics' warnings about parts and new-vehicle delays are well founded. Industry guidance explicitly sta
+ - For sedans, most fleet managers are initially focusing on transitioning a specific type of vehicle, such as se
+ - Given these realities, the lowest-risk strategy for your fleet is a phased, multi-pronged approach. Begin by t
+
+== sol 26 items
+ - This briefing assumes a U.S. municipal fleet and uses evidence available through 7 August 2026, but prices, in
+ - An internal-combustion-engine vehicle, or ICEV, burns gasoline or diesel; a battery-electric vehicle, or BEV/E
+ - A duty cycle is the vehicle’s actual daily mileage, stops, idle time, load, towing, weather, emergency availab
+ - Lead time is the interval from order to usable delivery, including production and upfitting; vehicle-off-road 
+ - Allocation is the manufacturer’s finite production capacity assigned among fleet and retail customers, so a pu
+ - A parts-service-level agreement, or SLA, is a contract specifying response, parts availability, repair complet
+ - COVID’s initial just-in-time shock explains why fleets retained vehicles longer, but it should not be treated 
+ - The documented Ukraine shock was the interruption of indispensable wiring-harness production, but the availabl
+ - Likewise, Red Sea disruption temporarily stopped particular Tesla and Volvo production while several other man
+ - Semiconductors remain a structural exposure for every modern powertrain because automotive systems rely heavil
+ - BEVs add substantial power-semiconductor content and battery-management electronics, while ICEVs and hybrids r
+ - BEVs remove oil changes and many drivetrain wear items, but high-voltage, battery, and software repairs requir
+ - Battery risk is concentrated rather than a universal cell shortage: graphite, lithium, refining, and other inp
+ - ICEVs generally offer the deepest familiar service ecosystem, HEVs reduce fuel use without charger dependence,
+ - Government channels offer BEVs and PHEVs across sedans, pickups, and vans, but the cited 2024 model list shows
+ - Charging is effectively another fleet subsystem: utility capacity, design, permitting, construction, hardware,
+ - Smart charging can defer some electrical upgrades, while monitoring, automatic alerts, remote diagnostics, and
+ - For the predictable short-route sedan, a BEV is the lowest-risk electrification candidate when verified winter
+ - For a pickup with variable towing, storm response, or no guaranteed return-to-base window, retain an ICEV or H
+ - For a tool-carrying service van, electrify only a repeatable urban route after weighing shelving and payload a
+ - During the next 90 days, rank every unit by safety condition, maintenance trend, mission consequence, and vehi
+ - Use state or cooperative contracts where lawful, solicit at least two manufacturers or dealers, permit equival
+ - Standardize within each mission where that improves shared parts and technician familiarity, but avoid concent
+ - Stock high-failure common parts, pre-order known long-lead components, preserve an operational spare ratio, an
+ - Evaluate every bid with scenario-based TCO that includes chargers, utility work, downtime, collision repair, r
+ - The least-risk decision is therefore a staged portfolio: buy BEV sedans and selected high-use urban vans only 
+
+######## rag2026-68
+ASK: I'm on a parent advisory committee in a small school district that is reviewing safety spending after Uvalde. We have limited money, and people are pushing for everything from door hardware and panic buttons to more cameras, AI monitoring, active-shooter training, mental-health staff, and revised police coordination plans. What should we prioritize if our goal is to reduce risk without turning school into a place that feels hostile or performative? How should we think about the tradeoffs between physical security, technology, staff training, threat reporting, emergency medical response, and long-term student trauma support?
+
+== glm 18 items
+ - Based on the research evidence, here are prioritized recommendations for school safety spending that reduce ri
+ - Priority 1: Behavioral Threat Assessment and Anonymous Reporting Systems
+ - The most evidence-based investment is behavioral threat assessment (BTA), a process recommended by the U.S. De
+ - Research shows that in 81% of school violent incidents, someone other than the attacker knew it would happen b
+ - Priority 2: Door Hardware and Access Control with Staff Training
+ - The Uvalde investigation revealed that Robb Elementary had security policies requiring locked doors, but a "cu
+ - However, the Sandy Hook investigation showed that buzzer systems alone are insufficient—the shooter easily bre
+ - Priority 3: Stop the Bleed Training and Bleeding Control Kits
+ - Bleeding is the number one cause of preventable death following injury, and a person can die from blood loss w
+ - Lower Priority: Security Cameras, Metal Detectors, and AI Monitoring
+ - Research consistently shows no clear evidence that metal detectors, security cameras, or guards prevent school
+ - Tradeoffs Between Approaches
+ - Physical security measures like cameras and metal detectors have intuitive appeal but lack research support fo
+ - In contrast, threat assessment and tip lines are proactive rather than reactive. They identify individuals who
+ - Active Shooter Drills: Proceed with Caution
+ - Research shows lockdown drills can save lives when conducted appropriately, but drills that are not conducted 
+ - Recommendations for Avoiding Hostile Environments
+ - Prioritize invisible structural upgrades (door locks, access control protocols) over visible hardening measure
+
+== sol 29 items
+ - Adopt layered security: independent, routinely tested prevention, mitigation, response, and recovery measures,
+ - Judge proposals by expected benefit, evidence confidence, coverage, reliability, lifecycle cost, staffing need
+ - Do not equate hardening—locks, barriers, controlled entrances, and other physical obstacles—with safety itself
+ - Uvalde’s central lesson is operational: the district had police, plans, fences, monitoring, reporting, threat 
+ - Fund recurring exterior and classroom-door audits, repairs, key control, substitute training, and documented c
+ - New locks must permit one-motion, keyless free egress, accessible operation, responder entry, and preservation
+ - Next fund two-way communications reaching every classroom, current responder maps, backup channels and power, 
+ - Incident command means a named commander or unified multi-agency command coordinating operations, staging, med
+ - If officers serve schools, use an agreement limiting them to serious safety and legal matters rather than rout
+ - Behavioral Threat Assessment and Management is a multidisciplinary, fact-based process for evaluating concerni
+ - Its workflow should receive reports, triage immediate danger, gather corroborating facts, assess context and a
+ - Anonymous reporting is a continuously monitored channel through which people may report concerns without revea
+ - Expect broader welfare needs, because Colorado’s Safe2Tell received 9,163 tips in 2016–17, up 58 percent, with
+ - FERPA permits case-specific disclosure to appropriate parties during an articulable health-or-safety emergency
+ - Mental-health care and targeted-violence prevention overlap when they connect a distressed student to help, bu
+ - Protect counselor, psychologist, social-worker, and nursing capacity from gadget purchases, since a review fou
+ - Use announced, age-appropriate drills without surprise gunfire, actors, or sensory realism, providing advance 
+ - Properly implemented lockdown practice can improve preparedness and skill mastery without consistently increas
+ - Place bleeding-control kits with emergency supplies, train staff in calling 911, scene safety, pressure, wound
+ - Treat panic buttons as communications endpoints rather than protection, buying them only after dispatch confir
+ - Use cameras narrowly for verified needs and audited access, because a study of more than 54,000 students in 98
+ - AI monitoring uses algorithms to flag video, messages, searches, or device activity; a false positive flags be
+ - Defer AI unless vendors disclose accuracy and subgroup error rates, validation, cybersecurity, retention, dele
+ - In a hypothetical $150,000 choice, prefer $100,000 for door repairs, radios, maps, reporting and BTAM training
+ - A representative failure chain is a panic button sending an ambiguous location, failed radio coverage, respond
+ - Recovery planning should precede an incident and include family reunification, substitute facilities, learning
+ - Rank the first phase highest for broad expected risk reduction, stronger guidance, low climate burden, equitab
+ - Make the second phase site-specific—code-compliant access upgrades, limited cameras, panic buttons, and define
+ - Place AI surveillance, expansive cameras, metal detectors, and conspicuous hardening last unless a documented 
+
+######## rag2026-71
+ASK: Our county justice advisory board is debating whether to change how prosecutors use plea offers in low-level felony and misdemeanor cases, especially where people are jailed pretrial because they cannot afford bail. What should we understand about how plea bargaining actually shapes legal outcomes? I need help weighing efficiency, defendants’ rights, trial penalties, collateral consequences, race and poverty effects, victim interests, and what safeguards or data reporting would make the process more accountable.
+
+== glm 8 items
+ - Plea bargaining has become the dominant mechanism for resolving criminal cases in the United States, with over
+ - For indigent defendants jailed pretrial because they cannot afford bail, the pressure to plead guilty becomes 
+ - The efficiency benefits of plea bargaining are substantial. The practice "assures a conviction" for prosecutor
+ - Collateral consequences—the severe additional penalties that follow a criminal conviction beyond the formal se
+ - Racial and socioeconomic disparities pervade the plea bargaining process. A study of over 10,000 cases in San 
+ - Victims have distinct interests in the plea bargaining process. Some victims prefer plea bargains because they
+ - Meaningful accountability requires specific safeguards. First, plea bargaining should occur in the courtroom r
+ - For low-level felony and misdemeanor cases involving defendants who cannot afford bail, these recommendations 
+
+== sol 25 items
+ - Plea bargaining is not merely a sentencing discount but the process through which charging, detention, evidenc
+ - A charge alleges an offense, each count is a separate allegation, charge bargaining substitutes a lesser offen
+ - A guilty plea admits the offense, a no-contest plea accepts conviction without admitting it, and an open plea 
+ - Cash bail conditions release on money or property, whereas nonfinancial release uses recognizance, supervision
+ - Detention changes bargaining leverage because liberty today may outweigh possible acquittal later, while relea
+ - In hundreds of thousands of Harris County misdemeanor cases, Heaton, Mayson, and Stevenson found detained defe
+ - Research exploiting quasi-random assignment to stricter or more lenient bail judges likewise found detention i
+ - Time-served offers are especially concerning because, among cases likely to end in acquittal, diversion, or di
+ - A high plea rate, racial disparity, or detention–conviction association alone does not prove coercion, discrim
+ - Legally, voluntariness means a rational choice not overborne by coercion and made with knowledge of direct con
+ - Effective counsel includes communicating formal offers and competently advising about them, with Frye and Lafl
+ - Federal disclosure doctrine is an inadequate policy floor because Ruiz does not require pre-plea disclosure of
+ - Direct consequences include court-imposed jail, probation, fines, restitution, and supervision, whereas collat
+ - The “trial penalty” is the difference between the plea offer and post-trial charge or sentence, but simple com
+ - Negotiated dispositions conserve prosecution, defense, court, witness, and victim resources, and historical ba
+ - Victims may value prompt certainty, restitution, safety conditions, and avoiding testimony, but accountable pr
+ - Poverty determines who can purchase release, and race may compound that mechanism, but local studies showing d
+ - In a hypothetical first pathway, an indigent detained misdemeanor defendant receives a same-day time-served of
+ - In the contrasting hypothetical, a comparable released defendant keeps working, reviews evidence with counsel,
+ - A balanced pilot would replace unstructured discretion with written presumptive noncustodial offers for eligib
+ - The board should monitor net-widening through burdensome diversion, unequal ability to complete fees or treatm
+ - Case-level records should capture every offer’s terms, timing, expiration, and amendment; initial and amended 
+ - Public dashboards should report definitions and missingness, suppress small cells, protect victims and defenda
+ - Because the county and state were not identified, I could not establish the controlling local bail, sentencing
+ - The board should approve reform only if it preserves proportionate resolution and victim safety, reduces wealt
+
+######## rag2026-97
+ASK: I advise a small progressive policy network that works with parties in Latin America. Chile under Gabriel Boric is coming up a lot in our internal debates: some people see it as a model for a democratic left government, while others think it shows the limits of trying to move fast on redistribution, constitutional change, lithium, water, Indigenous rights, and public security at the same time. How should we understand Boric’s experience so far? What were the main opportunities, constraints, and tradeoffs, and what lessons should a left coalition elsewhere in the region take from Chile?
+
+== glm 21 items
+ - Chile under Gabriel Boric offers a sobering case study in the limits of ambitious reform agendas pursued witho
+ - Boric assumed office in March 2022 with an electoral mandate to reshape Chile: a welfare state, pension system
+ - The deeper opportunity was structural: mass protests in 2019, driven by the rallying cry "until dignity become
+ - The Constitutional Convention elected in May 2021 was a democratic innovation with guaranteed gender parity an
+ - In September 2022, voters rejected the proposed constitution by 61.86% to 38.14%, with turnout at only 43%.
+ - The 388-article draft, which enshrined over 100 new rights, declared Chile a "plurinational, intercultural, an
+ - The right-wing and conservative media campaigned with slogans like "Chile will not be Venezuela," and many mid
+ - The convention itself was criticized for lacking coherence, with 155 delegates from diverse backgrounds strugg
+ - The defeat cascaded politically.
+ - In May 2023, the far-right Republican Party won 35.4% of the votes and 23 of 50 seats on the Constitutional Co
+ - The political center collapsed, polarization intensified, and Boric faced a divided parliament where passage o
+ - The Chilean Senate, controlled by the opposition, demanded a two-thirds vote for tax reform, blocking revenue 
+ - Parallel reform efforts compounded the difficulty.
+ - The government announced a "National Lithium Strategy" to nationalize Chile's lithium resources but failed to 
+ - Critics warned that the plan categorized 70% of salt lakes as "replaceable," inviting further sacrifice zones.
+ - Simultaneously, public security deteriorated, with the homicide rate rising 32% between 2021 and 2022, and the
+ - The Indigenous conflict, land disputes, and drug-related violence created a multi-front crisis that the govern
+ - The strategic lesson is that pursuing constitutional transformation, resource nationalism, Indigenous rights, 
+ - Opportunities included massive social mobilization and innovative democratic mechanisms; constraints included 
+ - Boric's government shows that a reformist agenda must be sequenced around achievable goals, built on coalition
+ - A progressive coalition elsewhere in the region should prioritize coalition-building before agenda-setting, fo
+
+== sol 19 items
+ - This assessment runs through 30 April 2024, when Boric’s experience already supported neither a “model governm
+ - His opportunity was unusually large: the uprising had opened constitutional change, younger voters helped disp
+ - Yet Apruebo Dignidad, Boric’s younger left alliance including the Communist Party, needed both Socialismo Demo
+ - The early strategy bundled constitutional transformation, taxes, pensions, labour rights and natural-resource 
+ - Macroeconomics narrowed the distributive envelope independently of Boric: output growth fell from 11.7% in 202
+ - The structural-balance rule—budgeting against cyclically adjusted, expert-estimated copper revenue and potenti
+ - The clearest financing episode was the tax package intended to raise 4.1% of GDP through higher top-income and
+ - Redistribution therefore advanced through divisible, legible measures rather than one fiscal refoundation: tar
+ - Constitutionally, the first directly elected Convention—with gender parity and 17 Indigenous seats—produced a 
+ - The second process replaced the “blank slate” with congressional experts, agreed principles and a 50-member Co
+ - Two differently authored defeats mean the lesson is not that Chile rejected left constitutionalism alone, but 
+ - Lithium likewise was not nationalization: the National Lithium Strategy protected selected salars, proposed In
+ - That state-control-versus-capacity compromise exposed a second dilemma when roughly 500 Indigenous protesters 
+ - On water, Boric inherited the April 2022 Water Code reform, which replaced perpetual ownership language with r
+ - Implementation was the harder politics: incomplete registration, a looming 2025 deadline, a projected tripling
+ - Indigenous policy combined recognition with coercion: Boric created a peace-and-reconciliation commission and 
+ - Public security became unavoidable after homicides rose more than 32% from 2021 to 2022 and three police offic
+ - The transferable priorities are therefore to secure a legislative coalition before announcing a maximal progra
+ - Chile-specific presidential prerogatives, plebiscite rules, fiscal institutions and copper revenues limit dire
+
+######## rag2026-50
+ASK: I'm helping design a museum panel on the Malayan Emergency for visitors who may only know it as a Cold War counterinsurgency success story. How should we explain whether British victory came mainly from military skill, colonial control, political reform, or communist mistakes? What should we say about the effects on Chinese squatters, the move toward independence, and the later memory of the conflict in Malaysia?
+
+== glm 5 items
+ - The British victory came from the interaction of all four factors, not from any single cause. Population contr
+ - The effects on Chinese squatters were profound. The Briggs Plan swept communities from their homes at dawn, fo
+ - The Emergency accelerated Malaya's path to independence. British strategy explicitly linked counterinsurgency 
+ - In Malaysian memory today, the conflict is commemorated as a victory of the security forces over a communist t
+ - The "success story" framing deserves scrutiny. While British doctrine highlighted the "hearts and minds" appro
+
+== sol 17 items
+ - The Malayan Emergency was a 1948–60 armed anticolonial and communist insurgency in British-ruled Malaya, fough
+ - Victory had no single cause: an initially clumsy campaign became effective when military adaptation, colonial 
+ - Military skill mattered, but not chiefly as conventional jungle fighting: Commonwealth forces developed tracki
+ - The Briggs system coordinated civil, police and military agencies, imposed food and movement controls and doub
+ - Yet this effectiveness depended on exceptional colonial powers: identity cards, curfews, censorship, detention
+ - “Hearts and minds” meant making civilians feel safer and giving them material and political reasons to coopera
+ - Communist mistakes completed the trap: the revolt began before the MCP was fully prepared, coercive attacks da
+ - As citizenship and electoral politics offered a credible route to self-government, revolution became less attr
+ - The people labelled “Chinese squatters” were mostly rural farmers and workers living without secure title near
+ - One administrative series counted 572,917 people moved into 480 villages between June 1950 and December 1952, 
+ - Families sometimes received only minutes’ warning, lost homes, crops and possessions to burning, endured searc
+ - Conditions varied, however, and some villages gained armed protection, plots, schools, clinics, electricity an
+ - Independence on 31 August 1957 was therefore connected to counterinsurgency but was not simply a British rewar
+ - That settlement marginalized communist armed struggle but also excluded other left-wing anticolonial possibili
+ - Later Malaysian memory remains plural: official monuments and security-force commemorations present national s
+ - The renewed communist insurgency from 1968 until the 1989 peace further complicates any neat 1960 victory stor
+ - The fairest conclusion is that military learning made pressure more precise, colonial power made population co
+
+######## rag2026-95
+ASK: I’m on a city youth-safety task force after several shootings near high schools and along bus stops. We have a limited one-year budget, and residents are split between adding more police/security, funding community groups, fixing vacant lots, and creating safe routes for students. What should we fund first if our goal is to reduce shootings and help students feel safe getting to school? Can you compare community violence intervention, Safe Passage-style routes, hospital-based programs, blight remediation, youth jobs or supports, and curfews, including what evidence is strongest, what can go wrong, and what would need sustained funding?
+
+== glm 9 items
+ - Based on the evidence gathered, here is my analysis comparing the six intervention types for your youth-safety
+ - Community Violence Intervention (CVI): CVI programs like Cure Violence deploy credible messengers ("violence i
+ - Safe Passage-Style Routes: Chicago's Safe Passage places adult monitors on designated routes during school com
+ - Hospital-Based Violence Intervention Programs (HVIPs): HVIPs intervene with gunshot and assault victims during
+ - Blight Remediation: Remediating vacant lots and abandoned buildings has strong quantitative evidence. A random
+ - Youth Jobs and Supports: A randomized controlled trial in Chicago assigned 1,634 disadvantaged high school stu
+ - Curfews: Campbell Collaboration systematic reviews of 12 studies found curfews are ineffective: the average ef
+ - Funding Recommendation: With a one-year budget and goals of reducing shootings and helping students feel safe,
+ - I could not find detailed experimental outcome data comparing hospital-based intervention programs to control 
+
+== sol 25 items
+ - Fund first a layered portfolio that protects the school journey immediately while reducing the concentrated ri
+ - Community violence intervention, or CVI, uses trusted “credible messengers” from affected communities to ident
+ - Baltimore Safe Streets, a nonrandomized four-neighborhood CVI evaluation involving ages 14–24, associated thre
+ - CVI can fail through weak targeting, insufficient mediation dosage, poor partner trust, or unsuitable messenge
+ - Do not conflate street-outreach CVI with Group Violence Intervention or focused deterrence, which concentrates
+ - Safe Passage places trained, usually unarmed community monitors along mapped school routes during arrival and 
+ - A longitudinal geocoded Chicago evaluation estimated 5–17% lower reported crime on designated routes than stre
+ - Safe Passage is therefore the best quick-start response to travel fear, but routes can merely shift trouble to
+ - Blight remediation means cleaning, greening, fencing, and maintaining vacant lots or securing abandoned buildi
+ - Philadelphia’s randomized trial of more than 500 lots followed for 38 months found significant crime reduction
+ - Greening can begin within months and scale cheaply, historically costing about $1.75 per square foot initially
+ - Hospital-based violence intervention programs, or HVIPs, engage violently injured patients and families in hos
+ - A two-hospital randomized trial of 10–15-year-olds found some six-month improvements in aggression, misdemeano
+ - HVIPs miss students who never reach participating hospitals and fail when referrals have no capacity, so fund 
+ - Youth jobs and supports provide paid work plus adult mentors, transportation, meals, conflict assistance, or c
+ - Chicago’s randomized One Summer Plus trial of 1,634 disadvantaged high-school students found 3.95 fewer violen
+ - Jobs are scalable but seasonal, historically cost about $3,000 per participant, and can fail through weak ment
+ - Juvenile curfews should receive no prevention allocation because a systematic review dominated by interrupted 
+ - Curfews instead create discretionary police contacts in a youth-justice system already marked by large racial 
+ - Additional school resource officers or generalized security should likewise be a limited benchmark, not the ce
+ - For an illustrative first-year budget, allocate 25% to Safe Passage and bus-stop coverage, 20% to rapid lot an
+ - Launch route mapping, lighting, cleanup, and procurement immediately; begin monitors and urgent repairs within
+ - Before contracting, combine geocoded police shootings, hospital injuries, transit incidents, attendance and cl
+ - At six and twelve months, reallocate from sites that miss staffing, coverage, referral, maintenance, or engage
+ - Local curfew authority, school-police rules, procurement, labor costs, funding eligibility, and privacy requir
+##### t13.py
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+glm items 23 words 769 refs 18 cited items 13 uncited 10 median words/item 33
+  first item: Decision: Stay as CEO and hire a COO now.
+  Month/phase-structured items: 3
+  second-person items: 13
+sol items 28 words 966 refs 20 cited items 13 uncited 15 median words/item 35
+  first item: At 35 people, frame this not as founder versus professional management, but as which respo
+  Month/phase-structured items: 7
+  second-person items: 14
+##### t2.py
+['rag2026-11', 'rag2026-13', 'rag2026-16'] 17 17
+I’m on the board of a statewide nonprofit that is being asked to endorse a ballot campaign saying health care should be treated as a right, not a privilege. Before we take a position, can you help me understand what that claim would actually imply in U.S. policy terms? How should we weigh universal coverage, affordability, medical debt, Medicaid expansion, employer-based insurance, emergency-room safety nets, single-payer proposals, taxes, patient choice, and implementation risks? I need something I can use to brief board members who care about both equity and fiscal practicality.
+===== glm items 50 words 854 refs 24 uncited 11
+ - RIGHT VS. PRIVILEGE: POLICY IMPLICATIONS
+ - The U.S. Constitution contains no explicit right to healthcare, though scholars argue the 14th Amendment's Due Process and Equal Protection Clauses create implied access regardless of financial circumstances.
+ - A legal right is constitutionally protected and cannot be taken away, while a privilege is granted or withheld at government discretion.
+ - Treating healthcare as a right shifts policy from market-based access toward government duty to ensure coverage, creating enforceable entitlements rather than aspirational principles.
+ - Unlike natural rights such as life and liberty, healthcare would become a legal right that is "potentially the most costly right of all," requiring government to provide an acceptable level of care for every citizen.
+ - UNIVERSAL COVERAGE AND INTERNATIONAL STANDARDS
+ - The United States is the only wealthy, industrialized nation without a universal healthcare system.
+ - Among 11 high-income nations, the U.S. ranks last in health system performance on access, efficiency, and equity, despite spending the highest per capita among OECD nations.
+ - U.S. health outcomes are worst among high-income nations: lowest life expectancy, highest death rates for avoidable conditions, and highest maternal and infant mortality.
+ - MEDICAID EXPANSION: A CONCRETE TEST
+ - The ACA expanded Medicaid to adults earning at or below 138% of the federal poverty level, with the federal government paying 90% of costs.
+ - In Ohio, expansion enrolled over 285,000 newly eligible residents, and the state projected a net fiscal gain of $1.8 billion over 2014-2022 due to federal funding and reduced uncompensated care.
+ - Currently, 10 states have not adopted expansion, leaving 1.5 million uninsured people in a coverage gap—they earn too much for traditional Medicaid but below poverty level, making them ineligible for Marketplace subsidies.
+ - MEDICAL DEBT AND AFFORDABILITY
+ - Americans collectively owe approximately $140 billion in outstanding medical debt.
+ - Uncompensated care exceeded $70 billion annually when 50 million were uninsured.
+ - About half of all U.S. bankruptcies cite medical causes, with average out-of-pocket costs of $11,854 for medical debtors and $35,878 for cancer patients.
+ - Three-fourths of those filing for medical bankruptcy had insurance at illness onset, indicating that insurance alone does not guarantee financial protection.
+ - Uninsured patients are often charged 2.5 to 3 times what insurers pay for the same hospital services.
+ - EMPLOYER-SPONSORED INSURANCE SYSTEM
+ - ESI covers nearly two-thirds of workers and their families but costs the federal government over $140 billion annually in tax-free fringe benefits.
+ - The system emerged as an "accident of history" when WWII wage controls led employers to expand health benefits, and a 1954 IRS ruling made employer contributions tax-exempt.
+ - ESI creates "job lock," where workers stay in jobs primarily for health benefits rather than better opportunities.
+ - The tax deduction disproportionately benefits high-income workers—a $10,000 premium saves $3,300 for a worker earning $200,000 but only $1,500 for a worker earning $35,000.
+ - EMERGENCY ROOM SAFETY NET: EMTALA
+ - The Emergency Medical Treatment and Active Labor Act requires hospitals receiving Medicare to provide medical screening exams and stabilize emergency conditions regardless of ability to pay.
+ - However, EMTALA does not ensure ongoing care, follow-up care, or specialty consultations beyond the emergency phase.
+ - Hospitals face fines of $50,000 to $104,826 per violation.
+ - REFORM MODELS: SINGLE-PAYER VS. PUBLIC OPTION
+ - A single-payer system means "a single public or quasi-public agency takes responsibility for financing healthcare for all residents," ensuring everyone has access to necessary services while individuals choose where they receive c
+ - Single-payer would be funded through existing government health spending plus progressive income and payroll taxes.
+ - However, reform faces political obstacles: stakeholders who stand to lose—including health insurers and pharmaceutical companies—represent powerful opposition, and perceptions of high tax liabilities and socialized medicine create
+ - Canada's single-payer system costs roughly three times less per capita than U.S. healthcare.
+ - Medicare operates with 3-4% overhead compared to 20-30% for private insurance.
+ - A public option would leave the current multi-payer system in place, sacrificing most administrative savings.
+ - The public option cannot achieve universal coverage at an affordable cost, while single-payer can.
+ - TAXES AND FISCAL PRACTICALITY
+ - Single-payer would require an estimated $811 billion annually in new revenue through payroll and progressive income taxes.
+ - This would replace current premiums, deductibles, and out-of-pocket costs borne by employers and individuals.
+ - Single-payer systems achieve lower health spending as a percentage of GDP due to government monopolistic market power for cost control.
+ - PATIENT CHOICE
+ - In single-payer systems, healthcare is portable from job to job, eliminating job lock and improving labor-market efficiency.
+ - "Money follows the patient," so providers compete on quality and satisfaction, not price.
+ - Currently, 92% of consumers cite cost measures as very important in plan selection, leading many to accept narrow networks that limit physician choice for lower premiums.
+ - BALANCING EQUITY AND FISCAL PRACTICALITY
+ - Medicaid expansion demonstrates that federal matching funds (90%) can make coverage expansion fiscally advantageous while reducing uninsurance.
+ - The 1.5 million people in the coverage gap represent the inequity when states opt out.
+ - Medical debt, bankruptcy, and worse health outcomes for the uninsured represent the human cost of treating healthcare as a privilege.
+ - Fiscal costs of universal coverage must be weighed against current spending on uncompensated care ($70+ billion annually) and ESI tax subsidies ($140+ billion annually).
+ - Reform goals globally are "increasing access to medical services, improving the quality of care, and controlling the growth of costs".
+===== sol items 24 words 939 refs 29 uncited 3
+ - “Health care as a right” can mean a moral aspiration, a universal-access goal, a statutory entitlement government must fund, or an enforceable constitutional right that courts could compel, and these meanings are not interchangeab
+ - Because the state, campaign text, legal form, funding mechanism, and election year were not provided, I cannot establish the proposal’s exact legal or fiscal effect.
+ - Universal coverage means everyone has insurance, not necessarily affordable or timely care, while underinsurance means coverage whose out-of-pocket costs are too high relative to income; genuine access also requires adequate benef
+ - Cost sharing includes deductibles paid before coverage begins, fixed copayments, and percentage coinsurance, while a provider network is the contracted group of clinicians and facilities for which a plan offers its best terms.
+ - The policy spectrum runs from ACA subsidies and enrollment assistance through Medicaid expansion, a public option competing with private plans, employer mandates, regulated multipayer coverage, and single payer, meaning one public
+ - Incremental ACA reform preserves familiar coverage and limits transition disruption, but retains multiple eligibility systems, networks, billing rules, administrative costs, and opportunities for people to remain uninsured or unde
+ - Medicaid expansion targets low-income adults and receives a permanent 90 percent federal match for the expansion population under current law, leaving states responsible for 10 percent, although enrollment, utilization, provider r
+ - A subsidized public option can add consumer choice and pressure private premiums without abolishing employer coverage, but its performance depends on subsidies, provider payment, network adequacy, and risk adjustment, because adve
+ - Employer mandates build on an established coverage channel and pool risks, but leave many nonworkers and workers without qualifying jobs dependent on public programs, perpetuate job lock, burden smaller employers, and can ultimate
+ - In 2023, workers paid averages of $1,401 toward single and $6,575 toward family employer premiums, before individual deductibles averaging $1,641, illustrating why preserving employer insurance does not by itself ensure affordabil
+ - A regulated multipayer system can preserve insurer and benefit choice and avoid wholesale transition, but universal participation, sufficient subsidies, standardized benefits, risk adjustment, and cost controls are needed to limit
+ - Single payer can automatically cover residents, replace premiums and much cost sharing with taxes, simplify administration, negotiate prices, and potentially broaden clinician choice beyond insurer networks, but lawmakers must sti
+ - Higher taxes do not necessarily mean higher total cost, so fiscal comparisons should combine taxes, premiums, employer contributions, deductibles, copayments, state spending, and federal transfers, then subtract avoided private pa
+ - Medical debt is a separate performance test because insurance can still leave unaffordable cost sharing, uncovered services, denied claims, and out-of-network bills; among surveyed people with medical-bill problems, 62 percent wer
+ - Medicaid expansion has stronger financial-protection evidence: expansion states experienced a substantially larger decline in medical debt in collections than nonexpansion states, while another analysis estimated a 20 percent redu
+ - The randomized Oregon experiment found that Medicaid increased service use, doctor access, diabetes detection and management, and financial protection and reduced depression, but did not significantly improve measured physical-hea
+ - State fiscal effects are not automatically costly or free because federal funds and savings on uncompensated care or existing state programs can offset the state share, but results depend on state-specific enrollment and spending.
+ - EMTALA, the Emergency Medical Treatment and Labor Act, requires covered emergency departments to screen and stabilize emergency conditions regardless of ability to pay, but supplies neither comprehensive insurance nor routine cont
+ - Patient choice has several dimensions: multipayer systems may offer more insurer or benefit choices, single payer may permit broader clinician choice, and neither guarantees nearby care where workforce shortages or rural hospital 
+ - An incremental illustration would expand Medicaid, improve marketplace subsidies, cap cost sharing, and add a public option: uninsured and underinsured residents gain first, employers largely retain their plans, taxpayers fund sub
+ - A single-payer-style transition would replace employer and individual coverage with one public plan and much premium spending with taxes, but abrupt conversion could disrupt benefits, insurance-sector employment, administration, p
+ - A state cannot independently redesign every federal program: Section 1115 authorizes approved Medicaid demonstrations, Section 1332 waives certain ACA rules only under coverage, affordability, comprehensiveness, and federal-defici
+ - Implementation safeguards should include phased enrollment and payment changes, workforce and rural-capacity funding, network and waiting-time monitoring, continuity protections for complex patients, fiscal reserves, transparent d
+ - The board can remain neutral while asking whether endorsement covers only the principle or an enforceable entitlement, what measures define universality and affordability, who gains and pays differently, whether total public-plus-
